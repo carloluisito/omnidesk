@@ -119,14 +119,22 @@ try {
   }
 }
 
-// Configure multer for terminal attachments
-const ATTACHMENTS_DIR = join(process.cwd(), 'temp', 'terminal-attachments');
-if (!existsSync(ATTACHMENTS_DIR)) {
-  mkdirSync(ATTACHMENTS_DIR, { recursive: true });
+// Lazy path resolution - evaluated when needed, not at module load time
+function getAttachmentsDir(): string {
+  return join(process.cwd(), 'temp', 'terminal-attachments');
 }
 
+// Configure multer for terminal attachments with lazy directory creation
 const attachmentUpload = multer({
-  dest: ATTACHMENTS_DIR,
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      const dir = getAttachmentsDir();
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      cb(null, dir);
+    },
+  }),
   limits: {
     fileSize: 20 * 1024 * 1024, // 20MB per file
     files: 10, // Max 10 files per request
@@ -648,7 +656,7 @@ terminalRouter.post(
       // Rename files with session prefix for easier cleanup
       const attachments = files.map((file) => {
         const newFilename = `${id}_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-        const newPath = join(ATTACHMENTS_DIR, newFilename);
+        const newPath = join(getAttachmentsDir(), newFilename);
         renameSync(file.path, newPath);
 
         return {
@@ -686,10 +694,10 @@ terminalRouter.get('/sessions/:id/attachments', (req: Request, res: Response) =>
     }
 
     // Find all files prefixed with this session ID
-    const files = readdirSync(ATTACHMENTS_DIR)
+    const files = readdirSync(getAttachmentsDir())
       .filter((f) => f.startsWith(`${id}_`))
       .map((filename) => {
-        const filePath = join(ATTACHMENTS_DIR, filename);
+        const filePath = join(getAttachmentsDir(), filename);
         const stat = statSync(filePath);
         // Extract original name from filename (format: sessionId_timestamp_originalName)
         const parts = filename.split('_');
@@ -730,7 +738,7 @@ terminalRouter.delete('/sessions/:id/attachments/:attachmentId', (req: Request, 
       return;
     }
 
-    const filePath = join(ATTACHMENTS_DIR, attachmentId);
+    const filePath = join(getAttachmentsDir(), attachmentId);
     if (existsSync(filePath)) {
       unlinkSync(filePath);
       res.json({ success: true, data: { deleted: attachmentId } });

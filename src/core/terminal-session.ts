@@ -128,9 +128,16 @@ export function getPrimaryRepoId(session: TerminalSession): string {
 // Cache for Claude sessions per repo
 const claudeSessionsCache: Map<string, { sessions: ClaudeSession[]; fetchedAt: number }> = new Map();
 
-const SESSIONS_FILE = join(process.cwd(), 'config', 'terminal-sessions.json');
-const TERMINAL_ARTIFACTS_DIR = join(process.cwd(), 'artifacts', 'terminal');
-const ATTACHMENTS_DIR = join(process.cwd(), 'temp', 'terminal-attachments');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getSessionsFile(): string {
+  return join(process.cwd(), 'config', 'terminal-sessions.json');
+}
+function getTerminalArtifactsDir(): string {
+  return join(process.cwd(), 'artifacts', 'terminal');
+}
+function getAttachmentsDir(): string {
+  return join(process.cwd(), 'temp', 'terminal-attachments');
+}
 
 // Worktree options for session creation
 export interface WorktreeSessionOptions {
@@ -174,8 +181,8 @@ class TerminalSessionManager {
 
   private loadSessions(): void {
     try {
-      if (existsSync(SESSIONS_FILE)) {
-        const data = JSON.parse(readFileSync(SESSIONS_FILE, 'utf-8'));
+      if (existsSync(getSessionsFile())) {
+        const data = JSON.parse(readFileSync(getSessionsFile(), 'utf-8'));
         let worktreeValidationCount = 0;
 
         for (const session of data.sessions || []) {
@@ -278,7 +285,7 @@ class TerminalSessionManager {
         })),
       };
 
-      writeFileSync(SESSIONS_FILE, JSON.stringify(data, null, 2));
+      writeFileSync(getSessionsFile(), JSON.stringify(data, null, 2));
     } catch (error) {
       console.error('[TerminalSession] Failed to save sessions:', error);
     }
@@ -777,7 +784,7 @@ class TerminalSessionManager {
     }
 
     // Create artifacts directory for this session
-    const artifactsDir = join(TERMINAL_ARTIFACTS_DIR, sessionId);
+    const artifactsDir = join(getTerminalArtifactsDir(), sessionId);
     if (!existsSync(artifactsDir)) {
       mkdirSync(artifactsDir, { recursive: true });
     }
@@ -1416,7 +1423,7 @@ class TerminalSessionManager {
     });
 
     // Create artifacts directory
-    const artifactsDir = join(TERMINAL_ARTIFACTS_DIR, sessionId);
+    const artifactsDir = join(getTerminalArtifactsDir(), sessionId);
     if (!existsSync(artifactsDir)) {
       mkdirSync(artifactsDir, { recursive: true });
     }
@@ -1791,15 +1798,15 @@ class TerminalSessionManager {
 
   // Clean up attachment files for a session
   private cleanupSessionAttachments(sessionId: string): void {
-    if (!existsSync(ATTACHMENTS_DIR)) return;
+    if (!existsSync(getAttachmentsDir())) return;
 
     try {
-      const files = readdirSync(ATTACHMENTS_DIR);
+      const files = readdirSync(getAttachmentsDir());
       let cleanedCount = 0;
 
       for (const file of files) {
         if (file.startsWith(`${sessionId}_`)) {
-          const filePath = join(ATTACHMENTS_DIR, file);
+          const filePath = join(getAttachmentsDir(), file);
           unlinkSync(filePath);
           cleanedCount++;
         }
@@ -2219,7 +2226,7 @@ _Create new skills with \`/skill create <name> <description>\`_`;
 
     try {
       // Create artifacts directory
-      const artifactsDir = join(TERMINAL_ARTIFACTS_DIR, session.id, 'skills');
+      const artifactsDir = join(getTerminalArtifactsDir(), session.id, 'skills');
       if (!existsSync(artifactsDir)) {
         mkdirSync(artifactsDir, { recursive: true });
       }
@@ -2366,7 +2373,7 @@ Skill names must:
       const skillPrompt = this.buildSkillCreationPrompt(skillName, description, isGlobal, repo);
 
       // Create artifacts directory
-      const artifactsDir = join(TERMINAL_ARTIFACTS_DIR, session.id, 'skill-create');
+      const artifactsDir = join(getTerminalArtifactsDir(), session.id, 'skill-create');
       if (!existsSync(artifactsDir)) {
         mkdirSync(artifactsDir, { recursive: true });
       }
@@ -2723,27 +2730,42 @@ ${fileList}
   }
 }
 
-// Singleton instance
-export const terminalSessionManager = new TerminalSessionManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _terminalSessionManager: TerminalSessionManager | null = null;
 
-// Cleanup old sessions every hour
+function getTerminalSessionManagerInstance(): TerminalSessionManager {
+  if (!_terminalSessionManager) {
+    _terminalSessionManager = new TerminalSessionManager();
+  }
+  return _terminalSessionManager;
+}
+
+export const terminalSessionManager = new Proxy({} as TerminalSessionManager, {
+  get(_, prop) {
+    const instance = getTerminalSessionManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});
+
+// Cleanup old sessions every hour (uses proxy so will trigger lazy init if needed)
 setInterval(() => {
   terminalSessionManager.cleanupOldSessions();
 }, 60 * 60 * 1000);
 
 // Cleanup orphaned attachments (files older than 24 hours) every hour
 function cleanupOrphanedAttachments(): void {
-  if (!existsSync(ATTACHMENTS_DIR)) return;
+  if (!existsSync(getAttachmentsDir())) return;
 
   const maxAgeMs = 24 * 60 * 60 * 1000; // 24 hours
   const now = Date.now();
 
   try {
-    const files = readdirSync(ATTACHMENTS_DIR);
+    const files = readdirSync(getAttachmentsDir());
     let cleanedCount = 0;
 
     for (const file of files) {
-      const filePath = join(ATTACHMENTS_DIR, file);
+      const filePath = join(getAttachmentsDir(), file);
       const stat = statSync(filePath);
 
       if (now - stat.mtimeMs > maxAgeMs) {

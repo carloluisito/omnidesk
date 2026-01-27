@@ -3,27 +3,35 @@ import { join, basename, extname } from 'path';
 import { parse as parseYaml } from 'yaml';
 import { SkillConfig, SkillConfigSchema } from '../types.js';
 
-const GLOBAL_SKILLS_DIR = join(process.cwd(), 'config', 'skills');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getGlobalSkillsDir(): string {
+  return join(process.cwd(), 'config', 'skills');
+}
 
 export class SkillRegistry {
   private globalSkills: Map<string, SkillConfig> = new Map();
   private repoSkillsCache: Map<string, Map<string, SkillConfig>> = new Map();
+  private globalSkillsLoaded = false;
 
-  constructor() {
-    this.loadGlobalSkills();
+  private ensureGlobalSkillsLoaded(): void {
+    if (!this.globalSkillsLoaded) {
+      this.loadGlobalSkills();
+      this.globalSkillsLoaded = true;
+    }
   }
 
   private loadGlobalSkills(): void {
-    if (!existsSync(GLOBAL_SKILLS_DIR)) {
-      console.log('[SkillRegistry] No global skills directory found at', GLOBAL_SKILLS_DIR);
+    const globalSkillsDir = getGlobalSkillsDir();
+    if (!existsSync(globalSkillsDir)) {
+      console.log('[SkillRegistry] No global skills directory found at', globalSkillsDir);
       return;
     }
 
-    const files = readdirSync(GLOBAL_SKILLS_DIR)
+    const files = readdirSync(globalSkillsDir)
       .filter(f => f.endsWith('.md'));
 
     for (const file of files) {
-      const filePath = join(GLOBAL_SKILLS_DIR, file);
+      const filePath = join(globalSkillsDir, file);
       const skill = this.parseSkillFile(filePath);
       if (skill) {
         skill.source = 'global';
@@ -141,6 +149,7 @@ export class SkillRegistry {
 
   // Get a skill by ID with precedence: repo > global
   get(skillId: string, repoId?: string): SkillConfig | undefined {
+    this.ensureGlobalSkillsLoaded();
     // Check repo skills first (higher precedence)
     if (repoId) {
       const repoSkills = this.repoSkillsCache.get(repoId);
@@ -155,6 +164,7 @@ export class SkillRegistry {
 
   // Get all skills available for a repository (merged)
   getAll(repoId?: string): SkillConfig[] {
+    this.ensureGlobalSkillsLoaded();
     const skills = new Map<string, SkillConfig>();
 
     // Add global skills first
@@ -177,11 +187,13 @@ export class SkillRegistry {
 
   // Get only global skills
   getGlobal(): SkillConfig[] {
+    this.ensureGlobalSkillsLoaded();
     return Array.from(this.globalSkills.values());
   }
 
   // Get only repo-specific skills
   getRepoSkills(repoId: string): SkillConfig[] {
+    this.ensureGlobalSkillsLoaded();
     const repoSkills = this.repoSkillsCache.get(repoId);
     return repoSkills ? Array.from(repoSkills.values()) : [];
   }
@@ -189,7 +201,8 @@ export class SkillRegistry {
   // Reload all global skills
   reload(): void {
     this.globalSkills.clear();
-    this.loadGlobalSkills();
+    this.globalSkillsLoaded = false;
+    this.ensureGlobalSkillsLoaded();
   }
 
   // Reload skills for a specific repo
@@ -203,4 +216,20 @@ export class SkillRegistry {
   }
 }
 
-export const skillRegistry = new SkillRegistry();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _skillRegistry: SkillRegistry | null = null;
+
+function getSkillRegistryInstance(): SkillRegistry {
+  if (!_skillRegistry) {
+    _skillRegistry = new SkillRegistry();
+  }
+  return _skillRegistry;
+}
+
+export const skillRegistry = new Proxy({} as SkillRegistry, {
+  get(_, prop) {
+    const instance = getSkillRegistryInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

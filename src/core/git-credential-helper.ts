@@ -8,11 +8,17 @@ import { randomUUID } from 'crypto';
  * requiring separate SSH keys or credential helpers.
  */
 
-const TEMP_DIR = join(process.cwd(), 'temp', 'git-credentials');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getTempDir(): string {
+  return join(process.cwd(), 'temp', 'git-credentials');
+}
 
-// Ensure temp directory exists
-if (!existsSync(TEMP_DIR)) {
-  mkdirSync(TEMP_DIR, { recursive: true });
+function ensureTempDir(): string {
+  const tempDir = getTempDir();
+  if (!existsSync(tempDir)) {
+    mkdirSync(tempDir, { recursive: true });
+  }
+  return tempDir;
 }
 
 /**
@@ -26,7 +32,7 @@ export function createCredentialHelperScript(token: string, platform: 'github' |
   const scriptId = randomUUID();
   const isWindows = process.platform === 'win32';
   const scriptExt = isWindows ? '.bat' : '.sh';
-  const scriptPath = join(TEMP_DIR, `git-askpass-${scriptId}${scriptExt}`);
+  const scriptPath = join(ensureTempDir(), `git-askpass-${scriptId}${scriptExt}`);
 
   // The script simply echoes the token when called by git
   // GIT_ASKPASS is called with a prompt, but we just return the token

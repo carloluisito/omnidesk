@@ -5,7 +5,10 @@ import { z } from 'zod';
 import { RepoConfig, RepoConfigSchema } from '../types.js';
 import { workspaceManager, type RepoConfigOverride } from './workspaces.js';
 
-const CONFIG_PATH = join(process.cwd(), 'config', 'repos.json');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getConfigPath(): string {
+  return join(process.cwd(), 'config', 'repos.json');
+}
 
 // Allowlisted base paths for repos (platform-agnostic)
 const ALLOWED_BASE_PATHS = [
@@ -26,22 +29,30 @@ export class RepoRegistry {
   private scanPaths: string[];
   private manualRepos: RepoConfig[] = [];
   private branchPrefix?: string;
+  private loaded = false;
 
   constructor() {
     this.allowedBasePaths = ALLOWED_BASE_PATHS;
     this.scanPaths = [];
-    this.load();
+  }
+
+  private ensureLoaded(): void {
+    if (!this.loaded) {
+      this.load();
+      this.loaded = true;
+    }
   }
 
   private load(): void {
     console.log('[RepoRegistry] load() called');
-    if (!existsSync(CONFIG_PATH)) {
+    const configPath = getConfigPath();
+    if (!existsSync(configPath)) {
       console.log('[RepoRegistry] Creating default config');
       this.createDefaultConfig();
     }
 
     try {
-      const content = readFileSync(CONFIG_PATH, 'utf-8');
+      const content = readFileSync(configPath, 'utf-8');
       console.log('[RepoRegistry] Config file loaded');
       const parsed = ReposFileSchema.parse(JSON.parse(content));
       console.log('[RepoRegistry] Config parsed, repos in file:', parsed.repos.length);
@@ -298,7 +309,7 @@ export class RepoRegistry {
       scanPaths: [],
       repos: [],
     };
-    writeFileSync(CONFIG_PATH, JSON.stringify(defaultConfig, null, 2));
+    writeFileSync(getConfigPath(), JSON.stringify(defaultConfig, null, 2));
   }
 
   private validateRepoPath(repoPath: string): void {
@@ -319,18 +330,22 @@ export class RepoRegistry {
   }
 
   get(id: string): RepoConfig | undefined {
+    this.ensureLoaded();
     return this.repos.get(id);
   }
 
   getAll(): RepoConfig[] {
+    this.ensureLoaded();
     return Array.from(this.repos.values());
   }
 
   getBranchPrefix(): string | undefined {
+    this.ensureLoaded();
     return this.branchPrefix;
   }
 
   add(repo: RepoConfig): void {
+    this.ensureLoaded();
     const validated = RepoConfigSchema.parse(repo);
     this.validateRepoPath(validated.path);
     this.repos.set(validated.id, validated);
@@ -338,6 +353,7 @@ export class RepoRegistry {
   }
 
   remove(id: string): boolean {
+    this.ensureLoaded();
     const deleted = this.repos.delete(id);
     if (deleted) {
       this.save();
@@ -357,7 +373,7 @@ export class RepoRegistry {
       scanPaths: this.scanPaths,
       repos: reposToSave,
     };
-    writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+    writeFileSync(getConfigPath(), JSON.stringify(config, null, 2));
   }
 
   private isAutoDiscovered(repoPath: string): boolean {
@@ -400,6 +416,7 @@ export class RepoRegistry {
 
   // Add a scan path and discover repos
   addScanPath(scanPath: string): { addedRepos: string[], scanPath: string } {
+    this.ensureLoaded();
     // Normalize path and remove trailing separator
     const normalizedPath = normalize(scanPath).replace(new RegExp(`${sep.replace(/\\/g, '\\\\')}$`), '');
 
@@ -443,6 +460,7 @@ export class RepoRegistry {
 
   // Remove a scan path
   removeScanPath(scanPath: string): boolean {
+    this.ensureLoaded();
     const normalizedPath = normalize(scanPath).replace(new RegExp(`${sep.replace(/\\/g, '\\\\')}$`), '');
     const index = this.scanPaths.findIndex(p => p.toLowerCase() === normalizedPath.toLowerCase());
 
@@ -480,8 +498,24 @@ export class RepoRegistry {
       scanPaths: this.scanPaths,
       repos: this.manualRepos,
     };
-    writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+    writeFileSync(getConfigPath(), JSON.stringify(config, null, 2));
   }
 }
 
-export const repoRegistry = new RepoRegistry();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _repoRegistry: RepoRegistry | null = null;
+
+function getRepoRegistryInstance(): RepoRegistry {
+  if (!_repoRegistry) {
+    _repoRegistry = new RepoRegistry();
+  }
+  return _repoRegistry;
+}
+
+export const repoRegistry = new Proxy({} as RepoRegistry, {
+  get(_, prop) {
+    const instance = getRepoRegistryInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

@@ -2,10 +2,19 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { MessageUsage, SessionUsageStats, GlobalUsageStats, WeeklyUsageStats } from '../types.js';
 
-const USAGE_DIR = join(process.cwd(), 'config', 'usage');
-const GLOBAL_USAGE_FILE = join(USAGE_DIR, 'global-usage.json');
-const WEEKLY_USAGE_FILE = join(USAGE_DIR, 'weekly-usage.json');
-const SESSIONS_USAGE_DIR = join(USAGE_DIR, 'sessions');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getUsageDir(): string {
+  return join(process.cwd(), 'config', 'usage');
+}
+function getGlobalUsageFile(): string {
+  return join(getUsageDir(), 'global-usage.json');
+}
+function getWeeklyUsageFile(): string {
+  return join(getUsageDir(), 'weekly-usage.json');
+}
+function getSessionsUsageDir(): string {
+  return join(getUsageDir(), 'sessions');
+}
 
 // Model pricing per 1M tokens (input / output)
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -66,11 +75,11 @@ class UsageManager {
   }
 
   private ensureDirectories(): void {
-    if (!existsSync(USAGE_DIR)) {
-      mkdirSync(USAGE_DIR, { recursive: true });
+    if (!existsSync(getUsageDir())) {
+      mkdirSync(getUsageDir(), { recursive: true });
     }
-    if (!existsSync(SESSIONS_USAGE_DIR)) {
-      mkdirSync(SESSIONS_USAGE_DIR, { recursive: true });
+    if (!existsSync(getSessionsUsageDir())) {
+      mkdirSync(getSessionsUsageDir(), { recursive: true });
     }
   }
 
@@ -149,7 +158,7 @@ class UsageManager {
     toolUseCount: number,
     filesChanged: number
   ): void {
-    const sessionFile = join(SESSIONS_USAGE_DIR, `${sessionId}.json`);
+    const sessionFile = join(getSessionsUsageDir(), `${sessionId}.json`);
     let sessionData: SessionUsageData = {
       sessionId,
       messages: [],
@@ -183,9 +192,9 @@ class UsageManager {
       byModel: {},
     };
 
-    if (existsSync(GLOBAL_USAGE_FILE)) {
+    if (existsSync(getGlobalUsageFile())) {
       try {
-        globalData = JSON.parse(readFileSync(GLOBAL_USAGE_FILE, 'utf-8'));
+        globalData = JSON.parse(readFileSync(getGlobalUsageFile(), 'utf-8'));
 
         // Reset if it's a new day
         if (globalData.periodStart !== today) {
@@ -211,7 +220,7 @@ class UsageManager {
     globalData.byModel[model].outputTokens += messageUsage.usage.outputTokens;
     globalData.byModel[model].costUsd += messageUsage.costUsd;
 
-    writeFileSync(GLOBAL_USAGE_FILE, JSON.stringify(globalData, null, 2));
+    writeFileSync(getGlobalUsageFile(), JSON.stringify(globalData, null, 2));
   }
 
   /**
@@ -233,9 +242,9 @@ class UsageManager {
       dailyBreakdown: {},
     };
 
-    if (existsSync(WEEKLY_USAGE_FILE)) {
+    if (existsSync(getWeeklyUsageFile())) {
       try {
-        weeklyData = JSON.parse(readFileSync(WEEKLY_USAGE_FILE, 'utf-8'));
+        weeklyData = JSON.parse(readFileSync(getWeeklyUsageFile(), 'utf-8'));
 
         // Reset if it's a new week
         const storedWeekStart = new Date(weeklyData.weekStart);
@@ -274,14 +283,14 @@ class UsageManager {
     weeklyData.dailyBreakdown[today].costUsd += messageUsage.costUsd;
     weeklyData.dailyBreakdown[today].apiCalls += 1;
 
-    writeFileSync(WEEKLY_USAGE_FILE, JSON.stringify(weeklyData, null, 2));
+    writeFileSync(getWeeklyUsageFile(), JSON.stringify(weeklyData, null, 2));
   }
 
   /**
    * Get usage stats for a specific session
    */
   getSessionUsage(sessionId: string): SessionUsageStats {
-    const sessionFile = join(SESSIONS_USAGE_DIR, `${sessionId}.json`);
+    const sessionFile = join(getSessionsUsageDir(), `${sessionId}.json`);
     const defaultStats: SessionUsageStats = {
       totalInputTokens: 0,
       totalOutputTokens: 0,
@@ -338,12 +347,12 @@ class UsageManager {
       byModel: {},
     };
 
-    if (!existsSync(GLOBAL_USAGE_FILE)) {
+    if (!existsSync(getGlobalUsageFile())) {
       return defaultStats;
     }
 
     try {
-      const globalData: GlobalUsageData = JSON.parse(readFileSync(GLOBAL_USAGE_FILE, 'utf-8'));
+      const globalData: GlobalUsageData = JSON.parse(readFileSync(getGlobalUsageFile(), 'utf-8'));
 
       // Return default if data is from a different day
       if (globalData.periodStart !== today) {
@@ -392,12 +401,12 @@ class UsageManager {
       dailyBreakdown: {},
     };
 
-    if (!existsSync(WEEKLY_USAGE_FILE)) {
+    if (!existsSync(getWeeklyUsageFile())) {
       return defaultStats;
     }
 
     try {
-      const weeklyData: WeeklyUsageData = JSON.parse(readFileSync(WEEKLY_USAGE_FILE, 'utf-8'));
+      const weeklyData: WeeklyUsageData = JSON.parse(readFileSync(getWeeklyUsageFile(), 'utf-8'));
 
       // Return default if data is from a different week
       const storedWeekStart = new Date(weeklyData.weekStart);
@@ -434,7 +443,7 @@ class UsageManager {
    * Delete session usage data when session is closed
    */
   deleteSessionUsage(sessionId: string): void {
-    const sessionFile = join(SESSIONS_USAGE_DIR, `${sessionId}.json`);
+    const sessionFile = join(getSessionsUsageDir(), `${sessionId}.json`);
     if (existsSync(sessionFile)) {
       try {
         const fs = require('fs');
@@ -446,4 +455,20 @@ class UsageManager {
   }
 }
 
-export const usageManager = new UsageManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _usageManager: UsageManager | null = null;
+
+function getUsageManagerInstance(): UsageManager {
+  if (!_usageManager) {
+    _usageManager = new UsageManager();
+  }
+  return _usageManager;
+}
+
+export const usageManager = new Proxy({} as UsageManager, {
+  get(_, prop) {
+    const instance = getUsageManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

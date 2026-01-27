@@ -504,4 +504,22 @@ ${enabledServices.join('\n\n')}
   }
 }
 
-export const sharedDockerManager = new SharedDockerManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+// This ensures process.cwd() returns the correct data directory
+let _sharedDockerManager: SharedDockerManager | null = null;
+
+function getSharedDockerManagerInstance(): SharedDockerManager {
+  if (!_sharedDockerManager) {
+    _sharedDockerManager = new SharedDockerManager();
+  }
+  return _sharedDockerManager;
+}
+
+// Export a proxy that forwards all property/method access to the lazy instance
+export const sharedDockerManager = new Proxy({} as SharedDockerManager, {
+  get(_, prop) {
+    const instance = getSharedDockerManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

@@ -3,13 +3,19 @@ import { join, dirname, normalize } from 'path';
 import { z } from 'zod';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
-const CONFIG_PATH = join(process.cwd(), 'config', 'workspaces.json');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getConfigPath(): string {
+  return join(process.cwd(), 'config', 'workspaces.json');
+}
+
+function getEncryptionKeyPath(): string {
+  return join(process.cwd(), 'config', '.secrets-key');
+}
 
 // Helper to normalize paths to forward slashes for cross-platform comparison
 function normalizePath(p: string): string {
   return normalize(p).replace(/\\/g, '/');
 }
-const ENCRYPTION_KEY_PATH = join(process.cwd(), 'config', '.secrets-key');
 
 // Schema for GitHub credentials
 const GitHubCredentialsSchema = z.object({
@@ -110,19 +116,20 @@ class Encryption {
   }
 
   private getOrCreateKey(): Buffer {
-    const dir = dirname(ENCRYPTION_KEY_PATH);
+    const keyPath = getEncryptionKeyPath();
+    const dir = dirname(keyPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    if (existsSync(ENCRYPTION_KEY_PATH)) {
-      const keyHex = readFileSync(ENCRYPTION_KEY_PATH, 'utf-8').trim();
+    if (existsSync(keyPath)) {
+      const keyHex = readFileSync(keyPath, 'utf-8').trim();
       return Buffer.from(keyHex, 'hex');
     }
 
     // Generate a new key
     const newKey = randomBytes(32);
-    writeFileSync(ENCRYPTION_KEY_PATH, newKey.toString('hex'), { mode: 0o600 });
+    writeFileSync(keyPath, newKey.toString('hex'), { mode: 0o600 });
     return newKey;
   }
 
@@ -169,12 +176,13 @@ export class WorkspaceManager {
   }
 
   private load(): WorkspacesData {
-    if (!existsSync(CONFIG_PATH)) {
+    const configPath = getConfigPath();
+    if (!existsSync(configPath)) {
       return DEFAULT_DATA;
     }
 
     try {
-      const content = readFileSync(CONFIG_PATH, 'utf-8');
+      const content = readFileSync(configPath, 'utf-8');
       return WorkspacesDataSchema.parse(JSON.parse(content));
     } catch (error) {
       console.error('Failed to load workspaces config:', error);
@@ -183,11 +191,12 @@ export class WorkspaceManager {
   }
 
   private save(): void {
-    const dir = dirname(CONFIG_PATH);
+    const configPath = getConfigPath();
+    const dir = dirname(configPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
-    writeFileSync(CONFIG_PATH, JSON.stringify(this.data, null, 2));
+    writeFileSync(configPath, JSON.stringify(this.data, null, 2));
   }
 
   // ============================================
@@ -604,5 +613,20 @@ export class WorkspaceManager {
   }
 }
 
-// Singleton instance
-export const workspaceManager = new WorkspaceManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _workspaceManager: WorkspaceManager | null = null;
+
+function getWorkspaceManagerInstance(): WorkspaceManager {
+  if (!_workspaceManager) {
+    _workspaceManager = new WorkspaceManager();
+  }
+  return _workspaceManager;
+}
+
+export const workspaceManager = new Proxy({} as WorkspaceManager, {
+  get(_, prop) {
+    const instance = getWorkspaceManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

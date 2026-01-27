@@ -558,5 +558,23 @@ export class SettingsManager {
   }
 }
 
-// Singleton instance
-export const settingsManager = new SettingsManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+// This ensures process.cwd() returns the correct data directory
+let _settingsManager: SettingsManager | null = null;
+
+function getSettingsManagerInstance(): SettingsManager {
+  if (!_settingsManager) {
+    _settingsManager = new SettingsManager();
+  }
+  return _settingsManager;
+}
+
+// Export a proxy that forwards all property/method access to the lazy instance
+// This keeps the same API (settingsManager.get(), settingsManager.update(), etc.)
+export const settingsManager = new Proxy({} as SettingsManager, {
+  get(_, prop) {
+    const instance = getSettingsManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});

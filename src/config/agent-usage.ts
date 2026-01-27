@@ -16,20 +16,29 @@ interface AgentUsageData {
   entries: AgentUsageEntry[];
 }
 
-const USAGE_FILE = join(process.cwd(), 'config', 'agent-usage.json');
+// Lazy path resolution - evaluated when needed, not at module load time
+function getUsageFilePath(): string {
+  return join(process.cwd(), 'config', 'agent-usage.json');
+}
+
 const MAX_RECENT_AGENTS = 10; // Store more than we display for flexibility
 
 class AgentUsageManager {
   private data: AgentUsageData = { entries: [] };
+  private loaded = false;
 
-  constructor() {
-    this.load();
+  private ensureLoaded(): void {
+    if (!this.loaded) {
+      this.load();
+      this.loaded = true;
+    }
   }
 
   private load(): void {
     try {
-      if (existsSync(USAGE_FILE)) {
-        const content = readFileSync(USAGE_FILE, 'utf-8');
+      const usageFile = getUsageFilePath();
+      if (existsSync(usageFile)) {
+        const content = readFileSync(usageFile, 'utf-8');
         this.data = JSON.parse(content);
       }
     } catch (error) {
@@ -44,7 +53,7 @@ class AgentUsageManager {
       if (!existsSync(configDir)) {
         mkdirSync(configDir, { recursive: true });
       }
-      writeFileSync(USAGE_FILE, JSON.stringify(this.data, null, 2));
+      writeFileSync(getUsageFilePath(), JSON.stringify(this.data, null, 2));
     } catch (error) {
       console.error('[AgentUsage] Failed to save usage data:', error);
     }
@@ -54,6 +63,7 @@ class AgentUsageManager {
    * Record that an agent was used
    */
   recordAgentUsage(agentId: string, agentName: string): void {
+    this.ensureLoaded();
     const existingIndex = this.data.entries.findIndex((e) => e.agentId === agentId);
     const now = new Date().toISOString();
 
@@ -89,6 +99,7 @@ class AgentUsageManager {
    * Get recently used agents (most recent first)
    */
   getRecentAgents(limit: number = 3): AgentUsageEntry[] {
+    this.ensureLoaded();
     return this.data.entries.slice(0, limit);
   }
 
@@ -96,6 +107,7 @@ class AgentUsageManager {
    * Get all usage entries
    */
   getAllUsage(): AgentUsageEntry[] {
+    this.ensureLoaded();
     return [...this.data.entries];
   }
 
@@ -103,9 +115,26 @@ class AgentUsageManager {
    * Clear all usage history
    */
   clearHistory(): void {
+    this.ensureLoaded();
     this.data = { entries: [] };
     this.save();
   }
 }
 
-export const agentUsageManager = new AgentUsageManager();
+// Lazy singleton - only created on first access (after cli.ts has called process.chdir())
+let _agentUsageManager: AgentUsageManager | null = null;
+
+function getAgentUsageManagerInstance(): AgentUsageManager {
+  if (!_agentUsageManager) {
+    _agentUsageManager = new AgentUsageManager();
+  }
+  return _agentUsageManager;
+}
+
+export const agentUsageManager = new Proxy({} as AgentUsageManager, {
+  get(_, prop) {
+    const instance = getAgentUsageManagerInstance();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof value === 'function' ? (value as Function).bind(instance) : value;
+  }
+});
