@@ -180,8 +180,9 @@ export class SharedDockerManager {
       this.writeComposeFile();
 
       // Start docker compose
+      // Use --project-name to ensure consistent naming regardless of compose file location
       const [cmd, ...args] = this.getComposeCommand();
-      const fullArgs = [...args, '-f', this.getComposeFilePath(), 'up', '-d'];
+      const fullArgs = [...args, '--project-name', 'claudedesk', '-f', this.getComposeFilePath(), 'up', '-d'];
 
       console.log(`[SharedDockerManager] Running: ${cmd} ${fullArgs.join(' ')}`);
 
@@ -242,8 +243,9 @@ export class SharedDockerManager {
     this.state.status = 'stopping';
 
     try {
+      // Use --project-name to ensure consistent naming regardless of compose file location
       const [cmd, ...args] = this.getComposeCommand();
-      const fullArgs = [...args, '-f', this.getComposeFilePath(), 'down'];
+      const fullArgs = [...args, '--project-name', 'claudedesk', '-f', this.getComposeFilePath(), 'down'];
 
       console.log(`[SharedDockerManager] Running: ${cmd} ${fullArgs.join(' ')}`);
 
