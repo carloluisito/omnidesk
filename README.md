@@ -8,7 +8,13 @@ A web interface for Claude Code with session persistence, visual tool activity, 
 
 **See what Claude does. Review before you ship.**
 
-![ClaudeDesk Terminal](docs/screenshot.png)
+### Screenshots
+
+![ClaudeDesk Home](docs/home.png)
+*Welcome screen - start a new session, resume existing work, or import conversations*
+
+![ClaudeDesk Session](docs/session.png)
+*Active session with conversation panel, activity timeline, and change tracking*
 
 ## Important Security Information
 
