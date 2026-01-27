@@ -40,6 +40,7 @@ import {
   WifiOff,
   FileDiff,
   AlertTriangle,
+  Clock,
 } from 'lucide-react';
 
 // Hooks and stores
@@ -179,6 +180,9 @@ export default function Terminal() {
   // Mobile actions sheet state
   const [showMobileActionsSheet, setShowMobileActionsSheet] = useState(false);
   const [mobileActionsInitialTab, setMobileActionsInitialTab] = useState<'timeline' | 'changes'>('timeline');
+
+  // Queue Manager state
+  const [showQueueManager, setShowQueueManager] = useState(false);
 
   // Fetch quota data
   const fetchQuota = useCallback(async () => {
@@ -381,7 +385,11 @@ export default function Terminal() {
     setAdditionalContext,
     approvePlan,
     cancelPlan,
+    cancelOperation,
     removePendingAttachment,
+    removeFromQueue,
+    clearQueue,
+    resumeQueue,
     showPreviewPanel,
     setShowPreviewPanel,
     showStartAppModal,
@@ -687,6 +695,140 @@ export default function Terminal() {
                       )}
                   </ConversationPanel>
 
+                  {/* Queue Badge (Compact) */}
+                  {activeSession.messageQueue.length > 0 && !showQueueManager && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 flex justify-center"
+                    >
+                      <button
+                        onClick={() => setShowQueueManager(true)}
+                        className="flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300 ring-1 ring-cyan-500/30 hover:bg-cyan-500/15 active:bg-cyan-500/20"
+                      >
+                        <Clock className="h-4 w-4" />
+                        <span>{activeSession.messageQueue.length} messages queued</span>
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Queue Manager Panel (Expanded) */}
+                  <AnimatePresence>
+                    {showQueueManager && activeSession.messageQueue.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-4 mx-auto max-w-[600px]"
+                      >
+                        <div className="rounded-2xl bg-zinc-900/95 backdrop-blur-xl ring-1 ring-white/10">
+                          {/* Header */}
+                          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                            <h3 className="text-sm font-semibold text-white">
+                              Queue ({activeSession.messageQueue.length})
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => clearQueue()}
+                                className="rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/10 active:bg-white/15"
+                              >
+                                Clear All
+                              </button>
+                              <button
+                                onClick={() => setShowQueueManager(false)}
+                                className="rounded-lg p-1 text-white/40 hover:bg-white/10"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          {/* Queue items */}
+                          <div className="max-h-[400px] overflow-y-auto p-2">
+                            {activeSession.messageQueue.map((msg, index) => (
+                              <div
+                                key={msg.id}
+                                className={cn(
+                                  'mb-2 rounded-xl p-3 ring-1',
+                                  index === 0 && activeSession.status === 'running'
+                                    ? 'bg-cyan-500/10 ring-cyan-500/30'
+                                    : 'bg-white/5 ring-white/10'
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-medium text-white/50">
+                                        #{index + 1}
+                                      </span>
+                                      {index === 0 && activeSession.status === 'running' && (
+                                        <span className="text-xs text-cyan-300">Processing now...</span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-white/80 truncate">
+                                      {msg.content.slice(0, 60)}
+                                      {msg.content.length > 60 && '...'}
+                                    </p>
+                                    <p className="mt-1 text-xs text-white/40">
+                                      {new Date(msg.queuedAt).toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => removeFromQueue(msg.id)}
+                                    className="shrink-0 rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-red-400"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Resume Controls (After Stop with Queue) */}
+                  {activeSession.status === 'idle' &&
+                   activeSession.messageQueue.length > 0 &&
+                   activeSession.wasRecentlyStopped && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 flex justify-center"
+                    >
+                      <div className="w-full max-w-[600px] rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-amber-500/30">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                            <span className="text-sm text-amber-300">
+                              Stopped with {activeSession.messageQueue.length} messages queued
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => clearQueue()}
+                              className="rounded-lg px-3 py-1.5 text-sm text-white/70 hover:bg-white/10 active:bg-white/15"
+                            >
+                              Clear Queue
+                            </button>
+                            <button
+                              onClick={() => resumeQueue()}
+                              className="rounded-lg bg-cyan-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-600 active:bg-cyan-700"
+                            >
+                              Resume Queue
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Composer */}
                   <div className="mt-4 flex-shrink-0">
                     <Composer
@@ -702,6 +844,7 @@ export default function Terminal() {
                         // Clear selection after sending
                         agents.setSelectedAgent(null);
                       }}
+                      onStop={() => cancelOperation()}
                       onKeyDown={handleKeyDown}
                       onPaste={handlePaste}
                       mode={activeSession.mode || 'direct'}
@@ -710,7 +853,9 @@ export default function Terminal() {
                       inputRef={inputRef}
                       disabled={false}
                       isSending={isSending}
+                      isGenerating={activeSession.status === 'running'}
                       isUploading={isUploading}
+                      queueCount={activeSession.messageQueue.length}
                       pendingAttachments={pendingAttachments}
                       onRemoveAttachment={(id) => removePendingAttachment(activeSessionId!, id)}
                       // Agent selection props

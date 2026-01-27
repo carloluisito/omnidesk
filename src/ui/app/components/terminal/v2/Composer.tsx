@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent, RefObject, useMemo } from 'react';
-import { Paperclip, Mic, ChevronRight, X, Image, Bot, Search } from 'lucide-react';
+import { Paperclip, Mic, ChevronRight, X, Image, Bot, Search, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModeToggle } from '../../ui/ModeToggle';
 import { PendingAttachment } from '../../../store/terminalStore';
@@ -12,6 +12,7 @@ interface ComposerProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  onStop?: () => void;
   onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   onPaste?: (e: React.ClipboardEvent) => void;
   mode: 'plan' | 'direct';
@@ -22,7 +23,9 @@ interface ComposerProps {
   placeholder?: string;
   disabled?: boolean;
   isSending?: boolean;
+  isGenerating?: boolean;
   isUploading?: boolean;
+  queueCount?: number;
   pendingAttachments?: PendingAttachment[];
   onRemoveAttachment?: (id: string) => void;
   // Agent selection props
@@ -42,6 +45,7 @@ export function Composer({
   value,
   onChange,
   onSend,
+  onStop,
   onKeyDown,
   onPaste,
   mode,
@@ -52,7 +56,9 @@ export function Composer({
   placeholder = 'Message Claude...',
   disabled = false,
   isSending = false,
+  isGenerating = false,
   isUploading = false,
+  queueCount = 0,
   pendingAttachments = [],
   onRemoveAttachment,
   // Agent props with defaults
@@ -123,6 +129,9 @@ export function Composer({
     setMentionFocusedIndex(0);
   }, [mentionFilteredAgents.length]);
 
+  // Check if queue is full (max 10 messages)
+  const isQueueFull = queueCount >= 10;
+
   // Handle text input change for @-mention detection
   const handleInputChange = (newValue: string) => {
     onChange(newValue);
@@ -192,6 +201,13 @@ export function Composer({
           setShowMentionPopover(false);
           return;
       }
+    }
+
+    // Escape to stop generation
+    if (e.key === 'Escape' && isGenerating && onStop) {
+      e.preventDefault();
+      onStop();
+      return;
     }
 
     // Regular Enter to send
@@ -359,14 +375,45 @@ export function Composer({
               <Mic className="h-5 w-5" />
             </button>
           )}
-          <button
-            onClick={onSend}
-            disabled={disabled || isSending || isUploading || (!value.trim() && pendingAttachments.length === 0)}
-            className="rounded-2xl bg-white p-3 min-h-[44px] min-w-[44px] text-black ring-1 ring-white hover:opacity-90 active:opacity-80 disabled:opacity-50 touch-target"
-            aria-label="Send"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              {isGenerating ? (
+                <motion.button
+                  key="stop"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={onStop}
+                  disabled={disabled}
+                  className="rounded-2xl bg-red-500/90 p-3 min-h-[44px] min-w-[44px] text-white ring-1 ring-red-500 hover:bg-red-500 active:bg-red-600 disabled:opacity-50 touch-target"
+                  aria-label="Stop"
+                >
+                  <Square className="h-5 w-5" />
+                </motion.button>
+              ) : (
+                <motion.button
+                  key="send"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={onSend}
+                  disabled={disabled || isSending || isUploading || isQueueFull || (!value.trim() && pendingAttachments.length === 0)}
+                  title={isQueueFull ? 'Queue is full (10 messages max). Please wait or clear the queue.' : undefined}
+                  className="rounded-2xl bg-white p-3 min-h-[44px] min-w-[44px] text-black ring-1 ring-white hover:opacity-90 active:opacity-80 disabled:opacity-50 touch-target"
+                  aria-label="Send"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </motion.button>
+              )}
+            </AnimatePresence>
+            {isGenerating && (
+              <div className="hidden sm:block absolute top-full mt-1 whitespace-nowrap text-xs text-white/45">
+                Press Esc to stop
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

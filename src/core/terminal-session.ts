@@ -111,6 +111,7 @@ export interface TerminalSession {
   isBookmarked: boolean;          // Whether session is pinned/bookmarked
   bookmarkedAt?: Date;            // When the session was bookmarked
   name?: string;                  // Optional friendly name
+  wasRecentlyStopped?: boolean;   // true = session was stopped (not completed normally)
 
   // Worktree Support
   worktreeMode?: boolean;         // true = isolated worktree
@@ -226,6 +227,7 @@ class TerminalSessionManager {
             isBookmarked: session.isBookmarked ?? false,
             bookmarkedAt: session.bookmarkedAt ? new Date(session.bookmarkedAt) : undefined,
             name: session.name,
+            wasRecentlyStopped: session.wasRecentlyStopped ?? false,
             messages: session.messages.map((m: ChatMessage) => ({
               ...m,
               timestamp: new Date(m.timestamp),
@@ -276,6 +278,7 @@ class TerminalSessionManager {
           isBookmarked: session.isBookmarked,
           bookmarkedAt: session.bookmarkedAt,
           name: session.name,
+          wasRecentlyStopped: session.wasRecentlyStopped,
           // Worktree fields
           worktreeMode: session.worktreeMode,
           worktreePath: session.worktreePath,
@@ -311,6 +314,7 @@ class TerminalSessionManager {
             mode: session.mode,
             messages: session.messages,
             messageQueue: session.messageQueue,
+            wasRecentlyStopped: session.wasRecentlyStopped,
             // Worktree fields
             worktreeMode: session.worktreeMode,
             worktreePath: session.worktreePath,
@@ -400,6 +404,14 @@ class TerminalSessionManager {
       const { sessionId } = message as { sessionId?: string };
       if (sessionId) {
         this.clearQueue(sessionId);
+      }
+    });
+
+    // Resume queue processing
+    wsManager.on('resume-queue', (client, message) => {
+      const { sessionId } = message as { sessionId?: string };
+      if (sessionId) {
+        this.resumeQueue(sessionId);
       }
     });
   }
@@ -714,6 +726,9 @@ class TerminalSessionManager {
       return; // Command handled, don't invoke Claude
     }
 
+    // Clear wasRecentlyStopped flag when user sends a new message
+    session.wasRecentlyStopped = false;
+
     // Add user message with attachments
     const userMessage: ChatMessage = {
       id: this.generateId(),
@@ -1016,8 +1031,9 @@ class TerminalSessionManager {
       session.claudeProcess = undefined;
       this.saveSessions();
 
-      // Process next queued message if any (only on success/idle)
-      if (session.status === 'idle' && session.messageQueue.length > 0) {
+      // Process next queued message if any (only on success/idle and NOT recently stopped)
+      // If stopped, user must explicitly resume the queue
+      if (session.status === 'idle' && session.messageQueue.length > 0 && !session.wasRecentlyStopped) {
         setTimeout(() => this.processNextInQueue(sessionId), 100);
       }
     }
@@ -1207,11 +1223,13 @@ class TerminalSessionManager {
       }
       session.claudeProcess = undefined;
       session.status = 'idle';
+      // Set flag to prevent auto-queue processing and enable resume controls
+      session.wasRecentlyStopped = true;
 
       // Mark last message as cancelled
       const lastMessage = session.messages[session.messages.length - 1];
       if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-        lastMessage.content += '\n\n*[Cancelled by user]*';
+        lastMessage.content += '\n\n[Cancelled by user]';
         lastMessage.isStreaming = false;
       }
 
@@ -1319,6 +1337,7 @@ class TerminalSessionManager {
     if (!session || session.messageQueue.length === 0) return;
 
     session.messageQueue = [];
+    session.wasRecentlyStopped = false; // Clear stop flag when clearing queue
     this.saveSessions();
     console.log(`[TerminalSession] Cleared queue for session ${sessionId}`);
 
@@ -1326,6 +1345,23 @@ class TerminalSessionManager {
       type: 'queue-updated',
       queue: [],
     });
+  }
+
+  // Resume queue processing after stop
+  resumeQueue(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+
+    console.log(`[TerminalSession] Resuming queue for session ${sessionId}`);
+
+    // Clear the stop flag
+    session.wasRecentlyStopped = false;
+    this.saveSessions();
+
+    // Process next message if queue has items and session is idle
+    if (session.status === 'idle' && session.messageQueue.length > 0) {
+      setTimeout(() => this.processNextInQueue(sessionId), 100);
+    }
   }
 
   // Execute approved plan with user answers

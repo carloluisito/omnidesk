@@ -139,6 +139,8 @@ export interface TerminalSession {
   // Usage tracking
   usageStats?: SessionUsageStats; // Token and cost usage stats
   currentModel?: string;          // Current model being used
+  // Stop/Resume tracking
+  wasRecentlyStopped?: boolean;   // Whether session was stopped (not completed normally)
 }
 
 interface TerminalStore {
@@ -179,6 +181,7 @@ interface TerminalStore {
   // Queue management
   removeFromQueue: (messageId: string) => void;
   clearQueue: () => void;
+  resumeQueue: () => void;
 
   // Attachments
   addPendingAttachment: (sessionId: string, file: File) => Promise<void>;
@@ -550,6 +553,7 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
                   ...q,
                   queuedAt: new Date(q.queuedAt),
                 })),
+                wasRecentlyStopped: message.session.wasRecentlyStopped,
                 // Worktree fields
                 worktreeMode: message.session.worktreeMode,
                 worktreePath: message.session.worktreePath,
@@ -1022,6 +1026,16 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
 
     ws.send(JSON.stringify({
       type: 'clear-queue',
+      sessionId: activeSessionId,
+    }));
+  },
+
+  resumeQueue: () => {
+    const { ws, activeSessionId } = get();
+    if (!ws || ws.readyState !== WebSocket.OPEN || !activeSessionId) return;
+
+    ws.send(JSON.stringify({
+      type: 'resume-queue',
       sessionId: activeSessionId,
     }));
   },

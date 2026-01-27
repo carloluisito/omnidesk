@@ -52,6 +52,17 @@ It is not an IDE. It is not a replacement for Claude Code. It is a session manag
 - **Quota Tracking** - Monitor your Claude API usage and costs
 - **GitHub/GitLab OAuth** - Push and create PRs using OAuth tokens
 - **Plan Mode** - Review and approve Claude's plan before execution
+- **Message Queue** - Queue up to 10 messages while Claude is working, with queue manager to preview, reorder, and remove pending prompts
+- **Stop/Cancel** - Stop Claude mid-generation with Escape key or Stop button; partial responses are preserved with cancellation marker
+- **Queue Resume Controls** - After stopping, choose to resume queue processing or clear all pending messages
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Escape** | Stop Claude's current generation (preserves partial response) |
+| **Enter** | Send message (in composer) |
+| **Shift+Enter** | New line in composer |
 
 ## Installation
 

@@ -120,6 +120,20 @@ Session types:
 - **Standard**: Works directly in repo directory
 - **Worktree**: Creates isolated git worktree for changes (recommended)
 
+**Message Queue Management:**
+- MAX_QUEUE_SIZE: 10 messages (hardcoded limit)
+- Messages sent while Claude is running are queued automatically
+- Queue is FIFO (first-in, first-out)
+- `wasRecentlyStopped` flag: Set to `true` when user cancels operation
+  - Prevents automatic queue processing after cancellation
+  - Enables resume controls in UI
+  - Cleared when user sends new message or explicitly resumes queue
+- Queue actions:
+  - `clearQueue()` - Removes all queued messages, clears wasRecentlyStopped flag
+  - `resumeQueue()` - Clears wasRecentlyStopped flag, triggers queue processing
+  - `removeFromQueue(messageId)` - Removes specific message from queue
+- WebSocket handlers: `clear-queue`, `resume-queue`, `remove-from-queue`
+
 #### `claude-invoker.ts` - Claude CLI Integration
 
 Spawns and communicates with Claude Code CLI:
@@ -246,13 +260,17 @@ Key actions:
 - `sendMessage()` - Send message via WebSocket
 - `cancelOperation()` - Cancel running Claude process
 - `approvePlan()` - Approve plan mode output with answers
+- `clearQueue()` - Clear all queued messages
+- `resumeQueue()` - Resume queue processing after stop
 
 WebSocket message handling:
-- `session-state` - Full session sync
+- `session-state` - Full session sync (includes `wasRecentlyStopped` flag)
 - `message` / `chunk` - Streaming message updates
 - `tool-start` / `tool-complete` - Tool activity tracking
 - `file-change` - File modification tracking
 - `usage-update` - Token and cost tracking
+- `queue-updated` - Queue state changes
+- `cancelled` - Operation cancellation confirmed
 
 #### `appStore.ts` - Application State
 
