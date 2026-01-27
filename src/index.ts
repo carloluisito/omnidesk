@@ -1,12 +1,23 @@
 import express from 'express';
 import { createServer } from 'http';
 import { join, dirname } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 
 // Get the directory of this file (works when installed globally via npm)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Get version from package.json
+function getVersion(): string {
+  try {
+    const packageJsonPath = join(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return packageJson.version;
+  } catch {
+    return '1.0.0';
+  }
+}
 import { apiRouter } from './api/routes.js';
 import { terminalRouter } from './api/terminal-routes.js';
 import { appRouter } from './api/app-routes.js';
@@ -150,9 +161,11 @@ export async function startServer(options: StartServerOptions = {}): Promise<voi
         ? `Network: ${HOST}:${PORT} (remote access enabled)`
         : `Network: localhost only`;
 
+      const version = getVersion();
+      const versionLine = `CLAUDEDESK v${version}`.padStart(29 + Math.floor(`CLAUDEDESK v${version}`.length / 2)).padEnd(57);
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                   CLAUDEDESK v2.0.0                       ║
+║${versionLine}║
 ╠═══════════════════════════════════════════════════════════╣
 ║  Server running at: http://localhost:${PORT}                 ║
 ║  WebSocket: ws://localhost:${PORT}/ws                        ║

@@ -1,10 +1,27 @@
 #!/usr/bin/env node
 
 import { homedir, platform } from 'os';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { existsSync, mkdirSync, readdirSync, copyFileSync, readFileSync } from 'fs';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import { startServer } from './index.js';
+
+// Get the directory of this file (works when installed globally via npm)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Get version from package.json
+function getVersion(): string {
+  try {
+    // When installed via npm, package.json is one level up from dist/
+    const packageJsonPath = join(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return packageJson.version;
+  } catch {
+    return '1.0.0';
+  }
+}
 
 interface CLIOptions {
   port?: number;
@@ -93,16 +110,9 @@ For more information, visit: https://github.com/yourusername/claudedesk
 }
 
 function printVersion(): void {
-  try {
-    const packageJsonPath = join(process.cwd(), 'package.json');
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-    console.log(`ClaudeDesk v${packageJson.version}`);
-    console.log(`Node.js ${process.version}`);
-    console.log(`Platform: ${platform()}`);
-  } catch (err) {
-    console.log('ClaudeDesk v2.0.0');
-    console.log(`Node.js ${process.version}`);
-  }
+  console.log(`ClaudeDesk v${getVersion()}`);
+  console.log(`Node.js ${process.version}`);
+  console.log(`Platform: ${platform()}`);
 }
 
 function checkNodeVersion(): void {
@@ -250,9 +260,11 @@ function copyExampleConfigs(dataDir: string): void {
 }
 
 function printBanner(dataDir: string, port: number): void {
+  const version = getVersion();
+  const versionLine = `CLAUDEDESK CLI v${version}`.padStart(30 + Math.floor(`CLAUDEDESK CLI v${version}`.length / 2)).padEnd(57);
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                  CLAUDEDESK CLI v2.0.0                    ║
+║${versionLine}║
 ╠═══════════════════════════════════════════════════════════╣
 ║  Data directory: ${dataDir.padEnd(39)}║
 ║  Port: ${String(port).padEnd(50)}║
