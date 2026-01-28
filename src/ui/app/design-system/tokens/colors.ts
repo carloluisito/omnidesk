@@ -1,5 +1,5 @@
 /**
- * Semantic color palette for ClaudeDesk v2.0
+ * Semantic color palette for ClaudeDesk
  * Maintains glassmorphism aesthetic with clear semantic meaning
  */
 
@@ -78,6 +78,28 @@ export const colors = {
     error: '#ef4444',
     info: '#3b82f6',
     running: '#06b6d4',
+  },
+
+  // Phase colors (Mission Control)
+  phase: {
+    prompt: {
+      bg: 'rgba(59, 130, 246, 0.10)',
+      bgActive: 'rgba(59, 130, 246, 0.20)',
+      accent: '#3b82f6',
+      glow: 'rgba(59, 130, 246, 0.40)',
+    },
+    review: {
+      bg: 'rgba(245, 158, 11, 0.10)',
+      bgActive: 'rgba(245, 158, 11, 0.20)',
+      accent: '#f59e0b',
+      glow: 'rgba(245, 158, 11, 0.40)',
+    },
+    ship: {
+      bg: 'rgba(16, 185, 129, 0.10)',
+      bgActive: 'rgba(16, 185, 129, 0.20)',
+      accent: '#10b981',
+      glow: 'rgba(16, 185, 129, 0.40)',
+    },
   },
 
   // Diff colors

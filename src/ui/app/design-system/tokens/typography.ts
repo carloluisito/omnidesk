@@ -1,5 +1,5 @@
 /**
- * Typography scale for ClaudeDesk v2.0
+ * Typography scale for ClaudeDesk
  * Uses system fonts with clear hierarchy
  */
 

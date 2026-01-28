@@ -1,5 +1,5 @@
 /**
- * ClaudeDesk v2.0 Design System
+ * ClaudeDesk Design System
  *
  * Unified design system for consistent UI across all screens.
  * Maintains glassmorphism aesthetic while reducing modal fatigue.

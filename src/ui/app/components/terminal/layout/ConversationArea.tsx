@@ -232,7 +232,7 @@ export function ConversationArea({
       )}
 
       {/* Composer */}
-      <div className="mt-4 flex-shrink-0">{composer}</div>
+      <div className="mt-6 flex-shrink-0">{composer}</div>
     </div>
   );
 }

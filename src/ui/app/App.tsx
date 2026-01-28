@@ -6,6 +6,7 @@ import { requestCache, CACHE_KEYS } from './lib/request-cache';
 import Auth from './screens/AuthV2';
 import Home from './screens/Home';
 import Terminal from './screens/TerminalV2';
+import { MissionControl } from './components/mission';
 import RunPage from './screens/RunPage';
 import ReviewChanges from './screens/ReviewChangesV2';
 import PreShipReview from './screens/PreShipReviewV2';
@@ -23,7 +24,7 @@ interface SetupStatus {
 }
 
 // Pages that should NOT show the bottom navigation
-const HIDE_NAV_PATHS = ['/', '/terminal', '/run', '/review-changes', '/pre-ship'];
+const HIDE_NAV_PATHS = ['/', '/terminal', '/mission', '/run', '/review-changes', '/pre-ship'];
 
 function MobileLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -46,8 +47,10 @@ function AppRoutes() {
   return (
     <MobileLayout>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<MissionControl />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/terminal" element={<Terminal />} />
+        <Route path="/mission" element={<MissionControl />} />
         <Route path="/run" element={<RunPage />} />
         <Route path="/review-changes" element={<ReviewChanges />} />
         <Route path="/pre-ship" element={<PreShipReview />} />
@@ -92,7 +95,7 @@ function AuthenticatedApp() {
 
   const handleWizardComplete = () => {
     setShowWizard(false);
-    navigate('/terminal');
+    navigate('/');
   };
 
   // Show nothing while checking setup status
@@ -116,9 +119,9 @@ export default function App() {
   const { token, setToken, loadData } = useAppStore();
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Check for cookie-based auth on startup (for iOS PWA support)
+  // Check for cookie-based auth and auto-auth for local access on startup
   useEffect(() => {
-    const checkCookieAuth = async () => {
+    const checkAuth = async () => {
       // Skip if already have a token
       if (token) {
         setCheckingSession(false);
@@ -126,7 +129,23 @@ export default function App() {
       }
 
       try {
-        // Check if we have a valid session cookie
+        // Check remote status first (no auth required)
+        const remoteRes = await fetch('/api/system/remote-status');
+        const remoteData = await remoteRes.json();
+
+        if (remoteData.success && !remoteData.data.isRemote) {
+          // Local access - auto-authenticate with default local token
+          setToken('claudedesk-local');
+          await loadData();
+          setCheckingSession(false);
+          return;
+        }
+      } catch {
+        // Remote status check failed - fall through to cookie check
+      }
+
+      try {
+        // Check if we have a valid session cookie (for iOS PWA / remote)
         const response = await fetch('/api/auth/session');
         const data = await response.json();
 
@@ -142,7 +161,7 @@ export default function App() {
       }
     };
 
-    checkCookieAuth();
+    checkAuth();
   }, [token, setToken, loadData]);
 
   // Show loading while checking session
@@ -156,10 +175,14 @@ export default function App() {
 
   return (
     <>
-      {/* PWA Banners - shown globally */}
-      <OfflineBanner />
-      <InstallBanner />
-      <UpdateBanner />
+      {/* PWA Banners - only shown when authenticated */}
+      {token && (
+        <>
+          <OfflineBanner />
+          <InstallBanner />
+          <UpdateBanner />
+        </>
+      )}
 
       {/* Main app content */}
       {!token ? <Auth /> : <AuthenticatedApp />}

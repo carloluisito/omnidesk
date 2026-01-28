@@ -167,34 +167,29 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
 
   return (
     <div className={cn(
-      'rounded-xl ring-1',
-      isNested ? 'px-2 py-1' : 'px-2.5 py-1.5',
-      activity.status === 'error'
-        ? 'bg-red-500/10 ring-red-500/20'
-        : isNested
-          ? 'bg-white/[0.03] ring-white/5'
-          : 'bg-white/5 ring-white/10'
+      'py-0.5 px-1 rounded-md hover:bg-white/[0.03] transition-colors',
+      activity.status === 'error' && 'bg-red-500/5'
     )}>
       <div className="flex items-center gap-2">
         {/* Status icon */}
         {activity.status === 'running' ? (
-          <Loader2 className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', 'animate-spin', config.color)} />
+          <Loader2 className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', 'animate-spin opacity-60', config.color)} />
         ) : activity.status === 'error' ? (
-          <AlertTriangle className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', 'text-red-400')} />
+          <AlertTriangle className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', 'text-red-400 opacity-60')} />
         ) : (
-          <Icon className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', config.color)} />
+          <Icon className={cn(isNested ? 'h-3 w-3' : 'h-3.5 w-3.5', config.color, 'opacity-60')} />
         )}
 
         {/* Human-readable description */}
         <span
           className={cn(
-            'font-medium truncate flex-1',
+            'truncate flex-1',
             isNested ? 'text-[11px]' : 'text-xs',
             activity.status === 'error'
-              ? 'text-red-300'
+              ? 'text-red-300/80'
               : activity.status === 'complete'
-                ? 'text-white/50'
-                : 'text-white/80'
+                ? 'text-white/40'
+                : 'text-white/60'
           )}
           title={activity.mcpToolDescription || activity.target || activity.tool}
         >
@@ -210,7 +205,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
 
         {/* Duration for completed activities */}
         {activity.status === 'complete' && activity.timestamp && activity.completedAt && (
-          <span className={cn(isNested ? 'text-[9px]' : 'text-[10px]', 'text-white/40')}>
+          <span className={cn(isNested ? 'text-[9px]' : 'text-[10px]', 'text-white/30')}>
             {Math.round((new Date(activity.completedAt).getTime() - new Date(activity.timestamp).getTime()) / 1000)}s
           </span>
         )}
@@ -227,10 +222,10 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
                 setShowMCPOutput(!showMCPOutput);
               }
             }}
-            className="ml-auto p-0.5 hover:bg-white/10 rounded-lg transition-colors"
+            className="ml-auto p-0.5 hover:bg-white/10 rounded-md transition-colors"
           >
             <ChevronDown className={cn(
-              'h-3 w-3 text-white/40 transition-transform',
+              'h-3 w-3 text-white/30 transition-transform',
               (showOutput || showInput || showMCPOutput) && 'rotate-180'
             )} />
           </button>
@@ -245,7 +240,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
             <span className="text-red-300 font-medium">Error occurred</span>
             <button
               onClick={handleCopyError}
-              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 text-[10px] ring-1 ring-white/10 transition-colors"
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition-colors"
             >
               {copied ? (
                 <>
@@ -260,10 +255,10 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
               )}
             </button>
           </div>
-          <pre className="text-xs bg-black/30 rounded-xl p-2.5 max-h-32 overflow-auto text-red-400 ring-1 ring-red-500/20">
+          <pre className="text-xs bg-black/30 rounded-lg p-2.5 max-h-32 overflow-auto text-red-400 ring-1 ring-red-500/20">
             {sanitizeSensitiveData(activity.error)}
           </pre>
-          <p className="text-[10px] text-white/40">
+          <p className="text-[10px] text-white/30">
             Tip: You can ask Claude to retry this operation or investigate the error.
           </p>
         </div>
@@ -277,7 +272,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
             <span className="text-purple-300 font-medium">Tool Input</span>
             <button
               onClick={handleCopyInput}
-              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 text-[10px] ring-1 ring-white/10 transition-colors"
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition-colors"
             >
               {copiedInput ? (
                 <>
@@ -292,7 +287,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
               )}
             </button>
           </div>
-          <pre className="text-xs bg-black/30 rounded-xl p-2.5 max-h-48 overflow-auto text-purple-300 ring-1 ring-purple-500/20 font-mono">
+          <pre className="text-xs bg-black/30 rounded-lg p-2.5 max-h-48 overflow-auto text-purple-300 ring-1 ring-purple-500/20 font-mono">
             {JSON.stringify(activity.mcpInput, null, 2)}
           </pre>
         </div>
@@ -306,7 +301,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
             <span className="text-purple-300 font-medium">Tool Output</span>
             <button
               onClick={handleCopyOutput}
-              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 text-[10px] ring-1 ring-white/10 transition-colors"
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/50 text-[10px] transition-colors"
             >
               {copiedOutput ? (
                 <>
@@ -321,7 +316,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
               )}
             </button>
           </div>
-          <pre className="text-xs bg-black/30 rounded-xl p-2.5 max-h-48 overflow-auto text-white/70 ring-1 ring-white/10 font-mono whitespace-pre-wrap">
+          <pre className="text-xs bg-black/30 rounded-lg p-2.5 max-h-48 overflow-auto text-white/70 ring-1 ring-white/10 font-mono whitespace-pre-wrap">
             {activity.mcpOutput}
           </pre>
         </div>
@@ -329,7 +324,7 @@ export const ToolActivityItem = memo(function ToolActivityItem({ activity, isNes
 
       {/* Tool description for MCP tools */}
       {activity.isMCPTool && activity.mcpToolDescription && (showInput || showMCPOutput) && (
-        <div className="mt-2 text-[10px] text-white/40 italic">
+        <div className="mt-2 text-[10px] text-white/30 italic">
           {activity.mcpToolDescription}
         </div>
       )}

@@ -149,7 +149,7 @@ For servers not in the catalog:
 
 ### Current Limitations
 
-> **Note:** MCP server management and tool discovery are fully functional in v1.1.0. However, **MCP tools are not yet available to Claude during terminal sessions**. Claude cannot autonomously invoke MCP tools while working on your tasks. This integration is planned for a future release.
+> **Note:** MCP server management and tool discovery are fully functional. However, **MCP tools are not yet available to Claude during terminal sessions**. Claude cannot autonomously invoke MCP tools while working on your tasks. This integration is planned for a future release.
 >
 > Current capabilities:
 > - Configure and manage MCP servers
@@ -218,8 +218,8 @@ npm run dev
 claudedesk [options]
 
 Options:
-  -p, --port <port>      Port to listen on (default: 8787)
-  -d, --data-dir <path>  Data directory for config and artifacts
+  --port <port>          Port to listen on (default: 8787)
+  --data-dir <path>      Data directory for config and artifacts
   --skip-wizard          Skip the initial setup wizard
   --allow-remote         Allow remote network access (binds to 0.0.0.0)
   -h, --help             Show help message
@@ -395,7 +395,7 @@ Returns server health status and version information. Used for Docker healthchec
   "success": true,
   "data": {
     "status": "ok",
-    "version": "1.0.10",
+    "version": "3.0.0",
     "uptime": 12345,
     "timestamp": "2026-01-28T12:00:00.000Z"
   }
@@ -620,6 +620,124 @@ Updates global MCP settings.
 
 Returns the list of pre-configured server templates.
 
+### Agent Management Endpoints
+
+These endpoints manage Claude Code agents (built-in and user-defined from `~/.claude/agents/`).
+
+#### List All Agents
+
+**GET `/api/agents`**
+
+Returns all agents (user-defined + built-in).
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "explore",
+      "name": "Explore",
+      "description": "Explore and understand codebases",
+      "model": "haiku",
+      "source": "builtin"
+    }
+  ]
+}
+```
+
+#### List User Agents
+
+**GET `/api/agents/user`**
+
+Returns only user-defined agents from `~/.claude/agents/*.md`.
+
+#### List Built-in Agents
+
+**GET `/api/agents/builtin`**
+
+Returns only built-in Claude Code agents.
+
+#### Get Recent Agents
+
+**GET `/api/agents/recent`**
+
+Returns the 3 most recently used agents.
+
+#### Get Specific Agent
+
+**GET `/api/agents/:agentId`**
+
+Returns details for a specific agent by ID.
+
+#### Detect Agent for Prompt
+
+**POST `/api/agents/detect`**
+
+Auto-detects the best agent for a given prompt using keyword matching.
+
+Request body:
+```json
+{
+  "prompt": "explore the authentication flow"
+}
+```
+
+### Tunnel Management Endpoints
+
+These endpoints control Cloudflare tunnel remote access.
+
+#### Get Tunnel Status
+
+**GET `/api/tunnel/status`**
+
+Returns current tunnel status and configuration.
+
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": true,
+    "status": "running",
+    "url": "https://example.trycloudflare.com",
+    "startedAt": "2026-01-28T12:00:00.000Z",
+    "autoStart": false,
+    "cloudflaredInstalled": true,
+    "cloudflaredVersion": "2024.1.0",
+    "tokenConfigured": true
+  }
+}
+```
+
+#### Start Tunnel
+
+**POST `/api/tunnel/start`**
+
+Starts a Cloudflare tunnel for remote access.
+
+#### Stop Tunnel
+
+**POST `/api/tunnel/stop`**
+
+Stops the active tunnel.
+
+#### Update Tunnel Settings
+
+**PUT `/api/tunnel/settings`**
+
+Updates tunnel configuration (enabled, autoStart, rotateToken).
+
+#### Get Auth Token
+
+**GET `/api/tunnel/token`**
+
+Returns the current tunnel auth token for display in UI.
+
+#### Generate QR Code
+
+**GET `/api/tunnel/qr`**
+
+Generates a QR code data URL for mobile device pairing. Tunnel must be running.
+
 For complete API documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Troubleshooting
@@ -695,14 +813,20 @@ claudedesk --data-dir /path/to/restored/data
 
 ```
 src/
-  api/           # Express routes (including mcp-routes.ts)
+  api/           # Express routes (mcp-routes, agent-routes, tunnel-routes, etc.)
   core/          # Claude invoker, git operations, session management
                  # MCP: mcp-client.ts, mcp-manager.ts
   config/        # Settings, workspaces, skills
                  # MCP: mcp-servers.ts (registry), mcp-catalog.ts (templates)
   ui/app/        # React frontend
-    components/settings/  # MCP: MCPServersPanel, CatalogBrowserModal, SetupWizardModal
-    hooks/                # MCP: useMCPServers, useMCPCatalog
+    components/
+      mission/          # MissionControl landing page and phased workflow
+      settings/         # MCP: MCPServersPanel, CatalogBrowserModal, SetupWizardModal
+      terminal/v2/      # Modular terminal components (Composer, TopBar, etc.)
+      review/           # DiffViewerV2, FileTree, ReviewLayout, ApprovalSummary
+      ship/             # SafetyChecklist, BranchCompare, PRPreview
+    hooks/              # useTerminal, useMCPServers, useAgents, useRemoteAccess, etc.
+    store/              # terminalStore, appStore, runStore, terminalUIStore, themeStore
 config/
   repos.json     # Repository configuration (example)
   skills/        # Custom skill definitions

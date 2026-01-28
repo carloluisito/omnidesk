@@ -100,10 +100,8 @@ export function useTerminal() {
     resumeQueue,
     showPreviewPanel,
     showStartAppModal,
-    showMobilePreviewOverlay,
     setShowPreviewPanel,
     setShowStartAppModal,
-    setShowMobilePreviewOverlay,
     pendingMCPApproval,
     approveMCPTool,
     denyMCPTool,
@@ -382,7 +380,7 @@ export function useTerminal() {
         remoteBranches: string[];
         currentBranch: string;
         mainBranch: string;
-      }>('GET', `/terminal/repos/${repoId}/branches?fetch=true`);
+      }>('GET', `/terminal/repos/${repoId}/branches`);
       setAvailableBranches(data.branches);
       setMainBranch(data.mainBranch || 'main');
       // Set default base branch to main branch if not already set
@@ -1083,8 +1081,8 @@ export function useTerminal() {
             switchSessionWithToast(sessions[index].id);
           }
         }
-        // Ctrl+T: New session
-        if (e.key === 't') {
+        // Ctrl+Shift+T: New session
+        if (e.shiftKey && e.key === 'T') {
           e.preventDefault();
           setShowNewSessionModal(true);
         }
@@ -1207,10 +1205,8 @@ export function useTerminal() {
     resumeQueue,
     showPreviewPanel,
     showStartAppModal,
-    showMobilePreviewOverlay,
     setShowPreviewPanel,
     setShowStartAppModal,
-    setShowMobilePreviewOverlay,
     pendingMCPApproval,
     approveMCPTool,
     denyMCPTool,

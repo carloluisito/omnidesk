@@ -18,7 +18,7 @@ import { agentRouter } from './agent-routes.js';
 import { tunnelRouter } from './tunnel-routes.js';
 import { mcpRouter } from './mcp-routes.js';
 import { pinAuthManager } from './pin-auth.js';
-import { getAuthToken } from './middleware.js';
+import { getAuthToken, isRemoteRequest } from './middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,7 +32,7 @@ let healthStatusCache: { data: unknown; timestamp: number } | null = null;
 const HEALTH_CACHE_TTL = 60000; // 60 seconds
 
 // Read package.json version
-let packageVersion = '2.0.0';
+let packageVersion = '3.0.0';
 try {
   const packageJsonPath = join(__dirname, '..', '..', 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
@@ -182,9 +182,10 @@ apiRouter.delete('/auth/pin', (_req: Request, res: Response) => {
 });
 
 // SEC-02: Remote access status
-apiRouter.get('/system/remote-status', (_req: Request, res: Response) => {
+apiRouter.get('/system/remote-status', (req: Request, res: Response) => {
   const remoteEnabled = process.env.ALLOW_REMOTE === 'true';
-  res.json({ success: true, data: { remoteEnabled } });
+  const isRemote = isRemoteRequest(req);
+  res.json({ success: true, data: { remoteEnabled, isRemote } });
 });
 
 // Health status - comprehensive system status for setup wizard
@@ -297,11 +298,13 @@ apiRouter.post('/setup/complete', (_req: Request, res: Response) => {
 apiRouter.get('/repos', (_req: Request, res: Response) => {
   const repos = repoRegistry.getAll();
 
-  // Add hasRemote property to each repo (workspaceId is already on repo from registry)
+  // Add hasGit and hasRemote properties to each repo (workspaceId is already on repo from registry)
   const reposWithMetadata = repos.map(repo => {
-    const hasRemote = existsSync(repo.path) ? gitSandbox.hasRemote(repo.path) : false;
+    const hasGit = existsSync(join(repo.path, '.git'));
+    const hasRemote = hasGit ? gitSandbox.hasRemote(repo.path) : false;
     return {
       ...repo,
+      hasGit,
       hasRemote,
     };
   });

@@ -7,7 +7,7 @@ version: '3.8'
 services:
   claudedesk:
     # Use a specific image tag instead of latest
-    # image: ghcr.io/yourusername/claudedesk:v2.0.0
+    # image: ghcr.io/yourusername/claudedesk:v3.0.0
 
     # Build from local Dockerfile instead of pulling from registry
     # build:

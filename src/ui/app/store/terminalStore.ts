@@ -176,8 +176,6 @@ interface TerminalStore {
   // Preview panel state
   showPreviewPanel: boolean;
   showStartAppModal: boolean;
-  showMobilePreviewOverlay: boolean;
-
   // Actions
   loadSessions: (options?: { forceRefresh?: boolean }) => Promise<void>;
   createSession: (repoIdOrIds: string | string[], options?: { worktreeMode?: boolean; branch?: string; baseBranch?: string; existingWorktreePath?: string }) => Promise<TerminalSession>;
@@ -219,8 +217,6 @@ interface TerminalStore {
   // Preview panel
   setShowPreviewPanel: (show: boolean) => void;
   setShowStartAppModal: (show: boolean) => void;
-  setShowMobilePreviewOverlay: (show: boolean) => void;
-
   // MCP tool approval
   approveMCPTool: (approvalId: string, autoApproveSession: boolean) => Promise<void>;
   denyMCPTool: (approvalId: string) => Promise<void>;
@@ -273,8 +269,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   // Preview panel state
   showPreviewPanel: false,
   showStartAppModal: false,
-  showMobilePreviewOverlay: false,
-
   loadSessions: async (options?: { forceRefresh?: boolean }) => {
     // Guard against duplicate simultaneous calls
     if (get().isLoadingSessions && !options?.forceRefresh) {
@@ -1248,8 +1242,6 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
   // Preview panel actions
   setShowPreviewPanel: (show: boolean) => set({ showPreviewPanel: show }),
   setShowStartAppModal: (show: boolean) => set({ showStartAppModal: show }),
-  setShowMobilePreviewOverlay: (show: boolean) => set({ showMobilePreviewOverlay: show }),
-
   // MCP tool approval
   approveMCPTool: async (approvalId: string, autoApproveSession: boolean) => {
     try {

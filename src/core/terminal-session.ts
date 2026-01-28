@@ -472,6 +472,11 @@ class TerminalSessionManager {
       const primaryRepoId = repoIds[0];
       const repo = repoRegistry.get(primaryRepoId)!;
 
+      // Guard: worktree mode requires a git repository
+      if (!existsSync(join(repo.path, '.git'))) {
+        throw new Error('Worktree mode requires a git repository. The selected repository does not have git initialized.');
+      }
+
       // Check if using existing worktree
       if (worktreeOptions.existingWorktreePath) {
         const existingPath = worktreeOptions.existingWorktreePath;

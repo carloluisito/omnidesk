@@ -1,6 +1,6 @@
 # ClaudeDesk Architecture
 
-Technical architecture documentation for ClaudeDesk v2.0.0 - an AI-powered development platform with Claude terminal interface.
+Technical architecture documentation for ClaudeDesk v3.0.0 - an AI-powered development platform with Claude terminal interface.
 
 ## Overview
 
@@ -117,6 +117,9 @@ This dual-mode architecture enables Cloudflare tunnels to work in both environme
 | `settings-routes.ts` | `/api/settings/*` | User preferences, favorites, recent repos |
 | `docker-routes.ts` | `/api/docker/*` | Shared Docker environment management |
 | `skill-routes.ts` | `/api/skills/*` | Custom skill definitions and execution |
+| `agent-routes.ts` | `/api/agents/*` | Agent management, detection, and usage tracking |
+| `tunnel-routes.ts` | `/api/tunnel/*` | Remote tunnel control, QR code generation |
+| `mcp-routes.ts` | `/api/mcp/*` | MCP server configuration and tool management |
 
 ### Core Modules
 
@@ -339,7 +342,7 @@ Key actions:
 - `loadMonorepoInfo()` / `loadDockerInfo()` - Project detection
 - `extractSignals()` - Parse warnings/errors from logs
 
-#### `terminalUIStore.ts` - Terminal UI State (v2.0)
+#### `terminalUIStore.ts` - Terminal UI State
 
 Centralized overlay and panel management, replacing 30+ individual useState hooks:
 
@@ -368,7 +371,7 @@ Benefits:
 - Desktop: multiple panels can be expanded
 - Mobile: uses sheet pattern instead of modals
 
-### Design System (v2.0)
+### Design System
 
 New unified design system at `src/ui/app/design-system/`:
 
@@ -392,26 +395,31 @@ design-system/
     StatusStrip.tsx    # Mobile bottom status bar (replaces FAB)
 ```
 
+**Import Path Alias:** The project uses `@/` as a TypeScript path alias mapping to `src/ui/app/`. All frontend imports use this convention.
+
 Usage:
 ```typescript
 import { Surface, Stack, Text } from '@/design-system/primitives';
 import { Panel, Stepper } from '@/design-system/compounds';
+// @/ resolves to src/ui/app/
 ```
 
 ### Screens
 
 | Screen | Path | Purpose |
 |--------|------|---------|
-| `Home.tsx` | `/` | Landing page, repo selection |
+| `MissionControl.tsx` | `/` and `/mission` | Default landing page with phased workflow navigator |
+| `Home.tsx` | `/home` | Repo selection and session launcher |
 | `AuthV2.tsx` | `/auth` | Token/PIN authentication with stepper flow |
 | `TerminalV2.tsx` | `/terminal` | Main terminal interface (modular architecture) |
 | `ReviewChangesV2.tsx` | `/review-changes` | Git diff review with Shiki syntax highlighting |
 | `PreShipReviewV2.tsx` | `/pre-ship` | Pre-push review with safety checklist and PR preview |
 | `RunPage.tsx` | `/run` | App runner with logs |
 | `Settings.tsx` | `/settings/*` | Configuration pages with tabbed navigation |
-| `SessionDashboard.tsx` | `/sessions` | Session management |
+| `SessionDashboard.tsx` | - | Session management (not currently routed) |
+| `Launcher.tsx` | - | Alternative launcher interface (not currently routed) |
 
-**Note:** Original v1 screens (Auth.tsx, Terminal.tsx, ReviewChanges.tsx, PreShipReview.tsx) are preserved for rollback if needed.
+**Note:** Original v1 screens (Auth.tsx, Terminal.tsx, ReviewChanges.tsx, PreShipReview.tsx) were removed. Only current implementations exist.
 
 ### Ship Workflow Architecture
 
@@ -420,15 +428,12 @@ The ship workflow allows users to commit, push, and create PRs directly from the
 #### Component Hierarchy
 
 ```
-Terminal.tsx
+TerminalV2.tsx
   └── SidePanel.tsx (tabbed: Activity | Changes)
         └── ChangesPanel.tsx (orchestrator)
-              ├── SummaryCard.tsx (stats display)
-              ├── FileList.tsx (expandable file list)
-              │     └── FileItem.tsx (individual files)
-              ├── ShipForm.tsx (commit/push/PR form)
-              ├── SuccessCard.tsx (success state)
-              └── ErrorCard.tsx (error state)
+              ├── ChangesCard.tsx (stats display)
+              ├── changes/ (file list components)
+              └── Ship modal integration
 ```
 
 #### State Machine
@@ -500,7 +505,7 @@ All endpoints support `repoId` parameter for multi-repo sessions.
 
 ```
 src/ui/app/
-+-- design-system/          # v2.0 Unified Design System
++-- design-system/          # Unified Design System
 |   +-- tokens/             # Design tokens
 |   |   +-- colors.ts       # Semantic color palette
 |   |   +-- spacing.ts      # Spacing and border radius scales
@@ -519,7 +524,18 @@ src/ui/app/
 |       +-- StatusStrip.tsx # Mobile bottom bar
 +-- components/
 |   +-- layout/             # Shell, Header, Navigation
-|   +-- auth/               # v2.0 Auth components
+|   +-- mission/            # MissionControl landing page
+|   |   +-- MissionControl.tsx     # Phased workflow navigator (default route)
+|   |   +-- PhaseNavigator.tsx     # Phase selection UI
+|   |   +-- OnboardingFlow.tsx     # First-time user flow
+|   |   +-- RepoDock.tsx           # Repository dock
+|   |   +-- SettingsDrawer.tsx     # Inline settings drawer
+|   |   +-- Logo.tsx               # Brand logo component
+|   |   +-- phases/                # Phase-specific components
+|   |       +-- PromptPhase.tsx    # Prompt/chat phase
+|   |       +-- ReviewPhase.tsx    # Review phase
+|   |       +-- ShipPhase.tsx      # Ship phase
+|   +-- auth/               # Auth components
 |   |   +-- AuthStepper.tsx       # Stepper flow orchestrator
 |   |   +-- AuthMethodPicker.tsx  # Token vs PIN selection
 |   |   +-- TokenAuthForm.tsx     # Token input form
@@ -527,24 +543,24 @@ src/ui/app/
 |   |   +-- PWAInstallPrompt.tsx  # Non-blocking PWA prompt
 |   |   +-- AuthSuccess.tsx       # Success state
 |   +-- terminal/           # Terminal-specific components
-|   |   +-- layout/         # v2.0 Layout components
+|   |   +-- layout/         # Layout components
 |   |   |   +-- TerminalLayout.tsx     # Main grid structure
 |   |   |   +-- ConversationArea.tsx   # Messages + composer
 |   |   |   +-- SidebarArea.tsx        # Activity + changes
 |   |   |   +-- MobileStatusStrip.tsx  # Mobile bottom bar
-|   |   +-- overlays/       # v2.0 Overlay components
+|   |   +-- overlays/       # Overlay components
 |   |   |   +-- OverlayManager.tsx     # Renders active overlay
-|   |   +-- v2/             # v2.0 Feature components
+|   |   +-- v2/             # Feature components
 |   |   |   +-- changes/    # Ship workflow
 |   |   |   +-- ChangesPanel.tsx
 |   |   |   +-- SidePanel.tsx
-|   +-- review/             # v2.0 Review components
+|   +-- review/             # Review components
 |   |   +-- DiffViewerV2.tsx      # Shiki syntax highlighting
 |   |   +-- FileTree.tsx          # Collapsible file tree
 |   |   +-- ReviewLayout.tsx      # 3-column responsive layout
 |   |   +-- ApprovalSummary.tsx   # Approval progress panel
 |   |   +-- ReviewTopBar.tsx      # Header navigation
-|   +-- ship/               # v2.0 Ship components
+|   +-- ship/                     # Ship components
 |   |   +-- SafetyChecklist.tsx   # Warning severity system
 |   |   +-- BranchCompare.tsx     # Source→target visual
 |   |   +-- PRPreview.tsx         # Live PR preview
@@ -552,13 +568,14 @@ src/ui/app/
 |   |   +-- SettingsLayout.tsx    # Tabbed navigation
 |   +-- ui/                 # Reusable UI primitives
 +-- hooks/                  # Custom React hooks
-+-- lib/                    # Utilities (api, formatters, sounds)
++-- lib/                    # Utilities (api, cn, haptics, request-cache, sanitize)
 +-- screens/                # Page components (V2 versions active)
 +-- store/                  # Zustand stores
 |   +-- terminalStore.ts    # Session state
-|   +-- terminalUIStore.ts  # v2.0 UI overlay/panel state
+|   +-- terminalUIStore.ts  # UI overlay/panel state
 |   +-- appStore.ts         # Global app state
 |   +-- runStore.ts         # Running apps state
+|   +-- themeStore.ts       # Theme preferences
 +-- types/                  # TypeScript definitions
 ```
 

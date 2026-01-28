@@ -1,4 +1,5 @@
-import { Search, Command, SplitSquareVertical, Plus } from 'lucide-react';
+import { Search, Command, SplitSquareVertical, Plus, Rocket } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppHeader, HeaderButton } from '@/components/ui/AppHeader';
 import { QuotaChip } from '../../ui/QuotaChip';
 import { MCPStatusIndicator } from '../MCPStatusIndicator';
@@ -28,6 +29,8 @@ export function TopBar({
   weeklyResetTime,
   onQuotaClick,
 }: TopBarProps) {
+  const navigate = useNavigate();
+
   return (
     <AppHeader
       subtitle="Session tabs, execution visibility, safe shipping"
@@ -65,6 +68,12 @@ export function TopBar({
               icon={<Command className="h-4 w-4" />}
               label="Commands"
               shortcut="Ctrl K"
+            />
+            <HeaderButton
+              onClick={() => navigate('/mission')}
+              icon={<Rocket className="h-4 w-4" />}
+              label="Mission"
+              title="Mission Control - Unified workflow"
             />
             <HeaderButton
               onClick={onSplit}

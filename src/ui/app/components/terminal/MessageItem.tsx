@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
-import { Loader2, Paperclip, Copy, Check, RefreshCw, ChevronDown, ChevronUp, Bookmark, BookmarkCheck, Bot } from 'lucide-react';
+import { Loader2, Paperclip, Copy, Check, RefreshCw, ChevronDown, ChevronUp, Bookmark, BookmarkCheck, Bot, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { ChatMessage, ToolActivity, FileChange } from '../../store/terminalStore';
 import { ActivityTimeline } from './ActivityTimeline';
@@ -172,7 +172,7 @@ export const MessageItem = memo(function MessageItem({
       // Render unlabeled code blocks (like flow diagrams) with pre styling
       if (isBlock) {
         return (
-          <pre className="whitespace-pre font-mono text-sm bg-white/10 p-3 rounded-xl my-2 overflow-x-auto ring-1 ring-white/10">
+          <pre className="whitespace-pre font-mono text-sm bg-[#0d1117] p-3 rounded-xl my-2 overflow-x-auto ring-1 ring-white/[0.06]">
             <code className="text-white/85">{children}</code>
           </pre>
         );
@@ -189,7 +189,7 @@ export const MessageItem = memo(function MessageItem({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 underline"
+          className="text-blue-400 hover:text-blue-300 underline underline-offset-2 decoration-blue-400/30"
           {...props}
         >
           {children}
@@ -233,7 +233,7 @@ export const MessageItem = memo(function MessageItem({
     },
     // Paragraph styling
     p({ children }: { children?: React.ReactNode }) {
-      return <p className="mb-2 text-white/85">{children}</p>;
+      return <p className="mb-3 text-white/85">{children}</p>;
     },
     // Blockquote styling
     blockquote({ children }: { children?: React.ReactNode }) {
@@ -255,92 +255,144 @@ export const MessageItem = memo(function MessageItem({
     },
   }), []);
 
-  // User-specific markdown components (for white background)
-  const userMarkdownComponents = useMemo(() => ({
-    ...markdownComponents,
-    code({ className, children, ...props }: { className?: string; children?: React.ReactNode }) {
-      const match = /language-(\w+)/.exec(className || '');
-      const codeString = String(children).replace(/\n$/, '');
-      const isBlock = codeString.includes('\n');
+  if (isUser) {
+    // ── User message: right-aligned subtle bubble ──
+    return (
+      <>
+        <div
+          id={`message-${message.id}`}
+          className="group flex justify-end px-4 sm:px-6 py-4"
+        >
+          <div className="max-w-[70%] rounded-2xl px-4 py-3 bg-white/[0.12] text-white/95 ring-1 ring-white/[0.12]">
+            {/* Message content */}
+            <div className={cn('text-sm', shouldCollapse && 'relative')}>
+              <pre
+                className={cn(
+                  'whitespace-pre-wrap font-sans text-white/90',
+                  shouldCollapse && 'max-h-48 overflow-hidden'
+                )}
+              >
+                {message.content}
+              </pre>
+              {/* Show attachments if any */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {message.attachments.map((att) => (
+                    <span
+                      key={att.id}
+                      className="inline-flex items-center gap-1.5 text-xs bg-white/5 text-white/60 px-2.5 py-1 rounded-xl ring-1 ring-white/10"
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      {att.originalName}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-      if (match) {
-        return <CodeBlock code={codeString} language={match[1]} />;
-      }
+              {/* Collapse/Expand gradient and button */}
+              {isLongMessage && (
+                <>
+                  {shouldCollapse && (
+                    <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-t from-white/10 to-transparent" />
+                  )}
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="flex items-center gap-1 mt-3 text-xs font-medium text-blue-400 hover:text-blue-300"
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="h-3 w-3" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-3 w-3" />
+                        Show more ({Math.round((message.content?.length || 0) / 1000)}k characters)
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
 
-      if (isBlock) {
-        return (
-          <pre className="whitespace-pre font-mono text-sm bg-black/5 p-3 rounded-xl my-2 overflow-x-auto ring-1 ring-black/10">
-            <code className="text-black/85">{children}</code>
-          </pre>
-        );
-      }
+            {/* Hover timestamp */}
+            <div className="mt-2 text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </div>
 
-      return <InlineCode {...props}>{children}</InlineCode>;
-    },
-    thead({ children }: { children?: React.ReactNode }) {
-      return <thead className="bg-black/5 border-b border-black/10">{children}</thead>;
-    },
-    tbody({ children }: { children?: React.ReactNode }) {
-      return <tbody className="divide-y divide-black/10">{children}</tbody>;
-    },
-    tr({ children }: { children?: React.ReactNode }) {
-      return <tr className="hover:bg-black/5">{children}</tr>;
-    },
-    th({ children }: { children?: React.ReactNode }) {
-      return <th className="px-3 py-2 text-left font-semibold text-black">{children}</th>;
-    },
-    td({ children }: { children?: React.ReactNode }) {
-      return <td className="px-3 py-2 text-black/80">{children}</td>;
-    },
-    h1({ children }: { children?: React.ReactNode }) {
-      return <h1 className="text-xl font-bold mt-6 mb-3 text-black border-b border-black/10 pb-2">{children}</h1>;
-    },
-    h2({ children }: { children?: React.ReactNode }) {
-      return <h2 className="text-lg font-bold mt-5 mb-2 text-black">{children}</h2>;
-    },
-    h3({ children }: { children?: React.ReactNode }) {
-      return <h3 className="text-base font-semibold mt-4 mb-2 text-black/90">{children}</h3>;
-    },
-    p({ children }: { children?: React.ReactNode }) {
-      return <p className="mb-2 text-black">{children}</p>;
-    },
-    blockquote({ children }: { children?: React.ReactNode }) {
-      return (
-        <blockquote className="border-l-4 border-blue-500 pl-4 my-3 text-black/60 italic">
-          {children}
-        </blockquote>
-      );
-    },
-    li({ children }: { children?: React.ReactNode }) {
-      return <li className="text-black/80">{children}</li>;
-    },
-  }), [markdownComponents]);
+            {/* Action buttons - hover only */}
+            <div className="mt-1.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={handleCopy}
+                className="rounded-lg p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+                title="Copy message"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
 
+              {onToggleBookmark && (
+                <button
+                  onClick={() => onToggleBookmark(message.id)}
+                  className={cn(
+                    'rounded-lg p-1.5 transition-colors',
+                    message.isBookmarked
+                      ? 'text-amber-400 opacity-100'
+                      : 'text-white/40 hover:text-white/70 hover:bg-white/10'
+                  )}
+                  title={message.isBookmarked ? 'Remove bookmark' : 'Bookmark message'}
+                >
+                  {message.isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                </button>
+              )}
+
+              {onRetry && !isSessionRunning && (
+                <button
+                  onClick={() => onRetry(message.content || '')}
+                  className="rounded-lg p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+                  title="Retry this message"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── Assistant message: full-width avatar + content layout ──
   return (
     <>
-      {/* Message bubble container - chat-style alignment */}
       <div
         id={`message-${message.id}`}
-        className={cn('flex px-3 py-2', isUser ? 'justify-end' : 'justify-start')}
+        className="group flex gap-3 px-4 sm:px-6 py-5"
       >
-        {/* Bubble wrapper */}
-        <div
-          className={cn(
-            'max-w-[84%] rounded-3xl px-4 py-3 ring-1',
-            isUser
-              ? 'bg-white text-black ring-white'
-              : 'bg-white/5 text-white ring-white/10'
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500/80 to-amber-600/80">
+            <Sparkles className="h-3.5 w-3.5 text-white" />
+          </div>
+          {/* Streaming pulsing dot */}
+          {message.isStreaming && (
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+            </span>
           )}
-        >
-          {/* Header: role + timestamp + streaming indicator */}
-          <div className={cn('flex items-center gap-2 text-xs', isUser ? 'text-black/60' : 'text-white/55')}>
-            <span className="font-medium">{isUser ? 'You' : 'Claude'}</span>
-            <span>•</span>
-            <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Header row: Claude label + hover timestamp + agent badge */}
+          <div className="flex items-center gap-2.5 text-xs text-white/55 mb-2">
+            <span className="font-medium text-white/70">Claude</span>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white/30">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </span>
             {/* Agent attribution badge */}
-            {!isUser && message.agentId && (
+            {message.agentId && (
               <>
-                <span>•</span>
                 {message.autoDetected ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-blue-400">
                     <Bot className="h-3 w-3" />
@@ -354,7 +406,7 @@ export const MessageItem = memo(function MessageItem({
               </>
             )}
             {message.isStreaming && (
-              <span className="flex items-center gap-1 text-emerald-500">
+              <span className="flex items-center gap-1 text-orange-400/70">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 {currentActivity ? (
                   <span className="truncate max-w-[150px]" title={currentActivity}>
@@ -371,7 +423,7 @@ export const MessageItem = memo(function MessageItem({
 
           {/* Activity Timeline - shows tool invocations for the last assistant message */}
           {isLastAssistantMessage && toolActivities.length > 0 && (
-            <div className="mt-3">
+            <div className="mb-3">
               <ActivityTimeline
                 activities={toolActivities}
                 isStreaming={message.isStreaming || false}
@@ -380,8 +432,8 @@ export const MessageItem = memo(function MessageItem({
           )}
 
           {/* Code Changes Summary - shows file changes for assistant messages */}
-          {!isUser && message.fileChanges && message.fileChanges.length > 0 && !message.isStreaming && (
-            <div className="mt-3">
+          {message.fileChanges && message.fileChanges.length > 0 && !message.isStreaming && (
+            <div className="mb-3">
               <CodeChangesSummary
                 fileChanges={message.fileChanges}
                 onFileClick={handleFileClick}
@@ -391,67 +443,30 @@ export const MessageItem = memo(function MessageItem({
           )}
 
           {/* Message content */}
-          <div className={cn('mt-2 text-sm', shouldCollapse && 'relative')}>
-            {isUser ? (
-              <>
-                <pre
-                  className={cn(
-                    'whitespace-pre-wrap font-sans text-black',
-                    shouldCollapse && 'max-h-48 overflow-hidden'
-                  )}
-                >
-                  {message.content}
-                </pre>
-                {/* Show attachments if any */}
-                {message.attachments && message.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {message.attachments.map((att) => (
-                      <span
-                        key={att.id}
-                        className="inline-flex items-center gap-1.5 text-xs bg-black/5 text-black/70 px-2.5 py-1 rounded-xl ring-1 ring-black/10"
-                      >
-                        <Paperclip className="h-3 w-3" />
-                        {att.originalName}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div
-                className={cn(
-                  'prose prose-sm max-w-none prose-pre:p-0 prose-pre:bg-transparent',
-                  shouldCollapse && 'max-h-48 overflow-hidden'
-                )}
+          <div className={cn('text-[15px] leading-[1.7]', shouldCollapse && 'relative')}>
+            <div
+              className={cn(
+                'prose prose-sm max-w-none prose-pre:p-0 prose-pre:bg-transparent',
+                shouldCollapse && 'max-h-48 overflow-hidden'
+              )}
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkBreaks, remarkGfm]}
+                components={markdownComponents}
               >
-                <ReactMarkdown
-                  remarkPlugins={[remarkBreaks, remarkGfm]}
-                  components={markdownComponents}
-                >
-                  {preprocessMarkdown(sanitizeSensitiveData(message.content) || (message.isStreaming ? '...' : ''))}
-                </ReactMarkdown>
-              </div>
-            )}
+                {preprocessMarkdown(sanitizeSensitiveData(message.content) || (message.isStreaming ? '...' : ''))}
+              </ReactMarkdown>
+            </div>
 
             {/* Collapse/Expand gradient and button */}
             {isLongMessage && (
               <>
                 {shouldCollapse && (
-                  <div
-                    className={cn(
-                      'absolute bottom-0 left-0 right-0 h-16 pointer-events-none',
-                      isUser
-                        ? 'bg-gradient-to-t from-white to-transparent'
-                        : 'bg-gradient-to-t from-[#0d1117] to-transparent'
-                    )}
-                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-t from-[#0d1117] to-transparent" />
                 )}
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className={cn(
-                    'flex items-center gap-1 mt-2 text-xs font-medium',
-                    isUser ? 'text-blue-600 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
-                  )}
+                  className="flex items-center gap-1 mt-3 text-xs font-medium text-blue-400 hover:text-blue-300"
                 >
                   {isExpanded ? (
                     <>
@@ -469,86 +484,38 @@ export const MessageItem = memo(function MessageItem({
             )}
           </div>
 
-          {/* Action buttons - visible at bottom of bubble */}
-          <div
-            className={cn(
-              'mt-3 flex items-center gap-2 text-xs',
-              isUser ? 'text-black/60' : 'text-white/55'
-            )}
-          >
+          {/* Action buttons - hover only icons */}
+          <div className="mt-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleCopy}
-              className={cn(
-                'rounded-2xl px-2.5 py-1 ring-1 transition-colors',
-                isUser
-                  ? 'bg-black/5 ring-black/10 hover:bg-black/10'
-                  : 'bg-white/5 ring-white/10 hover:bg-white/10'
-              )}
+              className="rounded-lg p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
               title="Copy message"
             >
-              {copied ? (
-                <span className="flex items-center gap-1">
-                  <Check className="h-3 w-3 text-emerald-500" />
-                  Copied
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <Copy className="h-3 w-3" />
-                  Copy
-                </span>
-              )}
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
 
             {onToggleBookmark && (
               <button
                 onClick={() => onToggleBookmark(message.id)}
                 className={cn(
-                  'rounded-2xl px-2.5 py-1 ring-1 transition-colors',
+                  'rounded-lg p-1.5 transition-colors',
                   message.isBookmarked
-                    ? 'bg-yellow-500/20 ring-yellow-500/30 text-yellow-500'
-                    : isUser
-                    ? 'bg-black/5 ring-black/10 hover:bg-black/10'
-                    : 'bg-white/5 ring-white/10 hover:bg-white/10'
+                    ? 'text-amber-400 !opacity-100'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/10'
                 )}
                 title={message.isBookmarked ? 'Remove bookmark' : 'Bookmark message'}
               >
-                <span className="flex items-center gap-1">
-                  {message.isBookmarked ? (
-                    <BookmarkCheck className="h-3 w-3" />
-                  ) : (
-                    <Bookmark className="h-3 w-3" />
-                  )}
-                  {message.isBookmarked ? 'Bookmarked' : 'Bookmark'}
-                </span>
+                {message.isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
               </button>
             )}
 
-            {isUser && onRetry && !isSessionRunning && (
-              <button
-                onClick={() => onRetry(message.content || '')}
-                className={cn(
-                  'rounded-2xl px-2.5 py-1 ring-1 transition-colors',
-                  'bg-black/5 ring-black/10 hover:bg-black/10'
-                )}
-                title="Retry this message"
-              >
-                <span className="flex items-center gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  Retry
-                </span>
-              </button>
-            )}
-
-            {!isUser && isLastAssistantMessage && onRegenerate && !isSessionRunning && !message.isStreaming && (
+            {isLastAssistantMessage && onRegenerate && !isSessionRunning && !message.isStreaming && (
               <button
                 onClick={onRegenerate}
-                className="rounded-2xl px-2.5 py-1 ring-1 bg-white/5 ring-white/10 hover:bg-white/10 transition-colors"
+                className="rounded-lg p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
                 title="Regenerate response"
               >
-                <span className="flex items-center gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  Regenerate
-                </span>
+                <RefreshCw className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
@@ -556,7 +523,7 @@ export const MessageItem = memo(function MessageItem({
       </div>
 
       {/* Multi-file Diff Modal - rendered outside the bubble */}
-      {!isUser && message.fileChanges && message.fileChanges.length > 0 && sessionId && (
+      {message.fileChanges && message.fileChanges.length > 0 && sessionId && (
         <MultiFileDiffModal
           isOpen={showDiffModal}
           onClose={() => setShowDiffModal(false)}

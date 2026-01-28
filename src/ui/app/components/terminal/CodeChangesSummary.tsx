@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { ChevronRight, FilePlus, Pencil, Trash2, FileCode, Maximize2 } from 'lucide-react';
+import { ChevronRight, FilePlus, Pencil, Trash2, FileCode } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { FileChange } from '../../store/terminalStore';
 
@@ -44,40 +44,39 @@ export const CodeChangesSummary = memo(function CodeChangesSummary({
   const summaryText = `${fileChanges.length} file${fileChanges.length === 1 ? '' : 's'} changed`;
 
   return (
-    <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3">
+    <div className="border-t border-white/[0.06] pt-4 mt-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'flex items-center gap-1.5 text-xs font-medium transition-colors',
-            'text-white/60 hover:text-white/90'
+            'flex items-center gap-1.5 text-xs transition-colors',
+            'text-white/50 hover:text-white/80'
           )}
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
+              'h-3 w-3 transition-transform flex-shrink-0',
               isExpanded && 'rotate-90'
             )}
           />
-          <FileCode className="h-3.5 w-3.5 flex-shrink-0 text-blue-400" />
-          <span className="text-white/80">{summaryText}</span>
-          <span className="text-white/40">({summaryParts.join(', ')})</span>
+          <FileCode className="h-3.5 w-3.5 flex-shrink-0 text-blue-400/70" />
+          <span className="text-white/60">{summaryText}</span>
+          <span className="text-white/30">({summaryParts.join(', ')})</span>
         </button>
 
-        {/* View All Changes button */}
+        {/* View All Changes as text link */}
         <button
           onClick={onViewAllChanges}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-xl ring-1 ring-white/10 transition-colors"
+          className="text-xs text-blue-400/70 hover:text-blue-400 transition-colors"
         >
-          <Maximize2 className="h-3 w-3" />
-          <span className="hidden sm:inline">View All</span>
+          View All
         </button>
       </div>
 
       {/* File list */}
       {isExpanded && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-2.5 space-y-1">
           {fileChanges.map((change) => {
             const { Icon, color } = getOperationIcon(change.operation);
             return (
@@ -85,15 +84,15 @@ export const CodeChangesSummary = memo(function CodeChangesSummary({
                 key={change.id}
                 onClick={() => onFileClick(change.filePath)}
                 className={cn(
-                  'flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-xl',
-                  'text-xs text-white/70 hover:bg-white/10 transition-colors group ring-1 ring-transparent hover:ring-white/10'
+                  'flex items-center gap-2 w-full text-left px-2 py-1 rounded-md',
+                  'text-xs text-white/50 hover:bg-white/[0.03] hover:text-white/70 transition-colors group'
                 )}
               >
-                <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', color)} />
+                <Icon className={cn('h-3 w-3 flex-shrink-0 opacity-60', color)} />
                 <span className="font-mono truncate flex-1" title={change.filePath}>
                   {change.fileName}
                 </span>
-                <span className="text-white/40 text-[10px] hidden group-hover:inline">
+                <span className="text-white/30 text-[10px] hidden group-hover:inline">
                   {change.operation}
                 </span>
               </button>

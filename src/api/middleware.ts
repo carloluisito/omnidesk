@@ -33,7 +33,7 @@ export function getAuthToken(): string {
 /**
  * Check if request is from remote (via Cloudflare Tunnel)
  */
-function isRemoteRequest(req: Request): boolean {
+export function isRemoteRequest(req: Request): boolean {
   // Cloudflare adds X-Forwarded-For header
   const forwardedFor = req.headers['x-forwarded-for'];
   return !!forwardedFor;
@@ -213,6 +213,12 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 
   // Allow PIN validation without auth (it's the auth entry point)
   if (req.path === '/api/auth/pin/validate') {
+    next();
+    return;
+  }
+
+  // Allow remote status check without auth (needed for local auto-auth)
+  if (req.path === '/api/system/remote-status') {
     next();
     return;
   }

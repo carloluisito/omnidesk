@@ -100,6 +100,12 @@ claudedesk/
       app-routes.ts       # App management endpoints
       settings-routes.ts  # Settings endpoints
       workspace-routes.ts # Workspace endpoints
+      agent-routes.ts     # Agent management endpoints
+      tunnel-routes.ts    # Remote tunnel control endpoints
+      mcp-routes.ts       # MCP server management endpoints
+      docker-routes.ts    # Docker environment endpoints
+      skill-routes.ts     # Custom skill endpoints
+      pin-auth.ts         # PIN-based authentication
     core/                 # Core backend modules
       claude-invoker.ts   # Claude CLI integration
       terminal-session.ts # Terminal session management
@@ -183,9 +189,9 @@ import { cn } from '@/lib/cn';
 
 ### File Naming
 
-- React components: `PascalCase.tsx` (e.g., `Button.tsx`, `TerminalWorkspace.tsx`)
+- React components: `PascalCase.tsx` (e.g., `Button.tsx`, `MissionControl.tsx`)
 - Hooks: `camelCase.ts` prefixed with `use` (e.g., `useTerminal.ts`)
-- Utilities and stores: `camelCase.ts` (e.g., `appStore.ts`, `formatters.ts`)
+- Utilities and stores: `camelCase.ts` (e.g., `appStore.ts`, `api.ts`, `cn.ts`)
 - Types: `camelCase.ts` or grouped in `types/index.ts`
 
 ## Making Changes

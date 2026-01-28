@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-01-29
+
+### Major Release
+
+- Major version bump to v3.0.0
+- MissionControl as default landing page with phased workflow navigator
+- New mission components: PhaseNavigator, OnboardingFlow, RepoDock, SettingsDrawer
+- Phase-specific views: PromptPhase, ReviewPhase, ShipPhase
+- Documentation overhaul: added Agent and Tunnel API docs, fixed all drift from v2.0 redesign
+- Removed all v1 screen remnants (Auth.tsx, Terminal.tsx, ReviewChanges.tsx, PreShipReview.tsx)
+- Removed unused hooks: useApi, useAudioAnalyzer, useFavorites, useNotifications, useVirtualKeyboard, useVoice
+- Removed unused utilities: design-system.ts, formatters.ts, sounds.ts
+- Removed voiceStore
+
 ## [2.0.1] - 2026-01-28
 
 ### Fixed
@@ -89,7 +103,7 @@ Complete UI/UX redesign focused on reducing modal fatigue, improving code mainta
 - Installed `shiki` for syntax highlighting in diff viewer
 - Design system uses glassmorphism aesthetic (bg-white/5, ring-1 ring-white/10)
 - All V2 components support `useReducedMotion()` for accessibility
-- Original screens preserved for rollback (Auth.tsx, Terminal.tsx, etc.)
+- Original v1 screens removed in favor of V2 implementations (Auth.tsx, Terminal.tsx, ReviewChanges.tsx, PreShipReview.tsx)
 
 ## [1.1.0] - 2026-01-28
 
@@ -204,6 +218,7 @@ Complete UI/UX redesign focused on reducing modal fatigue, improving code mainta
 - SECURITY policy for vulnerability reporting
 - ARCHITECTURE overview
 
+[3.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.0.0
 [2.0.1]: https://github.com/carloluisito/claudedesk/releases/tag/v2.0.1
 [2.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v2.0.0
 [1.1.0]: https://github.com/carloluisito/claudedesk/releases/tag/v1.1.0

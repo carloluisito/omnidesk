@@ -34,7 +34,7 @@ const KEYBOARD_SHORTCUTS = [
     category: 'Navigation',
     shortcuts: [
       { keys: ['Ctrl', 'K'], description: 'Open command palette' },
-      { keys: ['Ctrl', 'T'], description: 'New session' },
+      { keys: ['Ctrl', 'Shift', 'T'], description: 'New session' },
       { keys: ['Ctrl', 'W'], description: 'Close session' },
       { keys: ['Ctrl', '1-9'], description: 'Switch to session' },
       { keys: ['Ctrl', '</>'], description: 'Previous/next session' },

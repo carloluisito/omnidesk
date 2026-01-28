@@ -2326,10 +2326,37 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
       return;
     }
 
-    // Get commit messages in this branch
+    // Fetch the target branch from remote so we diff against the latest state.
+    // Without this, origin/<branch> can be stale and the diff includes
+    // commits already merged upstream (e.g. other feature branches).
+    let diffRef = baseBranch;
+    try {
+      const { options: fetchOpts, cleanup: fetchCleanup } = getGitExecOptions(workingDir, 30000);
+      try {
+        execSync(`git fetch origin ${baseBranch}`, { ...fetchOpts, cwd: workingDir });
+      } finally {
+        if (fetchCleanup) fetchCleanup();
+      }
+      diffRef = `origin/${baseBranch}`;
+    } catch {
+      // Fetch failed (offline, no auth, etc.) - try using existing origin ref
+      try {
+        execSync(`git rev-parse --verify origin/${baseBranch}`, {
+          cwd: workingDir,
+          encoding: 'utf-8',
+          timeout: 5000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        diffRef = `origin/${baseBranch}`;
+      } catch {
+        // No origin ref available, fall back to local branch
+      }
+    }
+
+    // Get commit messages in this branch (skip merge commits for cleaner signal)
     let commitMessages = '';
     try {
-      commitMessages = execSync(`git log --format="%s" ${baseBranch}..HEAD`, {
+      commitMessages = execSync(`git log --no-merges --format="%s" ${diffRef}..HEAD`, {
         cwd: workingDir,
         encoding: 'utf-8',
         timeout: 10000,
@@ -2338,15 +2365,24 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
       commitMessages = '';
     }
 
+    // If no non-merge commits, fall back to including merge commits
     if (!commitMessages) {
-      res.status(400).json({ success: false, error: 'No commits to summarize' });
-      return;
+      try {
+        commitMessages = execSync(`git log --format="%s" ${diffRef}..HEAD`, {
+          cwd: workingDir,
+          encoding: 'utf-8',
+          timeout: 10000,
+        }).trim();
+      } catch {
+        commitMessages = '';
+      }
     }
 
-    // Get file changes summary
+    // Get file changes summary (diff stat)
     let fileChanges = '';
+    let diffSample = '';
     try {
-      const mergeBase = execSync(`git merge-base ${baseBranch} HEAD`, {
+      const mergeBase = execSync(`git merge-base ${diffRef} HEAD`, {
         cwd: workingDir,
         encoding: 'utf-8',
         timeout: 5000,
@@ -2357,8 +2393,23 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
         encoding: 'utf-8',
         timeout: 10000,
       }).trim();
+
+      // Also get a compact diff summary for better AI context when commit messages are sparse
+      const rawDiff = execSync(`git diff --compact-summary ${mergeBase} HEAD`, {
+        cwd: workingDir,
+        encoding: 'utf-8',
+        timeout: 10000,
+      }).trim();
+      // Limit to 3000 chars to avoid token limits
+      diffSample = rawDiff.length > 3000 ? rawDiff.substring(0, 3000) + '\n...(truncated)' : rawDiff;
     } catch {
       fileChanges = '';
+    }
+
+    // If we have neither commits nor file changes, nothing to summarize
+    if (!commitMessages && !fileChanges) {
+      res.status(400).json({ success: false, error: 'No changes to summarize' });
+      return;
     }
 
     // Try to read CLAUDE.md for project conventions
@@ -2380,19 +2431,23 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
     const prompt = `Generate a Pull Request title and description for the following changes.
 
 Branch: ${currentBranch} → ${baseBranch}
-
+${commitMessages ? `
 Commits in this branch:
 ${commitMessages}
-
+` : ''}
 Files changed:
 ${fileChanges}
-${claudeMd ? `
+${diffSample ? `
+Diff summary:
+${diffSample}
+` : ''}${claudeMd ? `
 Project conventions (from CLAUDE.md):
 ${claudeMd}
 ` : ''}
 Rules:
 - Title: Max 72 characters, imperative mood (e.g., "Add", "Fix", "Update", "Refactor")
 - Description: Markdown format with sections: ## Summary (2-3 bullet points), ## Changes (list key changes), ## Test Plan (if applicable)
+- IMPORTANT: Only describe changes visible in the diff and file list above. Do NOT infer or guess changes that are not shown.
 - Follow any PR conventions mentioned in CLAUDE.md
 - Output format must be exactly:
 TITLE: <title here>

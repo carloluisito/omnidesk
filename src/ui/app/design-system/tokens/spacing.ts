@@ -1,5 +1,5 @@
 /**
- * Spacing scale for ClaudeDesk v2.0
+ * Spacing scale for ClaudeDesk
  * Based on 4px base unit with semantic names
  */
 

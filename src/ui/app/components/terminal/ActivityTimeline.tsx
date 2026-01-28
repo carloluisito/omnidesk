@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
-import { ChevronRight, Activity, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ChevronRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { ToolActivity } from '../../store/terminalStore';
 import { ToolActivityItem } from './ToolActivityItem';
@@ -46,9 +46,6 @@ function groupActivities(activities: ToolActivity[]): GroupedActivity[] {
       };
     } else if (currentAgentGroup) {
       // We're inside an agent group - always add as child
-      // The grouping is based on order, not on agent status
-      // Activities that came after an agent started belong to that agent
-      // until a new agent starts
       currentAgentGroup.childActivities.push(activity);
     } else {
       // Regular activity, not inside an agent group
@@ -199,31 +196,27 @@ export const ActivityTimeline = memo(function ActivityTimeline({ activities, isS
       id="activity-timeline"
       tabIndex={0}
       className={cn(
-        "rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 outline-none focus:ring-2 focus:ring-white/20",
+        "outline-none focus:ring-1 focus:ring-white/20 rounded-lg",
         highlighted && "highlight-activity"
       )}
     >
-      {/* Header with progress */}
-      <div className="space-y-2">
+      {/* Minimal header */}
+      <div className="space-y-1.5">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'flex items-center gap-1.5 text-xs font-medium transition-colors w-full',
-            'text-white/60 hover:text-white/90'
+            'flex items-center gap-1.5 text-xs transition-colors w-full',
+            'text-white/50 hover:text-white/80'
           )}
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 transition-transform flex-shrink-0',
+              'h-3 w-3 transition-transform flex-shrink-0',
               isExpanded && 'rotate-90'
             )}
           />
-          <Activity className="h-3.5 w-3.5 flex-shrink-0" />
-          <span>Activity</span>
-
-          {/* Progress counter */}
           <span className="text-white/40">
-            {doneCount}/{totalCount}
+            {doneCount}/{totalCount} steps
           </span>
 
           {/* Status indicators */}
@@ -231,13 +224,6 @@ export const ActivityTimeline = memo(function ActivityTimeline({ activities, isS
             {runningCount > 0 && (
               <span className="flex items-center gap-1 text-emerald-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                {runningCount}
-              </span>
-            )}
-            {completeCount > 0 && (
-              <span className="flex items-center gap-1 text-white/50">
-                <CheckCircle className="h-3 w-3" />
-                {completeCount}
               </span>
             )}
             {errorCount > 0 && (
@@ -247,19 +233,19 @@ export const ActivityTimeline = memo(function ActivityTimeline({ activities, isS
               </span>
             )}
             {elapsedTime && (
-              <span className="text-white/40 text-[10px]">
+              <span className="text-white/30 text-[10px]">
                 {elapsedTime}
               </span>
             )}
           </div>
         </button>
 
-        {/* Progress bar */}
+        {/* Thinner progress bar */}
         {isStreaming && totalCount > 0 && (
-          <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-px bg-white/[0.06] overflow-hidden">
             <div
               className={cn(
-                "h-full transition-all duration-300 rounded-full",
+                "h-full transition-all duration-300",
                 errorCount > 0 ? "bg-red-500" : "bg-emerald-500"
               )}
               style={{ width: `${progressPercent}%` }}
@@ -268,9 +254,9 @@ export const ActivityTimeline = memo(function ActivityTimeline({ activities, isS
         )}
       </div>
 
-      {/* Activities list */}
+      {/* Activities list - thread line style */}
       {isExpanded && activities.length > 0 && (
-        <div className="space-y-1.5 mt-2">
+        <div className="border-l border-white/[0.06] pl-4 ml-2 mt-2 space-y-1">
           {groupedActivities.map((grouped) => {
             if (grouped.type === 'agent') {
               const agentId = grouped.agentActivity.id;
@@ -296,7 +282,7 @@ export const ActivityTimeline = memo(function ActivityTimeline({ activities, isS
 
       {/* Empty state when streaming but no activities yet */}
       {isExpanded && activities.length === 0 && isStreaming && (
-        <div className="text-xs text-white/40 mt-2 italic">
+        <div className="text-xs text-white/30 mt-1.5 ml-3 italic">
           Waiting for tool activity...
         </div>
       )}

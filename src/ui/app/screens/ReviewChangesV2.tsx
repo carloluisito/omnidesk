@@ -3,7 +3,7 @@
  * Uses new V2 components with Shiki syntax highlighting
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BackgroundTexture } from '../components/ui/BackgroundTexture';
 import { ReviewTopBar } from '../components/review';
@@ -123,19 +123,30 @@ export default function ReviewChangesV2() {
     }));
   }, [files, approvedPaths]);
 
+  // Compute total file change count from session messages for reactive updates
+  const fileChangeCount = useMemo(() => {
+    if (!session?.messages) return 0;
+    return session.messages.reduce(
+      (sum, m) => sum + (m.fileChanges?.length || 0),
+      0
+    );
+  }, [session?.messages]);
+
   // Load ship summary to get file list
   const loadFiles = useCallback(async () => {
     if (!sessionId) return;
-    setLoading(true);
+    setLoading(prev => prev); // don't flash spinner on re-fetches
     try {
       const summary = await api<ShipSummary>(
         'GET',
         `/terminal/sessions/${sessionId}/ship-summary`
       );
       setFiles(summary.files);
-      if (summary.files.length > 0) {
-        setSelectedPath(summary.files[0].path);
-      }
+      setSelectedPath(prev =>
+        prev && summary.files.some(f => f.path === prev)
+          ? prev
+          : summary.files[0]?.path || null
+      );
     } catch (error) {
       console.error('Failed to load files:', error);
     } finally {
@@ -167,6 +178,30 @@ export default function ReviewChangesV2() {
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
+
+  // Re-fetch when session transitions from running → idle
+  const prevStatusRef = useRef(session?.status);
+
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = session?.status;
+
+    if (prev === 'running' && session?.status === 'idle') {
+      loadFiles();
+    }
+  }, [session?.status, loadFiles]);
+
+  // Re-fetch (debounced) when file changes arrive mid-prompt
+  const prevFileChangeCountRef = useRef(fileChangeCount);
+
+  useEffect(() => {
+    if (fileChangeCount > prevFileChangeCountRef.current) {
+      prevFileChangeCountRef.current = fileChangeCount;
+      const timer = setTimeout(() => loadFiles(), 800);
+      return () => clearTimeout(timer);
+    }
+    prevFileChangeCountRef.current = fileChangeCount;
+  }, [fileChangeCount, loadFiles]);
 
   // Load diff when selected file changes
   useEffect(() => {

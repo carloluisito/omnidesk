@@ -103,6 +103,8 @@ export interface RepoConfig {
   tunnel?: {
     enabled: boolean;
   };
+  // Computed property - whether repo has a .git directory
+  hasGit?: boolean;
   // Computed property - whether repo has a remote origin configured
   hasRemote?: boolean;
   // Workspace this repo belongs to
