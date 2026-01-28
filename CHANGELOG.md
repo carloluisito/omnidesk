@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PUT /api/mcp/settings` - Update MCP settings
 - `GET /api/mcp/catalog` - Get predefined server templates
 
+### Known Limitations
+- **MCP tools are not yet available to Claude during terminal sessions.** This release includes MCP server configuration, connection management, and tool discovery. Integration with Claude Code CLI for autonomous tool usage in conversations is planned for a future release.
+
 ### Fixed
 - Terminal session preservation across app restarts
 

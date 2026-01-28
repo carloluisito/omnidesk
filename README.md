@@ -55,7 +55,7 @@ It is not an IDE. It is not a replacement for Claude Code. It is a session manag
 - **Message Queue** - Queue up to 10 messages while Claude is working, with queue manager to preview, reorder, and remove pending prompts
 - **Stop/Cancel** - Stop Claude mid-generation with Escape key or Stop button; partial responses are preserved with cancellation marker
 - **Queue Resume Controls** - After stopping, choose to resume queue processing or clear all pending messages
-- **MCP Server Integration** - Connect Claude to external tools via Model Context Protocol (GitHub, PostgreSQL, Slack, and more)
+- **MCP Server Integration** - Configure and manage MCP servers for external tools (GitHub, PostgreSQL, Slack, and more). Tool invocation during sessions coming soon.
 
 ## MCP Server Integration
 
@@ -125,6 +125,21 @@ For servers not in the catalog:
 - Each server runs in isolation
 - Tool calls require explicit approval (configurable)
 - Servers can be enabled/disabled without deletion
+
+### Current Limitations
+
+> **Note:** MCP server management and tool discovery are fully functional in v1.1.0. However, **MCP tools are not yet available to Claude during terminal sessions**. Claude cannot autonomously invoke MCP tools while working on your tasks. This integration is planned for a future release.
+>
+> Current capabilities:
+> - Configure and manage MCP servers
+> - Connect/disconnect servers
+> - View discovered tools
+> - Monitor connection status in terminal
+>
+> Coming soon:
+> - Claude invoking MCP tools during conversations
+> - Tool approval workflow during sessions
+> - Tool activity in the timeline
 
 ## Keyboard Shortcuts
 
