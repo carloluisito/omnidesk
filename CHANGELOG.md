@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### File Review & Approval UI
+- Full-screen file review interface at `/review` route for approving changes before shipping
+- Individual file approval with prominent "Approve" button in diff viewer header
+- "Approve All Files" bulk action for quick approval of all changes
+- Progress bar showing approval completion percentage (X% complete)
+- Color-coded status dots replacing icons (green=created, yellow=modified, red=deleted, blue=renamed)
+- Full file path display in natural order (directory/filename)
+- New files now display complete content as additions (previously showed "No changes to display")
+- Help text explaining the approval workflow requirement
+- Visual feedback: approved files show green tint and "Approved" badge
+
 #### MCP Server Integration
 - Full Model Context Protocol (MCP) support for connecting Claude to external tools
 - MCP server configuration management (add, edit, delete, enable/disable)

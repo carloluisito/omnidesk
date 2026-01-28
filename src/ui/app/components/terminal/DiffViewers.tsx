@@ -103,9 +103,9 @@ export function InlineDiffViewer({ diff }: InlineDiffViewerProps) {
             key={i}
             className={cn(
               'px-3 py-0.5 flex',
-              isAddition && 'bg-white/10',
-              isDeletion && 'bg-black/20',
-              isHeader && 'bg-white/5 text-white/60 mt-2'
+              isAddition && 'bg-white/[0.08]',
+              isDeletion && 'bg-black/[0.15]',
+              isHeader && 'bg-white/5 text-white/50 mt-2'
             )}
           >
             <span
@@ -217,7 +217,7 @@ export function SideBySideDiffViewer({ diff }: SideBySideDiffViewerProps) {
             <div
               className={cn(
                 'w-1/2 flex border-r border-white/10',
-                pair.left.type === 'deletion' && 'bg-black/20',
+                pair.left.type === 'deletion' && 'bg-black/[0.15]',
                 pair.left.type === 'empty' && 'bg-black/10'
               )}
             >
@@ -238,7 +238,7 @@ export function SideBySideDiffViewer({ diff }: SideBySideDiffViewerProps) {
             <div
               className={cn(
                 'w-1/2 flex',
-                pair.right.type === 'addition' && 'bg-white/10',
+                pair.right.type === 'addition' && 'bg-white/[0.08]',
                 pair.right.type === 'empty' && 'bg-black/10'
               )}
             >

@@ -47,7 +47,7 @@ It is not an IDE. It is not a replacement for Claude Code. It is a session manag
 - **Session Management** - Create, persist, resume, search, and export Claude Code sessions
 - **Visual Tool Timeline** - See every Read, Edit, Bash action in real-time as Claude works
 - **Git Worktree Isolation** - Each session runs in its own worktree branch for safe experimentation
-- **Ship Workflow** - Review diffs, commit, push, and create PRs in one guided flow
+- **Ship Workflow** - Review diffs file-by-file, approve changes individually or in bulk, then commit, push, and create PRs in a guided flow with visual progress tracking
 - **Multi-Repo Sessions** - Work across multiple repositories from a single interface
 - **Quota Tracking** - Monitor your Claude API usage and costs
 - **GitHub/GitLab OAuth** - Push and create PRs using OAuth tokens
@@ -56,6 +56,27 @@ It is not an IDE. It is not a replacement for Claude Code. It is a session manag
 - **Stop/Cancel** - Stop Claude mid-generation with Escape key or Stop button; partial responses are preserved with cancellation marker
 - **Queue Resume Controls** - After stopping, choose to resume queue processing or clear all pending messages
 - **MCP Server Integration** - Configure and manage MCP servers for external tools (GitHub, PostgreSQL, Slack, and more). Tool invocation during sessions coming soon.
+
+## File Review & Approval
+
+Before shipping changes, ClaudeDesk requires you to review and approve each modified file. This safety feature ensures you've seen every change before it hits your repository.
+
+### Status Indicators
+
+| Color | Meaning |
+|-------|---------|
+| Green dot | File created/added |
+| Yellow dot | File modified |
+| Red dot | File deleted |
+| Blue dot | File renamed |
+
+### Approval Options
+
+1. **Per-file**: Click the "Approve" button in the diff viewer header
+2. **Bulk**: Click "Approve All Files" in the summary panel
+3. **From list**: Click the approval badge next to any file
+
+The "Proceed to Ship" button becomes active only after all files are approved. A progress bar shows your approval completion percentage.
 
 ## MCP Server Integration
 

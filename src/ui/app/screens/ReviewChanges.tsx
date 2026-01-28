@@ -46,6 +46,7 @@ export default function ReviewChanges() {
   const [files, setFiles] = useState<ReviewFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<ReviewFile | null>(null);
   const [diffLines, setDiffLines] = useState<string[]>([]);
+  const [fileContent, setFileContent] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDiff, setLoadingDiff] = useState(false);
 
@@ -75,16 +76,33 @@ export default function ReviewChanges() {
   }, [sessionId]);
 
   // Load diff for selected file
-  const loadDiff = useCallback(async (filePath: string) => {
+  const loadDiff = useCallback(async (filePath: string, fileStatus: string) => {
     if (!sessionId) return;
     setLoadingDiff(true);
+    setFileContent([]);
     try {
       const data = await api<{ diff: string }>(
         'POST',
         `/terminal/sessions/${sessionId}/file-diff`,
         { filePath, staged: false }
       );
-      setDiffLines(data.diff ? data.diff.split('\n') : []);
+      const lines = data.diff ? data.diff.split('\n') : [];
+      setDiffLines(lines);
+
+      // For created/deleted files with no diff, load the file content
+      if (lines.length === 0 && (fileStatus === 'created' || fileStatus === 'deleted')) {
+        try {
+          const contentData = await api<{ content: string }>(
+            'POST',
+            `/terminal/sessions/${sessionId}/read-file`,
+            { filePath }
+          );
+          setFileContent(contentData.content ? contentData.content.split('\n') : []);
+        } catch {
+          // File might not be readable (e.g., binary file or deleted)
+          setFileContent([]);
+        }
+      }
     } catch (error) {
       console.error('Failed to load diff:', error);
       setDiffLines([]);
@@ -101,7 +119,7 @@ export default function ReviewChanges() {
   // Load diff when selected file changes
   useEffect(() => {
     if (selectedFile) {
-      loadDiff(selectedFile.path);
+      loadDiff(selectedFile.path, selectedFile.status);
     }
   }, [selectedFile, loadDiff]);
 
@@ -110,6 +128,11 @@ export default function ReviewChanges() {
     setFiles((prev) =>
       prev.map((f) => (f.path === path ? { ...f, approved: !f.approved } : f))
     );
+  }, []);
+
+  // Approve all files
+  const approveAll = useCallback(() => {
+    setFiles((prev) => prev.map((f) => ({ ...f, approved: true })));
   }, []);
 
   // Select file
@@ -182,7 +205,10 @@ export default function ReviewChanges() {
                       filePath={selectedFile.path}
                       status={selectedFile.status}
                       diffLines={diffLines}
+                      fileContent={fileContent}
                       isLoading={loadingDiff}
+                      isApproved={files.find((f) => f.path === selectedFile.path)?.approved ?? false}
+                      onApprove={() => toggleApproval(selectedFile.path)}
                     />
                   </div>
                 ) : (
@@ -198,6 +224,7 @@ export default function ReviewChanges() {
                   total={totalCount}
                   approved={approvedCount}
                   onProceedToShip={proceedToShip}
+                  onApproveAll={approveAll}
                 />
               </div>
             </div>

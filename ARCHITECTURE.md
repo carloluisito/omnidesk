@@ -366,6 +366,33 @@ ChangesPanel automatically routes to full-screen review (`/pre-ship`) for:
   - `auth`, `login`, `password`, `security`, `crypto`
   - `token`, `.env`, `secrets`, `credentials`, `key`
 
+#### File Approval Workflow
+
+The `/review` route provides a full-screen interface for reviewing and approving changes before shipping.
+
+**Visual Design:**
+- Status dots indicate file change type:
+  - Green = created/added
+  - Yellow = modified
+  - Red = deleted
+  - Blue = renamed
+- Full file paths displayed in natural order (directory/filename)
+- Progress bar shows approval completion percentage
+
+**Approval Flow:**
+1. User navigates to Review Changes screen
+2. Each file must be approved before shipping
+3. Approval options:
+   - Click "Approve" button in diff viewer header (per-file)
+   - Click approval badge in file list (per-file)
+   - Click "Approve All Files" in summary panel (bulk)
+4. "Proceed to Ship" button enables when all files approved
+
+**State Management:**
+- Approval state is client-side only (React useState)
+- Not persisted to backend - resets if user navigates away
+- Progress tracked as: approved count / total files
+
 #### API Endpoints
 
 | Endpoint | Method | Purpose |
@@ -393,7 +420,11 @@ src/ui/app/
 |   |   |   |   +-- ErrorCard.tsx      # Error state with retry
 |   |   |   +-- ChangesPanel.tsx       # Main ship workflow orchestrator
 |   |   |   +-- SidePanel.tsx          # Activity/Changes tabbed panel
-|   +-- review/         # Code review components
+|   +-- review/         # File review & approval components
+|   |   +-- ReviewFileList.tsx      # File list with status dots and approval badges
+|   |   +-- ReviewDiffViewer.tsx    # Diff display with approve button
+|   |   +-- ReviewSummaryPanel.tsx  # Progress bar, stats, Approve All button
+|   |   +-- ReviewTopBar.tsx        # Header navigation
 |   +-- settings/       # Settings forms and modals
 |   +-- ui/             # Reusable UI primitives
 +-- hooks/              # Custom React hooks

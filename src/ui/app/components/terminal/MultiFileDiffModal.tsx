@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, FileDiff, FileCode, FilePlus, Pencil, Trash2, Columns, AlignJustify, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
+import { X, FileDiff, Columns, AlignJustify, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { FileChange } from '../../store/terminalStore';
 import { api } from '../../lib/api';
@@ -12,15 +12,15 @@ interface MultiFileDiffModalProps {
   initialFile?: string;
 }
 
-// Get icon and color for each operation type
-function getOperationIcon(operation: FileChange['operation']) {
+// Get dot color for each operation type
+function getOperationDotColor(operation: FileChange['operation']) {
   switch (operation) {
     case 'created':
-      return { Icon: FilePlus, color: 'text-green-400', bgColor: 'bg-green-400/10' };
+      return 'bg-green-400';
     case 'modified':
-      return { Icon: Pencil, color: 'text-yellow-400', bgColor: 'bg-yellow-400/10' };
+      return 'bg-yellow-400';
     case 'deleted':
-      return { Icon: Trash2, color: 'text-red-400', bgColor: 'bg-red-400/10' };
+      return 'bg-red-400';
   }
 }
 
@@ -85,9 +85,9 @@ function InlineDiffViewer({ diff }: { diff: string }) {
           key={i}
           className={cn(
             'flex',
-            line.type === 'added' && 'bg-white/10',
-            line.type === 'removed' && 'bg-black/20',
-            line.type === 'header' && 'bg-white/5 text-white/60'
+            line.type === 'added' && 'bg-white/[0.08]',
+            line.type === 'removed' && 'bg-black/[0.15]',
+            line.type === 'header' && 'bg-white/5 text-white/50'
           )}
         >
           {line.type !== 'header' && (
@@ -178,8 +178,8 @@ function SideBySideDiffViewer({ diff }: { diff: string }) {
             key={i}
             className={cn(
               'flex h-5',
-              line?.type === 'removed' && 'bg-black/20',
-              line?.type === 'header' && 'bg-white/5 text-white/60',
+              line?.type === 'removed' && 'bg-black/[0.15]',
+              line?.type === 'header' && 'bg-white/5 text-white/50',
               !line && 'bg-black/10'
             )}
           >
@@ -205,8 +205,8 @@ function SideBySideDiffViewer({ diff }: { diff: string }) {
             key={i}
             className={cn(
               'flex h-5',
-              line?.type === 'added' && 'bg-white/10',
-              line?.type === 'header' && 'bg-white/5 text-white/60',
+              line?.type === 'added' && 'bg-white/[0.08]',
+              line?.type === 'header' && 'bg-white/5 text-white/50',
               !line && 'bg-black/10'
             )}
           >
@@ -334,24 +334,22 @@ export function MultiFileDiffModal({
         </div>
         <div className="flex-1 overflow-auto p-2">
           {fileChanges.map((change) => {
-            const { Icon, color, bgColor } = getOperationIcon(change.operation);
+            const dotColor = getOperationDotColor(change.operation);
             const isSelected = change.filePath === selectedFile;
             return (
               <button
                 key={change.id}
                 onClick={() => handleSelectFile(change.filePath)}
                 className={cn(
-                  'flex items-center gap-2 w-full text-left px-3 py-2.5 text-xs transition-colors rounded-2xl mb-1 ring-1',
+                  'flex items-center gap-2.5 w-full text-left px-3 py-2 text-xs transition-colors rounded-lg mb-0.5',
                   isSelected
-                    ? 'bg-white/10 text-white ring-white/15'
-                    : 'bg-white/5 text-white/70 ring-white/10 hover:bg-white/10'
+                    ? 'bg-white/10 text-white border-l-2 border-blue-400 rounded-l-none pl-2.5'
+                    : 'text-white/70 hover:bg-white/5'
                 )}
               >
-                <span className={cn('p-1 rounded', bgColor)}>
-                  <Icon className={cn('h-3 w-3', color)} />
-                </span>
+                <span className={cn('w-2 h-2 rounded-full flex-shrink-0', dotColor)} />
                 <span className="font-mono truncate flex-1" title={change.filePath}>
-                  {change.fileName}
+                  {change.filePath}
                 </span>
               </button>
             );

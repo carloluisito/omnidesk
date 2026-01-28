@@ -13,7 +13,7 @@
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ExternalLink } from 'lucide-react';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 import { FileItem, FileItemProps } from './FileItem';
 
 interface FileListProps {
@@ -55,19 +55,19 @@ export function FileList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* File list header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1">
         <span className="text-xs font-medium text-white/55">
-          {files.length} file{files.length !== 1 ? 's' : ''}
+          {files.length} file{files.length !== 1 ? 's' : ''} changed
         </span>
         {onViewAllDiffs && files.length > 0 && (
           <button
             onClick={onViewAllDiffs}
             className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
-            <ExternalLink className="h-3 w-3" />
-            View all diffs
+            View all
+            <ArrowRight className="h-3 w-3" />
           </button>
         )}
       </div>
@@ -79,7 +79,7 @@ export function FileList({
           initial={false}
           animate={{ height: 'auto' }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="space-y-1.5"
+          className="space-y-0.5"
         >
           {visibleFiles.map((file) => (
             <FileItem
