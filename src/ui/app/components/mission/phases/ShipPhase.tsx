@@ -432,9 +432,9 @@ export function ShipPhase({
   }
 
   return (
-    <div className="flex-1 flex min-h-0 gap-4 p-4">
+    <div className="flex-1 flex flex-col sm:flex-row min-h-0 gap-3 sm:gap-4 p-3 sm:p-4 overflow-y-auto sm:overflow-y-hidden">
       {/* Left - Safety & Branch */}
-      <div className="w-72 flex-shrink-0 flex flex-col gap-4">
+      <div className="w-full sm:w-72 sm:flex-shrink-0 flex flex-col gap-3 sm:gap-4">
         {/* Branch comparison */}
         <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4">
           <div className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
@@ -454,7 +454,7 @@ export function ShipPhase({
               <select
                 value={targetBranch}
                 onChange={(e) => setTargetBranch(e.target.value)}
-                className="w-full rounded-lg bg-white/5 px-3 py-2 text-sm font-mono text-white/80 ring-1 ring-white/10 focus:ring-white/20 focus:outline-none"
+                className="w-full rounded-lg bg-white/5 px-3 py-2 text-base sm:text-sm font-mono text-white/80 ring-1 ring-white/10 focus:ring-white/20 focus:outline-none"
               >
                 {branches.map((b) => (
                   <option key={b} value={b}>
@@ -472,7 +472,7 @@ export function ShipPhase({
         </div>
 
         {/* Safety checklist */}
-        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4 flex-1">
+        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4 sm:flex-1">
           <div className="flex items-center gap-2 mb-3">
             <Shield className="h-4 w-4 text-white/50" />
             <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
@@ -540,7 +540,7 @@ export function ShipPhase({
       </div>
 
       {/* Center - PR Preview */}
-      <div className="flex-1 flex flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden min-w-0 min-h-0">
         <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitPullRequest className="h-4 w-4 text-white/50" />
@@ -647,7 +647,7 @@ export function ShipPhase({
               value={prDescription}
               onChange={(e) => setPrDescription(e.target.value)}
               placeholder="Describe your changes..."
-              className="flex-1 min-h-[200px] w-full rounded-lg bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/30 ring-1 ring-white/10 focus:ring-white/20 focus:outline-none resize-none"
+              className="flex-1 min-h-[120px] sm:min-h-[200px] w-full rounded-lg bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/30 ring-1 ring-white/10 focus:ring-white/20 focus:outline-none resize-none"
             />
           </div>
 

@@ -457,14 +457,14 @@ export default function MissionControl() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center px-4 py-3 border-b border-white/10">
-        {/* Left - Logo */}
-        <div className="flex items-center">
+      <header className="relative z-10 flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10">
+        {/* Left - Logo (hidden on mobile to give phases room) */}
+        <div className="hidden sm:flex items-center flex-shrink-0">
           <Logo size="lg" />
         </div>
 
-        {/* Center - Phase Navigator (absolute to stay truly centered) */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {/* Center - Phase Navigator (flex-1 to fill available space and center naturally) */}
+        <div className="flex-1 flex justify-center min-w-0">
           <PhaseNavigator
             activePhase={activePhase}
             onPhaseChange={setActivePhase}
@@ -479,9 +479,9 @@ export default function MissionControl() {
         </div>
 
         {/* Right actions */}
-        <div className="ml-auto flex items-center gap-2">
-          {/* Quota chips - hidden on mobile */}
-          <div className="hidden sm:flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Quota chips - hidden on small screens */}
+          <div className="hidden lg:flex items-center gap-2">
             <QuotaChip
               label="5-hour"
               pct={quota ? Math.round(quota.five_hour.utilization * 100) : undefined}
@@ -499,7 +499,7 @@ export default function MissionControl() {
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="p-2 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+            className="p-2 rounded-lg text-white/50 hover:text-white/80 active:text-white/80 hover:bg-white/5 active:bg-white/5 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Settings className="h-5 w-5" />
           </button>

@@ -142,9 +142,9 @@ export function ReviewPhase({
   }
 
   return (
-    <div className="flex-1 flex min-h-0 gap-4 p-4">
+    <div className="flex-1 flex flex-col sm:flex-row min-h-0 gap-3 sm:gap-4 p-3 sm:p-4 overflow-y-auto sm:overflow-y-hidden">
       {/* File Tree - Left Panel */}
-      <div className="w-64 flex-shrink-0 flex flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden">
+      <div className="w-full sm:w-64 sm:flex-shrink-0 flex flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden">
         {/* Header */}
         <div className="px-3 py-2.5 border-b border-white/10 flex items-center justify-between">
           <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
@@ -232,8 +232,8 @@ export function ReviewPhase({
         </div>
       </div>
 
-      {/* Diff Viewer - Center Panel */}
-      <div className="flex-1 flex flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden min-w-0">
+      {/* Diff Viewer - Center Panel (hidden on mobile — file tree is primary) */}
+      <div className="hidden sm:flex flex-1 flex-col rounded-xl bg-white/[0.03] ring-1 ring-white/10 overflow-hidden min-w-0">
         {/* File header */}
         {selectedFile && (
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -274,10 +274,10 @@ export function ReviewPhase({
         </div>
       </div>
 
-      {/* Summary - Right Panel */}
-      <div className="w-56 flex-shrink-0 flex flex-col gap-4">
+      {/* Summary - Right Panel (horizontal on mobile, vertical sidebar on desktop) */}
+      <div className="w-full sm:w-56 sm:flex-shrink-0 flex flex-row sm:flex-col gap-3 sm:gap-4">
         {/* Progress card */}
-        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4">
+        <div className="flex-1 sm:flex-none rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4">
           <div className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
             Review Progress
           </div>
@@ -301,7 +301,7 @@ export function ReviewPhase({
         </div>
 
         {/* Stats card */}
-        <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4">
+        <div className="flex-1 sm:flex-none rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-4">
           <div className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
             Changes
           </div>

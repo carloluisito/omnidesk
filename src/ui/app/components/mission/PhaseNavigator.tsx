@@ -120,7 +120,7 @@ export function PhaseNavigator({
 
   return (
     <div className="flex items-center justify-center">
-      <div className="flex items-center gap-2 rounded-2xl bg-white/[0.03] p-1.5 ring-1 ring-white/10">
+      <div className="flex items-center gap-1 sm:gap-2 rounded-2xl bg-white/[0.03] p-1 sm:p-1.5 ring-1 ring-white/10">
         {phases.map((phase, index) => {
           const isActive = activePhase === phase.id;
           const disabled = isDisabled(phase.id);
@@ -134,7 +134,7 @@ export function PhaseNavigator({
                 onClick={() => !disabled && onPhaseChange(phase.id)}
                 disabled={disabled}
                 className={cn(
-                  'relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ring-1',
+                  'relative flex items-center gap-1 sm:gap-2 rounded-xl px-2 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium transition-all ring-1',
                   colors.bg,
                   colors.ring,
                   colors.text,
@@ -174,14 +174,14 @@ export function PhaseNavigator({
                   </span>
                 )}
 
-                <Icon className="h-4 w-4" />
-                <span>{phase.label}</span>
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{phase.label}</span>
 
                 {/* Badge */}
                 {badge !== undefined && (
                   <span
                     className={cn(
-                      'ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold',
+                      'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold',
                       phase.id === 'ship' && warningCount > 0
                         ? 'bg-red-500/20 text-red-400'
                         : 'bg-white/10 text-white/70'
@@ -199,7 +199,7 @@ export function PhaseNavigator({
 
               {/* Connector */}
               {index < phases.length - 1 && (
-                <ChevronRight className="mx-1 h-4 w-4 text-white/20" />
+                <ChevronRight className="mx-0.5 sm:mx-1 h-3.5 w-3.5 sm:h-4 sm:w-4 text-white/20" />
               )}
             </div>
           );
