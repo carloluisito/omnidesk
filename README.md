@@ -10,11 +10,14 @@ A web interface for Claude Code with session persistence, visual tool activity, 
 
 ### Screenshots
 
-![ClaudeDesk Home](docs/home.png)
-*Welcome screen - start a new session, resume existing work, or import conversations*
+![ClaudeDesk Chat](docs/chat.png)
+*Chat with Claude — conversation panel with visual tool activity timeline*
 
-![ClaudeDesk Session](docs/session.png)
-*Active session with conversation panel, activity timeline, and change tracking*
+![ClaudeDesk Review](docs/review.png)
+*Review changes — file-by-file diff viewer with per-file approval workflow*
+
+![ClaudeDesk Ship](docs/ship.png)
+*Ship safely — commit, push, and create PRs in a guided flow with safety checks*
 
 ## Important Security Information
 
