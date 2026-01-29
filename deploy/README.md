@@ -49,6 +49,7 @@ This directory contains everything you need to deploy ClaudeDesk using Docker an
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `CLAUDEDESK_PORT` | No | 8787 | Port for web interface |
+| `CLAUDEDESK_TOKEN` | No | `claudedesk-local` | Override the auth token (use a strong value if exposed) |
 | `ALLOW_REMOTE` | No | false | Allow remote network access (0.0.0.0) |
 | `GITHUB_CLIENT_ID` | No | - | GitHub OAuth client ID |
 | `GITHUB_CLIENT_SECRET` | No | - | GitHub OAuth client secret |

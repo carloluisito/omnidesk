@@ -3,6 +3,8 @@ import { createServer, request as httpRequest } from 'http';
 import { join, dirname } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
+import { platform } from 'os';
 
 // Get the directory of this file (works when installed globally via npm)
 const __filename = fileURLToPath(import.meta.url);
@@ -30,11 +32,30 @@ import { tunnelManager } from './core/tunnel-manager.js';
 import { appManager } from './core/app-manager.js';
 import { remoteTunnelManager } from './core/remote-tunnel-manager.js';
 import { mcpManager } from './core/mcp-manager.js';
+import { updateChecker } from './core/update-checker.js';
 
 export interface StartServerOptions {
   port?: number;
   host?: string;
   skipWizard?: boolean;
+  openBrowser?: boolean;
+}
+
+function openInBrowser(url: string): void {
+  const os = platform();
+  let command: string;
+  if (os === 'win32') {
+    command = `start "" "${url}"`;
+  } else if (os === 'darwin') {
+    command = `open "${url}"`;
+  } else {
+    command = `xdg-open "${url}"`;
+  }
+  exec(command, (err) => {
+    if (err) {
+      console.warn(`[Browser] Could not open browser automatically. Visit: ${url}`);
+    }
+  });
 }
 
 let serverInstance: ReturnType<typeof createServer> | null = null;
@@ -222,6 +243,11 @@ export async function startServer(options: StartServerOptions = {}): Promise<voi
           console.warn('[MCP] Failed to initialize:', err.message);
         });
 
+      // Initialize update checker
+      updateChecker.checkUpdateMarker();
+      const updateSettings = settingsManager.getUpdate();
+      updateChecker.startAutoCheck(updateSettings);
+
       // Auto-start remote tunnel if enabled
       const tunnelSettings = settingsManager.getTunnel();
       let tunnelStatus = 'Tunnel: disabled';
@@ -265,6 +291,13 @@ export async function startServer(options: StartServerOptions = {}): Promise<voi
 ║  ${tunnelStatus.padEnd(43)}║
 ╚═══════════════════════════════════════════════════════════╝
   `);
+
+      // Auto-open browser if enabled
+      if (options.openBrowser) {
+        const url = `http://localhost:${PORT}`;
+        console.log(`[Browser] Opening ${url} ...`);
+        openInBrowser(url);
+      }
     });
 
   // REL-03: Comprehensive graceful shutdown to prevent orphaned processes
@@ -330,7 +363,10 @@ export async function startServer(options: StartServerOptions = {}): Promise<voi
         console.warn('[Shutdown] Failed to shutdown MCP:', err);
       }
 
-      // 8. Close HTTP server
+      // 8. Stop update checker
+      updateChecker.shutdown();
+
+      // 9. Close HTTP server
       console.log('[Shutdown] Closing HTTP server...');
       server.close();
 

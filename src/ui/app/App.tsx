@@ -14,10 +14,13 @@ import Settings from './screens/Settings';
 import Workspaces from './screens/settings/Workspaces';
 import Integrations from './screens/settings/Integrations';
 import ApiConfig from './screens/settings/ApiConfig';
+import System from './screens/settings/System';
 import SetupWizard from './components/SetupWizard';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { useAppLifecycle } from './hooks/useAppLifecycle';
 import { InstallBanner, OfflineBanner, UpdateBanner } from './components/pwa';
+import { UpdateAvailableBanner } from './components/system/UpdateAvailableBanner';
+import { UpdateProgressOverlay } from './components/system/UpdateProgressOverlay';
 
 interface SetupStatus {
   completed: boolean;
@@ -59,6 +62,7 @@ function AppRoutes() {
           <Route path="workspaces" element={<Workspaces />} />
           <Route path="integrations" element={<Integrations />} />
           <Route path="api-config" element={<ApiConfig />} />
+          <Route path="system" element={<System />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -181,6 +185,8 @@ export default function App() {
           <OfflineBanner />
           <InstallBanner />
           <UpdateBanner />
+          <UpdateAvailableBanner />
+          <UpdateProgressOverlay />
         </>
       )}
 

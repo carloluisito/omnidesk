@@ -150,6 +150,13 @@ export const SettingsSchema = z.object({
     lastTunnelUrl: z.string().optional(),
   }).default({ enabled: false, autoStart: false }),
 
+  // Update settings
+  update: z.object({
+    autoCheck: z.boolean().default(true),
+    checkIntervalHours: z.number().min(1).max(168).default(6),
+    dismissedVersion: z.string().optional(),
+  }).default({}),
+
   // MCP (Model Context Protocol) settings
   mcp: z.object({
     globalEnabled: z.boolean().default(true),
@@ -232,6 +239,10 @@ const DEFAULT_SETTINGS: Settings = {
     enabled: false,
     autoStart: false,
   },
+  update: {
+    autoCheck: true,
+    checkIntervalHours: 6,
+  },
   mcp: {
     globalEnabled: true,
     toolApprovalMode: 'auto',
@@ -295,6 +306,7 @@ export class SettingsManager {
           },
         },
         tunnel: { ...DEFAULT_SETTINGS.tunnel, ...parsed.tunnel },
+        update: { ...DEFAULT_SETTINGS.update, ...parsed.update },
         mcp: { ...DEFAULT_SETTINGS.mcp, ...parsed.mcp },
       });
 
@@ -395,6 +407,10 @@ export class SettingsManager {
     return { ...this.settings.tunnel };
   }
 
+  getUpdate(): Settings['update'] {
+    return { ...this.settings.update };
+  }
+
   getMcp(): Settings['mcp'] {
     return { ...this.settings.mcp };
   }
@@ -452,6 +468,9 @@ export class SettingsManager {
     }
     if (updates.tunnel) {
       this.settings.tunnel = { ...this.settings.tunnel, ...updates.tunnel };
+    }
+    if (updates.update) {
+      this.settings.update = { ...this.settings.update, ...updates.update };
     }
     if (updates.mcp) {
       this.settings.mcp = { ...this.settings.mcp, ...updates.mcp };
@@ -523,6 +542,12 @@ export class SettingsManager {
     this.settings.tunnel = { ...this.settings.tunnel, ...updates };
     this.save();
     return this.getTunnel();
+  }
+
+  updateUpdate(updates: Partial<Settings['update']>): Settings['update'] {
+    this.settings.update = { ...this.settings.update, ...updates };
+    this.save();
+    return this.getUpdate();
   }
 
   updateMcp(updates: Partial<Settings['mcp']>): Settings['mcp'] {

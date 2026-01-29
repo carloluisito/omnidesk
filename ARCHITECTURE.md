@@ -1,6 +1,6 @@
 # ClaudeDesk Architecture
 
-Technical architecture documentation for ClaudeDesk v3.0.0 - an AI-powered development platform with Claude terminal interface.
+Technical architecture documentation for ClaudeDesk v3.1.0 - an AI-powered development platform with Claude terminal interface.
 
 ## Overview
 
@@ -120,6 +120,7 @@ This dual-mode architecture enables Cloudflare tunnels to work in both environme
 | `agent-routes.ts` | `/api/agents/*` | Agent management, detection, and usage tracking |
 | `tunnel-routes.ts` | `/api/tunnel/*` | Remote tunnel control, QR code generation |
 | `mcp-routes.ts` | `/api/mcp/*` | MCP server configuration and tool management |
+| `system-routes.ts` | `/api/system/*` | Update checking and cache management |
 
 ### Core Modules
 
@@ -262,6 +263,18 @@ Features:
 - Cloudflare tunnel integration via `tunnel-manager.ts`
 - Monorepo service detection (pnpm workspaces, packages/, apps/)
 - Docker configuration detection
+
+#### `update-checker.ts` - Version Update System
+
+Manages automatic version checking and updates:
+
+Key responsibilities:
+- Periodic polling of the npm registry for new versions
+- Install method detection (global-npm, npx, docker, source)
+- Auto-update via `npm install -g` for global npm installs
+- Manual update instructions for other install methods
+- WebSocket broadcast of `system:update-available` events
+- Configurable check interval (default: 6 hours)
 
 ## Frontend Architecture
 
@@ -416,6 +429,7 @@ import { Panel, Stepper } from '@/design-system/compounds';
 | `PreShipReviewV2.tsx` | `/pre-ship` | Pre-push review with safety checklist and PR preview |
 | `RunPage.tsx` | `/run` | App runner with logs |
 | `Settings.tsx` | `/settings/*` | Configuration pages with tabbed navigation |
+| `settings/System.tsx` | `/settings/system` | Update settings and cache management |
 | `SessionDashboard.tsx` | - | Session management (not currently routed) |
 | `Launcher.tsx` | - | Alternative launcher interface (not currently routed) |
 
@@ -566,6 +580,8 @@ src/ui/app/
 |   |   +-- PRPreview.tsx         # Live PR preview
 |   +-- settings/           # Settings components
 |   |   +-- SettingsLayout.tsx    # Tabbed navigation
+|   |   +-- CacheManagement.tsx   # Cache size display and clearing
+|   |   +-- UpdateSettings.tsx    # Auto-update toggle and interval config
 |   +-- ui/                 # Reusable UI primitives
 +-- hooks/                  # Custom React hooks
 +-- lib/                    # Utilities (api, cn, haptics, request-cache, sanitize)
@@ -576,6 +592,8 @@ src/ui/app/
 |   +-- appStore.ts         # Global app state
 |   +-- runStore.ts         # Running apps state
 |   +-- themeStore.ts       # Theme preferences
+|   +-- cacheStore.ts       # Cache statistics and management
+|   +-- updateStore.ts      # Update checker state
 +-- types/                  # TypeScript definitions
 ```
 
@@ -716,7 +734,8 @@ The server handles SIGINT/SIGTERM with ordered cleanup:
 | `config/terminal-sessions.json` | Persisted session data |
 | `config/settings.json` | User preferences |
 | `config/workspaces.json` | Workspace OAuth tokens |
-| `config/skills/*.yaml` | Custom skill definitions |
+| `config/mcp-servers.json` | MCP server configurations |
+| `config/skills/*.md` | Custom skill definitions |
 
 ## Ports and Services
 

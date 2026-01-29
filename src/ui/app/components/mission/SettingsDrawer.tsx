@@ -7,15 +7,16 @@
  */
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Folder, Link, Key } from 'lucide-react';
+import { X, Folder, Link, Key, Settings2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 // Lazy-load the actual settings content
 import Workspaces from '../../screens/settings/Workspaces';
 import Integrations from '../../screens/settings/Integrations';
 import ApiConfig from '../../screens/settings/ApiConfig';
+import System from '../../screens/settings/System';
 
-type SettingsTab = 'workspaces' | 'integrations' | 'api-config';
+type SettingsTab = 'workspaces' | 'integrations' | 'api-config' | 'system';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { id: 'workspaces', label: 'Workspaces', icon: <Folder className="h-4 w-4" /> },
   { id: 'integrations', label: 'Integrations', icon: <Link className="h-4 w-4" /> },
   { id: 'api-config', label: 'API Config', icon: <Key className="h-4 w-4" /> },
+  { id: 'system', label: 'System', icon: <Settings2 className="h-4 w-4" /> },
 ];
 
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
@@ -121,6 +123,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
                   {activeTab === 'workspaces' && <Workspaces />}
                   {activeTab === 'integrations' && <Integrations />}
                   {activeTab === 'api-config' && <ApiConfig />}
+                  {activeTab === 'system' && <System />}
                 </motion.div>
               </AnimatePresence>
             </div>

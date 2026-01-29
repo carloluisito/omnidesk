@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api, UploadedAttachment } from '../lib/api';
 import { requestCache, CACHE_KEYS } from '../lib/request-cache';
+import { useUpdateStore } from './updateStore';
 
 const ACTIVE_SESSION_KEY = 'claudedesk-active-session';
 
@@ -871,6 +872,31 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
                 },
               }));
             }
+            break;
+
+          // System update events
+          case 'system:update-available':
+            useUpdateStore.getState().setUpdateAvailable(
+              message.currentVersion as string,
+              message.latestVersion as string
+            );
+            break;
+
+          case 'system:update-starting':
+          case 'system:update-progress':
+            if (message.stage) {
+              useUpdateStore.getState().setUpdateProgress(
+                message.stage as any,
+                message.detail as string | undefined
+              );
+            }
+            break;
+
+          case 'system:update-complete':
+            useUpdateStore.getState().setUpdateComplete(
+              message.success as boolean,
+              message.error as string | undefined
+            );
             break;
         }
       } catch (error) {

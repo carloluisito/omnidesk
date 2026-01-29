@@ -28,8 +28,12 @@ interface CLIOptions {
   dataDir?: string;
   skipWizard?: boolean;
   allowRemote?: boolean;
+  noOpen?: boolean;
   help?: boolean;
   version?: boolean;
+  checkUpdate?: boolean;
+  update?: boolean;
+  clearCache?: string | boolean;
 }
 
 function parseArgs(): CLIOptions {
@@ -52,6 +56,9 @@ function parseArgs(): CLIOptions {
       case '--allow-remote':
         options.allowRemote = true;
         break;
+      case '--no-open':
+        options.noOpen = true;
+        break;
       case '--help':
       case '-h':
         options.help = true;
@@ -60,6 +67,22 @@ function parseArgs(): CLIOptions {
       case '-v':
         options.version = true;
         break;
+      case '--check-update':
+        options.checkUpdate = true;
+        break;
+      case '--update':
+        options.update = true;
+        break;
+      case '--clear-cache': {
+        const nextArg = args[i + 1];
+        if (nextArg && !nextArg.startsWith('--')) {
+          options.clearCache = nextArg;
+          i++;
+        } else {
+          options.clearCache = true;
+        }
+        break;
+      }
       default:
         if (arg.startsWith('--')) {
           console.warn(`Warning: Unknown option ${arg}`);
@@ -89,9 +112,19 @@ OPTIONS:
   --allow-remote        Allow remote network access (default: localhost only)
                         Environment: ALLOW_REMOTE=true
 
+  --no-open             Don't auto-open the browser on startup
+
   --help, -h            Show this help message
 
   --version, -v         Show version information
+
+  --check-update        Check for a newer version and exit
+
+  --update              Check and install update if available, then exit
+
+  --clear-cache [type]  Clear cached data and exit
+                        Types: sessions, artifacts, worktrees, usage, all
+                        Default (no type): clears all
 
 EXAMPLES:
   claudedesk
@@ -304,6 +337,104 @@ async function main(): Promise<void> {
   // Change to data directory
   process.chdir(dataDir);
 
+  // Handle --check-update (standalone command, no server needed)
+  if (options.checkUpdate) {
+    const { updateChecker } = await import('./core/update-checker.js');
+    const info = await updateChecker.checkForUpdate();
+    if (info.error) {
+      console.error(`Failed to check for updates: ${info.error}`);
+      process.exit(1);
+    }
+    if (info.updateAvailable) {
+      console.log(`Update available: v${info.latestVersion} (current: v${info.currentVersion})`);
+      if (info.canAutoUpdate) {
+        console.log(`Run "claudedesk --update" to install it.`);
+      }
+    } else {
+      console.log(`You are running the latest version (v${info.currentVersion})`);
+    }
+    process.exit(0);
+  }
+
+  // Handle --update (standalone command)
+  if (options.update) {
+    const { updateChecker } = await import('./core/update-checker.js');
+    const info = await updateChecker.checkForUpdate();
+    if (!info.updateAvailable) {
+      console.log(`You are running the latest version (v${info.currentVersion})`);
+      process.exit(0);
+    }
+    console.log(`Updating from v${info.currentVersion} to v${info.latestVersion}...`);
+    const result = await updateChecker.performUpdate();
+    if (result.success) {
+      console.log(result.message);
+      process.exit(0);
+    } else {
+      console.error(`Update failed: ${result.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Handle --clear-cache (standalone command)
+  if (options.clearCache) {
+    const { existsSync: fsExists, readdirSync: fsReaddir, rmSync: fsRm, statSync: fsStat } = await import('fs');
+    const { join: pathJoin } = await import('path');
+    const { terminalSessionManager } = await import('./core/terminal-session.js');
+
+    const cacheType = typeof options.clearCache === 'string' ? options.clearCache : 'all';
+    const validTypes = ['sessions', 'artifacts', 'worktrees', 'usage', 'all'];
+
+    if (!validTypes.includes(cacheType)) {
+      console.error(`Invalid cache type: ${cacheType}`);
+      console.error(`Valid types: ${validTypes.join(', ')}`);
+      process.exit(1);
+    }
+
+    console.log(`Clearing ${cacheType} cache...`);
+
+    if (cacheType === 'sessions' || cacheType === 'all') {
+      const sessions = terminalSessionManager.getAllSessions();
+      const idle = sessions.filter((s: any) => s.status !== 'running' && s.status !== 'streaming');
+      let cleared = 0;
+      for (const session of idle) {
+        try { terminalSessionManager.deleteSession(session.id); cleared++; } catch {}
+      }
+      console.log(`  Sessions: ${cleared} cleared, ${sessions.length - idle.length} active (preserved)`);
+    }
+
+    if (cacheType === 'artifacts' || cacheType === 'all') {
+      const dir = pathJoin(dataDir, 'artifacts');
+      let count = 0;
+      if (fsExists(dir)) {
+        const entries = fsReaddir(dir);
+        for (const entry of entries) {
+          try { fsRm(pathJoin(dir, entry), { recursive: true, force: true }); count++; } catch {}
+        }
+      }
+      console.log(`  Artifacts: ${count} items cleared`);
+    }
+
+    if (cacheType === 'worktrees' || cacheType === 'all') {
+      const pruned = terminalSessionManager.cleanupOrphanedWorktrees();
+      console.log(`  Worktrees: ${pruned} orphaned worktrees pruned`);
+    }
+
+    if (cacheType === 'usage' || cacheType === 'all') {
+      const dir = pathJoin(dataDir, 'config', 'usage', 'sessions');
+      let count = 0;
+      if (fsExists(dir)) {
+        const entries = fsReaddir(dir);
+        for (const entry of entries) {
+          try { fsRm(pathJoin(dir, entry), { recursive: true, force: true }); count++; } catch {}
+        }
+      }
+      console.log(`  Usage data: ${count} items cleared`);
+    }
+
+    console.log('Done.');
+    process.exit(0);
+  }
+
   // Set environment variables
   const port = options.port || parseInt(process.env.CLAUDEDESK_PORT || '8787', 10);
 
@@ -320,6 +451,7 @@ async function main(): Promise<void> {
       port,
       host: options.allowRemote ? '0.0.0.0' : undefined,
       skipWizard: options.skipWizard,
+      openBrowser: !options.noOpen,
     });
   } catch (err) {
     console.error('[Fatal] Failed to start server:', err);

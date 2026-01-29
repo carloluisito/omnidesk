@@ -186,6 +186,8 @@ claudedesk
 npx claudedesk
 ```
 
+**Note:** The browser opens automatically when you run `claudedesk`. Use `--no-open` to disable this.
+
 **Prerequisites:** Node.js 18+ and [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 
 **For MCP Servers:** Some MCP servers require additional tools:
@@ -203,6 +205,38 @@ docker compose up -d
 See [deploy/README.md](deploy/README.md) for full Docker deployment instructions.
 
 **Prerequisites:** Docker Engine 20.10+ and Docker Compose 2.0+
+
+### Install as Desktop App (PWA)
+
+ClaudeDesk is a Progressive Web App. After launching it from npm or Docker, you can install it as a standalone desktop app from your browser. Once installed, it appears in your app launcher / Start Menu / Dock like any native application.
+
+**Google Chrome / Microsoft Edge (Windows, macOS, Linux)**
+
+1. Run `claudedesk` (the browser opens automatically)
+2. Look for the install icon in the address bar (a monitor with a down arrow, or a "+" icon)
+3. Click it and select **"Install"**
+4. ClaudeDesk opens in its own window without browser chrome
+
+Alternatively: click the **three-dot menu (...)** > **"Install ClaudeDesk"** (Chrome) or **"Apps" > "Install this site as an app"** (Edge).
+
+**Where the app appears after install:**
+
+| Platform | Location |
+|----------|----------|
+| **Windows** | Start Menu, Taskbar (pin it), Desktop shortcut |
+| **macOS** | Launchpad, Applications folder, Dock (pin it) |
+| **Linux** | Application menu (GNOME, KDE, etc.) |
+
+**Uninstalling the PWA:**
+
+- **Chrome/Edge**: Open the installed app > click the three-dot menu in the title bar > **"Uninstall ClaudeDesk"**
+- **Windows**: Settings > Apps > Installed Apps > ClaudeDesk > Uninstall
+- **macOS**: Finder > Applications > right-click ClaudeDesk > Move to Trash
+
+**Notes:**
+- The PWA requires the `claudedesk` server to be running. Launch `claudedesk` from your terminal before opening the app, or set it to run on login using your OS startup settings.
+- The PWA caches UI assets for faster loading but requires the local ClaudeDesk server to be running for all functionality. It does not work offline.
+- On mobile devices, use the **"Add to Home Screen"** option from your browser's share menu when accessing ClaudeDesk via a tunnel.
 
 ### Option 3: From Source (Development)
 
@@ -225,6 +259,10 @@ Options:
   --data-dir <path>      Data directory for config and artifacts
   --skip-wizard          Skip the initial setup wizard
   --allow-remote         Allow remote network access (binds to 0.0.0.0)
+  --no-open              Don't auto-open the browser on startup
+  --check-update         Check for a newer version and exit
+  --update               Check and install update if available, then exit
+  --clear-cache [type]   Clear cached data and exit (types: sessions, artifacts, worktrees, usage, all)
   -h, --help             Show help message
   -v, --version          Show version number
 ```
@@ -286,12 +324,14 @@ export CLAUDEDESK_DATA_DIR=/custom/path
 ```
 .claudedesk/
   config/
-    settings.json        # App settings
-    repos.json           # Repository configuration
-    workspaces.json      # Workspace definitions
-    skills/              # Custom Claude skills
-    usage/               # API usage tracking
-  artifacts/             # Session artifacts and exports
+    settings.json          # App settings
+    repos.json             # Repository configuration
+    workspaces.json        # Workspace definitions
+    mcp-servers.json       # MCP server configurations (auto-created)
+    terminal-sessions.json # Persisted session data
+    skills/                # Custom Claude skills
+    usage/                 # API usage tracking
+  artifacts/               # Session artifacts and exports
 ```
 
 ### Environment Variables
@@ -302,6 +342,7 @@ ClaudeDesk can be configured via environment variables:
 |----------|---------|-------------|
 | `CLAUDEDESK_PORT` | 8787 | Port to listen on |
 | `CLAUDEDESK_DATA_DIR` | `~/.claudedesk` | Data directory path |
+| `CLAUDEDESK_TOKEN` | `claudedesk-local` | Override the auth token (use a strong value if exposed to a network) |
 | `ALLOW_REMOTE` | false | Set to `true` for remote access |
 | `GITHUB_CLIENT_ID` | - | GitHub OAuth client ID |
 | `GITHUB_CLIENT_SECRET` | - | GitHub OAuth client secret |
@@ -740,6 +781,152 @@ Returns the current tunnel auth token for display in UI.
 **GET `/api/tunnel/qr`**
 
 Generates a QR code data URL for mobile device pairing. Tunnel must be running.
+
+### System Endpoints
+
+These endpoints manage updates and cache/disk usage.
+
+#### Check for Update
+
+**GET `/api/system/update/check`**
+
+Performs a live check against the npm registry for a newer version.
+
+```json
+{
+  "success": true,
+  "data": {
+    "updateAvailable": true,
+    "currentVersion": "3.1.0",
+    "latestVersion": "3.2.0",
+    "installMethod": "global-npm",
+    "canAutoUpdate": true
+  }
+}
+```
+
+#### Get Update Info
+
+**GET `/api/system/update/info`**
+
+Returns cached update info without making a network call.
+
+#### Install Update
+
+**POST `/api/system/update`**
+
+Triggers an update. For global npm installs, runs the update automatically. For other install methods (Docker, npx, source), returns manual instructions.
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "updating",
+    "message": "Update started",
+    "stoppedSessions": 0
+  }
+}
+```
+
+For non-auto-updatable installs:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "manual",
+    "installMethod": "docker",
+    "instructions": "Pull the latest image: docker pull ghcr.io/carloluisito/claudedesk:latest"
+  }
+}
+```
+
+#### Get Cache Info
+
+**GET `/api/system/cache/info`**
+
+Returns disk usage statistics for all cache categories.
+
+```json
+{
+  "success": true,
+  "data": {
+    "sessions": { "count": 12, "activeCount": 1, "sizeBytes": 524288 },
+    "artifacts": { "count": 45, "sizeBytes": 10485760 },
+    "worktrees": { "orphanedCount": 2, "repos": [{ "repoId": "my-repo", "orphanedWorktrees": 2 }] },
+    "usage": { "count": 30, "sizeBytes": 204800 }
+  }
+}
+```
+
+#### Clear Session Cache
+
+**DELETE `/api/system/cache/sessions`**
+
+Deletes idle terminal sessions. Active (running) sessions are preserved.
+
+```json
+{
+  "success": true,
+  "data": { "cleared": 11, "skipped": 1, "warning": "1 active session(s) were not cleared" }
+}
+```
+
+#### Clear Artifacts Cache
+
+**DELETE `/api/system/cache/artifacts`**
+
+Deletes all files in the artifacts directory.
+
+```json
+{
+  "success": true,
+  "data": { "cleared": 45, "freedBytes": 10485760 }
+}
+```
+
+#### Prune Orphaned Worktrees
+
+**POST `/api/system/cache/worktrees/prune`**
+
+Removes git worktree directories that no longer belong to any session.
+
+```json
+{
+  "success": true,
+  "data": { "pruned": 2, "errors": [] }
+}
+```
+
+#### Clear Usage Data
+
+**DELETE `/api/system/cache/usage`**
+
+Deletes usage tracking session files.
+
+```json
+{
+  "success": true,
+  "data": { "cleared": 30, "freedBytes": 204800 }
+}
+```
+
+#### Clear All Caches
+
+**DELETE `/api/system/cache/all`**
+
+Clears all cache categories at once. Active sessions are still preserved.
+
+```json
+{
+  "success": true,
+  "data": {
+    "sessions": { "cleared": 11, "skipped": 1 },
+    "artifacts": { "cleared": 45, "freedBytes": 10485760 },
+    "worktrees": { "pruned": 2 },
+    "usage": { "cleared": 30, "freedBytes": 204800 }
+  }
+}
+```
 
 For complete API documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 

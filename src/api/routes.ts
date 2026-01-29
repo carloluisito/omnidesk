@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { repoRegistry } from '../config/repos.js';
 import { settingsManager } from '../config/settings.js';
 import { gitSandbox } from '../core/git-sandbox.js';
+import { updateChecker } from '../core/update-checker.js';
 import { githubIntegration } from '../core/github-integration.js';
 import { detectProject } from '../core/project-detector.js';
 import { RepoConfigSchema } from '../types.js';
@@ -17,6 +18,7 @@ import { skillRouter } from './skill-routes.js';
 import { agentRouter } from './agent-routes.js';
 import { tunnelRouter } from './tunnel-routes.js';
 import { mcpRouter } from './mcp-routes.js';
+import { systemRouter } from './system-routes.js';
 import { pinAuthManager } from './pin-auth.js';
 import { getAuthToken, isRemoteRequest } from './middleware.js';
 
@@ -43,13 +45,21 @@ try {
 
 // Health check
 apiRouter.get('/health', (_req: Request, res: Response) => {
+  const updateInfo = updateChecker.getInfo();
   res.json({
     success: true,
     data: {
       status: 'ok',
       version: packageVersion,
       uptime: Math.floor(process.uptime()),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      update: {
+        available: updateInfo.updateAvailable,
+        latestVersion: updateInfo.latestVersion,
+        canAutoUpdate: updateInfo.canAutoUpdate,
+        installMethod: updateInfo.installMethod,
+        lastCheckedAt: updateInfo.checkedAt,
+      },
     }
   });
 });
@@ -544,3 +554,6 @@ apiRouter.use('/tunnel', tunnelRouter);
 
 // Mount MCP router for Model Context Protocol integration
 apiRouter.use('/mcp', mcpRouter);
+
+// Mount system router for updates and cache management
+apiRouter.use('/system', systemRouter);
