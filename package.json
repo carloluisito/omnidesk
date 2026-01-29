@@ -1,6 +1,6 @@
 {
   "name": "claudedesk",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "AI-powered development platform with CLI and web interface for Claude Code",
   "type": "module",
   "main": "dist/index.js",

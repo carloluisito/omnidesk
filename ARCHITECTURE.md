@@ -1,6 +1,6 @@
 # ClaudeDesk Architecture
 
-Technical architecture documentation for ClaudeDesk v3.1.0 - an AI-powered development platform with Claude terminal interface.
+Technical architecture documentation for ClaudeDesk v3.2.0 - an AI-powered development platform with Claude terminal interface.
 
 ## Overview
 
