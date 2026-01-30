@@ -1,6 +1,6 @@
 # ClaudeDesk Architecture
 
-Technical architecture documentation for ClaudeDesk v3.3.0 - an AI-powered development platform with Claude terminal interface.
+Technical architecture documentation for ClaudeDesk v3.4.1 - an AI-powered development platform with Claude terminal interface.
 
 ## Overview
 
@@ -207,7 +207,6 @@ Manages real-time client connections:
 interface WSClient {
   id: string;
   ws: WebSocket;
-  token: string;
   subscribedSessions: Set<string>;
   isAlive: boolean;  // Heartbeat tracking
 }
@@ -216,7 +215,7 @@ interface WSClient {
 **Upgrade Request Routing:**
 
 WebSocket upgrade requests are routed by pathname:
-- `/ws` → ClaudeDesk WebSocket (authenticated, handled internally)
+- `/ws` → ClaudeDesk WebSocket (handled internally)
 - Other paths → Delegated to `upgradeFallback` handler (if set)
 
 ```typescript
@@ -238,8 +237,6 @@ In dev mode, the fallback proxies WebSocket connections to Vite (port 5173) to e
 **Broadcasting:**
 - `broadcastToSession()` - Send to all clients subscribed to a session
 - `broadcastAll()` - Send to all connected clients
-
-Authentication via `Sec-WebSocket-Protocol` header (preferred) or query param (deprecated).
 
 #### `app-manager.ts` - Running App Lifecycle
 

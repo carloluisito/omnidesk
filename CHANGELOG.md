@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2026-01-31
+
+### Fixed
+- Removed WebSocket token authentication. Connections to `/ws` no longer require a token via query parameter or `Sec-WebSocket-Protocol` header.
+- Simplified `WSClient` interface by removing `token` field.
+
 ## [3.4.0] - 2026-01-30
 
 ### Added

@@ -13,7 +13,7 @@ ClaudeDesk uses token-based authentication for all API endpoints:
 - **Token Sources:** Tokens can be provided via:
   - `Authorization: Bearer <token>` header
   - `claudedesk_session` HTTP-only cookie (set after initial auth)
-  - Query parameter `?token=<token>` (for QR code login flow)
+  - Query parameter `?token=<token>` (for HTTP API QR code login flow only)
 
 ### Rate Limiting
 

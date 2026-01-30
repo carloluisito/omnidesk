@@ -508,12 +508,12 @@ Returns server health status and version information. Used for Docker healthchec
   "success": true,
   "data": {
     "status": "ok",
-    "version": "3.3.0",
+    "version": "3.4.1",
     "uptime": 12345,
-    "timestamp": "2026-01-28T12:00:00.000Z",
+    "timestamp": "2026-01-31T12:00:00.000Z",
     "update": {
       "available": false,
-      "latestVersion": "3.3.0",
+      "latestVersion": "3.4.1",
       "canAutoUpdate": true,
       "installMethod": "global-npm",
       "lastCheckedAt": "2026-01-28T12:00:00.000Z"
@@ -966,8 +966,8 @@ Performs a live check against the npm registry for a newer version.
   "success": true,
   "data": {
     "updateAvailable": true,
-    "currentVersion": "3.1.0",
-    "latestVersion": "3.2.0",
+    "currentVersion": "3.4.0",
+    "latestVersion": "3.4.1",
     "installMethod": "global-npm",
     "canAutoUpdate": true
   }
