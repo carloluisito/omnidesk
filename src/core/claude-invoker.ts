@@ -51,6 +51,7 @@ export interface ClaudeInvokeOptions {
   artifactsDir: string;
   resumeSessionId?: string; // Claude session ID to resume (uses --resume flag)
   agentId?: string; // Agent ID to use (uses --agent flag)
+  model?: string; // Override model (e.g., 'claude-3-5-haiku-20241022' for summarization)
   onProcessStart?: (proc: ChildProcess) => void; // Callback when process starts (for cancellation tracking)
   onStreamChunk?: (chunk: string, stream: 'stdout' | 'stderr') => void; // Legacy callback for raw output
   onStreamEvent?: (event: ClaudeStreamEvent) => void; // New callback for parsed stream events
@@ -236,6 +237,12 @@ export class ClaudeInvoker {
       } else if (permissionMode === 'read-only') {
         // Read-only mode: allow only safe read tools
         args.unshift('--allowedTools', 'Read,Glob,Grep,WebFetch,WebSearch');
+      }
+
+      // Add --model flag if overriding model
+      if (options.model) {
+        args.push('--model', options.model);
+        console.log(`[ClaudeInvoker] Using model override: ${options.model}`);
       }
 
       // Add --resume flag if resuming a session

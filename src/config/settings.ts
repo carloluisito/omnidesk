@@ -182,6 +182,23 @@ export const SettingsSchema = z.object({
     connectionTimeout: 30000,
     toolTimeout: 60000,
   }),
+
+  // Context management settings
+  context: z.object({
+    autoSummarize: z.boolean().default(true),
+    summarizationThreshold: z.number().default(0.7),
+    splitThreshold: z.number().default(0.85),
+    verbatimRecentCount: z.number().default(6),
+    maxMessageLength: z.number().default(4000),
+    maxPromptTokens: z.number().default(150000),
+  }).default({
+    autoSummarize: true,
+    summarizationThreshold: 0.7,
+    splitThreshold: 0.85,
+    verbatimRecentCount: 6,
+    maxMessageLength: 4000,
+    maxPromptTokens: 150000,
+  }),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;
@@ -268,6 +285,14 @@ const DEFAULT_SETTINGS: Settings = {
     connectionTimeout: 30000,
     toolTimeout: 60000,
   },
+  context: {
+    autoSummarize: true,
+    summarizationThreshold: 0.7,
+    splitThreshold: 0.85,
+    verbatimRecentCount: 6,
+    maxMessageLength: 4000,
+    maxPromptTokens: 150000,
+  },
 };
 
 export class SettingsManager {
@@ -328,6 +353,7 @@ export class SettingsManager {
         tunnel: { ...DEFAULT_SETTINGS.tunnel, ...parsed.tunnel },
         update: { ...DEFAULT_SETTINGS.update, ...parsed.update },
         mcp: { ...DEFAULT_SETTINGS.mcp, ...parsed.mcp },
+        context: { ...DEFAULT_SETTINGS.context, ...parsed.context },
       });
 
       // Save if password was migrated
@@ -502,6 +528,9 @@ export class SettingsManager {
     if (updates.mcp) {
       this.settings.mcp = { ...this.settings.mcp, ...updates.mcp };
     }
+    if (updates.context) {
+      this.settings.context = { ...this.settings.context, ...updates.context };
+    }
 
     // Validate the merged settings
     this.settings = SettingsSchema.parse(this.settings);
@@ -587,6 +616,16 @@ export class SettingsManager {
     this.settings.mcp = { ...this.settings.mcp, ...updates };
     this.save();
     return this.getMcp();
+  }
+
+  getContext(): Settings['context'] {
+    return { ...this.settings.context };
+  }
+
+  updateContext(updates: Partial<Settings['context']>): Settings['context'] {
+    this.settings.context = { ...this.settings.context, ...updates };
+    this.save();
+    return this.getContext();
   }
 
   setSetupCompleted(completed: boolean): void {

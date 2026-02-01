@@ -234,7 +234,8 @@ export default function Integrations() {
   const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/oauth/callback` : 'http://localhost:5174/oauth/callback';
 
   useEffect(() => {
-    loadAllSettings();
+    loadCoreSettings();
+    loadDockerSettings();
   }, []);
 
   // Sync selectedPermissionMode with claudeSettings
@@ -244,31 +245,43 @@ export default function Integrations() {
     }
   }, [claudeSettings]);
 
-  const loadAllSettings = async () => {
+  // Load fast settings first so the UI renders quickly
+  const loadCoreSettings = async () => {
     try {
-      const [github, gitlab, agents, claude, docker, dockerAvail, dockerStatus, dockerConn] = await Promise.all([
+      const [github, gitlab, agents, claude] = await Promise.all([
         api<GitHubSettings>('GET', '/settings/github'),
         api<GitLabSettings>('GET', '/settings/gitlab'),
         api<AgentSettings>('GET', '/settings/agents'),
         api<ClaudeSettings>('GET', '/settings/claude'),
-        api<DockerSettings>('GET', '/docker/settings'),
-        api<DockerAvailability>('GET', '/docker/availability'),
-        api<DockerState>('GET', '/docker/status').catch(() => ({ status: 'stopped' as const, services: {} })),
-        api<Record<string, ConnectionInfo>>('GET', '/docker/connections').catch(() => ({})),
       ]);
 
       setGithubSettings(github);
       setGitlabSettings(gitlab);
       setAgentSettings(agents);
       setClaudeSettings(claude);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load Docker data separately — these calls probe the Docker daemon and can be slow
+  const loadDockerSettings = async () => {
+    try {
+      const [docker, dockerAvail, dockerStatus, dockerConn] = await Promise.all([
+        api<DockerSettings>('GET', '/docker/settings'),
+        api<DockerAvailability>('GET', '/docker/availability'),
+        api<DockerState>('GET', '/docker/status').catch(() => ({ status: 'stopped' as const, services: {} })),
+        api<Record<string, ConnectionInfo>>('GET', '/docker/connections').catch(() => ({})),
+      ]);
+
       setDockerSettings(docker);
       setAvailability(dockerAvail);
       setDockerState(dockerStatus);
       setConnections(dockerConn);
     } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load Docker settings:', error);
     }
   };
 

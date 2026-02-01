@@ -2,12 +2,13 @@
  * System Settings Page - Update preferences and Cache management
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { api } from '../../lib/api';
 import { UpdateSettings } from '../../components/settings/UpdateSettings';
 import { CacheManagement } from '../../components/settings/CacheManagement';
 import { CICDSettings } from '../../components/settings/CICDSettings';
+import { ContextSettings } from '../../components/settings/ContextSettings';
 import { useToast } from '../../hooks/useToast';
 import { VStack } from '../../design-system/primitives/Stack';
 import { Text } from '../../design-system/primitives/Text';
@@ -16,7 +17,15 @@ export default function System() {
   const prefersReduced = useReducedMotion();
   const toast = useToast();
   const [autoCheck, setAutoCheck] = useState(true);
-  const [interval, setInterval] = useState(6);
+  const [checkInterval, setCheckInterval] = useState(6);
+
+  // Context management settings
+  const [ctxAutoSummarize, setCtxAutoSummarize] = useState(true);
+  const [ctxSummarizationThreshold, setCtxSummarizationThreshold] = useState(0.7);
+  const [ctxSplitThreshold, setCtxSplitThreshold] = useState(0.85);
+  const [ctxVerbatimRecentCount, setCtxVerbatimRecentCount] = useState(6);
+  const [ctxMaxMessageLength, setCtxMaxMessageLength] = useState(4000);
+  const [ctxMaxPromptTokens, setCtxMaxPromptTokens] = useState(150000);
 
   // CI/CD settings
   const [cicdAutoMonitor, setCicdAutoMonitor] = useState(true);
@@ -25,12 +34,20 @@ export default function System() {
   const [cicdNotifications, setCicdNotifications] = useState(true);
 
   // Load settings on mount
-  useState(() => {
+  useEffect(() => {
     api<any>('GET', '/settings')
       .then((settings) => {
         if (settings?.update) {
           setAutoCheck(settings.update.autoCheck ?? true);
-          setInterval(settings.update.checkIntervalHours ?? 6);
+          setCheckInterval(settings.update.checkIntervalHours ?? 6);
+        }
+        if (settings?.context) {
+          setCtxAutoSummarize(settings.context.autoSummarize ?? true);
+          setCtxSummarizationThreshold(settings.context.summarizationThreshold ?? 0.7);
+          setCtxSplitThreshold(settings.context.splitThreshold ?? 0.85);
+          setCtxVerbatimRecentCount(settings.context.verbatimRecentCount ?? 6);
+          setCtxMaxMessageLength(settings.context.maxMessageLength ?? 4000);
+          setCtxMaxPromptTokens(settings.context.maxPromptTokens ?? 150000);
         }
         if (settings?.cicd) {
           setCicdAutoMonitor(settings.cicd.autoMonitor ?? true);
@@ -40,7 +57,7 @@ export default function System() {
         }
       })
       .catch(() => {});
-  });
+  }, []);
 
   const handleAutoCheckChange = async (enabled: boolean) => {
     setAutoCheck(enabled);
@@ -52,7 +69,7 @@ export default function System() {
   };
 
   const handleIntervalChange = async (hours: number) => {
-    setInterval(hours);
+    setCheckInterval(hours);
     try {
       await api('PUT', '/settings', { update: { checkIntervalHours: hours } });
     } catch {
@@ -97,6 +114,61 @@ export default function System() {
     }
   };
 
+  // Context management handlers
+  const handleCtxAutoSummarize = async (enabled: boolean) => {
+    setCtxAutoSummarize(enabled);
+    try {
+      await api('PUT', '/settings', { context: { autoSummarize: enabled } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
+  const handleCtxSummarizationThreshold = async (value: number) => {
+    setCtxSummarizationThreshold(value);
+    try {
+      await api('PUT', '/settings', { context: { summarizationThreshold: value } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
+  const handleCtxSplitThreshold = async (value: number) => {
+    setCtxSplitThreshold(value);
+    try {
+      await api('PUT', '/settings', { context: { splitThreshold: value } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
+  const handleCtxVerbatimRecentCount = async (value: number) => {
+    setCtxVerbatimRecentCount(value);
+    try {
+      await api('PUT', '/settings', { context: { verbatimRecentCount: value } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
+  const handleCtxMaxMessageLength = async (value: number) => {
+    setCtxMaxMessageLength(value);
+    try {
+      await api('PUT', '/settings', { context: { maxMessageLength: value } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
+  const handleCtxMaxPromptTokens = async (value: number) => {
+    setCtxMaxPromptTokens(value);
+    try {
+      await api('PUT', '/settings', { context: { maxPromptTokens: value } });
+    } catch {
+      toast.error('Failed to save setting');
+    }
+  };
+
   return (
     <motion.div
       initial={prefersReduced ? {} : { opacity: 0, y: 10 }}
@@ -114,7 +186,7 @@ export default function System() {
           </div>
           <UpdateSettings
             autoCheckEnabled={autoCheck}
-            checkIntervalHours={interval}
+            checkIntervalHours={checkInterval}
             onAutoCheckChange={handleAutoCheckChange}
             onIntervalChange={handleIntervalChange}
           />
@@ -137,6 +209,30 @@ export default function System() {
             onPollIntervalChange={handleCicdPollInterval}
             onMaxDurationChange={handleCicdMaxDuration}
             onNotificationsChange={handleCicdNotifications}
+          />
+        </VStack>
+
+        {/* Context Management Section */}
+        <VStack gap={3}>
+          <div>
+            <Text variant="bodySm" color="secondary" className="font-semibold uppercase tracking-wider text-[11px]">
+              Context Management
+            </Text>
+            <div className="mt-1 h-px bg-white/5" />
+          </div>
+          <ContextSettings
+            autoSummarize={ctxAutoSummarize}
+            summarizationThreshold={ctxSummarizationThreshold}
+            splitThreshold={ctxSplitThreshold}
+            verbatimRecentCount={ctxVerbatimRecentCount}
+            maxMessageLength={ctxMaxMessageLength}
+            maxPromptTokens={ctxMaxPromptTokens}
+            onAutoSummarizeChange={handleCtxAutoSummarize}
+            onSummarizationThresholdChange={handleCtxSummarizationThreshold}
+            onSplitThresholdChange={handleCtxSplitThreshold}
+            onVerbatimRecentCountChange={handleCtxVerbatimRecentCount}
+            onMaxMessageLengthChange={handleCtxMaxMessageLength}
+            onMaxPromptTokensChange={handleCtxMaxPromptTokens}
           />
         </VStack>
 

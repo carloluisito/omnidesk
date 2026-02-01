@@ -1,6 +1,6 @@
 # ClaudeDesk Architecture
 
-Technical architecture documentation for ClaudeDesk v3.5.0 - an AI-powered development platform with Claude terminal interface.
+Technical architecture documentation for ClaudeDesk v3.6.0 - an AI-powered development platform with Claude terminal interface.
 
 ## Overview
 
@@ -33,7 +33,8 @@ The architecture enables developers to:
 |  Zustand Stores  |                  |   Core Modules       |
 |  - terminalStore |                  |   - terminal-session |
 |  - appStore      |                  |   - claude-invoker   |
-|  - runStore      |                  |   - git-sandbox      |
+|  - runStore      |                  |   - context-manager  |
+|                  |                  |   - git-sandbox      |
 |                  |                  |   - app-manager      |
 +------------------+                  +----------------------+
                                                |
@@ -236,6 +237,10 @@ In dev mode, the fallback proxies WebSocket connections to Vite (port 5173) to e
 - `cancel` - Cancel running operation
 - `approve-plan` - Execute approved plan with answers
 
+**Server-broadcast events:**
+- `context_state_update` - Context utilization and summarization status (after each response)
+- `context_split_suggested` - Context reached split threshold (85%)
+
 **Broadcasting:**
 - `broadcastToSession()` - Send to all clients subscribed to a session
 - `broadcastAll()` - Send to all connected clients
@@ -288,6 +293,32 @@ Key responsibilities:
 - Persistence to `config/pipeline-monitors.json`
 - Max 10 concurrent monitors, 90s stall timeout
 - Token resolution: `GITHUB_TOKEN` / `gh auth token`, `GITLAB_TOKEN` / `glab auth token` / workspace OAuth
+
+#### `context-manager.ts` - Smart Context Management
+
+Tracks token usage, orchestrates summarization, and manages session splitting:
+
+Key responsibilities:
+- Per-session token estimation using chars/4 heuristic, calibrated against actual `inputTokens` from Claude result events
+- Context state broadcasting via `context_state_update` WebSocket events after each response
+- Conversation summarization using Claude Haiku (`claude-3-5-haiku-20241022`) with 60-second timeout
+- Session split suggestion via `context_split_suggested` WebSocket event at configurable threshold
+- Summary storage and retrieval per session
+- Tiered prompt building: summary prefix + recent verbatim messages + current request
+
+Context flow:
+```
+User Message → Token Estimation → Context State Broadcast
+                                        |
+                              >= 70%: Auto-Summarize (Haiku)
+                              >= 85%: Suggest Split
+```
+
+Configurable thresholds (via `settings.context`):
+- `summarizationThreshold`: 0.7 (70%) — triggers summarization
+- `splitThreshold`: 0.85 (85%) — triggers split suggestion
+- `maxPromptTokens`: 150000 — token budget (75% of 200K window)
+- `verbatimRecentCount`: 6 — message pairs kept verbatim after summarization
 
 ## Frontend Architecture
 
@@ -440,7 +471,7 @@ import { Panel, Stepper } from '@/design-system/compounds';
 | `settings/Workspaces.tsx` | `/settings/workspaces` | Workspace and repository management |
 | `settings/Integrations.tsx` | `/settings/integrations` | GitHub/GitLab OAuth integration |
 | `settings/ApiConfig.tsx` | `/settings/api-config` | Claude API token configuration |
-| `settings/System.tsx` | `/settings/system` | Update settings and cache management |
+| `settings/System.tsx` | `/settings/system` | Update settings, context management, CI/CD, and cache management |
 
 **Note:** v1 screens (Auth, Terminal, ReviewChanges, PreShipReview) and v2 standalone screens (Home, TerminalV2, ReviewChangesV2, PreShipReviewV2, RunPage, SessionDashboard, Launcher) were removed in v3.0.0. The MissionControl phased workflow replaced all terminal and review screens.
 
@@ -531,6 +562,8 @@ src/ui/app/
 |   |   +-- MessageItem.tsx        # Chat message rendering
 |   |   +-- ActivityTimeline.tsx   # Tool activity timeline
 |   |   +-- CodeChangesSummary.tsx # File changes display
+|   |   +-- ContextGauge.tsx       # Context utilization gauge
+|   |   +-- ContextSplitBanner.tsx # Session split suggestion banner
 |   |   +-- overlays/             # Overlay components
 |   |   |   +-- OverlayManager.tsx # Renders active overlay
 |   |   +-- v2/                   # Feature components
@@ -538,6 +571,7 @@ src/ui/app/
 |   +-- settings/           # Settings components
 |   |   +-- SettingsLayout.tsx    # Tabbed navigation
 |   |   +-- CICDSettings.tsx      # CI/CD pipeline monitoring config
+|   |   +-- ContextSettings.tsx   # Context management config (summarization, thresholds, tokens)
 |   |   +-- CacheManagement.tsx   # Cache size display and clearing
 |   |   +-- UpdateSettings.tsx    # Auto-update toggle and interval config
 |   +-- ui/                 # Reusable UI primitives

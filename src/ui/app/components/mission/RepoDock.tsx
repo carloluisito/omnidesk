@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Loader2,
   FolderGit2,
+  Link2,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useTerminalUIStore } from '../../store/terminalUIStore';
@@ -25,6 +26,8 @@ export interface RepoStatus {
   changesCount: number;
   status: 'clean' | 'modified' | 'running' | 'error';
   isActive: boolean;
+  parentSessionId?: string;
+  childSessionIds?: string[];
 }
 
 interface RepoDockProps {
@@ -156,6 +159,16 @@ export function RepoDock({
                   {!isClosing && repo.changesCount > 0 && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/20 px-1.5 text-xs font-semibold text-amber-400">
                       {repo.changesCount}
+                    </span>
+                  )}
+
+                  {/* Session link indicator (parent/child) */}
+                  {!isClosing && (repo.parentSessionId || (repo.childSessionIds && repo.childSessionIds.length > 0)) && (
+                    <span
+                      className="flex items-center gap-0.5 text-xs text-blue-400/70"
+                      title={repo.parentSessionId ? 'Continued from another session' : `Continued in ${repo.childSessionIds?.length} session(s)`}
+                    >
+                      <Link2 className="h-3 w-3" />
                     </span>
                   )}
 

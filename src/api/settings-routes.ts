@@ -183,6 +183,24 @@ settingsRouter.post('/favorites/recent/:repoId', (req: Request, res: Response) =
   res.json({ success: true, data: settingsManager.getFavorites() });
 });
 
+// Get context settings
+settingsRouter.get('/context', (_req: Request, res: Response) => {
+  const context = settingsManager.getContext();
+  res.json({ success: true, data: context });
+});
+
+// Update context settings
+settingsRouter.put('/context', (req: Request, res: Response) => {
+  try {
+    const updates = req.body;
+    const context = settingsManager.updateContext(updates);
+    res.json({ success: true, data: context });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(400).json({ success: false, error: errorMsg });
+  }
+});
+
 // Reset settings to defaults
 settingsRouter.post('/reset', (_req: Request, res: Response) => {
   const settings = settingsManager.reset();

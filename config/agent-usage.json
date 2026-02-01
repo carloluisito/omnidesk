@@ -1,28 +1,28 @@
 {
   "entries": [
     {
+      "agentId": "architecture-design",
+      "agentName": "architecture-design",
+      "lastUsedAt": "2026-02-01T08:38:07.444Z",
+      "useCount": 7
+    },
+    {
+      "agentId": "product-spec-designer",
+      "agentName": "product-spec-designer",
+      "lastUsedAt": "2026-02-01T08:30:38.635Z",
+      "useCount": 11
+    },
+    {
       "agentId": "feature-executor",
       "agentName": "feature-executor",
       "lastUsedAt": "2026-01-31T00:23:05.626Z",
       "useCount": 4
     },
     {
-      "agentId": "product-spec-designer",
-      "agentName": "product-spec-designer",
-      "lastUsedAt": "2026-01-31T00:23:05.625Z",
-      "useCount": 9
-    },
-    {
       "agentId": "ui-spec-generator",
       "agentName": "ui-spec-generator",
       "lastUsedAt": "2026-01-30T13:54:12.053Z",
       "useCount": 10
-    },
-    {
-      "agentId": "architecture-design",
-      "agentName": "architecture-design",
-      "lastUsedAt": "2026-01-30T13:54:12.051Z",
-      "useCount": 6
     }
   ]
 }

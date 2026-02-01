@@ -7,6 +7,7 @@ import { AgentChip } from './AgentSelector';
 import { AgentChainBuilder } from './AgentChainBuilder';
 import { AutoModeIndicator } from './AutoModeIndicator';
 import { QuickSelectMenu } from './QuickSelectMenu';
+import { ContextGauge } from '../ContextGauge';
 import type { Agent } from '../../../types/agents';
 
 interface ComposerProps {
@@ -394,6 +395,9 @@ export function Composer({
             </div>
           )}
         </div>
+
+        {/* Center: context gauge */}
+        <ContextGauge className="ml-auto" />
 
         {/* Right side: attach + send/stop */}
         <div className="flex items-center gap-1.5">

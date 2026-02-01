@@ -5,16 +5,16 @@
  * all settings tabs (Workspaces, Integrations, API Config) so the
  * user never leaves Mission Control.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Folder, Link, Key, Settings2 } from 'lucide-react';
+import { X, Folder, Link, Key, Settings2, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
-// Lazy-load the actual settings content
-import Workspaces from '../../screens/settings/Workspaces';
-import Integrations from '../../screens/settings/Integrations';
-import ApiConfig from '../../screens/settings/ApiConfig';
-import System from '../../screens/settings/System';
+// Lazy-load settings tabs so the drawer opens instantly
+const Workspaces = lazy(() => import('../../screens/settings/Workspaces'));
+const Integrations = lazy(() => import('../../screens/settings/Integrations'));
+const ApiConfig = lazy(() => import('../../screens/settings/ApiConfig'));
+const System = lazy(() => import('../../screens/settings/System'));
 
 type SettingsTab = 'workspaces' | 'integrations' | 'api-config' | 'system';
 
@@ -30,8 +30,35 @@ const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { id: 'system', label: 'System', icon: <Settings2 className="h-4 w-4" /> },
 ];
 
+const tabFallback = (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+  </div>
+);
+
 export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('workspaces');
+  // Track which tabs have been visited so we keep them mounted (no re-fetch on switch back)
+  const [mountedTabs, setMountedTabs] = useState<Set<SettingsTab>>(new Set(['workspaces']));
+
+  // When a tab is selected, add it to mounted set
+  const handleTabClick = (tabId: SettingsTab) => {
+    setActiveTab(tabId);
+    setMountedTabs((prev) => {
+      if (prev.has(tabId)) return prev;
+      const next = new Set(prev);
+      next.add(tabId);
+      return next;
+    });
+  };
+
+  // Reset mounted tabs when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setMountedTabs(new Set(['workspaces']));
+      setActiveTab('workspaces');
+    }
+  }, [isOpen]);
 
   // Close on Escape
   useEffect(() => {
@@ -59,13 +86,13 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — no backdrop-blur to avoid GPU overhead */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] bg-black/60"
             onClick={onClose}
           />
 
@@ -96,7 +123,7 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabClick(tab.id)}
                   className={cn(
                     'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all ring-1',
                     activeTab === tab.id
@@ -110,22 +137,22 @@ export function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
               ))}
             </div>
 
-            {/* Content */}
+            {/* Content — tabs stay mounted once visited to avoid re-fetching */}
             <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {activeTab === 'workspaces' && <Workspaces />}
-                  {activeTab === 'integrations' && <Integrations />}
-                  {activeTab === 'api-config' && <ApiConfig />}
-                  {activeTab === 'system' && <System />}
-                </motion.div>
-              </AnimatePresence>
+              <Suspense fallback={tabFallback}>
+                <div className={activeTab === 'workspaces' ? '' : 'hidden'}>
+                  {mountedTabs.has('workspaces') && <Workspaces />}
+                </div>
+                <div className={activeTab === 'integrations' ? '' : 'hidden'}>
+                  {mountedTabs.has('integrations') && <Integrations />}
+                </div>
+                <div className={activeTab === 'api-config' ? '' : 'hidden'}>
+                  {mountedTabs.has('api-config') && <ApiConfig />}
+                </div>
+                <div className={activeTab === 'system' ? '' : 'hidden'}>
+                  {mountedTabs.has('system') && <System />}
+                </div>
+              </Suspense>
             </div>
           </motion.div>
         </>

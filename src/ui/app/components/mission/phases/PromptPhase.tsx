@@ -4,9 +4,11 @@
  * Displays the chat interface with Claude, including messages,
  * tool activity timeline, and the composer for input.
  */
-import { useRef, useState, useEffect, useCallback, RefObject } from 'react';
+import { useRef, useState, useEffect, useCallback, RefObject, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ChevronDown } from 'lucide-react';
+import { ContextSplitBanner } from '../../terminal/ContextSplitBanner';
+import { useTerminalStore } from '../../../store/terminalStore';
 
 interface Message {
   id: string;
@@ -50,6 +52,19 @@ export function PromptPhase({
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // Context split banner support — hooks must be called before any early returns
+  const { sessions, activeSessionId, switchSession } = useTerminalStore();
+  const activeSession = useMemo(
+    () => sessions.find((s) => s.id === activeSessionId),
+    [sessions, activeSessionId]
+  );
+  const contextPct = activeSession?.contextState?.contextUtilizationPercent;
+  const showSplit = activeSession?.splitSuggested || (contextPct != null && contextPct >= 85);
+
+  const handleSwitchSession = useCallback((newSessionId: string) => {
+    switchSession(newSessionId);
+  }, [switchSession]);
 
   // Auto-scroll to bottom when new messages/activity arrive
   useEffect(() => {
@@ -107,6 +122,15 @@ export function PromptPhase({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
+      {/* Context split banner */}
+      {showSplit && activeSessionId && (
+        <ContextSplitBanner
+          sessionId={activeSessionId}
+          utilizationPercent={contextPct ?? 85}
+          onSwitchSession={handleSwitchSession}
+        />
+      )}
+
       {/* Messages area */}
       <div
         ref={containerRef}

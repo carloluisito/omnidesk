@@ -15,6 +15,7 @@ import { gitlabIntegration } from '../core/gitlab-integration.js';
 import { usageManager } from '../core/usage-manager.js';
 import { settingsManager } from '../config/settings.js';
 import { queryClaudeQuota, clearQuotaCache } from '../core/claude-usage-query.js';
+import { contextManager } from '../core/context-manager.js';
 
 /**
  * Try to refresh a GitLab token using the refresh token.
@@ -4180,5 +4181,118 @@ terminalRouter.post('/usage/quota/refresh', async (_req: Request, res: Response)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// ============================================================================
+// Context Management Endpoints
+// ============================================================================
+
+// Get context state for a session
+terminalRouter.get('/sessions/:id/context', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const session = terminalSessionManager.getSession(id);
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    const state = contextManager.getContextState(id, session.messages);
+    res.json({ success: true, data: state });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Get context summaries for a session
+terminalRouter.get('/sessions/:id/context/summaries', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const session = terminalSessionManager.getSession(id);
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    const summaries = contextManager.getSummaries(id);
+    res.json({ success: true, data: summaries });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Trigger manual summarization for a session
+terminalRouter.post('/sessions/:id/context/summarize', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const session = terminalSessionManager.getSession(id);
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    // Check if summarization is already in progress
+    const state = contextManager.getContextState(id, session.messages);
+    if (state.summarizationStatus === 'in_progress') {
+      res.status(409).json({ success: false, error: 'Summarization already in progress' });
+      return;
+    }
+
+    // Get repo path for the summarization invocation
+    const primaryRepoId = session.repoIds[0];
+    const repo = repoRegistry.get(primaryRepoId);
+    if (!repo) {
+      res.status(400).json({ success: false, error: 'Repository not found' });
+      return;
+    }
+
+    const repoPath = session.worktreePath || repo.path;
+    const artifactsDir = join(tmpdir(), `claudedesk-summarize-${id}`);
+
+    // Fire async summarization, return 202
+    res.status(202).json({ success: true, message: 'Summarization started' });
+
+    contextManager.summarize(id, session.messages, repoPath, artifactsDir)
+      .then(() => {
+        // Clear Claude session ID after successful summarization
+        session.claudeSessionId = undefined;
+        console.log(`[terminal-routes] Manual summarization completed for session ${id}`);
+      })
+      .catch((err) => {
+        console.error(`[terminal-routes] Manual summarization failed for session ${id}:`, err);
+      });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Split session into a new one
+terminalRouter.post('/sessions/:id/context/split', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { handoffSummary } = req.body || {};
+
+    const newSession = terminalSessionManager.splitSession(id, handoffSummary);
+
+    res.json({
+      success: true,
+      data: {
+        id: newSession.id,
+        repoIds: newSession.repoIds,
+        parentSessionId: newSession.parentSessionId,
+        worktreePath: newSession.worktreePath,
+        branch: newSession.branch,
+      },
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(400).json({ success: false, error: errorMsg });
   }
 });

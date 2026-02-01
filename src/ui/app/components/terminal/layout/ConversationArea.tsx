@@ -13,6 +13,7 @@ import { type ReactNode, type DragEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, ChevronUp, X, Upload, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { ContextSplitBanner } from '../ContextSplitBanner';
 
 interface ConversationAreaProps {
   /** Message content to render */
@@ -42,6 +43,11 @@ interface ConversationAreaProps {
   showResumeControls?: boolean;
   isSessionRunning?: boolean;
   onResumeQueue?: () => void;
+  /** Context split banner */
+  sessionId?: string;
+  contextUtilizationPercent?: number;
+  splitSuggested?: boolean;
+  onSwitchSession?: (sessionId: string) => void;
   /** Composer component */
   composer: ReactNode;
   /** Custom class names */
@@ -76,6 +82,10 @@ export function ConversationArea({
   showResumeControls = false,
   isSessionRunning = false,
   onResumeQueue,
+  sessionId,
+  contextUtilizationPercent,
+  splitSuggested,
+  onSwitchSession,
   composer,
   className,
 }: ConversationAreaProps) {
@@ -158,6 +168,15 @@ export function ConversationArea({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Context split banner */}
+      {sessionId && (splitSuggested || (contextUtilizationPercent != null && contextUtilizationPercent >= 85)) && (
+        <ContextSplitBanner
+          sessionId={sessionId}
+          utilizationPercent={contextUtilizationPercent ?? 85}
+          onSwitchSession={onSwitchSession}
+        />
+      )}
 
       {/* Message content */}
       <div className="flex-1 overflow-y-auto min-h-0">{children}</div>

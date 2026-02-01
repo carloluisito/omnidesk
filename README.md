@@ -60,6 +60,7 @@ It is not an IDE. It is not a replacement for Claude Code. It is a session manag
 - **Queue Resume Controls** - After stopping, choose to resume queue processing or clear all pending messages
 - **MCP Server Integration** - Configure and manage MCP servers for external tools (GitHub, PostgreSQL, Slack, and more). Tool invocation during sessions coming soon.
 - **CI/CD Pipeline Monitoring** - Automatically monitor GitHub Actions and GitLab CI after shipping code, with error categorization and Fix CI prompt composition
+- **Smart Context Management** - Automatic token budget tracking with visual context gauge, AI-powered conversation summarization using Haiku when approaching limits, and session splitting when context fills up to maintain response quality
 
 ## File Review & Approval
 
@@ -231,6 +232,77 @@ Configure pipeline monitoring in **Settings > CI/CD** or in `config/settings.jso
 | `pipeline:complete` | All pipeline runs finished (success or failure) |
 | `pipeline:stalled` | No pipeline runs detected or max duration exceeded |
 | `pipeline:error` | Auth or network error stopped monitoring |
+
+## Smart Context Management
+
+ClaudeDesk automatically manages conversation context to keep responses sharp as conversations grow. Instead of naively truncating old messages, it uses intelligent summarization and session splitting.
+
+### How It Works
+
+1. **Token Tracking** - Estimates prompt tokens for each message (chars/4 heuristic, calibrated against actual usage) and displays real-time utilization in the terminal composer
+2. **Auto-Summarization** - When context reaches 70% utilization, older messages are summarized using Claude Haiku, keeping recent messages verbatim
+3. **Session Splitting** - At 85% utilization, a banner suggests splitting into a new session with a handoff summary, preserving the shared worktree
+
+### Context Gauge
+
+The context gauge appears in the terminal composer when messages exist:
+
+- **Progress bar** - Color-coded: green (0-49%), yellow (50-69%), orange (70-84%), red (85%+)
+- **Percentage display** - Current utilization of the max prompt token budget
+- **Summarize button** - Appears at 70%+ when auto-summarization hasn't run yet
+- **Status icons** - Spinner during summarization, checkmark on completion
+
+### Context Prompt Building
+
+When summaries exist, prompts are built in tiers:
+
+1. **Summary prefix** - Latest conversation summary under a `## Conversation Summary` header
+2. **Recent verbatim** - Last N message pairs kept word-for-word (default: 6 pairs / 12 messages)
+3. **Current request** - The user's new message
+
+If estimated tokens exceed the budget, progressive trimming removes the oldest verbatim pairs first, then truncates the summary, then the message.
+
+### Session Splitting
+
+When context reaches 85%, a banner offers to split the session:
+
+- Creates a new session with the same repository and worktree
+- Child session does not own the worktree (closing it won't delete it)
+- Includes a handoff summary from the latest context summary + recent messages
+- Parent/child sessions are linked and navigable from the RepoDock
+
+### Configuration
+
+Configure in **Settings > System > Context Management** or in `config/settings.json`:
+
+```json
+{
+  "context": {
+    "autoSummarize": true,
+    "summarizationThreshold": 0.7,
+    "splitThreshold": 0.85,
+    "verbatimRecentCount": 6,
+    "maxMessageLength": 4000,
+    "maxPromptTokens": 150000
+  }
+}
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `autoSummarize` | `true` | Automatically summarize old messages when threshold reached |
+| `summarizationThreshold` | `0.7` | Context utilization fraction to trigger summarization (0.0-1.0) |
+| `splitThreshold` | `0.85` | Context utilization fraction to suggest session split (0.0-1.0) |
+| `verbatimRecentCount` | `6` | Number of recent message pairs to keep verbatim (rest are summarized) |
+| `maxMessageLength` | `4000` | Max characters per message before truncation |
+| `maxPromptTokens` | `150000` | Maximum estimated prompt tokens (default is 75% of 200K context window) |
+
+### WebSocket Events
+
+| Event | Description |
+|-------|-------------|
+| `context_state_update` | Context utilization and summarization status changed |
+| `context_split_suggested` | Context reached split threshold, UI should show split banner |
 
 ## Keyboard Shortcuts
 
@@ -611,6 +683,94 @@ This endpoint:
 4. Updates the repository's `hasGit` flag to `true`
 
 Use this when creating a session for a directory that doesn't have git initialized yet.
+
+#### Get Context State
+
+**GET `/api/terminal/sessions/:id/context`**
+
+Returns current context utilization and summarization status.
+
+```json
+{
+  "success": true,
+  "data": {
+    "modelContextWindow": 200000,
+    "estimatedPromptTokens": 105000,
+    "lastActualInputTokens": 107234,
+    "contextUtilizationPercent": 70,
+    "summarizationStatus": "completed",
+    "summaryCount": 1,
+    "verbatimMessageCount": 12,
+    "totalMessageCount": 48
+  }
+}
+```
+
+#### Get Context Summaries
+
+**GET `/api/terminal/sessions/:id/context/summaries`**
+
+Returns all conversation summaries for a session.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "summary-uuid",
+      "createdAt": "2026-02-01T12:00:00.000Z",
+      "summarizedMessageIds": ["msg-1", "msg-2"],
+      "tokenEstimate": 450,
+      "content": "## Project Context\n...",
+      "model": "claude-3-5-haiku-20241022"
+    }
+  ]
+}
+```
+
+#### Trigger Manual Summarization
+
+**POST `/api/terminal/sessions/:id/context/summarize`**
+
+Manually triggers summarization of older messages. Returns 202 Accepted (async operation). Returns 409 if summarization is already in progress.
+
+#### Split Session
+
+**POST `/api/terminal/sessions/:id/context/split`**
+
+Splits the current session into a new one with the same repository and worktree settings.
+
+Request body:
+```json
+{
+  "handoffSummary": "Optional custom summary to pass to the new session"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "new-session-id",
+    "parentSessionId": "original-session-id",
+    "repoIds": ["repo-1"],
+    "handoffSummary": "..."
+  }
+}
+```
+
+#### Get Context Settings
+
+**GET `/api/settings/context`**
+
+Returns the current context management settings.
+
+#### Update Context Settings
+
+**PUT `/api/settings/context`**
+
+Updates context management settings. Accepts a partial object with any of the context settings fields.
 
 ### Ship Workflow Endpoints
 

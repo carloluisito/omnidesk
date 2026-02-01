@@ -537,6 +537,39 @@ export interface ClaudeUsageQuota {
 }
 
 // =============================================================================
+// Context Management Types
+// =============================================================================
+
+export interface ContextSummary {
+  id: string;
+  createdAt: string;
+  summarizedMessageIds: string[];
+  tokenEstimate: number;
+  content: string;
+  model: string;
+}
+
+export interface ContextState {
+  modelContextWindow: number;
+  estimatedPromptTokens: number;
+  lastActualInputTokens: number;
+  contextUtilizationPercent: number;
+  summarizationStatus: 'none' | 'suggested' | 'in_progress' | 'completed' | 'failed';
+  summaryCount: number;
+  verbatimMessageCount: number;
+  totalMessageCount: number;
+}
+
+export interface ContextSettings {
+  autoSummarize: boolean;
+  summarizationThreshold: number;
+  splitThreshold: number;
+  verbatimRecentCount: number;
+  maxMessageLength: number;
+  maxPromptTokens: number;
+}
+
+// =============================================================================
 // MCP (Model Context Protocol) Types
 // =============================================================================
 

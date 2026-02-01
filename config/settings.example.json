@@ -50,6 +50,16 @@
     "showNotifications": true
   },
 
+  "context": {
+    "_comment": "Smart Context Management. Tracks token usage and manages conversation summarization.",
+    "autoSummarize": true,
+    "summarizationThreshold": 0.7,
+    "splitThreshold": 0.85,
+    "verbatimRecentCount": 6,
+    "maxMessageLength": 4000,
+    "maxPromptTokens": 150000
+  },
+
   "docker": {
     "enabled": false,
     "autoStart": false,

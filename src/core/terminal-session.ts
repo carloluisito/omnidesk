@@ -11,6 +11,8 @@ import { skillExecutor } from './skill-executor.js';
 import { gitSandbox } from './git-sandbox.js';
 import { usageManager } from './usage-manager.js';
 import { agentUsageManager } from '../config/agent-usage.js';
+import { contextManager } from './context-manager.js';
+import { settingsManager } from '../config/settings.js';
 import { FileChange } from '../types.js';
 
 // Helper to generate unique IDs
@@ -125,6 +127,11 @@ export interface TerminalSession {
   pipelineMonitorId?: string;     // Active pipeline monitor ID
   linkedSessionId?: string;       // Linked session (e.g., Fix CI session)
   fixCIContext?: string;          // Context for Fix CI sessions
+
+  // Context management / session splitting
+  parentSessionId?: string;       // Parent session (if split from another)
+  childSessionIds?: string[];     // Child sessions (split from this one)
+  handoffSummary?: string;        // Summary handed off from parent session
 }
 
 // Helper to get primary repo ID for backward compatibility
@@ -1014,6 +1021,37 @@ class TerminalSessionManager {
                 durationMs: event.durationMs,
                 sessionStats: usageManager.getSessionUsage(sessionId),
               });
+
+              // Context management: track actual token usage and broadcast state
+              if (event.usage.inputTokens) {
+                contextManager.updateActualUsage(sessionId, event.usage.inputTokens);
+              }
+              const contextState = contextManager.getContextState(sessionId, session.messages, event.model);
+              contextManager.broadcastContextState(sessionId, contextState);
+
+              // Check if split should be suggested
+              if (contextManager.shouldSuggestSplit(contextState) && !contextManager.isSplitSuggested(sessionId)) {
+                contextManager.markSplitSuggested(sessionId);
+                contextManager.broadcastSplitSuggested(sessionId);
+              }
+
+              // Auto-summarize if threshold reached
+              const ctxSettings = settingsManager.getContext();
+              if (contextManager.shouldSummarize(contextState) && ctxSettings.autoSummarize) {
+                const primaryRepoId = session.repoIds[0];
+                const repo = repoRegistry.get(primaryRepoId);
+                if (repo) {
+                  const sumRepoPath = session.worktreePath || repo.path;
+                  contextManager.summarize(sessionId, session.messages, sumRepoPath, join(getTerminalArtifactsDir(), sessionId))
+                    .then(() => {
+                      session.claudeSessionId = undefined;
+                      console.log(`[TerminalSession] Auto-summarization completed, cleared Claude session ID`);
+                    })
+                    .catch((err) => {
+                      console.error(`[TerminalSession] Auto-summarization failed:`, err);
+                    });
+                }
+              }
             }
           }
         },
@@ -2055,6 +2093,61 @@ class TerminalSessionManager {
   }
 
   /**
+   * Split a session into a new one, carrying over context via handoff summary.
+   * The new session shares the same worktree (ownsWorktree = false).
+   */
+  splitSession(sessionId: string, handoffSummary?: string): TerminalSession {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    // Build handoff summary if not provided
+    let summary = handoffSummary;
+    if (!summary) {
+      const latestCtxSummary = contextManager.getLatestSummary(sessionId);
+      const recentMsgs = session.messages
+        .filter(m => !m.isStreaming)
+        .slice(-4)
+        .map(m => {
+          const role = m.role === 'user' ? 'User' : 'Assistant';
+          const content = m.content.length > 2000 ? m.content.slice(0, 2000) + '...' : m.content;
+          return `**${role}:** ${content}`;
+        })
+        .join('\n\n');
+
+      summary = latestCtxSummary
+        ? `${latestCtxSummary.content}\n\n## Recent Messages\n${recentMsgs}`
+        : `## Recent Messages\n${recentMsgs}`;
+    }
+
+    // Create new session using same repos and worktree
+    const newSession = this.createSession(session.repoIds, session.worktreePath ? {
+      worktreeMode: true,
+      branch: '',
+      existingWorktreePath: session.worktreePath,
+    } : undefined);
+
+    // The child doesn't own the worktree
+    newSession.ownsWorktree = false;
+
+    // Link parent <-> child
+    newSession.parentSessionId = sessionId;
+    newSession.handoffSummary = summary;
+
+    if (!session.childSessionIds) {
+      session.childSessionIds = [];
+    }
+    session.childSessionIds.push(newSession.id);
+
+    // Persist
+    this.saveSessions();
+
+    console.log(`[TerminalSession] Split session ${sessionId} -> ${newSession.id}`);
+    return newSession;
+  }
+
+  /**
    * Delete a session. For worktree sessions, optionally delete the branch and/or worktree.
    * @param sessionId - The session ID to delete
    * @param deleteBranch - Whether to delete the git branch (only applies to worktree sessions)
@@ -2074,6 +2167,9 @@ class TerminalSessionManager {
 
     // Clean up session attachments
     this.cleanupSessionAttachments(sessionId);
+
+    // Clean up context manager data
+    contextManager.clearSession(sessionId);
 
     // Clean up worktree if this is a worktree session that explicitly owns its worktree
     // Only delete if deleteWorktree is true (default behavior for backwards compatibility)
@@ -3063,54 +3159,125 @@ Primary: \`${primaryRepo?.path || 'unknown'}\` (${primaryRepo?.id || 'unknown'})
 Access other repos via their absolute paths.`;
   }
 
-  // Build prompt with conversation context
+  // Build prompt with conversation context (smart context management)
   private buildPromptWithContext(session: TerminalSession, currentMessage: string): string {
-    // Truncate very long messages to avoid "Prompt is too long" errors
-    const MAX_MESSAGE_LENGTH = 50000; // ~50k chars is reasonable
+    const ctxSettings = settingsManager.getContext();
+    const maxMsgLen = ctxSettings.maxMessageLength;
+
+    // Truncate very long messages
     let message = currentMessage;
-    if (message.length > MAX_MESSAGE_LENGTH) {
-      message = message.slice(0, MAX_MESSAGE_LENGTH) + '\n\n... [Message truncated - was ' + currentMessage.length + ' chars]';
-      console.log(`[TerminalSession] Truncated message from ${currentMessage.length} to ${MAX_MESSAGE_LENGTH} chars`);
+    if (message.length > maxMsgLen) {
+      message = message.slice(0, maxMsgLen) + '\n\n... [Message truncated - was ' + currentMessage.length + ' chars]';
+      console.log(`[TerminalSession] Truncated message from ${currentMessage.length} to ${maxMsgLen} chars`);
     }
 
-    // If we're resuming a Claude session, don't add conversation history
+    // If we're resuming a Claude session AND no summaries exist,
     // Claude Code's --resume flag already provides full context
-    if (session.claudeSessionId) {
+    if (session.claudeSessionId && contextManager.getSummaries(session.id).length === 0) {
       return message;
     }
 
-    // Get recent messages for context (limit to last 10 exchanges to avoid token limits)
-    const contextMessages = session.messages
-      .filter(m => !m.isStreaming) // Exclude streaming messages
-      .slice(-20); // Last 20 messages (10 exchanges)
+    // If this is a child session with handoff summary and few messages, include handoff context
+    if (session.handoffSummary && session.messages.length <= 2) {
+      return `## Handoff from Previous Session
+The following is a summary of the previous session that this session continues from:
 
-    // If no previous context, just return the current message
-    if (contextMessages.length <= 1) {
-      return currentMessage;
-    }
-
-    // Build conversation context
-    const context = contextMessages
-      .slice(0, -1) // Exclude the current user message we just added
-      .map(m => {
-        const role = m.role === 'user' ? 'User' : 'Assistant';
-        // Truncate long messages in context
-        const content = m.content.length > 2000
-          ? m.content.slice(0, 2000) + '... [truncated]'
-          : m.content;
-        return `**${role}:** ${content}`;
-      })
-      .join('\n\n');
-
-    return `## Previous Conversation Context
-The following is our conversation history in this session. Use this context to understand what we've been working on.
-
-${context}
+${session.handoffSummary}
 
 ---
 
 ## Current Request
 ${message}`;
+    }
+
+    const nonStreaming = session.messages.filter(m => !m.isStreaming);
+
+    // If no previous context, just return the current message
+    if (nonStreaming.length <= 1) {
+      return message;
+    }
+
+    // Build tiered context with summaries and recent verbatim messages
+    const latestSummary = contextManager.getLatestSummary(session.id);
+    const verbatimCount = ctxSettings.verbatimRecentCount * 2; // pairs of user/assistant
+
+    // Get recent verbatim messages (excluding the current message we just added)
+    const recentMessages = nonStreaming
+      .slice(0, -1) // Exclude current user message
+      .slice(-verbatimCount);
+
+    const parts: string[] = [];
+
+    // Summary prefix (if exists)
+    if (latestSummary) {
+      parts.push(`## Conversation Summary
+${latestSummary.content}`);
+    }
+
+    // Recent verbatim messages
+    if (recentMessages.length > 0) {
+      const verbatimContext = recentMessages
+        .map(m => {
+          const role = m.role === 'user' ? 'User' : 'Assistant';
+          const content = m.content.length > maxMsgLen
+            ? m.content.slice(0, maxMsgLen) + '... [truncated]'
+            : m.content;
+          return `**${role}:** ${content}`;
+        })
+        .join('\n\n');
+
+      parts.push(`## Recent Conversation
+${verbatimContext}`);
+    }
+
+    // If no summary and no recent messages, return just the message
+    if (parts.length === 0) {
+      return message;
+    }
+
+    // Progressive trim if estimated tokens exceed maxPromptTokens
+    let fullPrompt = parts.join('\n\n---\n\n') + '\n\n---\n\n## Current Request\n' + message;
+    let estimatedTokens = Math.ceil(fullPrompt.length / 4);
+
+    if (estimatedTokens > ctxSettings.maxPromptTokens) {
+      // Strategy 1: Remove oldest verbatim messages progressively
+      let trimmedRecent = [...recentMessages];
+      while (trimmedRecent.length > 2 && estimatedTokens > ctxSettings.maxPromptTokens) {
+        trimmedRecent = trimmedRecent.slice(2); // Remove oldest pair
+        const trimParts: string[] = [];
+        if (latestSummary) {
+          trimParts.push(`## Conversation Summary\n${latestSummary.content}`);
+        }
+        if (trimmedRecent.length > 0) {
+          const ctx = trimmedRecent.map(m => {
+            const role = m.role === 'user' ? 'User' : 'Assistant';
+            const content = m.content.length > maxMsgLen ? m.content.slice(0, maxMsgLen) + '... [truncated]' : m.content;
+            return `**${role}:** ${content}`;
+          }).join('\n\n');
+          trimParts.push(`## Recent Conversation\n${ctx}`);
+        }
+        fullPrompt = trimParts.join('\n\n---\n\n') + '\n\n---\n\n## Current Request\n' + message;
+        estimatedTokens = Math.ceil(fullPrompt.length / 4);
+      }
+
+      // Strategy 2: Truncate summary if still over
+      if (estimatedTokens > ctxSettings.maxPromptTokens && latestSummary) {
+        const maxSummaryChars = Math.floor(ctxSettings.maxPromptTokens * 4 * 0.3);
+        const truncatedSummary = latestSummary.content.slice(0, maxSummaryChars) + '... [summary truncated]';
+        const trimParts = [`## Conversation Summary\n${truncatedSummary}`];
+        if (trimmedRecent.length > 0) {
+          const ctx = trimmedRecent.map(m => {
+            const role = m.role === 'user' ? 'User' : 'Assistant';
+            const content = m.content.length > maxMsgLen ? m.content.slice(0, maxMsgLen) + '... [truncated]' : m.content;
+            return `**${role}:** ${content}`;
+          }).join('\n\n');
+          trimParts.push(`## Recent Conversation\n${ctx}`);
+        }
+        fullPrompt = trimParts.join('\n\n---\n\n') + '\n\n---\n\n## Current Request\n' + message;
+      }
+    }
+
+    return fullPrompt;
   }
 
   // Build attachment context for Claude to read attached files

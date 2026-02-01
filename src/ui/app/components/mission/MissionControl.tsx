@@ -141,6 +141,8 @@ export default function MissionControl() {
             ? 'modified'
             : 'clean',
         isActive: session.id === activeSessionId,
+        parentSessionId: session.parentSessionId,
+        childSessionIds: session.childSessionIds,
       };
     });
   }, [sessions, activeSessionId]);

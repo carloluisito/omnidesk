@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-02-01
+
+### Added
+
+#### Smart Context Management
+- Real-time token budget tracking with context utilization gauge in terminal composer
+- Auto-summarization using Claude Haiku when context reaches 70% utilization (configurable)
+- Session split suggestion banner when context reaches 85% utilization
+- Parent/child session linking with handoff summaries for split sessions
+- New `context` settings object with 6 configuration options (autoSummarize, thresholds, verbatimRecentCount, maxMessageLength, maxPromptTokens)
+- Context Management settings UI panel in Settings > System with toggle, sliders, and number inputs for all context options
+- Context gauge UI component with color-coded progress bar (green/yellow/orange/red), percentage display, and manual summarize button
+- Context split banner with one-click session splitting and shared worktree support
+- API endpoints: `GET /api/terminal/sessions/:id/context`, `GET /api/terminal/sessions/:id/context/summaries`, `POST /api/terminal/sessions/:id/context/summarize`, `POST /api/terminal/sessions/:id/context/split`
+- Settings API endpoints: `GET /api/settings/context`, `PUT /api/settings/context`
+- WebSocket events: `context_state_update`, `context_split_suggested`
+- Core module: `context-manager.ts` for token estimation, summarization orchestration, and session context tracking
+- `--model` flag support in `claude-invoker.ts` for model-specific invocations (used by Haiku summarization)
+
+### Changed
+- Improved Settings drawer performance with lazy-loaded tabs (`React.lazy` + `Suspense`)
+- Removed `backdrop-blur-sm` from settings drawer backdrop to eliminate GPU overhead
+- Settings tabs now stay mounted once visited (keep-mounted pattern) to avoid data re-fetching on tab switch
+- Separated Docker API calls from fast settings loads in Integrations page for faster initial render
+- Fixed `useState` antipattern in System settings (was executing API call during render instead of in `useEffect`)
+- Renamed `interval` state variable in System.tsx to `checkInterval` to avoid shadowing global `setInterval`
+- Rewrote `buildPromptWithContext()` with tiered context: summary prefix + recent verbatim messages + current request, with progressive trimming when over token budget
+- Increased default `maxMessageLength` from 2000 to 4000 characters
+
 ## [3.5.0] - 2026-01-31
 
 ### Changed
@@ -328,6 +357,11 @@ Complete UI/UX redesign focused on reducing modal fatigue, improving code mainta
 - SECURITY policy for vulnerability reporting
 - ARCHITECTURE overview
 
+[3.6.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.6.0
+[3.5.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.5.0
+[3.4.2]: https://github.com/carloluisito/claudedesk/releases/tag/v3.4.2
+[3.4.1]: https://github.com/carloluisito/claudedesk/releases/tag/v3.4.1
+[3.4.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.4.0
 [3.3.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.3.0
 [3.1.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.1.0
 [3.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v3.0.0

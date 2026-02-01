@@ -164,6 +164,20 @@ export interface TerminalSession {
   currentModel?: string;          // Current model being used
   // Stop/Resume tracking
   wasRecentlyStopped?: boolean;   // Whether session was stopped (not completed normally)
+  // Context management
+  contextState?: {
+    modelContextWindow: number;
+    estimatedPromptTokens: number;
+    lastActualInputTokens: number;
+    contextUtilizationPercent: number;
+    summarizationStatus: 'none' | 'suggested' | 'in_progress' | 'completed' | 'failed';
+    summaryCount: number;
+    verbatimMessageCount: number;
+    totalMessageCount: number;
+  };
+  splitSuggested?: boolean;
+  parentSessionId?: string;
+  childSessionIds?: string[];
 }
 
 interface TerminalStore {
@@ -196,6 +210,8 @@ interface TerminalStore {
   closeSession: (sessionId: string, deleteBranch?: boolean, deleteWorktree?: boolean) => Promise<void>;
   fetchGitStatus: (sessionId: string) => Promise<void>;
   fetchMultiGitStatus: (sessionId: string) => Promise<void>;
+  fetchContextState: (sessionId: string) => Promise<void>;
+  splitSession: (sessionId: string) => Promise<string | null>;
   toggleBookmark: (sessionId: string) => Promise<void>;
   toggleMessageBookmark: (sessionId: string, messageId: string) => void;
   exportSession: (sessionId: string, format: 'markdown' | 'json') => void;
@@ -1014,6 +1030,24 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
             }
             break;
 
+          case 'context_state_update':
+            // Update session with context state
+            if (sessionId && message.contextState) {
+              get().updateSession(sessionId, {
+                contextState: message.contextState,
+              });
+            }
+            break;
+
+          case 'context_split_suggested':
+            // Mark session as split-suggested
+            if (sessionId) {
+              get().updateSession(sessionId, {
+                splitSuggested: true,
+              });
+            }
+            break;
+
           case 'error':
             console.error('[Terminal] Error:', message.error);
             if (sessionId) {
@@ -1134,6 +1168,32 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
       get().updateSession(sessionId, { gitStatus: result });
     } catch (error) {
       console.error('Failed to fetch git status:', error);
+    }
+  },
+
+  fetchContextState: async (sessionId: string) => {
+    try {
+      const result = await api<TerminalSession['contextState']>('GET', `/terminal/sessions/${sessionId}/context`);
+      if (result) {
+        get().updateSession(sessionId, { contextState: result });
+      }
+    } catch (error) {
+      console.error('Failed to fetch context state:', error);
+    }
+  },
+
+  splitSession: async (sessionId: string) => {
+    try {
+      const result = await api<{ id: string }>('POST', `/terminal/sessions/${sessionId}/context/split`);
+      if (result?.id) {
+        // Reload sessions to pick up the new one
+        await get().loadSessions();
+        return result.id;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to split session:', error);
+      return null;
     }
   },
 
