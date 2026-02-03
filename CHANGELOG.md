@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.2] - 2026-02-03
+
+### Fixed
+- **Budget Allocator Burn Rate Calculation** — Fixed burn rate displaying "Calculating... Need at least 2 data points" when sufficient historical data exists. The `getBurnRate()` function now requires a minimum 1-minute time delta between samples for reliable calculations and gracefully returns 0%/h (stable usage) instead of null when samples have identical values or insufficient time separation. The improved algorithm searches backwards through history to find samples with adequate time delta, preventing false "insufficient data" messages when usage is stable.
+
 ## [3.8.1] - 2026-02-03
 
 ### Fixed
