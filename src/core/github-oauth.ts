@@ -129,6 +129,7 @@ export class GitHubDeviceAuth {
       });
 
       const data = await response.json();
+      console.log(`[GitHub OAuth] Response status: ${response.status}, data:`, JSON.stringify(data, null, 2));
 
       // Check for errors
       if (data.error) {

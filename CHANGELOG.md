@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-02-03
+
+### Added
+
+#### GitHub Hybrid Authentication (PAT + OAuth)
+- Personal Access Token (PAT) storage and management for GitHub organization repositories
+- Secure token encryption using AES-256-GCM with machine-specific key derivation (PBKDF2)
+- Automatic OAuth → PAT fallback when organization access is restricted
+- GitHub API fallback for PR detection when `gh` CLI is not available
+- Token validation and expiration tracking with visual indicators
+- GitHubPATSettings component for configuring PATs per workspace in Settings → Integrations
+- TokenInputField reusable component with masking, show/hide toggle, and clipboard support
+- OrgAccessErrorModal providing clear guidance for organization access issues with dual options (PAT recommended, OAuth approval alternative)
+- API endpoints: `POST /workspaces/:id/github-pat/test`, `POST /workspaces/:id/github-pat`, `GET /workspaces/:id/github-pat/status`, `DELETE /workspaces/:id/github-pat`
+- Core module: `token-encryption.ts` for secure token storage with encryption/decryption utilities
+- Extended workspace schema with `githubPAT` field (encryptedToken, username, scopes, expiresAt, createdAt)
+- ShipPhase auto-displays organization access modal when OAuth lacks org permissions
+
+#### Budget Allocator & Usage Management
+- Budget allocation system for managing Claude API usage across terminal sessions
+- BudgetAllocatorSettings component for configuring budget limits and degradation thresholds
+- BudgetDashboard with real-time usage tracking and wallet gauge visualization
+- BudgetLimitModal for setting session-specific budget caps
+- DegradationBanner and DegradationPanel for graceful performance reduction when approaching limits
+- PreSendCostIndicator showing estimated token costs before message submission
+- QueueBudgetPanel for monitoring queued messages and budget impact
+- WalletGauge component with color-coded budget utilization display
+- Core module: `allocator-manager.ts` for centralized budget tracking and enforcement
+
+#### Documentation & Visual Assets
+- Added agent chaining workflow diagram (`docs/agents-chaining.jpg`) illustrating multi-agent collaboration patterns
+
+### Changed
+- Enhanced GitHub PR/MR detection with multi-layer fallback strategy: gh CLI → GitHub API (OAuth) → GitHub API (PAT)
+- Updated `createPRWithToken()` to support `fallbackToPAT` parameter for automatic retry with PAT on org access errors
+- Organization access errors now trigger modal UI with actionable next steps instead of inline error text
+- Integrations settings screen dynamically shows PAT configuration for workspaces with GitHub OAuth connected
+
+### Fixed
+- Fix existing PR not showing in ShipPhase when `gh` CLI is unavailable — added GitHub API fallback that queries `/repos/:owner/:repo/pulls` endpoint with OAuth or PAT tokens
+- Fix organization repository access failures with clear user guidance — OAuth apps require admin approval for org access, PAT provides immediate alternative
+
 ## [3.7.1] - 2026-02-02
 
 ### Added

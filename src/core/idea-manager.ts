@@ -402,8 +402,12 @@ class IdeaManager {
             }
 
             // Context management: track actual token usage and broadcast state
-            if (event.usage?.inputTokens) {
-              contextManager.updateActualUsage(ideaId, event.usage.inputTokens);
+            // Include all input token types: non-cached + cache creation + cache read
+            const totalInputTokens = (event.usage?.inputTokens || 0)
+              + (event.usage?.cacheCreationInputTokens || 0)
+              + (event.usage?.cacheReadInputTokens || 0);
+            if (totalInputTokens > 0) {
+              contextManager.updateActualUsage(ideaId, totalInputTokens);
             }
             const contextState = contextManager.getContextState(ideaId, idea.messages, event.model);
             contextManager.broadcastContextState(ideaId, contextState);

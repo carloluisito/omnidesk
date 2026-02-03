@@ -10,6 +10,7 @@ import { skillRegistry } from '../config/skills.js';
 import { skillExecutor } from './skill-executor.js';
 import { gitSandbox } from './git-sandbox.js';
 import { usageManager } from './usage-manager.js';
+import { allocatorManager } from './allocator-manager.js';
 import { agentUsageManager } from '../config/agent-usage.js';
 import { contextManager } from './context-manager.js';
 import { settingsManager } from '../config/settings.js';
@@ -132,6 +133,9 @@ export interface TerminalSession {
   parentSessionId?: string;       // Parent session (if split from another)
   childSessionIds?: string[];     // Child sessions (split from this one)
   handoffSummary?: string;        // Summary handed off from parent session
+
+  // Budget allocator
+  modelOverride?: string;         // Model override from budget degradation or manual switch
 }
 
 // Helper to get primary repo ID for backward compatibility
@@ -891,6 +895,7 @@ class TerminalSessionManager {
         artifactsDir,
         resumeSessionId: session.claudeSessionId, // Resume Claude session if set
         agentId, // Pass agent ID for --agent flag
+        model: session.modelOverride, // Budget allocator model override
         onProcessStart: (proc) => {
           session.claudeProcess = proc;
         },
@@ -1023,8 +1028,12 @@ class TerminalSessionManager {
               });
 
               // Context management: track actual token usage and broadcast state
-              if (event.usage.inputTokens) {
-                contextManager.updateActualUsage(sessionId, event.usage.inputTokens);
+              // Include all input token types: non-cached + cache creation + cache read
+              const totalInputTokens = (event.usage.inputTokens || 0)
+                + (event.usage.cacheCreationInputTokens || 0)
+                + (event.usage.cacheReadInputTokens || 0);
+              if (totalInputTokens > 0) {
+                contextManager.updateActualUsage(sessionId, totalInputTokens);
               }
               const contextState = contextManager.getContextState(sessionId, session.messages, event.model);
               contextManager.broadcastContextState(sessionId, contextState);
@@ -1291,6 +1300,7 @@ class TerminalSessionManager {
             artifactsDir,
             resumeSessionId: session.claudeSessionId,
             agentId: currentAgentId,
+            model: session.modelOverride, // Budget allocator model override
             onProcessStart: (proc) => {
               session.claudeProcess = proc;
             },
@@ -1704,6 +1714,18 @@ class TerminalSessionManager {
       return;
     }
 
+    // Budget: check if queue should be paused
+    const history = allocatorManager.getUtilizationHistory();
+    const currentFiveHourPct = history.length > 0 ? history[history.length - 1].fiveHour : 0;
+    if (allocatorManager.shouldPauseQueue(currentFiveHourPct)) {
+      console.log(`[TerminalSession] Queue paused for session ${sessionId} — budget auto-pause threshold reached`);
+      wsManager.broadcastToSession(sessionId, {
+        type: 'info',
+        message: 'Queue paused: usage exceeds auto-pause threshold. Messages will resume when usage drops.',
+      });
+      return;
+    }
+
     const nextMessage = session.messageQueue.shift()!;
     this.saveSessions();
 
@@ -1892,6 +1914,7 @@ class TerminalSessionManager {
         prompt,
         artifactsDir,
         resumeSessionId: session.claudeSessionId,
+        model: session.modelOverride, // Budget allocator model override
         onProcessStart: (proc) => {
           session.claudeProcess = proc;
         },
@@ -2014,6 +2037,36 @@ class TerminalSessionManager {
                 durationMs: event.durationMs,
                 sessionStats: usageManager.getSessionUsage(sessionId),
               });
+
+              // Context management: track actual token usage and broadcast state
+              const totalInputTokens = (event.usage.inputTokens || 0)
+                + (event.usage.cacheCreationInputTokens || 0)
+                + (event.usage.cacheReadInputTokens || 0);
+              if (totalInputTokens > 0) {
+                contextManager.updateActualUsage(sessionId, totalInputTokens);
+              }
+              const contextState = contextManager.getContextState(sessionId, session.messages, event.model);
+              contextManager.broadcastContextState(sessionId, contextState);
+
+              // Check if split should be suggested
+              if (contextManager.shouldSuggestSplit(contextState) && !contextManager.isSplitSuggested(sessionId)) {
+                contextManager.markSplitSuggested(sessionId);
+                contextManager.broadcastSplitSuggested(sessionId);
+              }
+
+              // Auto-summarize if threshold reached
+              const ctxSettings = settingsManager.getContext();
+              if (contextManager.shouldSummarize(contextState) && ctxSettings.autoSummarize) {
+                const primaryRepoId = session.repoIds[0];
+                const repo = repoRegistry.get(primaryRepoId);
+                if (repo) {
+                  const sumRepoPath = session.worktreePath || repo.path;
+                  const artifactsDir = join(getTerminalArtifactsDir(), sessionId);
+                  contextManager.summarize(sessionId, session.messages, sumRepoPath, artifactsDir).catch((err: Error) => {
+                    console.error('[TerminalSession] Auto-summarization failed:', err.message);
+                  });
+                }
+              }
             }
           }
         },

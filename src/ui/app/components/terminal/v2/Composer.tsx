@@ -8,6 +8,7 @@ import { AgentChainBuilder } from './AgentChainBuilder';
 import { AutoModeIndicator } from './AutoModeIndicator';
 import { QuickSelectMenu } from './QuickSelectMenu';
 import { ContextGauge } from '../ContextGauge';
+import { PreSendCostIndicator } from '../PreSendCostIndicator';
 import type { Agent } from '../../../types/agents';
 
 interface ComposerProps {
@@ -48,6 +49,9 @@ interface ComposerProps {
   onReorderChain?: (fromIndex: number, toIndex: number) => void;
   onClearChain?: () => void;
   maxChainLength?: number;
+  // Budget allocator props
+  budgetBlocked?: boolean;
+  showPreSendEstimate?: boolean;
 }
 
 export function Composer({
@@ -88,6 +92,8 @@ export function Composer({
   onReorderChain,
   onClearChain,
   maxChainLength = 5,
+  budgetBlocked = false,
+  showPreSendEstimate = true,
 }: ComposerProps) {
   const localRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = inputRef || localRef;
@@ -396,6 +402,14 @@ export function Composer({
           )}
         </div>
 
+        {/* Pre-send cost estimate */}
+        {showPreSendEstimate && (
+          <PreSendCostIndicator
+            messageText={value}
+            className="ml-1"
+          />
+        )}
+
         {/* Center: context gauge */}
         <ContextGauge className="ml-auto" />
 
@@ -436,8 +450,8 @@ export function Composer({
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={onSend}
-                disabled={disabled || isSending || isUploading || isQueueFull || (!value.trim() && pendingAttachments.length === 0)}
-                title={isQueueFull ? 'Queue is full (10 messages max). Please wait or clear the queue.' : undefined}
+                disabled={disabled || isSending || isUploading || isQueueFull || budgetBlocked || (!value.trim() && pendingAttachments.length === 0)}
+                title={budgetBlocked ? 'Sending blocked: budget hard limit reached.' : isQueueFull ? 'Queue is full (10 messages max). Please wait or clear the queue.' : undefined}
                 className="rounded-full bg-white p-1.5 text-black hover:opacity-90 active:opacity-80 disabled:opacity-30 transition-opacity"
                 aria-label="Send"
               >

@@ -15,7 +15,7 @@ interface LifecycleState {
  * - Reconnects on network restore
  */
 export function useAppLifecycle() {
-  const { loadApps, setPolling } = useRunStore();
+  const { loadApps } = useRunStore();
   const { loadData } = useAppStore();
 
   const stateRef = useRef<LifecycleState>({
@@ -43,10 +43,7 @@ export function useAppLifecycle() {
 
     state.isVisible = isNowVisible;
     state.lastActiveTime = Date.now();
-
-    // Pause/resume polling based on visibility
-    setPolling(isNowVisible);
-  }, [loadApps, loadData, setPolling]);
+  }, [loadApps, loadData]);
 
   const handleOnline = useCallback(() => {
     // Network restored - refresh data
@@ -61,8 +58,7 @@ export function useAppLifecycle() {
 
   const handleBeforeUnload = useCallback(() => {
     // Cleanup before page unload
-    setPolling(false);
-  }, [setPolling]);
+  }, []);
 
   useEffect(() => {
     // Visibility API
@@ -80,7 +76,6 @@ export function useAppLifecycle() {
     // iOS-specific events
     if ('standalone' in navigator) {
       document.addEventListener('resume', handleOnline);
-      document.addEventListener('pause', () => setPolling(false));
     }
 
     return () => {
@@ -93,7 +88,7 @@ export function useAppLifecycle() {
         document.removeEventListener('resume', handleOnline);
       }
     };
-  }, [handleVisibilityChange, handleOnline, handleFocus, handleBeforeUnload, setPolling]);
+  }, [handleVisibilityChange, handleOnline, handleFocus, handleBeforeUnload]);
 }
 
 /**

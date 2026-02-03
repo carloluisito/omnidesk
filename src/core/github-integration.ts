@@ -20,10 +20,39 @@ function httpsRequest(options: https.RequestOptions, data?: string): Promise<{ s
   });
 }
 
+export enum GitHubErrorType {
+  ORG_ACCESS_REQUIRED = 'org_access_required',
+  TOKEN_INVALID = 'token_invalid',
+  TOKEN_EXPIRED = 'token_expired',
+  REPO_NOT_FOUND = 'repo_not_found',
+  BRANCH_NOT_FOUND = 'branch_not_found',
+  PR_ALREADY_EXISTS = 'pr_already_exists',
+  RATE_LIMITED = 'rate_limited',
+  NETWORK_ERROR = 'network_error',
+  UNKNOWN = 'unknown'
+}
+
+export interface GitHubErrorDetails {
+  type: GitHubErrorType;
+  message: string;
+  statusCode?: number;
+  owner?: string;
+  repo?: string;
+  organizationUrl?: string;
+  retryable: boolean;
+  actionable: boolean;
+  suggestPAT?: boolean;  // Suggest PAT setup as alternative
+}
+
+// GitHub OAuth Client ID
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'Iv1.2ebd9b5c6e58a9d1';
+
 export interface PRResult {
   success: boolean;
   prUrl?: string;
   error?: string;
+  errorDetails?: GitHubErrorDetails;
+  usedPAT?: boolean;  // Indicates PAT was used as fallback
 }
 
 /**
@@ -63,6 +92,7 @@ export class GitHubIntegration {
    * @param body - PR body/description
    * @param token - OAuth access token
    * @param baseBranch - Base branch for the PR (optional, defaults to main/master)
+   * @param fallbackToPAT - Whether to retry with PAT if OAuth fails with org access error
    * @returns PRResult with success status and PR URL
    */
   async createPRWithToken(
@@ -71,7 +101,8 @@ export class GitHubIntegration {
     title: string,
     body: string,
     token: string,
-    baseBranch?: string
+    baseBranch?: string,
+    fallbackToPAT: boolean = true
   ): Promise<PRResult> {
     try {
       // Get the remote URL to determine owner/repo
@@ -133,15 +164,40 @@ export class GitHubIntegration {
         console.log(`[GitHubIntegration] PR created via API: ${pr.html_url}`);
         return { success: true, prUrl: pr.html_url };
       } else {
-        let errorMsg = response.body;
-        try {
-          const err = JSON.parse(response.body);
-          errorMsg = err.message || response.body;
-        } catch {
-          // Use raw body as error
+        // Parse and classify error
+        const errorDetails = this.parseGitHubError(response.statusCode, response.body, owner, repo);
+        console.error(`[GitHubIntegration] API error creating PR:`, errorDetails);
+
+        // NEW: If org access error and PAT fallback enabled, try PAT
+        if (
+          fallbackToPAT &&
+          errorDetails.type === GitHubErrorType.ORG_ACCESS_REQUIRED
+        ) {
+          const workspace = workspaceManager.getWorkspaceForRepo(repoPath);
+          if (workspace) {
+            const pat = await workspaceManager.getGitHubPAT(workspace.id);
+            if (pat) {
+              console.log(`[GitHubIntegration] OAuth lacks org access, retrying with PAT`);
+              // Retry with PAT, but disable fallback to prevent infinite loop
+              const result = await this.createPRWithToken(repoPath, branch, title, body, pat, baseBranch, false);
+              if (result.success) {
+                // Mark that PAT was used for analytics/UI feedback
+                result.usedPAT = true;
+              }
+              return result;
+            } else {
+              // No PAT configured, suggest PAT setup
+              errorDetails.suggestPAT = true;
+              errorDetails.message = `${errorDetails.message}\n\nAlternatively, configure a Personal Access Token to bypass organization approval.`;
+            }
+          }
         }
-        console.error(`[GitHubIntegration] API error creating PR: ${errorMsg}`);
-        return { success: false, error: errorMsg };
+
+        return {
+          success: false,
+          error: errorDetails.message,
+          errorDetails
+        };
       }
     } catch (error: unknown) {
       const err = error as { stderr?: Buffer | string; message?: string };
@@ -149,6 +205,130 @@ export class GitHubIntegration {
       console.error(`[GitHubIntegration] Failed to create PR via API: ${errorMsg}`);
       return { success: false, error: errorMsg };
     }
+  }
+
+  /**
+   * Parse GitHub API error response and classify error type
+   */
+  private parseGitHubError(
+    statusCode: number,
+    body: string,
+    owner: string,
+    repo: string
+  ): GitHubErrorDetails {
+    let errorJson: any = {};
+    try {
+      errorJson = JSON.parse(body);
+    } catch {
+      // Use raw body if JSON parsing fails
+    }
+
+    const message = errorJson.message || body || 'Unknown error';
+    const baseDetails = { owner, repo, statusCode };
+
+    // 403 Forbidden - Multiple possible causes
+    if (statusCode === 403) {
+      // Organization access issue
+      if (
+        message.toLowerCase().includes('resource not accessible') ||
+        message.toLowerCase().includes('not accessible by integration')
+      ) {
+        return {
+          type: GitHubErrorType.ORG_ACCESS_REQUIRED,
+          message: `Your GitHub token doesn't have access to ${owner} repositories. To create a PR in ${repo}, grant organization access in GitHub.`,
+          ...baseDetails,
+          organizationUrl: `https://github.com/settings/connections/applications/${GITHUB_CLIENT_ID}`,
+          retryable: true,
+          actionable: true,
+        };
+      }
+
+      // Rate limiting
+      if (message.toLowerCase().includes('rate limit')) {
+        return {
+          type: GitHubErrorType.RATE_LIMITED,
+          message: 'GitHub API rate limit exceeded. Please try again later.',
+          ...baseDetails,
+          retryable: true,
+          actionable: false,
+        };
+      }
+
+      // Generic 403 - permission denied
+      return {
+        type: GitHubErrorType.TOKEN_INVALID,
+        message: 'GitHub access denied. Your token may not have required permissions.',
+        ...baseDetails,
+        retryable: false,
+        actionable: true,
+      };
+    }
+
+    // 401 Unauthorized - Invalid or expired token
+    if (statusCode === 401) {
+      return {
+        type: GitHubErrorType.TOKEN_EXPIRED,
+        message: 'Your GitHub authentication has expired. Reconnect to continue.',
+        ...baseDetails,
+        retryable: false,
+        actionable: true,
+      };
+    }
+
+    // 404 Not Found - Repository doesn't exist or no access
+    if (statusCode === 404) {
+      return {
+        type: GitHubErrorType.REPO_NOT_FOUND,
+        message: `Repository "${repo}" doesn't exist or you don't have access.`,
+        ...baseDetails,
+        organizationUrl: `https://github.com/settings/connections/applications/${GITHUB_CLIENT_ID}`,
+        retryable: false,
+        actionable: true,
+      };
+    }
+
+    // 422 Unprocessable Entity - Validation error
+    if (statusCode === 422) {
+      // PR already exists
+      if (message.toLowerCase().includes('already exists')) {
+        return {
+          type: GitHubErrorType.PR_ALREADY_EXISTS,
+          message: 'A pull request already exists for this branch.',
+          ...baseDetails,
+          retryable: false,
+          actionable: false,
+        };
+      }
+
+      // Branch not found
+      if (message.toLowerCase().includes('branch') || message.toLowerCase().includes('ref')) {
+        return {
+          type: GitHubErrorType.BRANCH_NOT_FOUND,
+          message: `Branch doesn't exist on the remote. Enable "Push to remote" and try again.`,
+          ...baseDetails,
+          retryable: true,
+          actionable: true,
+        };
+      }
+
+      // Generic validation error
+      return {
+        type: GitHubErrorType.UNKNOWN,
+        message: `Validation error: ${message}`,
+        ...baseDetails,
+        retryable: false,
+        actionable: false,
+      };
+    }
+
+    // Unknown error
+    return {
+      type: GitHubErrorType.UNKNOWN,
+      message: `GitHub API error (${statusCode}): ${message}`,
+      ...baseDetails,
+      retryable: true,
+      actionable: false,
+    };
   }
 
   /**

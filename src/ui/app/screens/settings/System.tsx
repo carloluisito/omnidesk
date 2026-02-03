@@ -9,6 +9,7 @@ import { UpdateSettings } from '../../components/settings/UpdateSettings';
 import { CacheManagement } from '../../components/settings/CacheManagement';
 import { CICDSettings } from '../../components/settings/CICDSettings';
 import { ContextSettings } from '../../components/settings/ContextSettings';
+import { BudgetAllocatorSettings } from '../../components/settings/BudgetAllocatorSettings';
 import { useToast } from '../../hooks/useToast';
 import { VStack } from '../../design-system/primitives/Stack';
 import { Text } from '../../design-system/primitives/Text';
@@ -176,6 +177,17 @@ export default function System() {
       transition={{ duration: prefersReduced ? 0 : 0.2 }}
     >
       <VStack gap={8}>
+        {/* Budget Allocator Section */}
+        <VStack gap={3}>
+          <div>
+            <Text variant="bodySm" color="secondary" className="font-semibold uppercase tracking-wider text-[11px]">
+              Budget Allocator
+            </Text>
+            <div className="mt-1 h-px bg-white/5" />
+          </div>
+          <BudgetAllocatorSettings />
+        </VStack>
+
         {/* Updates Section */}
         <VStack gap={3}>
           <div>

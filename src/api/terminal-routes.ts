@@ -15,6 +15,7 @@ import { gitlabIntegration } from '../core/gitlab-integration.js';
 import { usageManager } from '../core/usage-manager.js';
 import { settingsManager } from '../config/settings.js';
 import { queryClaudeQuota, clearQuotaCache } from '../core/claude-usage-query.js';
+import { allocatorManager } from '../core/allocator-manager.js';
 import { contextManager } from '../core/context-manager.js';
 
 /**
@@ -391,6 +392,17 @@ terminalRouter.post('/sessions', (req: Request, res: Response) => {
         res.status(400).json({ success: false, error: 'Branch name or existingWorktreePath is required when worktreeMode is enabled' });
         return;
       }
+    }
+
+    // Budget: block new sessions if degradation is active
+    const budgetResult = allocatorManager.checkBudgetLimits();
+    if (budgetResult.activeDegradations.some((d: { type: string }) => d.type === 'block-new-sessions')) {
+      res.status(429).json({
+        success: false,
+        error: 'New sessions blocked due to high API usage. Wait for quota to reset or adjust budget settings.',
+        budgetBlocked: true,
+      });
+      return;
     }
 
     const session = terminalSessionManager.createSession(ids, worktreeOptions);
@@ -987,6 +999,24 @@ terminalRouter.patch('/sessions/:id/mode', (req: Request, res: Response) => {
       success: true,
       data: { mode },
     });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(400).json({ success: false, error: errorMsg });
+  }
+});
+
+// Set session model override (budget allocator / manual)
+terminalRouter.patch('/sessions/:id/model', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { model } = req.body; // string or null to clear
+    const session = terminalSessionManager.getSession(id);
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+    session.modelOverride = model || undefined;
+    res.json({ success: true, data: { model: session.modelOverride } });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     res.status(400).json({ success: false, error: errorMsg });
@@ -2654,9 +2684,22 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
       }
     }
 
-    // Get file changes summary (diff stat)
+    // Get file changes summary (diff stat) - include both committed and uncommitted changes
     let fileChanges = '';
     let diffSample = '';
+
+    // First check for uncommitted changes (staged + unstaged)
+    let uncommittedChanges = '';
+    try {
+      uncommittedChanges = execSync('git diff HEAD --stat', {
+        cwd: workingDir,
+        encoding: 'utf-8',
+        timeout: 10000,
+      }).trim();
+    } catch {
+      // Ignore errors
+    }
+
     try {
       const mergeBase = execSync(`git merge-base ${diffRef} HEAD`, {
         cwd: workingDir,
@@ -2678,8 +2721,19 @@ terminalRouter.post('/sessions/:id/generate-pr-content', async (req: Request, re
       }).trim();
       // Limit to 3000 chars to avoid token limits
       diffSample = rawDiff.length > 3000 ? rawDiff.substring(0, 3000) + '\n...(truncated)' : rawDiff;
+
+      // If we have uncommitted changes, append them
+      if (uncommittedChanges) {
+        fileChanges = fileChanges + (fileChanges ? '\n\n=== Uncommitted changes ===\n' : '') + uncommittedChanges;
+        diffSample = diffSample + '\n\n=== Uncommitted changes ===\n(see file stats above)';
+      }
     } catch {
-      fileChanges = '';
+      // If committed diff failed but we have uncommitted changes, use those
+      if (uncommittedChanges) {
+        fileChanges = uncommittedChanges;
+      } else {
+        fileChanges = '';
+      }
     }
 
     // If scoped to files but got no results, fall back to unscoped
@@ -3380,6 +3434,7 @@ terminalRouter.get('/sessions/:id/ship-summary', (req: Request, res: Response) =
 
       if (creds.platform === 'github') {
         // Try gh CLI first
+        let ghWorked = false;
         try {
           const prJson = execSync(`gh pr view --json url,number,title,state`, {
             cwd: workingDir,
@@ -3395,9 +3450,132 @@ terminalRouter.get('/sessions/:id/ship-summary', (req: Request, res: Response) =
               title: pr.title,
               state: pr.state?.toLowerCase() || 'open',
             };
+            ghWorked = true;
+            console.log(`[ship-summary] Found existing PR via gh CLI:`, existingPR);
           }
-        } catch {
-          // No PR exists or gh not available
+        } catch (ghErr: unknown) {
+          // gh not available or no PR - try API fallback
+          const err = ghErr as { message?: string; stderr?: string };
+          console.log(`[ship-summary] gh pr view failed:`, err.message || err.stderr || 'unknown error');
+        }
+
+        // If gh CLI didn't work, try GitHub API with OAuth token
+        if (!ghWorked && creds.token) {
+          console.log(`[ship-summary] Trying GitHub API fallback with token`);
+
+          // Helper function to make the API call with a given token
+          const checkPRWithToken = (token: string): { found: boolean; url?: string; number?: number; title?: string; state?: string; status?: number; error?: string } => {
+            try {
+              // Get remote URL to determine repo owner/name
+              const remoteUrl = execSync('git remote get-url origin', {
+                cwd: workingDir,
+                encoding: 'utf-8',
+                stdio: ['pipe', 'pipe', 'pipe'],
+              }).trim();
+
+              // Parse GitHub repo from remote URL
+              const match = remoteUrl.match(/github\.com[:/](.+?)\/(.+?)(?:\.git)?$/);
+              if (!match) {
+                return { found: false, error: 'Could not parse GitHub remote URL' };
+              }
+
+              const owner = match[1];
+              const repo = match[2].replace(/\.git$/, '');
+              const apiUrl = `https://api.github.com/repos/${owner}/${repo}/pulls?head=${owner}:${encodeURIComponent(currentBranch)}&state=all`;
+              console.log(`[ship-summary] GitHub API URL: ${apiUrl}`);
+
+              const tempScriptPath = join(tmpdir(), `github-pr-check-${randomUUID()}.mjs`);
+              const tempResultPath = join(tmpdir(), `github-pr-result-${randomUUID()}.json`);
+
+              const scriptContent = `
+import { writeFileSync } from 'fs';
+try {
+  const response = await fetch(${JSON.stringify(apiUrl)}, {
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': 'Bearer ' + ${JSON.stringify(token)},
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'ClaudeDesk',
+    },
+  });
+  const text = await response.text();
+  const status = response.status;
+
+  if (!response.ok) {
+    writeFileSync(${JSON.stringify(tempResultPath)}, JSON.stringify({
+      found: false,
+      status,
+      error: text,
+    }));
+  } else {
+    const data = JSON.parse(text);
+    if (Array.isArray(data) && data.length > 0) {
+      // Get the first PR (most recent)
+      const pr = data[0];
+      writeFileSync(${JSON.stringify(tempResultPath)}, JSON.stringify({
+        found: true,
+        url: pr.html_url,
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+      }));
+    } else {
+      writeFileSync(${JSON.stringify(tempResultPath)}, JSON.stringify({
+        found: false,
+        error: 'No PRs found for this branch',
+      }));
+    }
+  }
+} catch (err) {
+  writeFileSync(${JSON.stringify(tempResultPath)}, JSON.stringify({
+    found: false,
+    error: err.message,
+  }));
+}
+`;
+
+              writeFileSync(tempScriptPath, scriptContent);
+
+              try {
+                execSync(`node "${tempScriptPath}"`, {
+                  cwd: workingDir,
+                  encoding: 'utf-8',
+                  timeout: 15000,
+                });
+
+                const resultJson = readFileSync(tempResultPath, 'utf-8');
+                console.log(`[ship-summary] GitHub API result:`, resultJson);
+                return JSON.parse(resultJson);
+              } finally {
+                try { unlinkSync(tempScriptPath); } catch {}
+                try { unlinkSync(tempResultPath); } catch {}
+              }
+            } catch (e) {
+              console.log(`[ship-summary] GitHub API PR check error:`, e);
+              return { found: false, error: String(e) };
+            }
+          };
+
+          // First attempt with current token
+          let result = checkPRWithToken(creds.token);
+
+          // If we got a 401, try refreshing the token (for GitHub this would use OAuth refresh)
+          if (result.status === 401 && workspace) {
+            console.log(`[ship-summary] Got 401, token may be expired for workspace ${workspace.id}`);
+            // GitHub OAuth tokens don't expire by default, but if refresh logic is implemented, it would go here
+          }
+
+          if (result.found) {
+            existingPR = {
+              url: result.url!,
+              number: result.number!,
+              title: result.title!,
+              state: result.state?.toLowerCase() || 'open',
+            };
+            console.log(`[ship-summary] Found existing PR via GitHub API:`, existingPR);
+          } else {
+            console.log(`[ship-summary] No PR found via GitHub API, error:`, result.error);
+          }
         }
       } else if (creds.platform === 'gitlab') {
         console.log(`[ship-summary] GitLab detected, checking for existing MR on branch: ${currentBranch}`);
@@ -3576,6 +3754,35 @@ try {
         }).trim(), 10) || 0;
       } catch {
         unpushedCommits = 0;
+      }
+    }
+
+    // Check if branch is ahead of base branch (even if pushed)
+    // This allows creating a PR for already-pushed branches
+    let commitsAheadOfBase = 0;
+    if (currentBranch && currentBranch !== baseBranch) {
+      try {
+        // Try origin/baseBranch first (most accurate)
+        const count = execSync(`git rev-list --count origin/${baseBranch}..HEAD`, {
+          cwd: workingDir,
+          encoding: 'utf-8',
+          timeout: 5000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        }).trim();
+        commitsAheadOfBase = parseInt(count, 10) || 0;
+      } catch {
+        // Fall back to local base branch
+        try {
+          const count = execSync(`git rev-list --count ${baseBranch}..HEAD`, {
+            cwd: workingDir,
+            encoding: 'utf-8',
+            timeout: 5000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }).trim();
+          commitsAheadOfBase = parseInt(count, 10) || 0;
+        } catch {
+          commitsAheadOfBase = 0;
+        }
       }
     }
 
@@ -3860,7 +4067,7 @@ try {
     }
 
     const hasUncommittedChanges = hasStagedChanges || hasUnstagedChanges;
-    const hasChangesToShip = files.length > 0 || unpushedCommits > 0;
+    const hasChangesToShip = files.length > 0 || unpushedCommits > 0 || commitsAheadOfBase > 0;
 
     res.json({
       success: true,
@@ -3873,6 +4080,7 @@ try {
         hasUncommittedChanges,
         hasChangesToShip,
         unpushedCommits,
+        commitsAheadOfBase,
         hasStagedChanges,
         hasUnstagedChanges,
         existingPR,
@@ -4184,6 +4392,116 @@ terminalRouter.post('/usage/quota/refresh', async (_req: Request, res: Response)
     clearQuotaCache();
     const quota = await queryClaudeQuota(true);
     res.json({ success: true, data: quota });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// ============================================================================
+// Budget Allocator Endpoints
+// ============================================================================
+
+// Get allocator config
+terminalRouter.get('/usage/budget-config', (_req: Request, res: Response) => {
+  try {
+    const config = allocatorManager.getConfig();
+    res.json({ success: true, data: config });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Update allocator config
+terminalRouter.put('/usage/budget-config', (req: Request, res: Response) => {
+  try {
+    const config = allocatorManager.updateConfig(req.body);
+    res.json({ success: true, data: config });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Reset allocator config to defaults
+terminalRouter.post('/usage/budget-config/reset', (_req: Request, res: Response) => {
+  try {
+    const config = allocatorManager.resetConfig();
+    res.json({ success: true, data: config });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Get burn rate + projection
+terminalRouter.get('/usage/burn-rate', (_req: Request, res: Response) => {
+  try {
+    const burnRate = allocatorManager.getBurnRate();
+    res.json({ success: true, data: burnRate });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Get utilization history for chart
+terminalRouter.get('/usage/history', (_req: Request, res: Response) => {
+  try {
+    const history = allocatorManager.getUtilizationHistory();
+    res.json({ success: true, data: history });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Estimate cost for next message
+terminalRouter.post('/usage/estimate', (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.body || {};
+    const estimate = allocatorManager.estimateMessageCost(sessionId);
+    res.json({ success: true, data: estimate });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Check budget limits before sending
+terminalRouter.post('/usage/check-budget', (req: Request, res: Response) => {
+  try {
+    const { fiveHour, sevenDay } = req.body || {};
+    const result = allocatorManager.checkBudgetLimits(
+      fiveHour !== undefined && sevenDay !== undefined
+        ? { fiveHour, sevenDay }
+        : undefined
+    );
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Estimate queue batch cost
+terminalRouter.post('/usage/estimate-queue', (req: Request, res: Response) => {
+  try {
+    const { messageCount } = req.body || {};
+    const estimate = allocatorManager.estimateQueueCost(messageCount || 1);
+    res.json({ success: true, data: estimate });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Record a utilization sample (called by frontend or cron)
+terminalRouter.post('/usage/sample', async (_req: Request, res: Response) => {
+  try {
+    await allocatorManager.recordUtilizationSample();
+    res.json({ success: true });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     res.status(500).json({ success: false, error: errorMsg });

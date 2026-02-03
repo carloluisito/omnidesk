@@ -22,9 +22,27 @@ import {
   Eye,
   Circle,
   XCircle,
+  ShieldAlert,
+  KeyRound,
+  GitBranchPlus,
+  FolderX,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '../../../lib/cn';
 import { api } from '../../../lib/api';
+import { OrgAccessErrorModal } from './OrgAccessErrorModal';
+
+interface GitHubErrorDetails {
+  type: string;
+  message: string;
+  statusCode?: number;
+  owner?: string;
+  repo?: string;
+  organizationUrl?: string;
+  retryable: boolean;
+  actionable: boolean;
+}
 
 interface ShipSummary {
   files: Array<{
@@ -40,6 +58,7 @@ interface ShipSummary {
   hasUncommittedChanges: boolean;
   hasChangesToShip: boolean;
   unpushedCommits: number;
+  commitsAheadOfBase: number;
   existingPR: {
     url: string;
     number: number;
@@ -93,16 +112,29 @@ export function ShipPhase({
     prUrl?: string;
     commitHash?: string;
     error?: string;
+    errorDetails?: GitHubErrorDetails;
   } | null>(null);
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
+  const [showOrgAccessModal, setShowOrgAccessModal] = useState(false);
+
+  // Auto-show org access modal when error occurs
+  useEffect(() => {
+    if (result?.errorDetails?.type === 'org_access_required' && result.errorDetails.organizationUrl) {
+      setShowOrgAccessModal(true);
+    }
+  }, [result]);
 
   // Derive whether existing PR is still actionable
   const isExistingPRActive = summary?.existingPR && summary.existingPR.state === 'open';
   const isExistingPRClosed = summary?.existingPR && (summary.existingPR.state === 'merged' || summary.existingPR.state === 'closed');
 
   // Detect warnings - scope to review files when available
+  // Only show warnings for uncommitted changes, not for already-pushed commits
   const warnings = useMemo<SafetyWarning[]>(() => {
     if (!summary) return [];
+    // Skip warnings if there are no uncommitted changes (PR-only mode)
+    if (!summary.hasUncommittedChanges) return [];
+
     const w: SafetyWarning[] = [];
     const seen = new Set<string>();
 
@@ -150,7 +182,7 @@ export function ShipPhase({
     }
 
     return w;
-  }, [summary]);
+  }, [summary, reviewFiles]);
 
   const hasBlockingWarnings = warnings.some(
     (w) => w.severity === 'critical' && !w.canDismiss && !dismissedWarnings.has(w.id)
@@ -220,6 +252,12 @@ export function ShipPhase({
             .replace(/^\w/, (c) => c.toUpperCase());
           setPrTitle(title);
         }
+
+        // If no uncommitted changes, disable commit/push but enable PR creation
+        if (!summaryData.hasUncommittedChanges && summaryData.commitsAheadOfBase > 0) {
+          setShouldPush(false);
+          setShouldCreatePR(true);
+        }
       } catch (err) {
         console.error('Failed to load ship summary:', err);
       } finally {
@@ -235,11 +273,13 @@ export function ShipPhase({
     if (!sessionId) return;
     setGenerating(true);
     try {
-      const body: { targetBranch: string; repoId?: string; files?: string[] } = {
+      const body: { targetBranch: string; repoId?: string } = {
         targetBranch: targetBranch || summary?.baseBranch || 'main',
       };
       if (repoId) body.repoId = repoId;
-      if (reviewFiles && reviewFiles.length > 0) body.files = reviewFiles;
+      // Note: We don't pass reviewFiles here because PR generation should
+      // consider ALL changes on the branch, not just reviewed files.
+      // reviewFiles is only used for scoping safety checks and UI display.
 
       const data = await api<{ title: string; description: string }>(
         'POST',
@@ -293,6 +333,76 @@ export function ShipPhase({
       });
     } finally {
       setShipping(false);
+    }
+  };
+
+  // Helper to get error-specific border color
+  const getErrorBorderColor = (errorType?: string): string => {
+    switch (errorType) {
+      case 'org_access_required':
+      case 'rate_limited':
+      case 'pr_already_exists':
+        return 'border-l-amber-400';
+      case 'branch_not_found':
+        return 'border-l-blue-400';
+      default:
+        return 'border-l-red-400';
+    }
+  };
+
+  // Helper to get error-specific icon color
+  const getErrorIconColor = (errorType?: string): string => {
+    switch (errorType) {
+      case 'org_access_required':
+      case 'rate_limited':
+      case 'pr_already_exists':
+        return 'text-amber-400';
+      case 'branch_not_found':
+        return 'text-blue-400';
+      default:
+        return 'text-red-400';
+    }
+  };
+
+  // Helper to get error-specific icon
+  const getErrorIcon = (errorType?: string) => {
+    switch (errorType) {
+      case 'org_access_required':
+        return ShieldAlert;
+      case 'token_expired':
+        return KeyRound;
+      case 'branch_not_found':
+        return GitBranchPlus;
+      case 'repo_not_found':
+        return FolderX;
+      case 'pr_already_exists':
+        return GitPullRequest;
+      case 'rate_limited':
+        return Clock;
+      default:
+        return AlertCircle;
+    }
+  };
+
+  // Helper to get user-friendly error titles
+  const getErrorTitle = (errorType?: string): string => {
+    switch (errorType) {
+      case 'org_access_required':
+        return 'Organization Access Required';
+      case 'token_expired':
+        return 'GitHub Connection Expired';
+      case 'token_invalid':
+        return 'GitHub Access Denied';
+      case 'repo_not_found':
+        return 'Repository Not Found';
+      case 'branch_not_found':
+        return 'Branch Not Pushed';
+      case 'pr_already_exists':
+        return 'Pull Request Already Exists';
+      case 'rate_limited':
+        return 'GitHub Rate Limited';
+      default:
+        return 'Failed to Create Pull Request';
     }
   };
 
@@ -352,7 +462,7 @@ export function ShipPhase({
   }
 
   // No changes state — show existing PR if one exists
-  if (!summary?.hasChangesToShip && !summary?.unpushedCommits) {
+  if (!summary?.hasChangesToShip) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
@@ -496,11 +606,15 @@ export function ShipPhase({
               </select>
             </div>
           </div>
-          {summary?.unpushedCommits > 0 && (
+          {summary?.unpushedCommits > 0 ? (
             <p className="mt-2 text-xs text-white/40">
               {summary.unpushedCommits} unpushed commit{summary.unpushedCommits > 1 ? 's' : ''}
             </p>
-          )}
+          ) : summary?.commitsAheadOfBase > 0 ? (
+            <p className="mt-2 text-xs text-emerald-400/70">
+              {summary.commitsAheadOfBase} commit{summary.commitsAheadOfBase > 1 ? 's' : ''} ahead (pushed)
+            </p>
+          ) : null}
         </div>
 
         {/* Safety checklist */}
@@ -593,6 +707,25 @@ export function ShipPhase({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* PR-only mode banner — shown when there are no uncommitted changes but commits ahead */}
+          {!summary?.hasUncommittedChanges && summary?.commitsAheadOfBase > 0 && !summary?.existingPR && (
+            <div className="rounded-xl p-4 ring-1 bg-blue-500/10 ring-blue-500/20">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg ring-1 bg-blue-500/15 ring-blue-500/30">
+                  <GitPullRequest className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white mb-0.5">
+                    Branch ready for PR
+                  </p>
+                  <p className="text-xs text-white/50">
+                    {summary.commitsAheadOfBase} commit{summary.commitsAheadOfBase > 1 ? 's' : ''} ahead of {summary.baseBranch}. Changes are already pushed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Existing PR banner — shown prominently at top */}
           {summary?.existingPR && (
             <div className={cn(
@@ -687,12 +820,16 @@ export function ShipPhase({
 
           {/* Options */}
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className={cn(
+              "flex items-center gap-2",
+              summary?.hasUncommittedChanges ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            )}>
               <input
                 type="checkbox"
                 checked={shouldPush}
                 onChange={(e) => setShouldPush(e.target.checked)}
-                className="rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/20"
+                disabled={!summary?.hasUncommittedChanges}
+                className="rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/20 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-white/70">Push to remote</span>
             </label>
@@ -707,10 +844,117 @@ export function ShipPhase({
             </label>
           </div>
 
-          {/* Error display */}
+          {/* Enhanced error display with visual hierarchy */}
           {result?.error && (
-            <div className="rounded-lg bg-red-500/10 p-3 ring-1 ring-red-500/20">
-              <p className="text-sm text-red-400">{result.error}</p>
+            <div
+              className={cn(
+                "rounded-xl p-4 bg-white/[0.03] ring-1 ring-white/10",
+                "border-l-4",
+                getErrorBorderColor(result.errorDetails?.type),
+                "space-y-3",
+                "animate-in slide-in-from-top-2 fade-in duration-200"
+              )}
+              role="alert"
+              aria-live="assertive"
+            >
+              <div className="flex items-start gap-3">
+                {(() => {
+                  const Icon = getErrorIcon(result.errorDetails?.type);
+                  return <Icon className={cn("h-5 w-5 flex-shrink-0 mt-0.5", getErrorIconColor(result.errorDetails?.type))} />;
+                })()}
+                <div className="flex-1 min-w-0 space-y-3">
+                  {/* Error title and message */}
+                  <div>
+                    <p className="text-sm font-medium text-white mb-1">
+                      {getErrorTitle(result.errorDetails?.type)}
+                    </p>
+                    <p className="text-sm text-white/70 leading-6">{result.error}</p>
+                  </div>
+
+                  {/* Organization access - opens modal */}
+                  {result.errorDetails?.type === 'org_access_required' && result.errorDetails.organizationUrl && (
+                    <button
+                      onClick={() => setShowOrgAccessModal(true)}
+                      className="w-full px-4 py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-sm font-medium text-amber-400 ring-1 ring-amber-500/30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+                    >
+                      View Access Options
+                    </button>
+                  )}
+
+                  {/* Token expired guidance */}
+                  {result.errorDetails?.type === 'token_expired' && (
+                    <div className="rounded-lg bg-white/[0.03] p-3">
+                      <p className="text-sm text-white/70">
+                        Your GitHub connection has expired. Reconnect your account in Settings → Integrations.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Branch not found guidance */}
+                  {result.errorDetails?.type === 'branch_not_found' && (
+                    <div className="rounded-lg bg-white/[0.03] p-3">
+                      <p className="text-sm text-white/70">
+                        Your branch exists locally but hasn't been pushed to GitHub yet. Try enabling "Push to remote" and shipping again.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Repository not found guidance */}
+                  {result.errorDetails?.type === 'repo_not_found' && !result.errorDetails?.organizationUrl && (
+                    <div className="rounded-lg bg-white/[0.03] p-3 space-y-2">
+                      <ol className="ml-6 space-y-2 text-sm text-white/70">
+                        <li className="flex gap-2">
+                          <span className="text-white/50">1.</span>
+                          <span>Verify the repository exists on GitHub</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-white/50">2.</span>
+                          <span>Check that your GitHub account has access</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-white/50">3.</span>
+                          <span>If it's a new repository, ensure it's been pushed</span>
+                        </li>
+                      </ol>
+                    </div>
+                  )}
+
+                  {/* PR already exists - show link if available */}
+                  {result.errorDetails?.type === 'pr_already_exists' && summary?.existingPR && (
+                    <div className="rounded-lg bg-white/[0.03] p-3">
+                      <a
+                        href={summary.existingPR.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white underline-offset-4 hover:underline transition-colors"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View Existing PR #{summary.existingPR.number}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                    {result.errorDetails?.retryable ? (
+                      <button
+                        onClick={() => setResult(null)}
+                        className="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm font-medium text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 flex items-center justify-center gap-2 w-full sm:w-auto"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Retry
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setResult(null)}
+                        className="px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-white/60 hover:text-white/80 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 w-full sm:w-auto"
+                      >
+                        Dismiss
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -735,7 +979,13 @@ export function ShipPhase({
             ) : (
               <>
                 <Rocket className="h-4 w-4" />
-                {isExistingPRActive && shouldPush ? 'Push to Existing PR' : shouldCreatePR ? 'Create PR' : 'Ship Changes'}
+                {isExistingPRActive && shouldPush
+                  ? 'Push to Existing PR'
+                  : shouldCreatePR && !summary?.hasUncommittedChanges
+                  ? 'Create PR'
+                  : shouldCreatePR
+                  ? 'Commit & Create PR'
+                  : 'Ship Changes'}
               </>
             )}
           </button>
@@ -746,6 +996,21 @@ export function ShipPhase({
           )}
         </div>
       </div>
+
+      {/* Organization Access Error Modal */}
+      {showOrgAccessModal && result?.errorDetails?.type === 'org_access_required' && result.errorDetails.organizationUrl && (
+        <OrgAccessErrorModal
+          orgName={result.errorDetails.owner || 'the organization'}
+          repoName={result.errorDetails.repo || 'this repository'}
+          onSetupPAT={() => {
+            setShowOrgAccessModal(false);
+            // Navigate to settings integrations
+            window.location.hash = '#/settings/integrations';
+          }}
+          onDismiss={() => setShowOrgAccessModal(false)}
+          organizationUrl={result.errorDetails.organizationUrl}
+        />
+      )}
     </div>
   );
 }

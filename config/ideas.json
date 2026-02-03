@@ -1,0 +1,31 @@
+{
+  "ideas": [
+    {
+      "id": "idea-3m66kh4fw5",
+      "title": "Test",
+      "status": "saved",
+      "messages": [
+        {
+          "id": "vdbi9ce3okb",
+          "role": "user",
+          "content": "Do you have the context what ClaudeDesk is?",
+          "timestamp": "2026-02-02T15:38:49.296Z"
+        },
+        {
+          "id": "lmqyv5xyzih",
+          "role": "assistant",
+          "content": "No, I don't have context on what ClaudeDesk is. I can see from the git history and file structure that it appears to be a desktop application involving a terminal UI, mission control, settings, and some kind of budget/allocator system — but I'd rather hear it from you than make assumptions.\n\nWhat is ClaudeDesk?",
+          "timestamp": "2026-02-02T15:38:49.296Z",
+          "isStreaming": false
+        }
+      ],
+      "claudeSessionId": "ab319b0e-69d6-4660-aae1-798d81331264",
+      "chatStatus": "idle",
+      "mode": "direct",
+      "createdAt": "2026-02-02T12:28:24.531Z",
+      "lastActivityAt": "2026-02-02T15:38:56.701Z",
+      "savedAt": "2026-02-02T12:28:27.750Z",
+      "messageQueue": []
+    }
+  ]
+}

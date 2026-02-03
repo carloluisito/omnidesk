@@ -14,6 +14,7 @@ import { SettingsPanel } from '../SettingsPanel';
 import { ExportModal } from '../ExportModal';
 import { AgentsPanel } from '../../agents';
 import { UsageDashboard } from '../UsageDashboard';
+import { BudgetDashboard } from '../BudgetDashboard';
 import { ToolApprovalModal } from '../ToolApprovalModal';
 import { NewSessionModal } from '../NewSessionModal';
 import { StartAppModal } from '../StartAppModal';
@@ -159,7 +160,7 @@ export function OverlayManager({
 
       case 'usage-dashboard':
         return (
-          <UsageDashboard
+          <BudgetDashboard
             isOpen={true}
             onClose={closeOverlay}
             quota={quota}

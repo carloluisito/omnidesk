@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn';
 import { useToast } from '../../hooks/useToast';
 import { RemoteAccess } from './RemoteAccess';
 import { MCPServersPanel } from '../../components/settings/MCPServersPanel';
+import { GitHubPATSettings } from '../../components/settings/GitHubPATSettings';
 import type { GitHubSettings, GitLabSettings } from '../../types';
 
 interface DockerService {
@@ -216,6 +217,9 @@ export default function Integrations() {
   const [githubExpanded, setGithubExpanded] = useState(false);
   const [gitlabExpanded, setGitlabExpanded] = useState(false);
 
+  // Workspaces with GitHub connected (for PAT settings)
+  const [githubWorkspaces, setGithubWorkspaces] = useState<Array<{ id: string; name: string }>>([]);
+
   // Docker state
   const [dockerSettings, setDockerSettings] = useState<DockerSettings | null>(null);
   const [dockerState, setDockerState] = useState<DockerState | null>(null);
@@ -236,6 +240,7 @@ export default function Integrations() {
   useEffect(() => {
     loadCoreSettings();
     loadDockerSettings();
+    loadGitHubWorkspaces();
   }, []);
 
   // Sync selectedPermissionMode with claudeSettings
@@ -282,6 +287,17 @@ export default function Integrations() {
       setConnections(dockerConn);
     } catch (error) {
       console.error('Failed to load Docker settings:', error);
+    }
+  };
+
+  // Load workspaces with GitHub OAuth connected
+  const loadGitHubWorkspaces = async () => {
+    try {
+      const workspaces = await api<Array<{ id: string; name: string; github: { connected: boolean } | null }>>('GET', '/workspaces');
+      const connected = workspaces.filter(ws => ws.github?.connected).map(ws => ({ id: ws.id, name: ws.name }));
+      setGithubWorkspaces(connected);
+    } catch (error) {
+      console.error('Failed to load GitHub workspaces:', error);
     }
   };
 
@@ -635,6 +651,24 @@ export default function Integrations() {
               Set callback URL to <code className="rounded bg-white/10 px-1 py-0.5 text-white/60">{callbackUrl}</code> and enable Device Flow.
             </p>
           </div>
+
+          {/* Personal Access Token Settings */}
+          {githubWorkspaces.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <div className="border-t border-white/10 pt-4">
+                <h4 className="text-sm font-medium text-white/70 mb-3">Personal Access Token (Optional)</h4>
+                <p className="text-xs text-white/50 mb-4">
+                  Add a Personal Access Token to access organization repositories without requiring admin approval of the OAuth app.
+                </p>
+              </div>
+              {githubWorkspaces.map((workspace) => (
+                <div key={workspace.id} className="space-y-2">
+                  <p className="text-xs text-white/60 font-medium">{workspace.name}</p>
+                  <GitHubPATSettings workspaceId={workspace.id} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 

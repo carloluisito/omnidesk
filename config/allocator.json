@@ -1,0 +1,1546 @@
+{
+  "config": {
+    "enabled": true,
+    "defaults": {
+      "sessionCapPercent5h": 25,
+      "workspaceCapPercentWeekly": 50,
+      "reservePercentWeekly": 15,
+      "warnThresholds": [
+        70,
+        85,
+        95
+      ]
+    },
+    "defaultEnforcement": "soft",
+    "degradationSteps": [
+      {
+        "type": "require-confirmation"
+      },
+      {
+        "type": "switch-model",
+        "model": "claude-3-5-haiku-20241022"
+      },
+      {
+        "type": "require-plan-mode"
+      },
+      {
+        "type": "pause-queue"
+      },
+      {
+        "type": "block-new-sessions"
+      }
+    ],
+    "workspaceOverrides": {},
+    "queue": {
+      "autoPauseAtPercent5h": 85,
+      "showProjectedCost": true
+    },
+    "estimation": {
+      "method": "average",
+      "showPreSendEstimate": true
+    }
+  },
+  "utilizationHistory": [
+    {
+      "timestamp": "2026-02-02T22:23:33.411Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:25:33.457Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:27:33.436Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:29:33.416Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:31:33.430Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:33:33.410Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:35:33.463Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:37:33.423Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:39:33.417Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:41:33.561Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:43:33.441Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:45:51.971Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:47:51.877Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:49:51.912Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:51:51.835Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:53:52.024Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:55:51.916Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:57:51.860Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T22:59:51.852Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:01:52.067Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:03:51.913Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:05:51.866Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:07:51.898Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:09:51.940Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:11:51.904Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:13:51.865Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:15:51.893Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:17:51.928Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:19:51.993Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:21:51.869Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:23:51.949Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:25:51.954Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:27:51.981Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:29:51.884Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:31:51.930Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:33:51.856Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:35:51.878Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:37:51.956Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:39:51.905Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:41:51.976Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:43:51.935Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:45:51.877Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:47:51.899Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:49:51.950Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:51:51.854Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:53:51.921Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:55:52.062Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:57:51.872Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-02T23:59:51.905Z",
+      "fiveHour": 10,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:01:51.869Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:03:51.945Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:05:51.913Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:07:51.996Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:09:51.879Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:11:51.996Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:13:51.869Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:15:51.870Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:17:51.941Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:19:51.881Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:21:51.936Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:23:51.951Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:25:51.950Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:27:51.913Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:29:51.922Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:31:51.939Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:33:51.858Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:35:51.878Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:37:51.969Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:39:51.854Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:41:51.927Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:43:51.896Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:45:51.867Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:47:51.992Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:49:51.976Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:51:51.913Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:53:51.950Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:55:51.932Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:57:51.923Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T00:59:51.921Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:01:51.930Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:03:51.975Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:05:51.878Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:07:51.938Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:09:51.873Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:11:51.936Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:13:51.890Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:15:52.095Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:17:52.100Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:19:52.136Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:21:52.163Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:23:52.097Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:25:52.142Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:27:52.106Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:29:52.099Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:31:52.124Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:33:52.169Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:35:52.112Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:37:52.144Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:39:52.154Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:41:52.145Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:43:56.309Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:44:35.629Z",
+      "fiveHour": 0,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:46:33.049Z",
+      "fiveHour": 1,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:48:32.716Z",
+      "fiveHour": 1,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:50:33.001Z",
+      "fiveHour": 2,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:52:32.998Z",
+      "fiveHour": 3,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:54:33.014Z",
+      "fiveHour": 3,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:56:33.062Z",
+      "fiveHour": 4,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T01:58:56.036Z",
+      "fiveHour": 4,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:00:56.037Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:02:55.976Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:04:56.052Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:06:55.988Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:08:56.040Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:10:56.052Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:12:55.957Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:14:55.990Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:16:55.982Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:18:56.013Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:20:56.211Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:22:55.988Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:24:56.148Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:26:56.050Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:28:56.051Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:30:56.101Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:32:56.058Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:34:55.998Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:36:55.983Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:38:56.088Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:40:55.980Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:42:56.084Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:44:56.080Z",
+      "fiveHour": 5,
+      "sevenDay": 1
+    },
+    {
+      "timestamp": "2026-02-03T02:46:55.985Z",
+      "fiveHour": 5,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:48:56.084Z",
+      "fiveHour": 5,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:50:56.042Z",
+      "fiveHour": 6,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:52:56.059Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:54:56.038Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:56:56.050Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T02:58:56.045Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:00:55.965Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:02:56.000Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:04:56.075Z",
+      "fiveHour": 7,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:06:55.977Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:08:55.992Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:10:56.038Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:12:56.024Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:14:56.044Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:16:56.020Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:18:56.113Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:20:56.383Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:22:56.036Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:24:56.034Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:26:56.107Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:28:56.004Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:30:56.007Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:32:56.041Z",
+      "fiveHour": 8,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:34:56.036Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:36:56.075Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:38:56.040Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:40:56.120Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:42:56.103Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:44:56.064Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:46:56.038Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:48:56.051Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:50:56.189Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:52:55.996Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:54:56.145Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:56:56.053Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T03:58:56.063Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:00:56.016Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:02:56.056Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:04:56.047Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:06:56.029Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:08:56.038Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:10:56.122Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:12:56.083Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:14:56.008Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:16:56.274Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:18:56.075Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:20:56.090Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:22:56.003Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:24:56.003Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:26:56.079Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:28:56.079Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:30:55.962Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:32:56.050Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:34:56.072Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:36:55.993Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:38:55.981Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:40:56.064Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:42:56.007Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:44:56.293Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:46:56.008Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:48:55.954Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:50:56.046Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:52:56.175Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:54:55.975Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:56:55.991Z",
+      "fiveHour": 9,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T04:58:56.051Z",
+      "fiveHour": 10,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:00:56.032Z",
+      "fiveHour": 11,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:02:56.077Z",
+      "fiveHour": 12,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:04:55.975Z",
+      "fiveHour": 12,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:06:56.032Z",
+      "fiveHour": 12,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:08:56.261Z",
+      "fiveHour": 12,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:10:56.018Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:12:55.994Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:14:56.392Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:16:56.020Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:18:55.999Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:20:56.205Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:22:56.063Z",
+      "fiveHour": 13,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:24:56.071Z",
+      "fiveHour": 14,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:26:56.028Z",
+      "fiveHour": 15,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:28:56.565Z",
+      "fiveHour": 15,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:30:56.180Z",
+      "fiveHour": 16,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:32:55.996Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:34:55.972Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:36:56.034Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:38:56.001Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:40:56.021Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:42:56.137Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:44:56.441Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:46:56.016Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:48:55.977Z",
+      "fiveHour": 17,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:50:55.996Z",
+      "fiveHour": 18,
+      "sevenDay": 2
+    },
+    {
+      "timestamp": "2026-02-03T05:54:56.054Z",
+      "fiveHour": 20,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T05:56:56.032Z",
+      "fiveHour": 20,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T05:58:56.076Z",
+      "fiveHour": 20,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:00:56.080Z",
+      "fiveHour": 0,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:02:56.232Z",
+      "fiveHour": 1,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:04:56.080Z",
+      "fiveHour": 2,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:06:56.025Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:08:56.027Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:10:56.056Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:12:55.994Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:14:56.132Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:16:55.983Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:18:56.097Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:20:56.001Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:22:55.992Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:24:56.089Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:26:58.279Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:27:05.055Z",
+      "fiveHour": 3,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:28:55.988Z",
+      "fiveHour": 4,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:29:04.615Z",
+      "fiveHour": 4,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:30:56.117Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:31:04.622Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:32:55.989Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:33:04.608Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:34:56.081Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:35:04.617Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:36:56.139Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:37:04.613Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:38:55.979Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:39:04.619Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:40:56.057Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:41:41.614Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:42:56.124Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:43:43.614Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:44:56.020Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:45:45.619Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:46:56.125Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:47:47.610Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:48:56.043Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:49:49.614Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:50:56.131Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:51:51.626Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:52:56.230Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:53:53.625Z",
+      "fiveHour": 5,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:55:02.343Z",
+      "fiveHour": 6,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:55:55.968Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:57:00.039Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:57:49.756Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:57:57.187Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:59:46.736Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T06:59:55.628Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:02:25.720Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:03:56.127Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:04:11.014Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:04:18.636Z",
+      "fiveHour": 7,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:05:33.394Z",
+      "fiveHour": 8,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:06:20.861Z",
+      "fiveHour": 8,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:06:26.223Z",
+      "fiveHour": 8,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:07:30.229Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:09:11.678Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:09:30.101Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:10:27.168Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:11:10.010Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:11:29.795Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:13:30.454Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:14:15.093Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:15:30.600Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:16:57.093Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:17:32.293Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:17:32.836Z",
+      "fiveHour": 9,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:19:28.106Z",
+      "fiveHour": 10,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:21:28.145Z",
+      "fiveHour": 11,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:23:27.694Z",
+      "fiveHour": 11,
+      "sevenDay": 3
+    },
+    {
+      "timestamp": "2026-02-03T07:25:28.503Z",
+      "fiveHour": 14,
+      "sevenDay": 4
+    },
+    {
+      "timestamp": "2026-02-03T07:27:28.442Z",
+      "fiveHour": 14,
+      "sevenDay": 4
+    }
+  ],
+  "activeDegradations": []
+}

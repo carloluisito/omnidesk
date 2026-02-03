@@ -27,6 +27,17 @@ const GitHubCredentialsSchema = z.object({
 
 export type GitHubCredentials = z.infer<typeof GitHubCredentialsSchema>;
 
+// Schema for GitHub Personal Access Token (PAT)
+const GitHubPATSchema = z.object({
+  encryptedToken: z.string(), // Encrypted PAT using token-encryption module
+  username: z.string(),
+  scopes: z.array(z.string()),
+  expiresAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+export type GitHubPAT = z.infer<typeof GitHubPATSchema>;
+
 // Schema for GitLab credentials
 const GitLabCredentialsSchema = z.object({
   accessToken: z.string(), // Encrypted
@@ -88,6 +99,7 @@ export const WorkspaceSchema = z.object({
   scanPath: z.string(),
   github: GitHubCredentialsSchema.optional(),
   gitlab: GitLabCredentialsSchema.optional(),
+  githubPAT: GitHubPATSchema.optional(), // Personal Access Token for org repos
   repoConfigs: z.record(z.string(), RepoConfigOverrideSchema).optional(),
   // SEC-04: Per-workspace permission mode override (null = use global)
   claudePermissionMode: z.enum(['autonomous', 'read-only']).nullable().optional(),
@@ -348,6 +360,117 @@ export class WorkspaceManager {
     }
 
     delete workspace.github;
+    workspace.updatedAt = new Date().toISOString();
+    this.save();
+  }
+
+  // ============================================
+  // GitHub Personal Access Token (PAT)
+  // ============================================
+
+  /**
+   * Set GitHub Personal Access Token for workspace
+   * Uses token-encryption module for secure storage
+   */
+  async setGitHubPAT(
+    workspaceId: string,
+    token: string,
+    username: string,
+    scopes: string[],
+    expiresAt: string | null
+  ): Promise<void> {
+    const workspace = this.get(workspaceId);
+    if (!workspace) {
+      throw new Error(`Workspace not found: ${workspaceId}`);
+    }
+
+    // Import encryption module dynamically to avoid circular dependencies
+    const { encryptToken } = await import('../core/token-encryption.js');
+
+    // Encrypt the PAT
+    const encryptedToken = encryptToken(token);
+
+    workspace.githubPAT = {
+      encryptedToken,
+      username,
+      scopes,
+      expiresAt,
+      createdAt: new Date().toISOString(),
+    };
+    workspace.updatedAt = new Date().toISOString();
+
+    this.save();
+  }
+
+  /**
+   * Get decrypted GitHub Personal Access Token
+   */
+  async getGitHubPAT(workspaceId: string): Promise<string | null> {
+    const workspace = this.get(workspaceId);
+    if (!workspace?.githubPAT?.encryptedToken) {
+      return null;
+    }
+
+    try {
+      // Import decryption module dynamically
+      const { decryptToken } = await import('../core/token-encryption.js');
+      return decryptToken(workspace.githubPAT.encryptedToken);
+    } catch (error) {
+      console.error('[WorkspaceManager] Failed to decrypt GitHub PAT:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get GitHub PAT metadata (without decrypted token)
+   */
+  getGitHubPATMetadata(workspaceId: string): Omit<GitHubPAT, 'encryptedToken'> | null {
+    const workspace = this.get(workspaceId);
+    if (!workspace?.githubPAT) {
+      return null;
+    }
+
+    return {
+      username: workspace.githubPAT.username,
+      scopes: workspace.githubPAT.scopes,
+      expiresAt: workspace.githubPAT.expiresAt,
+      createdAt: workspace.githubPAT.createdAt,
+    };
+  }
+
+  /**
+   * Check if GitHub PAT is expired or expires soon
+   */
+  getGitHubPATExpirationStatus(workspaceId: string): {
+    expired: boolean;
+    daysUntilExpiration: number | null;
+  } {
+    const metadata = this.getGitHubPATMetadata(workspaceId);
+    if (!metadata?.expiresAt) {
+      return { expired: false, daysUntilExpiration: null };
+    }
+
+    const expirationDate = new Date(metadata.expiresAt);
+    const now = new Date();
+    const diffMs = expirationDate.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    return {
+      expired: diffDays < 0,
+      daysUntilExpiration: diffDays,
+    };
+  }
+
+  /**
+   * Clear GitHub Personal Access Token
+   */
+  clearGitHubPAT(workspaceId: string): void {
+    const workspace = this.get(workspaceId);
+    if (!workspace) {
+      throw new Error(`Workspace not found: ${workspaceId}`);
+    }
+
+    delete workspace.githubPAT;
     workspace.updatedAt = new Date().toISOString();
     this.save();
   }

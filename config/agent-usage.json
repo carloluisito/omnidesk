@@ -1,6 +1,12 @@
 {
   "entries": [
     {
+      "agentId": "feature-executor",
+      "agentName": "feature-executor",
+      "lastUsedAt": "2026-02-02T15:54:48.466Z",
+      "useCount": 5
+    },
+    {
       "agentId": "architecture-design",
       "agentName": "architecture-design",
       "lastUsedAt": "2026-02-01T08:38:07.444Z",
@@ -11,12 +17,6 @@
       "agentName": "product-spec-designer",
       "lastUsedAt": "2026-02-01T08:30:38.635Z",
       "useCount": 11
-    },
-    {
-      "agentId": "feature-executor",
-      "agentName": "feature-executor",
-      "lastUsedAt": "2026-01-31T00:23:05.626Z",
-      "useCount": 4
     },
     {
       "agentId": "ui-spec-generator",

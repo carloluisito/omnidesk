@@ -32,6 +32,10 @@ import { OverlayManager } from '../terminal/overlays';
 import { useAgents } from '../../hooks/useAgents';
 import { SettingsDrawer } from './SettingsDrawer';
 import { QuotaChip } from '../ui/QuotaChip';
+import { WalletGauge } from '../terminal/WalletGauge';
+import { DegradationBanner } from '../terminal/DegradationBanner';
+import { DegradationPanel } from '../terminal/DegradationPanel';
+import { BudgetLimitModal } from '../terminal/BudgetLimitModal';
 import { cn } from '../../lib/cn';
 import { api } from '../../lib/api';
 import { requestCache, CACHE_KEYS } from '../../lib/request-cache';
@@ -69,15 +73,51 @@ export default function MissionControl() {
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [existingPR, setExistingPR] = useState<ExistingPR | null>(null);
+  const [commitsAheadOfBase, setCommitsAheadOfBase] = useState(0);
 
   // Quota state
   const [quota, setQuota] = useState<ClaudeUsageQuota | null>(null);
   const hasLoadedQuota = useRef(false);
 
+  // Budget allocator state
+  const [activeDegradations, setActiveDegradations] = useState<Array<{ type: string; model?: string }>>([]);
+  const [showDegradationPanel, setShowDegradationPanel] = useState(false);
+  const [showBudgetLimitModal, setShowBudgetLimitModal] = useState(false);
+  const [budgetCheck, setBudgetCheck] = useState<{
+    allowed: boolean;
+    reason?: string;
+    enforcement: 'none' | 'soft' | 'hard';
+    thresholdHit?: number;
+    activeDegradations?: Array<{ type: string; model?: string }>;
+  } | null>(null);
+
+  // Budget gate state: track acknowledged threshold level and pending send
+  const [acknowledgedThreshold, setAcknowledgedThreshold] = useState<number>(0);
+  const [pendingSendArgs, setPendingSendArgs] = useState<{ agentId?: string; chainIds?: string[] } | null>(null);
+
   const fetchQuota = useCallback(async () => {
     try {
       const result = await api<ClaudeUsageQuota | null>('GET', '/terminal/usage/quota');
       setQuota(result);
+
+      // Also check budget limits
+      if (result) {
+        const check = await api<{
+          allowed: boolean;
+          reason?: string;
+          enforcement: 'none' | 'soft' | 'hard';
+          activeDegradations: Array<{ type: string; model?: string }>;
+          thresholdHit?: number;
+        }>('POST', '/terminal/usage/check-budget', {
+          fiveHour: result.five_hour.utilization * 100,
+          sevenDay: result.seven_day.utilization * 100,
+        }).catch(() => null);
+
+        if (check) {
+          setActiveDegradations(check.activeDegradations || []);
+          setBudgetCheck(check);
+        }
+      }
     } catch (e) {
       console.error('Failed to fetch quota:', e);
     }
@@ -87,7 +127,7 @@ export default function MissionControl() {
     if (!hasLoadedQuota.current) {
       hasLoadedQuota.current = true;
       fetchQuota();
-      const interval = setInterval(fetchQuota, 5 * 60 * 1000);
+      const interval = setInterval(fetchQuota, 3 * 60 * 1000); // Every 3 min for budget tracking
       return () => clearInterval(interval);
     }
   }, [fetchQuota]);
@@ -129,6 +169,34 @@ export default function MissionControl() {
     lastAssistantIndex,
     fetchGitStatus,
   } = terminal;
+
+  // Reset acknowledged threshold when enforcement clears
+  useEffect(() => {
+    if (budgetCheck?.enforcement === 'none') {
+      setAcknowledgedThreshold(0);
+    }
+  }, [budgetCheck?.enforcement]);
+
+  // Auto model switch degradation
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const switchStep = activeDegradations.find(d => d.type === 'switch-model' && d.model);
+    if (switchStep?.model) {
+      api('PATCH', `/terminal/sessions/${activeSessionId}/model`, { model: switchStep.model }).catch(() => {});
+    } else if (activeDegradations.length === 0) {
+      // Clear model override when no degradations active
+      api('PATCH', `/terminal/sessions/${activeSessionId}/model`, { model: null }).catch(() => {});
+    }
+  }, [activeDegradations, activeSessionId]);
+
+  // Force plan mode degradation
+  useEffect(() => {
+    if (!activeSessionId || !activeSession) return;
+    const forcePlan = activeDegradations.some(d => d.type === 'require-plan-mode');
+    if (forcePlan && activeSession.mode !== 'plan') {
+      setMode('plan');
+    }
+  }, [activeDegradations, activeSessionId, activeSession?.mode, setMode]);
 
   // Compute repo dock data from ALL sessions (each session = one repo entry)
   const repoStatuses: RepoStatus[] = useMemo(() => {
@@ -180,25 +248,32 @@ export default function MissionControl() {
 
   // Phase availability
   const canReview = fileCount > 0;
-  const canShip = fileCount > 0 || existingPR !== null;
+  const canShip = fileCount > 0 || existingPR !== null || commitsAheadOfBase > 0;
 
   // Fetch existing PR status for the active session's branch
   useEffect(() => {
     if (!activeSessionId) {
       setExistingPR(null);
+      setCommitsAheadOfBase(0);
       return;
     }
 
     let cancelled = false;
-    api<{ existingPR: ExistingPR | null }>(
+    api<{ existingPR: ExistingPR | null; commitsAheadOfBase?: number }>(
       'GET',
       `/terminal/sessions/${activeSessionId}/ship-summary`
     )
       .then((data) => {
-        if (!cancelled) setExistingPR(data.existingPR ?? null);
+        if (!cancelled) {
+          setExistingPR(data.existingPR ?? null);
+          setCommitsAheadOfBase(data.commitsAheadOfBase || 0);
+        }
       })
       .catch(() => {
-        if (!cancelled) setExistingPR(null);
+        if (!cancelled) {
+          setExistingPR(null);
+          setCommitsAheadOfBase(0);
+        }
       });
 
     return () => { cancelled = true; };
@@ -358,6 +433,35 @@ export default function MissionControl() {
     }
   }, [activeSessionId, activeSession?.repoIds, fetchGitStatus]);
 
+  // Execute the actual send (used directly and after budget gate)
+  const executeSend = useCallback((agentId?: string, chainIds?: string[]) => {
+    if (chainIds && chainIds.length > 1) {
+      handleSend(undefined, undefined, chainIds);
+      agents.selectedAgents.forEach((a) => agents.addToRecentAgents(a));
+    } else if (chainIds && chainIds.length === 1) {
+      handleSend(undefined, chainIds[0]);
+      agents.addToRecentAgents(agents.selectedAgents[0]);
+    } else if (agentId) {
+      handleSend(undefined, agentId);
+      const agent = agents.allAgents.find(a => a.id === agentId);
+      if (agent) agents.addToRecentAgents(agent);
+    } else {
+      handleSend();
+    }
+    agents.clearChain();
+  }, [handleSend, agents]);
+
+  // Budget-gated send: check if threshold needs acknowledgment first
+  const budgetGatedSend = useCallback((agentId?: string, chainIds?: string[]) => {
+    if (budgetCheck && budgetCheck.thresholdHit && budgetCheck.thresholdHit > acknowledgedThreshold) {
+      // Threshold exceeded and not yet acknowledged — show modal
+      setPendingSendArgs({ agentId, chainIds });
+      setShowBudgetLimitModal(true);
+      return;
+    }
+    executeSend(agentId, chainIds);
+  }, [budgetCheck, acknowledgedThreshold, executeSend]);
+
   // Composer component
   const composerElement = (
     <Composer
@@ -367,24 +471,26 @@ export default function MissionControl() {
         // Use chain if multiple agents selected, otherwise single agent
         const chainIds = agents.selectedAgents.map((a) => a.id);
         if (chainIds.length > 1) {
-          handleSend(undefined, undefined, chainIds);
-          agents.selectedAgents.forEach((a) => agents.addToRecentAgents(a));
+          budgetGatedSend(undefined, chainIds);
         } else if (chainIds.length === 1) {
-          handleSend(undefined, chainIds[0]);
-          agents.addToRecentAgents(agents.selectedAgents[0]);
+          budgetGatedSend(chainIds[0]);
         } else if (agents.selectedAgent) {
-          handleSend(undefined, agents.selectedAgent.id);
-          agents.addToRecentAgents(agents.selectedAgent);
+          budgetGatedSend(agents.selectedAgent.id);
         } else {
-          handleSend();
+          budgetGatedSend();
         }
-        agents.clearChain();
       }}
       onStop={cancelOperation}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
       mode={activeSession?.mode || 'direct'}
-      onToggleMode={() => setMode(activeSession?.mode === 'plan' ? 'direct' : 'plan')}
+      onToggleMode={() => {
+        // Prevent toggling away from plan mode if require-plan-mode degradation is active
+        if (activeDegradations.some(d => d.type === 'require-plan-mode') && activeSession?.mode === 'plan') return;
+        setMode(activeSession?.mode === 'plan' ? 'direct' : 'plan');
+      }}
+      budgetBlocked={budgetCheck?.enforcement === 'hard' && !budgetCheck?.allowed}
+      showPreSendEstimate={true}
       onAttach={() => fileInputRef.current?.click()}
       inputRef={terminal.inputRef}
       disabled={false}
@@ -462,17 +568,19 @@ export default function MissionControl() {
                 <Logo size="lg" />
               </div>
               <div className="ml-auto flex items-center gap-2">
-                {/* Quota chips */}
-                <div className="hidden lg:flex items-center gap-2">
+                <div className="hidden lg:block">
+                  <WalletGauge />
+                </div>
+                <div className="hidden md:flex lg:hidden items-center gap-2">
                   <QuotaChip
-                    label="5-hour"
+                    label="5h"
                     pct={quota ? Math.round(quota.five_hour.utilization * 100) : undefined}
                     resetTime={quota ? getRelativeResetTime(quota.five_hour.resets_at) : undefined}
                     onClick={() => ui.openOverlay('usage-dashboard')}
                     isHourly={true}
                   />
                   <QuotaChip
-                    label="Weekly"
+                    label="7d"
                     pct={quota ? Math.round(quota.seven_day.utilization * 100) : undefined}
                     resetTime={quota ? getRelativeResetTime(quota.seven_day.resets_at) : undefined}
                     onClick={() => ui.openOverlay('usage-dashboard')}
@@ -766,17 +874,19 @@ export default function MissionControl() {
               <Logo size="lg" />
             </div>
             <div className="ml-auto flex items-center gap-2">
-              {/* Quota chips */}
-              <div className="hidden lg:flex items-center gap-2">
+              <div className="hidden lg:block">
+                <WalletGauge />
+              </div>
+              <div className="hidden md:flex lg:hidden items-center gap-2">
                 <QuotaChip
-                  label="5-hour"
+                  label="5h"
                   pct={quota ? Math.round(quota.five_hour.utilization * 100) : undefined}
                   resetTime={quota ? getRelativeResetTime(quota.five_hour.resets_at) : undefined}
                   onClick={() => ui.openOverlay('usage-dashboard')}
                   isHourly={true}
                 />
                 <QuotaChip
-                  label="Weekly"
+                  label="7d"
                   pct={quota ? Math.round(quota.seven_day.utilization * 100) : undefined}
                   resetTime={quota ? getRelativeResetTime(quota.seven_day.resets_at) : undefined}
                   onClick={() => ui.openOverlay('usage-dashboard')}
@@ -948,17 +1058,21 @@ export default function MissionControl() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Quota chips - hidden on small screens */}
-          <div className="hidden lg:flex items-center gap-2">
+          {/* Budget wallet gauge - hidden on small screens */}
+          <div className="hidden lg:block">
+            <WalletGauge />
+          </div>
+          {/* Fallback: QuotaChips on medium screens */}
+          <div className="hidden md:flex lg:hidden items-center gap-2">
             <QuotaChip
-              label="5-hour"
+              label="5h"
               pct={quota ? Math.round(quota.five_hour.utilization * 100) : undefined}
               resetTime={quota ? getRelativeResetTime(quota.five_hour.resets_at) : undefined}
               onClick={() => ui.openOverlay('usage-dashboard')}
               isHourly={true}
             />
             <QuotaChip
-              label="Weekly"
+              label="7d"
               pct={quota ? Math.round(quota.seven_day.utilization * 100) : undefined}
               resetTime={quota ? getRelativeResetTime(quota.seven_day.resets_at) : undefined}
               onClick={() => ui.openOverlay('usage-dashboard')}
@@ -973,6 +1087,70 @@ export default function MissionControl() {
           </button>
         </div>
       </header>
+
+      {/* Budget degradation banner */}
+      {activeDegradations.length > 0 && quota && (
+        <DegradationBanner
+          activeDegradations={activeDegradations}
+          currentUsagePct={quota.five_hour.utilization * 100}
+          onViewDetails={() => setShowDegradationPanel(true)}
+        />
+      )}
+
+      {/* Degradation details panel */}
+      <DegradationPanel
+        isOpen={showDegradationPanel}
+        onClose={() => setShowDegradationPanel(false)}
+        activeDegradations={activeDegradations}
+        currentUsagePct={quota ? quota.five_hour.utilization * 100 : 0}
+        targetThreshold={budgetCheck?.thresholdHit ?? 70}
+        onTurnOff={async () => {
+          await api('PUT', '/terminal/usage/budget-config', { enabled: false }).catch(() => {});
+          setActiveDegradations([]);
+        }}
+        onAdjustLimits={() => setShowSettings(true)}
+      />
+
+      {/* Budget limit modal */}
+      {budgetCheck && showBudgetLimitModal && (
+        <BudgetLimitModal
+          isOpen={showBudgetLimitModal}
+          onClose={() => setShowBudgetLimitModal(false)}
+          budgetCheck={budgetCheck}
+          currentUsage={{
+            fiveHour: quota ? quota.five_hour.utilization * 100 : 0,
+            sevenDay: quota ? quota.seven_day.utilization * 100 : 0,
+          }}
+          resetTime5h={quota?.five_hour.resets_at}
+          resetTime7d={quota?.seven_day.resets_at}
+          onSendAnyway={() => {
+            if (budgetCheck?.thresholdHit) setAcknowledgedThreshold(budgetCheck.thresholdHit);
+            setShowBudgetLimitModal(false);
+            if (pendingSendArgs) {
+              executeSend(pendingSendArgs.agentId, pendingSendArgs.chainIds);
+              setPendingSendArgs(null);
+            }
+          }}
+          onSwitchModel={() => {
+            // Switch to the model suggested by degradation steps
+            const switchStep = activeDegradations.find(d => d.type === 'switch-model' && d.model);
+            if (switchStep?.model && activeSessionId) {
+              api('PATCH', `/terminal/sessions/${activeSessionId}/model`, { model: switchStep.model }).catch(() => {});
+            }
+            if (budgetCheck?.thresholdHit) setAcknowledgedThreshold(budgetCheck.thresholdHit);
+            setShowBudgetLimitModal(false);
+            if (pendingSendArgs) {
+              executeSend(pendingSendArgs.agentId, pendingSendArgs.chainIds);
+              setPendingSendArgs(null);
+            }
+          }}
+          onEditMessage={() => {
+            setShowBudgetLimitModal(false);
+            setPendingSendArgs(null);
+          }}
+          onOpenSettings={() => { setShowBudgetLimitModal(false); setShowSettings(true); }}
+        />
+      )}
 
       {/* Main content area */}
       <main className="relative z-10 flex-1 flex flex-col min-h-0 overflow-hidden">

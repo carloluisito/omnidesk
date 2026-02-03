@@ -117,8 +117,16 @@ export function GitHubConnectModal({ workspace, onClose, onSuccess }: GitHubConn
         }
         // If pending, continue polling
       } catch (err) {
-        console.error('Polling error:', err);
-        // Don't stop on network errors, keep trying
+        console.error('[GitHub Connect] Polling error:', err);
+        // Check if this is a fatal error (404 = no active flow)
+        if (err instanceof Error && err.message.includes('404')) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+          }
+          setError('Authentication session expired. Please try again.');
+          setStage('error');
+        }
+        // Otherwise don't stop on network errors, keep trying
       }
     }, 5000);
   };

@@ -7,6 +7,7 @@ import { repoRegistry } from '../config/repos.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import https from 'https';
 
 const router = Router();
 
@@ -286,11 +287,15 @@ router.get('/:id/github/status', async (req: Request, res: Response) => {
     const flow = activeDeviceFlows.get(req.params.id);
 
     if (!flow) {
+      console.log(`[GitHub Auth] No active flow found for workspace ${req.params.id}`);
+      console.log(`[GitHub Auth] Active flows:`, Array.from(activeDeviceFlows.keys()));
       return res.status(404).json({
         success: false,
         error: 'No active authentication flow for this workspace',
       });
     }
+
+    console.log(`[GitHub Auth] Polling for workspace ${req.params.id}, device code: ${flow.deviceCode.substring(0, 8)}...`);
 
     // Check if expired
     if (Date.now() > flow.expiresAt) {
@@ -300,8 +305,10 @@ router.get('/:id/github/status', async (req: Request, res: Response) => {
 
     // Poll for token
     const result = await flow.auth.pollForToken(flow.deviceCode);
+    console.log(`[GitHub Auth] Poll result:`, result.status, result.error || 'no error');
 
     if (result.status === 'success' && result.token) {
+      console.log(`[GitHub Auth] Success! Got access token for user`);
       // Get user info
       const user = await flow.auth.getUser(result.token.accessToken);
 
@@ -736,6 +743,249 @@ router.post('/migrate', (_req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : 'Migration failed';
     console.error('Migration failed:', error);
     res.status(500).json({ success: false, error: message });
+  }
+});
+
+// ============================================
+// GitHub Personal Access Token (PAT) Routes
+// ============================================
+
+/**
+ * POST /workspaces/:workspaceId/github-pat/test
+ * Validate a GitHub Personal Access Token
+ */
+router.post('/:workspaceId/github-pat/test', async (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    const { token } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Token is required',
+      });
+    }
+
+    // Validate token format
+    if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token format. GitHub tokens start with "ghp_" or "github_pat_"',
+      });
+    }
+
+    // Verify workspace exists
+    const workspace = workspaceManager.get(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workspace not found',
+      });
+    }
+
+    // Test token by calling GitHub API
+    const options = {
+      hostname: 'api.github.com',
+      path: '/user',
+      method: 'GET',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'ClaudeDesk-App',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    };
+
+    const response = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => resolve({ statusCode: res.statusCode || 0, body }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    if (response.statusCode === 200) {
+      const userData = JSON.parse(response.body);
+
+      return res.json({
+        success: true,
+        username: userData.login,
+        scopes: ['repo'], // Simplified - assume repo scope
+        expiration: null, // GitHub doesn't provide expiration via API
+        avatarUrl: userData.avatar_url,
+        profileUrl: userData.html_url,
+      });
+    } else if (response.statusCode === 401) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token. The token may be expired or revoked.',
+      });
+    } else if (response.statusCode === 403) {
+      return res.status(403).json({
+        success: false,
+        error: 'Token lacks required permissions or rate limit exceeded.',
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: `GitHub API error: ${response.statusCode}`,
+      });
+    }
+  } catch (error) {
+    console.error('[GitHubPAT] Token validation error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to validate token',
+    });
+  }
+});
+
+/**
+ * POST /workspaces/:workspaceId/github-pat
+ * Save a GitHub Personal Access Token for a workspace
+ */
+router.post('/:workspaceId/github-pat', async (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    const { token, username, scopes, expiresAt } = req.body;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Token is required',
+      });
+    }
+
+    if (!username || typeof username !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Username is required',
+      });
+    }
+
+    if (!Array.isArray(scopes)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Scopes must be an array',
+      });
+    }
+
+    // Verify workspace exists
+    const workspace = workspaceManager.get(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workspace not found',
+      });
+    }
+
+    // Save encrypted PAT
+    await workspaceManager.setGitHubPAT(
+      workspaceId,
+      token,
+      username,
+      scopes,
+      expiresAt || null
+    );
+
+    console.log(`[GitHubPAT] Token saved for workspace ${workspaceId}, user ${username}`);
+
+    return res.json({
+      success: true,
+      message: 'Token saved successfully',
+    });
+  } catch (error) {
+    console.error('[GitHubPAT] Token save error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to save token',
+    });
+  }
+});
+
+/**
+ * GET /workspaces/:workspaceId/github-pat/status
+ * Get GitHub PAT status (metadata without decrypted token)
+ */
+router.get('/:workspaceId/github-pat/status', (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+
+    // Verify workspace exists
+    const workspace = workspaceManager.get(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workspace not found',
+      });
+    }
+
+    // Get PAT metadata
+    const metadata = workspaceManager.getGitHubPATMetadata(workspaceId);
+
+    if (!metadata) {
+      return res.json({
+        success: true,
+        configured: false,
+      });
+    }
+
+    // Get expiration status
+    const expirationStatus = workspaceManager.getGitHubPATExpirationStatus(workspaceId);
+
+    return res.json({
+      success: true,
+      configured: true,
+      username: metadata.username,
+      scopes: metadata.scopes,
+      expiresAt: metadata.expiresAt,
+      createdAt: metadata.createdAt,
+      expired: expirationStatus.expired,
+      daysUntilExpiration: expirationStatus.daysUntilExpiration,
+    });
+  } catch (error) {
+    console.error('[GitHubPAT] Status check error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get token status',
+    });
+  }
+});
+
+/**
+ * DELETE /workspaces/:workspaceId/github-pat
+ * Delete GitHub Personal Access Token for a workspace
+ */
+router.delete('/:workspaceId/github-pat', (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+
+    // Verify workspace exists
+    const workspace = workspaceManager.get(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        error: 'Workspace not found',
+      });
+    }
+
+    // Delete PAT
+    workspaceManager.clearGitHubPAT(workspaceId);
+
+    console.log(`[GitHubPAT] Token deleted for workspace ${workspaceId}`);
+
+    return res.json({
+      success: true,
+      message: 'Token deleted successfully',
+    });
+  } catch (error) {
+    console.error('[GitHubPAT] Token deletion error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete token',
+    });
   }
 });
 
