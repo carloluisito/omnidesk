@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1] - 2026-02-03
+
+### Fixed
+- **Budget Allocator Cost Estimation** — Fixed inflated per-message cost estimates that were showing up to 22% for minimal conversations. The `estimateMessageCost()` function was incorrectly dividing total quota change (from recent history samples) by global API call count (all-time total), creating a mismatch between time windows. Now calculates average quota increase between consecutive utilization samples for accurate estimates. Each sample represents approximately one API call, providing proper per-message cost calculation based on recent usage patterns.
+
 ## [3.8.0] - 2026-02-03
 
 ### Added
