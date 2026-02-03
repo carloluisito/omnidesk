@@ -228,29 +228,43 @@ class AllocatorManager {
       return defaultResult;
     }
 
-    // Use samples from the last 30 minutes
+    // Minimum time delta for reliable burn rate calculation (1 minute)
+    const MIN_DELTA_MS = 60 * 1000;
+
+    // Helper function to find samples with sufficient time delta
+    const findSamplesWithDelta = (samples: UtilizationSample[], minDeltaMs: number): { first: UtilizationSample; last: UtilizationSample; deltaMs: number } | null => {
+      if (samples.length < 2) return null;
+
+      const last = samples[samples.length - 1];
+      // Search backwards for a sample with sufficient time delta
+      for (let i = samples.length - 2; i >= 0; i--) {
+        const deltaMs = new Date(last.timestamp).getTime() - new Date(samples[i].timestamp).getTime();
+        if (deltaMs >= minDeltaMs) {
+          return { first: samples[i], last, deltaMs };
+        }
+      }
+      return null;
+    };
+
+    // Try to use samples from the last 30 minutes
     const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
     const recentSamples = history.filter(s => new Date(s.timestamp).getTime() >= thirtyMinAgo);
 
-    if (recentSamples.length < 2) {
-      // Fall back to last 2 samples
-      const last = history[history.length - 1];
-      const prev = history[history.length - 2];
-      const deltaMs = new Date(last.timestamp).getTime() - new Date(prev.timestamp).getTime();
-      if (deltaMs <= 0) return defaultResult;
+    // Try recent samples first
+    let samplesWithDelta = findSamplesWithDelta(recentSamples, MIN_DELTA_MS);
 
-      const hoursElapsed = deltaMs / (1000 * 60 * 60);
-      const rate5h = (last.fiveHour - prev.fiveHour) / hoursElapsed;
-      const rate7d = (last.sevenDay - prev.sevenDay) / hoursElapsed;
-
-      return this.buildBurnRateResult(rate5h, rate7d, last, history.length);
+    // If recent samples don't have sufficient delta, fall back to all history
+    if (!samplesWithDelta) {
+      samplesWithDelta = findSamplesWithDelta(history, MIN_DELTA_MS);
     }
 
-    const first = recentSamples[0];
-    const last = recentSamples[recentSamples.length - 1];
-    const deltaMs = new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime();
-    if (deltaMs <= 0) return defaultResult;
+    // If still no samples with sufficient delta, return stable rate (0)
+    if (!samplesWithDelta) {
+      const last = history[history.length - 1];
+      return this.buildBurnRateResult(0, 0, last, history.length);
+    }
 
+    const { first, last, deltaMs } = samplesWithDelta;
     const hoursElapsed = deltaMs / (1000 * 60 * 60);
     const rate5h = (last.fiveHour - first.fiveHour) / hoursElapsed;
     const rate7d = (last.sevenDay - first.sevenDay) / hoursElapsed;
