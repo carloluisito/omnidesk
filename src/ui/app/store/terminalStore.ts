@@ -762,6 +762,21 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
             }
             break;
 
+          case 'phase-changed':
+            // Workflow phase changed
+            if (sessionId && message.phase) {
+              console.log(`[Terminal] Phase changed to ${message.phase} for session ${sessionId}`);
+            }
+            break;
+
+          case 'workflow-blocked':
+            // Git operation blocked by workflow enforcement
+            if (sessionId && message.message) {
+              console.warn('[Terminal] Workflow blocked:', message.message);
+              // Note: Toast notification will be shown by MissionControl WebSocket listener
+            }
+            break;
+
           case 'bookmark-changed':
             if (sessionId && typeof message.isBookmarked === 'boolean') {
               get().updateSession(sessionId, {

@@ -21,11 +21,14 @@ import { RepoDock, RepoStatus } from './RepoDock';
 import { PromptPhase } from './phases/PromptPhase';
 import { ReviewPhase, FileChange } from './phases/ReviewPhase';
 import { ShipPhase } from './phases/ShipPhase';
+import { CloseWorktreeDialog } from '../terminal/CloseWorktreeDialog';
 
 import { useTerminalStore } from '../../store/terminalStore';
 import { useTerminalUIStore } from '../../store/terminalUIStore';
 import { useAppStore } from '../../store/appStore';
 import { useTerminal } from '../../hooks/useTerminal';
+import { useWorkflowPhase } from '../../hooks/useWorkflowPhase';
+import { useToast } from '../../hooks/useToast';
 import { MessageItem } from '../terminal/MessageItem';
 import { Composer } from '../terminal/v2/Composer';
 import { OverlayManager } from '../terminal/overlays';
@@ -55,6 +58,7 @@ export default function MissionControl() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialPhase = (searchParams.get('phase') as Phase) || 'prompt';
+  const toast = useToast();
 
   // Stores
   const terminal = useTerminal();
@@ -74,6 +78,13 @@ export default function MissionControl() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [existingPR, setExistingPR] = useState<ExistingPR | null>(null);
   const [commitsAheadOfBase, setCommitsAheadOfBase] = useState(0);
+
+  // Close worktree dialog state
+  const [closeWorktreeDialog, setCloseWorktreeDialog] = useState<{
+    isOpen: boolean;
+    sessionId: string | null;
+    resolve?: (value: void) => void;
+  }>({ isOpen: false, sessionId: null });
 
   // Quota state
   const [quota, setQuota] = useState<ClaudeUsageQuota | null>(null);
@@ -169,6 +180,55 @@ export default function MissionControl() {
     lastAssistantIndex,
     fetchGitStatus,
   } = terminal;
+
+  // Handle closing a session (with worktree check)
+  const handleCloseSession = useCallback(async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+
+    // If this is a worktree session that owns its worktree, show dialog
+    if (session?.worktreeMode && session.ownsWorktree) {
+      // Create a promise that will resolve when the dialog is closed
+      return new Promise<void>((resolve) => {
+        setCloseWorktreeDialog({ isOpen: true, sessionId, resolve });
+      });
+    } else {
+      // Non-worktree session or borrowed worktree - close immediately
+      await closeSession(sessionId);
+    }
+  }, [sessions, closeSession]);
+
+  // Handle dialog confirmation
+  const handleWorktreeDialogConfirm = useCallback(async (option: 'keep' | 'deleteWorktree' | 'deleteBoth') => {
+    if (!closeWorktreeDialog.sessionId) return;
+
+    const deleteBranch = option === 'deleteBoth';
+    const deleteWorktree = option !== 'keep';
+    const { sessionId, resolve } = closeWorktreeDialog;
+
+    try {
+      await closeSession(sessionId, deleteBranch, deleteWorktree);
+
+      // Show success toast
+      const messages = {
+        keep: 'Session closed. Worktree preserved.',
+        deleteWorktree: 'Session and worktree deleted. Branch preserved.',
+        deleteBoth: 'Session, worktree, and branch deleted.',
+      };
+      toast.success(messages[option]);
+    } finally {
+      // Close dialog and resolve the promise
+      setCloseWorktreeDialog({ isOpen: false, sessionId: null });
+      if (resolve) resolve();
+    }
+  }, [closeWorktreeDialog, closeSession, toast]);
+
+  // Workflow phase synchronization
+  useWorkflowPhase({
+    sessionId: activeSessionId,
+    currentPhase: activePhase,
+    onPhaseChange: setActivePhase,
+    enabled: true,
+  });
 
   // Reset acknowledged threshold when enforcement clears
   useEffect(() => {
@@ -319,6 +379,32 @@ export default function MissionControl() {
       registerIdeaWSHandlers(terminalWs);
     }
   }, [terminalWs]);
+
+  // Listen for workflow-blocked events
+  useEffect(() => {
+    if (!terminalWs || !activeSessionId) return;
+
+    const handleWorkflowBlocked = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'workflow-blocked' && message.sessionId === activeSessionId) {
+          toast.error(message.message || 'Git operation blocked in current workflow phase', {
+            action: {
+              label: 'Go to Ship',
+              onClick: () => setActivePhase('ship'),
+            },
+          });
+        }
+      } catch (error) {
+        // Ignore parse errors
+      }
+    };
+
+    terminalWs.addEventListener('message', handleWorkflowBlocked);
+    return () => {
+      terminalWs.removeEventListener('message', handleWorkflowBlocked);
+    };
+  }, [terminalWs, activeSessionId, toast]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -613,7 +699,7 @@ export default function MissionControl() {
             <RepoDock
               repos={[]}
               onRepoClick={() => {}}
-              onRepoRemove={async () => {}}
+              onRepoRemove={handleCloseSession}
               ideaItems={ideaStore.ideas.filter(i => i.status !== 'promoted' && (ideaStore.openIdeaIds.has(i.id) || i.status === 'saved'))}
               activeIdeaId={ideaStore.activeIdeaId}
               onIdeaClick={(id) => ideaStore.switchIdea(id)}
@@ -922,9 +1008,7 @@ export default function MissionControl() {
               ideaStore.clearActiveIdea();
               switchSession(sessionId);
             }}
-            onRepoRemove={async (sessionId) => {
-              await closeSession(sessionId);
-            }}
+            onRepoRemove={handleCloseSession}
             ideaItems={ideaStore.ideas.filter(i => i.status !== 'promoted' && (ideaStore.openIdeaIds.has(i.id) || i.status === 'saved'))}
             activeIdeaId={ideaStore.activeIdeaId}
             onIdeaClick={(id) => ideaStore.switchIdea(id)}
@@ -963,6 +1047,43 @@ export default function MissionControl() {
               onClose={() => setShowPromoteModal(false)}
             />
           )}
+
+          {/* Close Worktree Dialog */}
+          {closeWorktreeDialog.isOpen && closeWorktreeDialog.sessionId && (() => {
+            const session = sessions.find(s => s.id === closeWorktreeDialog.sessionId);
+            if (!session) return null;
+
+            return (
+              <CloseWorktreeDialog
+                isOpen={true}
+                onClose={() => {
+                  const { resolve } = closeWorktreeDialog;
+                  setCloseWorktreeDialog({ isOpen: false, sessionId: null });
+                  if (resolve) resolve(); // Resolve without closing session (user cancelled)
+                }}
+                session={{
+                  id: session.id,
+                  name: session.name,
+                  branch: session.branch || 'unknown',
+                  worktreePath: session.worktreePath || '',
+                  baseBranch: session.baseBranch,
+                  ownsWorktree: session.ownsWorktree,
+                  status: session.status,
+                }}
+                gitStatus={session.gitStatus ? {
+                  modified: session.gitStatus.files?.filter((f: any) => f.status === 'modified').length || 0,
+                  staged: session.gitStatus.files?.filter((f: any) => f.status === 'staged').length || 0,
+                  untracked: session.gitStatus.files?.filter((f: any) => f.status === 'untracked' || f.status === 'created').length || 0,
+                } : undefined}
+                prInfo={existingPR && session.id === activeSessionId ? {
+                  number: existingPR.number,
+                  url: existingPR.url,
+                } : undefined}
+                unpushedCommits={commitsAheadOfBase && session.id === activeSessionId ? commitsAheadOfBase : undefined}
+                onConfirm={handleWorktreeDialogConfirm}
+              />
+            );
+          })()}
 
           {/* Overlay Manager for new session modal */}
           <OverlayManager
@@ -1236,9 +1357,7 @@ export default function MissionControl() {
           ideaStore.clearActiveIdea();
           switchSession(sessionId);
         }}
-        onRepoRemove={async (sessionId) => {
-          await closeSession(sessionId);
-        }}
+        onRepoRemove={handleCloseSession}
         ideaItems={ideaStore.ideas.filter(i => i.status !== 'promoted' && (ideaStore.openIdeaIds.has(i.id) || i.status === 'saved'))}
         activeIdeaId={ideaStore.activeIdeaId}
         onIdeaClick={(id) => {

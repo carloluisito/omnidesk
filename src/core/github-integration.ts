@@ -228,10 +228,11 @@ export class GitHubIntegration {
 
     // 403 Forbidden - Multiple possible causes
     if (statusCode === 403) {
-      // Organization access issue
+      // Organization access issue (including OAuth App access restrictions)
       if (
         message.toLowerCase().includes('resource not accessible') ||
-        message.toLowerCase().includes('not accessible by integration')
+        message.toLowerCase().includes('not accessible by integration') ||
+        message.toLowerCase().includes('oauth app access restrictions')
       ) {
         return {
           type: GitHubErrorType.ORG_ACCESS_REQUIRED,

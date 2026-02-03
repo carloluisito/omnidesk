@@ -44,6 +44,16 @@ export const DockerSettingsSchema = z.object({
 
 export type DockerSettings = z.infer<typeof DockerSettingsSchema>;
 
+// Workflow settings schema
+export const WorkflowSettingsSchema = z.object({
+  enforcementEnabled: z.boolean().default(true),
+  defaultPhase: z.enum(['prompt', 'review', 'ship']).default('prompt'),
+  autoResetAfterShip: z.boolean().default(true),
+  showBlockedNotifications: z.boolean().default(true),
+});
+
+export type WorkflowSettings = z.infer<typeof WorkflowSettingsSchema>;
+
 // Settings schema
 export const SettingsSchema = z.object({
   // Setup wizard completed
@@ -199,6 +209,9 @@ export const SettingsSchema = z.object({
     maxMessageLength: 4000,
     maxPromptTokens: 150000,
   }),
+
+  // Workflow enforcement settings
+  workflow: WorkflowSettingsSchema.optional(),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;
@@ -293,6 +306,12 @@ const DEFAULT_SETTINGS: Settings = {
     maxMessageLength: 4000,
     maxPromptTokens: 150000,
   },
+  workflow: {
+    enforcementEnabled: true,
+    defaultPhase: 'prompt',
+    autoResetAfterShip: true,
+    showBlockedNotifications: true,
+  },
 };
 
 export class SettingsManager {
@@ -354,6 +373,7 @@ export class SettingsManager {
         update: { ...DEFAULT_SETTINGS.update, ...parsed.update },
         mcp: { ...DEFAULT_SETTINGS.mcp, ...parsed.mcp },
         context: { ...DEFAULT_SETTINGS.context, ...parsed.context },
+        workflow: { ...DEFAULT_SETTINGS.workflow, ...parsed.workflow },
       });
 
       // Save if password was migrated
@@ -531,6 +551,9 @@ export class SettingsManager {
     if (updates.context) {
       this.settings.context = { ...this.settings.context, ...updates.context };
     }
+    if (updates.workflow) {
+      this.settings.workflow = { ...this.settings.workflow, ...updates.workflow };
+    }
 
     // Validate the merged settings
     this.settings = SettingsSchema.parse(this.settings);
@@ -626,6 +649,19 @@ export class SettingsManager {
     this.settings.context = { ...this.settings.context, ...updates };
     this.save();
     return this.getContext();
+  }
+
+  getWorkflow(): WorkflowSettings | undefined {
+    return this.settings.workflow ? { ...this.settings.workflow } : undefined;
+  }
+
+  updateWorkflow(updates: Partial<WorkflowSettings>): WorkflowSettings | undefined {
+    if (!this.settings.workflow) {
+      this.settings.workflow = { ...DEFAULT_SETTINGS.workflow! };
+    }
+    this.settings.workflow = { ...this.settings.workflow, ...updates };
+    this.save();
+    return this.getWorkflow();
   }
 
   setSetupCompleted(completed: boolean): void {

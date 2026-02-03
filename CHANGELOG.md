@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.3] - 2026-02-03
+
+### Added
+
+#### Worktree Session Close Confirmation
+- **CloseWorktreeDialog** component providing safe worktree management with three clear options:
+  - **Keep worktree** (recommended) — Close session but preserve worktree directory for later resumption
+  - **Delete worktree only** — Remove worktree directory, keep branch for checkout
+  - **Delete worktree and branch** — Complete cleanup when feature work is done
+- Smart context-aware warnings displaying:
+  - Uncommitted changes with file count
+  - Unpushed commits with commit count
+  - Active PR information with PR number
+  - Protected branch detection (main/master/develop)
+  - Session running state blocking close
+- Educational expandable section explaining worktree concepts and implications
+- Full keyboard navigation (Tab, Arrow keys, Enter, Escape) and screen reader support with ARIA labels
+- Color-coded radio options (green/amber/red) matching action severity
+- Monospace fonts for technical details (paths, branches) with terminal-inspired styling
+- Toast notifications confirming action taken after session close
+- Promise-based async flow ensuring UI properly waits for dialog confirmation before completing close operation
+
+#### Workflow Phase Enforcement
+- Workflow phase tracking per session (prompt/review/ship) with phase change timestamps
+- `WorkflowSettings` schema with configurable enforcement, default phase, auto-reset, and notification preferences
+- Per-session workflow enforcement override capability
+- Workflow phase synchronization via WebSocket broadcasts
+- Settings UI for workflow configuration in System settings
+- API endpoints: `GET /workspaces/:id/workflow`, `PATCH /workspaces/:id/workflow`
+
+### Changed
+- **Session close handler** (`MissionControl.tsx`) now checks `worktreeMode` and `ownsWorktree` before showing confirmation dialog
+- Non-worktree sessions and borrowed worktrees close immediately without interruption (preserves original behavior)
+- Dialog only appears for sessions that own their worktree, preventing accidental data loss
+
+### Fixed
+- **OAuth App access restrictions in ship-summary endpoint** (`terminal-routes.ts:3556-3712`) — When checking for existing PRs, the code now detects "no pull requests found" errors from `gh pr view` and skips GitHub API fallback. Previously, the API fallback always triggered even when `gh` CLI simply didn't find a PR (expected behavior), causing 403 errors for organizations with OAuth App access restrictions. The fix:
+  - Added `noPRFound` flag detection for "no pull requests found" message (line 3584-3587)
+  - Only attempts API fallback if `gh` CLI failed for reasons other than missing PR (line 3592)
+  - Added improved error logging for OAuth restrictions (line 3706-3711)
+- **OAuth error detection in PR creation** (`github-integration.ts:229-244`) — Updated `parseGitHubError` to recognize "oauth app access restrictions" message pattern and classify as `ORG_ACCESS_REQUIRED` error type. Previously, this specific error message wasn't detected, preventing proper fallback to `gh` CLI. Now enables automatic fallback chain: OAuth token → PAT (if configured) → `gh` CLI for organizations with OAuth restrictions.
+- **Worktree session close async flow** — Fixed bug where clicking X to close a worktree session would cause the UI to think the close operation completed immediately, before the user made a choice in the dialog. The async `handleCloseSession` function now returns a Promise that resolves only when user confirms an option or cancels the dialog, ensuring:
+  - RepoDock closing animation completes properly
+  - UI correctly waits for dialog interaction
+  - Session is only closed when user confirms (not when dialog opens)
+  - Promise resolves on both confirm and cancel actions
+
 ## [3.8.2] - 2026-02-03
 
 ### Fixed

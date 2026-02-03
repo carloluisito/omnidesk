@@ -99,6 +99,8 @@ export interface QueuedMessage {
   queuedAt: Date;
 }
 
+export type WorkflowPhase = 'prompt' | 'review' | 'ship';
+
 export interface TerminalSession {
   id: string;
   repoIds: string[];              // Array of repo IDs (first = primary)
@@ -136,6 +138,11 @@ export interface TerminalSession {
 
   // Budget allocator
   modelOverride?: string;         // Model override from budget degradation or manual switch
+
+  // Workflow enforcement
+  workflowPhase: WorkflowPhase;           // Current workflow phase
+  workflowPhaseChangedAt?: Date;          // When phase was last changed
+  workflowEnforcementOverride?: boolean;  // Per-session enforcement override
 }
 
 // Helper to get primary repo ID for backward compatibility
@@ -260,6 +267,10 @@ class TerminalSessionManager {
             branch,
             baseBranch,
             ownsWorktree,
+            // Workflow enforcement fields (migration: default to 'prompt' for legacy sessions)
+            workflowPhase: session.workflowPhase || 'prompt',
+            workflowPhaseChangedAt: session.workflowPhaseChangedAt ? new Date(session.workflowPhaseChangedAt) : undefined,
+            workflowEnforcementOverride: session.workflowEnforcementOverride,
           });
         }
         console.log(`[TerminalSession] Loaded ${this.sessions.size} sessions`);
@@ -302,6 +313,10 @@ class TerminalSessionManager {
           branch: session.branch,
           baseBranch: session.baseBranch,
           ownsWorktree: session.ownsWorktree,
+          // Workflow enforcement fields
+          workflowPhase: session.workflowPhase,
+          workflowPhaseChangedAt: session.workflowPhaseChangedAt,
+          workflowEnforcementOverride: session.workflowEnforcementOverride,
         })),
       };
 
@@ -494,6 +509,11 @@ class TerminalSessionManager {
 
     const id = this.generateId();
     const isMultiRepo = repoIds.length > 1;
+
+    // Get default workflow phase from settings
+    const settings = settingsManager.get();
+    const defaultPhase = settings.workflow?.defaultPhase || 'prompt';
+
     const session: TerminalSession = {
       id,
       repoIds,
@@ -505,6 +525,9 @@ class TerminalSessionManager {
       createdAt: new Date(),
       lastActivityAt: new Date(),
       isBookmarked: false,
+      // Workflow enforcement
+      workflowPhase: defaultPhase,
+      workflowPhaseChangedAt: new Date(),
     };
 
     // Set up worktree (mandatory for single-repo sessions)
@@ -633,6 +656,41 @@ class TerminalSessionManager {
     this.saveSessions();
   }
 
+  // Workflow phase management
+  setWorkflowPhase(sessionId: string, phase: WorkflowPhase): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    session.workflowPhase = phase;
+    session.workflowPhaseChangedAt = new Date();
+    this.saveSessions();
+
+    // Broadcast phase change via WebSocket
+    wsManager.broadcastToSession(sessionId, {
+      type: 'phase-changed',
+      sessionId,
+      phase,
+      changedAt: session.workflowPhaseChangedAt.toISOString(),
+    });
+  }
+
+  getWorkflowPhase(sessionId: string): WorkflowPhase {
+    const session = this.sessions.get(sessionId);
+    return session?.workflowPhase || 'prompt';
+  }
+
+  isEnforcementEnabled(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (session?.workflowEnforcementOverride !== undefined) {
+      return session.workflowEnforcementOverride;
+    }
+    // Fall back to global setting
+    const settings = settingsManager.get();
+    return settings.workflow?.enforcementEnabled ?? true;
+  }
+
   getAllSessions(): TerminalSession[] {
     return Array.from(this.sessions.values()).sort(
       (a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime()
@@ -664,6 +722,11 @@ class TerminalSessionManager {
     // Create new merged session with fresh history
     const id = this.generateId();
     const repoIds = Array.from(allRepoIds);
+
+    // Get default workflow phase from settings
+    const settings = settingsManager.get();
+    const defaultPhase = settings.workflow?.defaultPhase || 'prompt';
+
     const newSession: TerminalSession = {
       id,
       repoIds,
@@ -676,6 +739,9 @@ class TerminalSessionManager {
       createdAt: new Date(),
       lastActivityAt: new Date(),
       isBookmarked: false,
+      // Workflow enforcement
+      workflowPhase: defaultPhase,
+      workflowPhaseChangedAt: new Date(),
     };
 
     // Delete original sessions
@@ -739,6 +805,50 @@ class TerminalSessionManager {
 
     console.log(`[TerminalSession] Removed repo ${repoId} from session ${sessionId}`);
     return session;
+  }
+
+  // Bash command validation for workflow enforcement
+  private isGitWriteCommand(command: string): boolean {
+    const blockedPatterns = [
+      /\bgit\s+commit\b/i,
+      /\bgit\s+push\b/i,
+      /\bgh\s+pr\s+create\b/i,
+      /\bglab\s+mr\s+create\b/i,
+    ];
+
+    // Check if command contains blocked pattern
+    return blockedPatterns.some(pattern => pattern.test(command));
+  }
+
+  private validateBashCommand(
+    sessionId: string,
+    command: string
+  ): { allowed: boolean; error?: string } {
+    const session = this.sessions.get(sessionId);
+    if (!session) return { allowed: true };
+
+    // Skip validation if enforcement disabled
+    if (!this.isEnforcementEnabled(sessionId)) {
+      return { allowed: true };
+    }
+
+    const phase = session.workflowPhase;
+
+    // Ship phase allows everything
+    if (phase === 'ship') {
+      return { allowed: true };
+    }
+
+    // Check for blocked git commands
+    if (this.isGitWriteCommand(command)) {
+      return {
+        allowed: false,
+        error: `Git write operation blocked in ${phase.toUpperCase()} phase. ` +
+               `Please navigate to the Ship phase to commit and push changes.`,
+      };
+    }
+
+    return { allowed: true };
   }
 
   async sendMessage(sessionId: string, content: string, attachments?: MessageAttachment[], agentId?: string, agentChain?: string[]): Promise<void> {
@@ -861,6 +971,12 @@ class TerminalSessionManager {
 
     // Add safety instructions to prevent killing ClaudeDesk
     prompt = this.getSafetyInstructions() + '\n\n' + prompt;
+
+    // Add workflow enforcement guidance if enabled
+    const workflowGuidance = this.getWorkflowEnforcementGuidance(sessionId);
+    if (workflowGuidance) {
+      prompt = workflowGuidance + '\n\n' + prompt;
+    }
 
     if (session.mode === 'plan') {
       prompt = claudeInvoker.generatePlanPrompt(prompt);
@@ -1278,6 +1394,12 @@ class TerminalSessionManager {
 
         // Add safety instructions
         segmentPrompt = this.getSafetyInstructions() + '\n\n' + segmentPrompt;
+
+        // Add workflow enforcement guidance if enabled
+        const workflowGuidance = this.getWorkflowEnforcementGuidance(sessionId);
+        if (workflowGuidance) {
+          segmentPrompt = workflowGuidance + '\n\n' + segmentPrompt;
+        }
 
         // Plan mode wraps only the first agent
         if (segIdx === 0 && session.mode === 'plan') {
@@ -3149,6 +3271,49 @@ You are running inside ClaudeDesk, which uses ports 8787 (API) and 5173 (UI). If
 - Stop npm process: Find its PID first, then kill that specific PID
 
 **Before killing ANY port, verify it is NOT 8787 or 5173.**`;
+  }
+
+  // Workflow enforcement guidance for git operations
+  private getWorkflowEnforcementGuidance(sessionId: string): string | null {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    // Check if enforcement is enabled
+    if (!this.isEnforcementEnabled(sessionId)) {
+      return null;
+    }
+
+    const phase = session.workflowPhase;
+
+    // Ship phase allows everything - no guidance needed
+    if (phase === 'ship') {
+      return null;
+    }
+
+    return `## 🚦 WORKFLOW ENFORCEMENT ACTIVE
+
+**Current Phase: ${phase.toUpperCase()}**
+
+You are in the **${phase.toUpperCase()}** phase of the Prompt → Review → Ship workflow.
+
+**⚠️ GIT WRITE OPERATIONS ARE BLOCKED IN THIS PHASE ⚠️**
+
+**You CANNOT execute these commands:**
+- \`git commit\` - blocked
+- \`git push\` - blocked
+- \`gh pr create\` - blocked
+- \`glab mr create\` - blocked
+
+**You CAN use these commands freely:**
+- \`git status\`, \`git diff\`, \`git log\`, \`git show\` - ✅ allowed
+- Read, Edit, Write, Glob, Grep tools - ✅ allowed
+- All other development tools - ✅ allowed
+
+**If the user asks you to commit, push, or create a PR:**
+Respond with: "I cannot commit or push changes in the ${phase.toUpperCase()} phase. Please navigate to the **Ship** tab to commit and push your changes. This ensures all code is reviewed before shipping."
+
+**Current workflow phase: ${phase}**
+**Required phase for git operations: ship**`;
   }
 
   // Build worktree context for Claude prompt

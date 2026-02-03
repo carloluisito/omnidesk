@@ -19,6 +19,37 @@ import { allocatorManager } from '../core/allocator-manager.js';
 import { contextManager } from '../core/context-manager.js';
 
 /**
+ * Validates that a git write operation is allowed in the current workflow phase
+ */
+function validateWorkflowPhase(
+  session: TerminalSession,
+  operation: 'commit' | 'push' | 'ship'
+): { allowed: boolean; error?: string } {
+  const phase = session.workflowPhase || 'ship';
+
+  // Check if enforcement is enabled
+  const enforcementEnabled = session.workflowEnforcementOverride !== undefined
+    ? session.workflowEnforcementOverride
+    : (settingsManager.get().workflow?.enforcementEnabled ?? true);
+
+  if (!enforcementEnabled) {
+    return { allowed: true };
+  }
+
+  // Ship phase allows all operations
+  if (phase === 'ship') {
+    return { allowed: true };
+  }
+
+  // PROMPT and REVIEW phases block git write operations
+  return {
+    allowed: false,
+    error: `Cannot ${operation} in ${phase.toUpperCase()} phase. ` +
+           `Navigate to the Ship phase to commit and push changes.`,
+  };
+}
+
+/**
  * Try to refresh a GitLab token using the refresh token.
  * Returns the new access token if successful, null otherwise.
  * Also updates the workspace with the new token.
@@ -815,6 +846,70 @@ terminalRouter.get('/sessions/:id', (req: Request, res: Response) => {
         branch: session.branch,
         baseBranch: session.baseBranch,
         ownsWorktree: session.ownsWorktree,
+      },
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Get session workflow phase
+terminalRouter.get('/sessions/:id/phase', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const session = terminalSessionManager.getSession(id);
+
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    const enforcementEnabled = terminalSessionManager.isEnforcementEnabled(id);
+
+    res.json({
+      success: true,
+      data: {
+        workflowPhase: session.workflowPhase || 'prompt',
+        workflowPhaseChangedAt: session.workflowPhaseChangedAt?.toISOString(),
+        enforcementEnabled,
+      },
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: errorMsg });
+  }
+});
+
+// Set session workflow phase
+terminalRouter.patch('/sessions/:id/phase', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { phase } = req.body;
+
+    if (!['prompt', 'review', 'ship'].includes(phase)) {
+      res.status(400).json({
+        success: false,
+        error: 'invalid_phase',
+        validPhases: ['prompt', 'review', 'ship'],
+      });
+      return;
+    }
+
+    const session = terminalSessionManager.getSession(id);
+    if (!session) {
+      res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    terminalSessionManager.setWorkflowPhase(id, phase);
+
+    res.json({
+      success: true,
+      data: {
+        id,
+        workflowPhase: phase,
+        workflowPhaseChangedAt: session.workflowPhaseChangedAt?.toISOString(),
       },
     });
   } catch (error) {
@@ -2330,6 +2425,19 @@ terminalRouter.post('/sessions/:id/git-commit', (req: Request, res: Response) =>
       return;
     }
 
+    // Validate workflow phase
+    const phaseCheck = validateWorkflowPhase(session, 'commit');
+    if (!phaseCheck.allowed) {
+      res.status(403).json({
+        success: false,
+        error: 'workflow_phase_violation',
+        message: phaseCheck.error,
+        currentPhase: session.workflowPhase,
+        requiredPhase: 'ship',
+      });
+      return;
+    }
+
     const resolved = resolveSessionRepo(session, requestedRepoId);
     if (!resolved) {
       res.status(404).json({ success: false, error: 'Repository not found' });
@@ -2378,6 +2486,19 @@ terminalRouter.post('/sessions/:id/git-push', (req: Request, res: Response) => {
     const session = terminalSessionManager.getSession(id);
     if (!session) {
       res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    // Validate workflow phase
+    const phaseCheck = validateWorkflowPhase(session, 'push');
+    if (!phaseCheck.allowed) {
+      res.status(403).json({
+        success: false,
+        error: 'workflow_phase_violation',
+        message: phaseCheck.error,
+        currentPhase: session.workflowPhase,
+        requiredPhase: 'ship',
+      });
       return;
     }
 
@@ -3435,6 +3556,7 @@ terminalRouter.get('/sessions/:id/ship-summary', (req: Request, res: Response) =
       if (creds.platform === 'github') {
         // Try gh CLI first
         let ghWorked = false;
+        let noPRFound = false;
         try {
           const prJson = execSync(`gh pr view --json url,number,title,state`, {
             cwd: workingDir,
@@ -3454,13 +3576,20 @@ terminalRouter.get('/sessions/:id/ship-summary', (req: Request, res: Response) =
             console.log(`[ship-summary] Found existing PR via gh CLI:`, existingPR);
           }
         } catch (ghErr: unknown) {
-          // gh not available or no PR - try API fallback
           const err = ghErr as { message?: string; stderr?: string };
-          console.log(`[ship-summary] gh pr view failed:`, err.message || err.stderr || 'unknown error');
+          const errMsg = err.message || err.stderr || 'unknown error';
+          console.log(`[ship-summary] gh pr view failed:`, errMsg);
+
+          // Check if error is just "no pull requests found" - this is not an auth error
+          if (errMsg.toLowerCase().includes('no pull requests found')) {
+            noPRFound = true;
+            console.log(`[ship-summary] No PR exists yet, skipping API fallback`);
+          }
         }
 
-        // If gh CLI didn't work, try GitHub API with OAuth token
-        if (!ghWorked && creds.token) {
+        // Only try API fallback if gh CLI failed for reasons other than "no PR found"
+        // This avoids OAuth App access restriction errors from organizations
+        if (!ghWorked && !noPRFound && creds.token) {
           console.log(`[ship-summary] Trying GitHub API fallback with token`);
 
           // Helper function to make the API call with a given token
@@ -3574,7 +3703,12 @@ try {
             };
             console.log(`[ship-summary] Found existing PR via GitHub API:`, existingPR);
           } else {
-            console.log(`[ship-summary] No PR found via GitHub API, error:`, result.error);
+            // Check if this is an OAuth App access restriction error
+            if (result.status === 403 && result.error && result.error.includes('OAuth App access restrictions')) {
+              console.log(`[ship-summary] OAuth App access restrictions detected. Organization has restricted API access. Relying on gh CLI for this repository.`);
+            } else {
+              console.log(`[ship-summary] No PR found via GitHub API, error:`, result.error);
+            }
           }
         }
       } else if (creds.platform === 'gitlab') {
@@ -3741,6 +3875,7 @@ try {
         cwd: workingDir,
         encoding: 'utf-8',
         timeout: 5000,
+        stdio: ['pipe', 'pipe', 'pipe'],
       }).trim();
       unpushedCommits = parseInt(count, 10) || 0;
     } catch {
@@ -3751,6 +3886,7 @@ try {
           cwd: workingDir,
           encoding: 'utf-8',
           timeout: 5000,
+          stdio: ['pipe', 'pipe', 'pipe'],
         }).trim(), 10) || 0;
       } catch {
         unpushedCommits = 0;
@@ -3838,6 +3974,7 @@ try {
             cwd: workingDir,
             encoding: 'utf-8',
             timeout: 5000,
+            stdio: ['pipe', 'pipe', 'pipe'],
           });
         } catch {
           // Try local base branch
@@ -3847,6 +3984,7 @@ try {
               cwd: workingDir,
               encoding: 'utf-8',
               timeout: 5000,
+              stdio: ['pipe', 'pipe', 'pipe'],
             });
           } catch {
             // No base branch found, skip
@@ -4114,6 +4252,19 @@ terminalRouter.post('/sessions/:id/ship', async (req: Request, res: Response) =>
     const session = terminalSessionManager.getSession(id);
     if (!session) {
       res.status(404).json({ success: false, error: 'Session not found' });
+      return;
+    }
+
+    // Validate workflow phase
+    const phaseCheck = validateWorkflowPhase(session, 'ship');
+    if (!phaseCheck.allowed) {
+      res.status(403).json({
+        success: false,
+        error: 'workflow_phase_violation',
+        message: phaseCheck.error,
+        currentPhase: session.workflowPhase,
+        requiredPhase: 'ship',
+      });
       return;
     }
 
