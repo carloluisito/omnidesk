@@ -311,22 +311,29 @@ class AllocatorManager {
     let basis = 'Based on default estimates';
 
     if (history.length >= 3) {
-      // Calculate average delta per message using utilization samples
-      // We estimate by looking at how much utilization changed per message in usage-manager
-      const globalUsage = usageManager.getGlobalUsage();
-      const totalMessages = globalUsage.totalApiCalls;
+      // Calculate average delta between consecutive samples
+      let totalDelta5h = 0;
+      let totalDelta7d = 0;
+      let sampleCount = 0;
 
-      if (totalMessages > 0 && history.length >= 2) {
-        const first = history[0];
-        const last = history[history.length - 1];
-        const totalDelta5h = Math.max(0, last.fiveHour - first.fiveHour);
-        const totalDelta7d = Math.max(0, last.sevenDay - first.sevenDay);
+      for (let i = 1; i < history.length; i++) {
+        const delta5h = history[i].fiveHour - history[i - 1].fiveHour;
+        const delta7d = history[i].sevenDay - history[i - 1].sevenDay;
 
-        // Simple: total quota change / total messages
-        avgPercent5h = totalDelta5h / totalMessages || 0.8;
-        avgPercent7d = totalDelta7d / totalMessages || 0.3;
-        confidence = totalMessages > 10 ? 'high' : 'medium';
-        basis = 'Based on average costs';
+        // Only count positive deltas (actual usage increases)
+        if (delta5h > 0) {
+          totalDelta5h += delta5h;
+          totalDelta7d += delta7d;
+          sampleCount++;
+        }
+      }
+
+      if (sampleCount > 0) {
+        // Average delta per sample (each sample represents ~1 API call/message)
+        avgPercent5h = totalDelta5h / sampleCount;
+        avgPercent7d = totalDelta7d / sampleCount;
+        confidence = sampleCount >= 5 ? 'high' : sampleCount >= 3 ? 'medium' : 'low';
+        basis = `Based on ${sampleCount} recent samples`;
       }
     }
 
