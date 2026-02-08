@@ -44,12 +44,12 @@ jobs:
       with:
         name: claudedesk-${{ matrix.platform }}
         path: |
-          release/**/*.exe
-          release/**/*.dmg
-          release/**/*.AppImage
-          release/**/*.deb
-          release/**/*.rpm
-        if-no-files-found: error
+          release/*Setup*.exe
+          release/*.dmg
+          release/*.AppImage
+          release/*.deb
+          release/*.rpm
+        if-no-files-found: warn
 
   publish-npm:
     name: Publish to npm
@@ -103,7 +103,7 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          artifacts/**/*.exe
+          artifacts/**/*Setup*.exe
           artifacts/**/*.dmg
           artifacts/**/*.AppImage
           artifacts/**/*.deb
