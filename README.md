@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-4.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-4.1.1-green.svg)
 
 > A powerful desktop terminal for Claude Code CLI with multi-session management, split-view layouts, and advanced productivity features.
 
@@ -219,17 +219,20 @@ claudedesk/
 │   │   ├── index.ts       # App entry point
 │   │   ├── cli-manager.ts # PTY spawning & Claude CLI lifecycle
 │   │   ├── session-manager.ts
-│   │   ├── quota-service.ts
-│   │   └── ipc-handlers.ts
-│   ├── preload/           # Context bridge
+│   │   ├── ipc-handlers.ts   # Handler implementations (uses IPCRegistry)
+│   │   ├── ipc-registry.ts   # Typed handler registration + auto-cleanup
+│   │   ├── ipc-emitter.ts    # Type-safe main→renderer push events
+│   │   └── quota-service.ts
+│   ├── preload/           # Context bridge (auto-generated from contract)
 │   │   └── index.ts
 │   ├── renderer/          # React app (UI)
 │   │   ├── App.tsx
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   └── utils/
-│   └── shared/            # Shared types
-│       └── ipc-types.ts
+│   └── shared/            # Shared types & IPC contract
+│       ├── ipc-contract.ts   # Single source of truth for all IPC methods
+│       └── ipc-types.ts      # Data type definitions
 ├── resources/             # Icons and assets
 ├── dist/                  # Build output
 └── release/               # Packaged apps

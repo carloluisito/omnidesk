@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SessionManager } from './session-manager';
+import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
 import { PromptTemplatesManager } from './prompt-templates-manager';
 import { HistoryManager } from './history-manager';
@@ -15,6 +16,7 @@ const isDev = process.env.ELECTRON_IS_DEV === 'true' ||
 
 let mainWindow: BrowserWindow | null = null;
 let sessionManager: SessionManager | null = null;
+let sessionPool: SessionPool | null = null;
 let settingsManager: SettingsManager | null = null;
 let templatesManager: PromptTemplatesManager | null = null;
 let historyManager: HistoryManager | null = null;
@@ -107,7 +109,17 @@ function createWindow(): void {
   templatesManager = new PromptTemplatesManager();
   historyManager = new HistoryManager();
   checkpointManager = new CheckpointManager(historyManager);
-  sessionManager = new SessionManager(historyManager);
+
+  // Create session pool with config
+  const poolSettings = settingsManager.getSessionPoolSettings();
+  sessionPool = new SessionPool({
+    size: poolSettings.poolSize,
+    enabled: poolSettings.enabled,
+    maxIdleTimeMs: poolSettings.maxIdleTimeMs,
+  });
+
+  // Create session manager with pool reference
+  sessionManager = new SessionManager(historyManager, sessionPool);
   sessionManager.initialize();
 
   // Validate split view state against current sessions
@@ -115,15 +127,25 @@ function createWindow(): void {
   const validSessionIds = sessionList.sessions.map(s => s.id);
   settingsManager.validateSplitViewState(validSessionIds);
 
-  // Setup IPC handlers
+  // Setup IPC handlers with pool reference
   setupIPCHandlers(
     mainWindow,
     sessionManager,
     settingsManager,
     templatesManager,
     historyManager,
-    checkpointManager
+    checkpointManager,
+    sessionPool
   );
+
+  // Initialize pool (delayed, async)
+  setTimeout(() => {
+    if (sessionPool) {
+      sessionPool.initialize().catch(err => {
+        console.error('Failed to initialize session pool:', err);
+      });
+    }
+  }, 2500); // 2.5 second delay to avoid slowing app startup
 
   // Run history cleanup on startup
   historyManager.runCleanup().catch(err => {
@@ -159,6 +181,10 @@ function createWindow(): void {
     if (sessionManager) {
       sessionManager.destroyAll();
       sessionManager = null;
+    }
+    if (sessionPool) {
+      sessionPool.destroy();
+      sessionPool = null;
     }
     mainWindow = null;
   });

@@ -6,6 +6,7 @@ import { ConfirmDialog } from './ui/ConfirmDialog';
 import { DragDropOverlay } from './DragDropOverlay';
 import { DragDropContextMenu } from './DragDropContextMenu';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
+import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
 import 'xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
@@ -308,28 +309,18 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
 
   // Check if output indicates Claude is ready
   const checkClaudeReady = useCallback((data: string) => {
-    if (!isClaudeReady) {
-      // Detect Claude's welcome screen or prompt
-      // Look for patterns like "Claude Code", "Welcome back", or the prompt ">"
-      if (data.includes('Claude Code') ||
-          data.includes('Welcome back') ||
-          data.includes('Sonnet') ||
-          data.includes('Opus') ||
-          data.includes('Haiku') ||
-          data.includes('Tips for getting started') ||
-          data.includes('Recent activity')) {
-        setIsClaudeReady(true);
-      }
+    if (!isClaudeReady && checkClaudeReadyPatterns(data)) {
+      setIsClaudeReady(true);
     }
   }, [isClaudeReady]);
 
-  // Fallback timeout: show terminal after 5 seconds even if Claude not detected
+  // Fallback timeout: show terminal after 2 seconds even if Claude not detected
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!isClaudeReady) {
         setIsClaudeReady(true);
       }
-    }, 5000);
+    }, 2000);
 
     return () => clearTimeout(timeout);
   }, [isClaudeReady]);
@@ -526,24 +517,18 @@ export function MultiTerminal({
         const newBuffer = currentBuffer + data;
         outputBuffersRef.current.set(sessionId, newBuffer);
 
-        // Check if Claude is ready by looking for patterns
-        if (newBuffer.includes('Claude Code') ||
-            newBuffer.includes('Welcome back') ||
-            newBuffer.includes('Sonnet') ||
-            newBuffer.includes('Opus') ||
-            newBuffer.includes('Haiku')) {
+        // Check if Claude is ready using centralized detection
+        if (checkClaudeReadyPatterns(newBuffer)) {
 
-          // Find where Claude's output starts by looking for the box drawing characters
-          // Claude's welcome screen starts with escape sequences and box borders
+          // Find where Claude's output starts
           let startIndex = 0;
 
-          // Strategy 1: Look for the escape sequence that starts the box (most reliable)
+          // Strategy 1: Look for escape sequence that starts the welcome box
           const escapeIndex = newBuffer.indexOf('\x1b[');
           if (escapeIndex !== -1) {
-            // Found escape sequence, likely start of Claude's output
             startIndex = escapeIndex;
           } else {
-            // Strategy 2: Look for box drawing characters (┌, ╭, etc.)
+            // Strategy 2: Look for box drawing characters
             const boxChars = ['┌', '╭', '┏'];
             for (const char of boxChars) {
               const boxIndex = newBuffer.indexOf(char);
@@ -553,17 +538,16 @@ export function MultiTerminal({
               }
             }
 
-            // Strategy 3: If no box found, look for "Claude Code" and go back to line start
+            // Strategy 3: Find earliest pattern match and go back to line start
             if (startIndex === 0) {
-              const claudeIndex = newBuffer.indexOf('Claude Code');
-              if (claudeIndex !== -1) {
-                // Find the start of this line (last newline before Claude Code)
-                const beforeClaude = newBuffer.substring(0, claudeIndex);
+              const patternIndex = findClaudeOutputStart(newBuffer);
+              if (patternIndex !== -1) {
+                const beforePattern = newBuffer.substring(0, patternIndex);
                 const lastNewline = Math.max(
-                  beforeClaude.lastIndexOf('\n'),
-                  beforeClaude.lastIndexOf('\r')
+                  beforePattern.lastIndexOf('\n'),
+                  beforePattern.lastIndexOf('\r')
                 );
-                startIndex = lastNewline !== -1 ? lastNewline + 1 : claudeIndex;
+                startIndex = lastNewline !== -1 ? lastNewline + 1 : patternIndex;
               }
             }
           }

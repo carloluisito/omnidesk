@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Workspace, WorkspaceValidationResult, PermissionMode } from '../../../shared/ipc-types';
+import { Workspace, WorkspaceValidationResult, PermissionMode, SessionPoolSettings } from '../../../shared/ipc-types';
 import { PromptTemplate } from '../../../shared/types/prompt-templates';
 import { TemplateEditor } from '../TemplateEditor';
 import { DragDropSettings } from '../DragDropSettings';
@@ -31,7 +31,7 @@ export function SettingsDialog({
   onValidatePath,
 }: SettingsDialogProps) {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'workspaces' | 'templates' | 'dragdrop'>('workspaces');
+  const [activeTab, setActiveTab] = useState<'general' | 'workspaces' | 'templates' | 'dragdrop'>('general');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editing, setEditing] = useState<EditingState>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -41,6 +41,14 @@ export function SettingsDialog({
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [deleteTemplateConfirm, setDeleteTemplateConfirm] = useState<string | null>(null);
+
+  // Session pool state
+  const [poolSettings, setPoolSettings] = useState<SessionPoolSettings>({
+    enabled: true,
+    poolSize: 1,
+    maxIdleTimeMs: 300000,
+  });
+  const [poolStatus, setPoolStatus] = useState<{ idleCount: number; enabled: boolean; size: number } | null>(null);
 
   // Add form state
   const [newName, setNewName] = useState('');
@@ -61,6 +69,7 @@ export function SettingsDialog({
       setError(null);
       resetAddForm();
       loadTemplates();
+      loadPoolSettings();
     }
   }, [isOpen]);
 
@@ -70,6 +79,49 @@ export function SettingsDialog({
       setTemplates(userTemplates);
     } catch (err) {
       console.error('Failed to load templates:', err);
+    }
+  };
+
+  const loadPoolSettings = async () => {
+    try {
+      const settings = await window.electronAPI.getSettings();
+      if (settings.sessionPoolSettings) {
+        setPoolSettings(settings.sessionPoolSettings);
+      }
+      await loadPoolStatus();
+    } catch (err) {
+      console.error('Failed to load session pool settings:', err);
+    }
+  };
+
+  const loadPoolStatus = async () => {
+    try {
+      const status = await window.electronAPI.getSessionPoolStatus();
+      setPoolStatus(status);
+    } catch (err) {
+      console.error('Failed to load session pool status:', err);
+    }
+  };
+
+  const handlePoolToggle = async (enabled: boolean) => {
+    try {
+      const updated = await window.electronAPI.updateSessionPoolSettings({ enabled });
+      setPoolSettings(updated);
+      await loadPoolStatus();
+    } catch (err) {
+      console.error('Failed to update pool settings:', err);
+    }
+  };
+
+  const handlePoolSizeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    try {
+      const poolSize = Number(e.target.value);
+      const updated = await window.electronAPI.updateSessionPoolSettings({ poolSize });
+      setPoolSettings(updated);
+      // Delay status refresh to let pool adjust
+      setTimeout(loadPoolStatus, 500);
+    } catch (err) {
+      console.error('Failed to update pool size:', err);
     }
   };
 
@@ -283,6 +335,16 @@ export function SettingsDialog({
         {/* Tabs */}
         <div className="settings-tabs">
           <button
+            className={`settings-tab ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('general')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6m4.22-13.22l-1.42 1.42M7.76 16.24l-1.42 1.42m13.9-1.42l-1.42-1.42M7.76 7.76L6.34 6.34M23 12h-6m-6 0H1" />
+            </svg>
+            General
+          </button>
+          <button
             className={`settings-tab ${activeTab === 'workspaces' ? 'active' : ''}`}
             onClick={() => setActiveTab('workspaces')}
           >
@@ -313,6 +375,73 @@ export function SettingsDialog({
         </div>
 
         <div className="settings-body">
+          {/* General Section */}
+          {activeTab === 'general' && (
+          <div className="settings-section">
+            <div className="section-header">
+              <h3 className="section-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v6m0 6v6m4.22-13.22l-1.42 1.42M7.76 16.24l-1.42 1.42m13.9-1.42l-1.42-1.42M7.76 7.76L6.34 6.34M23 12h-6m-6 0H1" />
+                </svg>
+                General Settings
+              </h3>
+            </div>
+
+            {/* Session Pool Settings */}
+            <div className="setting-group">
+              <h4 className="setting-group-title">Session Pool</h4>
+              <p className="setting-group-description">
+                Pre-spawn shell processes to speed up session creation. Saves ~150-250ms per session.
+              </p>
+
+              <div className="setting-item">
+                <label className="setting-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={poolSettings.enabled}
+                    onChange={(e) => handlePoolToggle(e.target.checked)}
+                  />
+                  <span className="checkbox-indicator" />
+                  <span className="checkbox-label">Enable Session Pool</span>
+                </label>
+              </div>
+
+              {poolSettings.enabled && (
+                <>
+                  <div className="setting-item">
+                    <label className="setting-label">
+                      Pool Size
+                      <select
+                        className="setting-select"
+                        value={poolSettings.poolSize}
+                        onChange={handlePoolSizeChange}
+                      >
+                        <option value={0}>Disabled (0)</option>
+                        <option value={1}>1 session (Recommended)</option>
+                        <option value={2}>2 sessions</option>
+                        <option value={3}>3 sessions</option>
+                      </select>
+                    </label>
+                    <p className="setting-hint">
+                      Number of pre-spawned idle shells. Higher values use more memory.
+                    </p>
+                  </div>
+
+                  {poolStatus && (
+                    <div className="pool-status">
+                      <p className="pool-status-label">Status:</p>
+                      <p className="pool-status-value">
+                        {poolStatus.idleCount} / {poolStatus.size} idle sessions ready
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          )}
+
           {/* Workspaces Section */}
           {activeTab === 'workspaces' && (
           <div className="settings-section">

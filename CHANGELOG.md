@@ -15,6 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.1] - 2026-02-09
+
+### Changed
+- **IPC Abstraction Layer** - Refactored IPC architecture to define each method once and auto-derive everything else
+  - New `ipc-contract.ts` — single source of truth for all IPC channels, args, and return types
+  - New `ipc-registry.ts` — typed handler registration with automatic cleanup
+  - New `ipc-emitter.ts` — type-safe main→renderer push events
+  - Reduced `ipc-handlers.ts` from 602 to ~290 lines
+  - Reduced `preload/index.ts` from 367 to ~55 lines (auto-generated bridge)
+  - Adding a new IPC method now requires changes to 2 files instead of 5
+
+### Removed
+- **Legacy terminal API** — Removed deprecated `sendTerminalInput`, `onTerminalOutput`, `resizeTerminal`, `terminalReady` methods
+- **Dead IPC channels** — Removed unused `TERMINAL_INPUT`, `TERMINAL_OUTPUT`, `TERMINAL_RESIZE`, `TERMINAL_READY`, `CHECKPOINT_CLEANUP_SESSION` channels
+- **Manual cleanup bugs** — 3 handlers that were missing from `removeIPCHandlers()` are now auto-cleaned by the registry
+
+### Fixed
+- **IPC handler cleanup** — All registered handlers and listeners are now properly removed on window close (previously 3 handlers were leaked)
+
+---
+
 ## [4.1.0] - 2026-02-08
 
 ### Added
@@ -152,6 +173,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...HEAD
+[4.1.1]: https://github.com/carloluisito/claudedesk/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/carloluisito/claudedesk/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v4.0.0

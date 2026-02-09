@@ -662,7 +662,7 @@ function App() {
         ) : (
           <MultiTerminal
             sessionIds={sessions.map(s => s.id)}
-            visibleSessionIds={sessions.map(s => s.id)}
+            visibleSessionIds={activeSessionId ? [activeSessionId] : []}
             focusedSessionId={activeSessionId}
             onInput={sendInput}
             onResize={resizeSession}

@@ -10,6 +10,7 @@ import {
   WorkspaceValidationResult,
   DragDropSettings,
   SplitViewState,
+  SessionPoolSettings,
   LayoutNode,
 } from '../shared/ipc-types';
 
@@ -39,6 +40,11 @@ function getDefaultSettings(): AppSettings {
         image: { insertMode: 'path' },
         binary: { insertMode: 'path' },
       },
+    },
+    sessionPoolSettings: {
+      enabled: true,
+      poolSize: 1,
+      maxIdleTimeMs: 300000, // 5 minutes
     },
   };
 }
@@ -119,6 +125,9 @@ export function loadSettings(): AppSettings {
       const defaults = getDefaultSettings();
       if (!settings.dragDropSettings) {
         settings.dragDropSettings = defaults.dragDropSettings;
+      }
+      if (!settings.sessionPoolSettings) {
+        settings.sessionPoolSettings = defaults.sessionPoolSettings;
       }
 
       return settings;
@@ -313,6 +322,21 @@ export class SettingsManager {
   updateSplitViewState(splitViewState: SplitViewState | null): void {
     this.settings.splitViewState = splitViewState;
     saveSettings(this.settings);
+  }
+
+  updateSessionPoolSettings(settings: Partial<SessionPoolSettings>): SessionPoolSettings {
+    const defaults = getDefaultSettings();
+    this.settings.sessionPoolSettings = {
+      ...(this.settings.sessionPoolSettings || defaults.sessionPoolSettings!),
+      ...settings,
+    };
+    saveSettings(this.settings);
+    return this.settings.sessionPoolSettings;
+  }
+
+  getSessionPoolSettings(): SessionPoolSettings {
+    const defaults = getDefaultSettings();
+    return this.settings.sessionPoolSettings || defaults.sessionPoolSettings!;
   }
 
   validateSplitViewState(validSessionIds: string[]): void {

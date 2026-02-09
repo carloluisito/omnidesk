@@ -16,6 +16,7 @@ import {
   saveCheckpointIndex,
 } from './checkpoint-persistence';
 import type { HistoryManager } from './history-manager';
+import { IPCEmitter } from './ipc-emitter';
 
 /**
  * Manages checkpoint creation, retrieval, and export
@@ -23,7 +24,7 @@ import type { HistoryManager } from './history-manager';
 export class CheckpointManager {
   private index: CheckpointIndex = { version: 1, checkpoints: {}, bySession: {} };
   private historyManager: HistoryManager;
-  private mainWindow: BrowserWindow | null = null;
+  private emitter: IPCEmitter | null = null;
 
   constructor(historyManager: HistoryManager) {
     this.historyManager = historyManager;
@@ -34,7 +35,7 @@ export class CheckpointManager {
    * Set main window for IPC events
    */
   setMainWindow(window: BrowserWindow): void {
-    this.mainWindow = window;
+    this.emitter = new IPCEmitter(window);
   }
 
   /**
@@ -121,7 +122,7 @@ export class CheckpointManager {
       });
 
       // Notify renderer
-      this.send('checkpoint:created', checkpoint);
+      this.emitter?.emit('onCheckpointCreated', checkpoint);
 
       return checkpoint;
     } catch (err) {
@@ -189,7 +190,7 @@ export class CheckpointManager {
       console.log('[CheckpointManager] Deleted checkpoint:', checkpointId);
 
       // Notify renderer
-      this.send('checkpoint:deleted', checkpointId);
+      this.emitter?.emit('onCheckpointDeleted', checkpointId);
 
       return true;
     } catch (err) {
@@ -352,12 +353,4 @@ ${history}
     return (this.index.bySession[sessionId] || []).length;
   }
 
-  /**
-   * Send IPC event to renderer
-   */
-  private send(channel: string, data: any): void {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(channel, data);
-    }
-  }
 }

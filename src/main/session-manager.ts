@@ -2,13 +2,13 @@ import { BrowserWindow } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { CLIManager } from './cli-manager';
 import { HistoryManager } from './history-manager';
+import { SessionPool } from './session-pool';
+import { IPCEmitter } from './ipc-emitter';
 import {
   SessionMetadata,
   SessionCreateRequest,
   SessionListResponse,
   SessionOutput,
-  SessionExitEvent,
-  IPC_CHANNELS,
 } from '../shared/ipc-types';
 import {
   loadSessionState,
@@ -27,15 +27,17 @@ interface Session {
 export class SessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
-  private mainWindow: BrowserWindow | null = null;
+  private emitter: IPCEmitter | null = null;
   private historyManager: HistoryManager;
+  private sessionPool: SessionPool;
 
-  constructor(historyManager: HistoryManager) {
+  constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
+    this.sessionPool = sessionPool;
   }
 
   setMainWindow(window: BrowserWindow): void {
-    this.mainWindow = window;
+    this.emitter = new IPCEmitter(window);
   }
 
   initialize(): void {
@@ -67,11 +69,6 @@ export class SessionManager {
     }
   }
 
-  private send(channel: string, ...args: unknown[]): void {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(channel, ...args);
-    }
-  }
 
   private persistState(): void {
     const sessions = Array.from(this.sessions.values()).map(s => s.metadata);
@@ -108,16 +105,40 @@ export class SessionManager {
       createdAt: Date.now(),
     };
 
-    // Create CLI manager
-    const cliManager = new CLIManager({
-      workingDirectory: workingDir,
-      permissionMode: request.permissionMode,
-    });
+    // Try to claim from pool first
+    const pooledSession = this.sessionPool.claim();
+    let cliManager: CLIManager;
+
+    if (pooledSession) {
+      // POOL PATH: Activate pooled session
+      console.log(`[SessionManager] Using pooled session ${pooledSession.id} for ${id}`);
+      cliManager = pooledSession.cliManager;
+      try {
+        await cliManager.initializeSession(workingDir, request.permissionMode);
+      } catch (err) {
+        // Activation failed, fall back to direct creation
+        console.error('[SessionManager] Pooled session activation failed, falling back to direct creation:', err);
+        cliManager.destroy();
+        cliManager = new CLIManager({
+          workingDirectory: workingDir,
+          permissionMode: request.permissionMode,
+        });
+        cliManager.spawn();
+      }
+    } else {
+      // FALLBACK PATH: Direct creation (existing behavior)
+      console.log(`[SessionManager] Pool empty, creating session ${id} directly`);
+      cliManager = new CLIManager({
+        workingDirectory: workingDir,
+        permissionMode: request.permissionMode,
+      });
+      cliManager.spawn();
+    }
 
     // Set up output handler
     cliManager.onOutput((data: string) => {
       const output: SessionOutput = { sessionId: id, data };
-      this.send(IPC_CHANNELS.SESSION_OUTPUT, output);
+      this.emitter?.emit('onSessionOutput', output);
 
       // Record to history (async, non-blocking)
       this.historyManager.recordOutput(id, data).catch(err => {
@@ -131,8 +152,8 @@ export class SessionManager {
       if (session) {
         session.metadata.status = 'exited';
         session.metadata.exitCode = exitCode;
-        this.send(IPC_CHANNELS.SESSION_UPDATED, session.metadata);
-        this.send(IPC_CHANNELS.SESSION_EXITED, { sessionId: id, exitCode } as SessionExitEvent);
+        this.emitter?.emit('onSessionUpdated', session.metadata);
+        this.emitter?.emit('onSessionExited', { sessionId: id, exitCode });
         this.persistState();
 
         // Flush final history buffer
@@ -148,14 +169,8 @@ export class SessionManager {
     // Store session
     this.sessions.set(id, { metadata, cliManager });
 
-    // Spawn the process
-    try {
-      cliManager.spawn();
-      metadata.status = 'running';
-    } catch (err) {
-      metadata.status = 'error';
-      console.error('Failed to spawn session:', err);
-    }
+    // Process was already spawned above (pool activation or direct spawn)
+    metadata.status = 'running';
 
     // Set as active if first session
     if (this.activeSessionId === null) {
@@ -163,7 +178,7 @@ export class SessionManager {
     }
 
     this.persistState();
-    this.send(IPC_CHANNELS.SESSION_CREATED, metadata);
+    this.emitter?.emit('onSessionCreated', metadata);
 
     return metadata;
   }
@@ -187,12 +202,12 @@ export class SessionManager {
       const remaining = Array.from(this.sessions.keys());
       this.activeSessionId = remaining.length > 0 ? remaining[0] : null;
       if (this.activeSessionId) {
-        this.send(IPC_CHANNELS.SESSION_SWITCHED, this.activeSessionId);
+        this.emitter?.emit('onSessionSwitched', this.activeSessionId);
       }
     }
 
     this.persistState();
-    this.send(IPC_CHANNELS.SESSION_CLOSED, sessionId);
+    this.emitter?.emit('onSessionClosed', sessionId);
 
     return true;
   }
@@ -204,7 +219,7 @@ export class SessionManager {
 
     this.activeSessionId = sessionId;
     this.persistState();
-    this.send(IPC_CHANNELS.SESSION_SWITCHED, sessionId);
+    this.emitter?.emit('onSessionSwitched', sessionId);
 
     return true;
   }
@@ -226,7 +241,7 @@ export class SessionManager {
 
     session.metadata.name = trimmedName;
     this.persistState();
-    this.send(IPC_CHANNELS.SESSION_UPDATED, session.metadata);
+    this.emitter?.emit('onSessionUpdated', session.metadata);
 
     // Update history metadata
     this.historyManager.updateSessionMetadata(
@@ -270,7 +285,7 @@ export class SessionManager {
     // Set up handlers
     cliManager.onOutput((data: string) => {
       const output: SessionOutput = { sessionId, data };
-      this.send(IPC_CHANNELS.SESSION_OUTPUT, output);
+      this.emitter?.emit('onSessionOutput', output);
 
       // Record to history (async, non-blocking)
       this.historyManager.recordOutput(sessionId, data).catch(err => {
@@ -283,8 +298,8 @@ export class SessionManager {
       if (s) {
         s.metadata.status = 'exited';
         s.metadata.exitCode = exitCode;
-        this.send(IPC_CHANNELS.SESSION_UPDATED, s.metadata);
-        this.send(IPC_CHANNELS.SESSION_EXITED, { sessionId, exitCode } as SessionExitEvent);
+        this.emitter?.emit('onSessionUpdated', s.metadata);
+        this.emitter?.emit('onSessionExited', { sessionId, exitCode });
         this.persistState();
 
         // Flush final history buffer
@@ -308,7 +323,7 @@ export class SessionManager {
     }
 
     this.persistState();
-    this.send(IPC_CHANNELS.SESSION_UPDATED, session.metadata);
+    this.emitter?.emit('onSessionUpdated', session.metadata);
 
     return true;
   }
@@ -357,6 +372,9 @@ export class SessionManager {
     }
     this.sessions.clear();
     this.activeSessionId = null;
+
+    // Also destroy the pool
+    this.sessionPool.destroy();
   }
 
   // Get count for validation

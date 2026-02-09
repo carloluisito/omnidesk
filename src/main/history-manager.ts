@@ -6,6 +6,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { app } from 'electron';
 import { stripAnsi } from './ansi-strip';
+import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../shared/claude-detector';
 import type {
   HistoryIndex,
   HistorySessionEntry,
@@ -145,33 +146,13 @@ export class HistoryManager {
       if (!state.isClaudeReady) {
         state.preClaudeBuffer += data;
 
-        // Check for Claude ready patterns (same as Terminal.tsx)
-        if (
-          state.preClaudeBuffer.includes('Claude Code') ||
-          state.preClaudeBuffer.includes('Sonnet') ||
-          state.preClaudeBuffer.includes('Welcome back') ||
-          state.preClaudeBuffer.includes('Tips for getting started')
-        ) {
+        if (checkClaudeReadyPatterns(state.preClaudeBuffer)) {
           state.isClaudeReady = true;
 
-          // Extract Claude output from buffer
-          const claudeStartPatterns = [
-            'Claude Code',
-            'Sonnet',
-            'Welcome back',
-            'Tips for getting started',
-          ];
-
-          let earliestIndex = state.preClaudeBuffer.length;
-          for (const pattern of claudeStartPatterns) {
-            const index = state.preClaudeBuffer.indexOf(pattern);
-            if (index !== -1 && index < earliestIndex) {
-              earliestIndex = index;
-            }
-          }
-
-          // Start recording from Claude output
-          const claudeOutput = state.preClaudeBuffer.slice(earliestIndex);
+          // Find where Claude output starts and record from there
+          const earliestIndex = findClaudeOutputStart(state.preClaudeBuffer);
+          const startAt = earliestIndex !== -1 ? earliestIndex : 0;
+          const claudeOutput = state.preClaudeBuffer.slice(startAt);
           state.buffer += claudeOutput;
           state.preClaudeBuffer = '';
         }
