@@ -25,12 +25,12 @@ Claude Code will automatically spawn teammate agents as needed.
 
 ## Step 3: Monitor the Team
 
-When a team forms:
-1. A **blue badge** appears on the Teams button in the tab bar showing the count
+When a team forms, ClaudeDesk detects the team directory at `~/.claude/teams/<team-name>/config.json` and displays it in the panel:
+1. A **blue badge** appears on the Teams button in the tab bar showing the team count
 2. Click the **Teams button** to open the Team Panel
 3. Expand a team card to see members and their status
-4. Click **Tasks** to see the Kanban board
-5. Click **Messages** to see inter-agent communication
+4. Click **Tasks** to see the Kanban board with per-agent task files
+5. Click **Messages** to see inter-agent communication (`@agent> message` format)
 6. Click **Graph** to see the agent relationship visualization
 
 ## Step 4: Navigate Between Agents
@@ -64,5 +64,6 @@ and the implementation for issues.
 - **Keep teams small**: 2-4 agents work best
 - **Be specific**: Tell Claude what each agent should focus on
 - **Monitor tasks**: Use the Task Board to track progress
-- **Check messages**: The Message Stream shows how agents coordinate
+- **Check messages**: The Message Stream parses `@agentname>` messages from terminal output in real time
 - **Close teams**: Use the "Close Team" button to end all team sessions at once
+- **Stale teams**: Teams are automatically cleaned up when sessions end. On restart, old teams (>5 min) are not shown

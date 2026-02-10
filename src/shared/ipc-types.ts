@@ -240,6 +240,8 @@ export interface TeamMember {
   name: string;
   agentId: string;
   agentType: 'lead' | 'teammate';
+  color?: string;
+  model?: string;
 }
 
 export interface TeamConfig {
@@ -258,6 +260,7 @@ export interface Task {
 
 export interface TeamInfo {
   name: string;
+  description?: string;
   leadSessionId?: string;
   members: TeamMember[];
   tasks: Task[];

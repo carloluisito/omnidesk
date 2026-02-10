@@ -4,7 +4,7 @@ import * as path from 'path';
 import { app } from 'electron';
 import { IPCEmitter } from './ipc-emitter';
 import type {
-  TeamConfig,
+  TeamMember,
   Task,
   TeamInfo,
   SessionMetadata,
@@ -18,6 +18,17 @@ const DEBOUNCE_MS = 200;
 const WATCHER_RETRY_COUNT = 3;
 const WATCHER_RETRY_DELAY_MS = 2000;
 const AUTO_LINK_WINDOW_MS = 30000; // 30 seconds
+const STALE_TEAM_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes — skip teams older than this on startup
+
+/**
+ * Map real Claude Code agent types to our internal types.
+ * Real values: "team-lead", "general-purpose"
+ * Our values: "lead", "teammate"
+ */
+function normalizeAgentType(raw: string): 'lead' | 'teammate' {
+  if (raw === 'team-lead') return 'lead';
+  return 'teammate';
+}
 
 export class AgentTeamManager {
   private teams: Map<string, TeamInfo> = new Map();
@@ -49,7 +60,7 @@ export class AgentTeamManager {
     this.ensureDir(TEAMS_DIR);
     this.ensureDir(TASKS_DIR);
 
-    // Scan existing files
+    // Scan existing directories
     await this.scanTeams();
     await this.scanTasks();
 
@@ -143,6 +154,26 @@ export class AgentTeamManager {
     return true;
   }
 
+  /**
+   * Called when a session is closed or exits.
+   * Removes the session→team mapping and cleans up the team
+   * if it has no remaining linked sessions.
+   */
+  onSessionClosed(sessionId: string): void {
+    const teamName = this.sessionTeamMap.get(sessionId);
+    if (!teamName) return;
+
+    this.sessionTeamMap.delete(sessionId);
+
+    // Check if any sessions still belong to this team
+    const hasRemaining = Array.from(this.sessionTeamMap.values()).some(t => t === teamName);
+    if (!hasRemaining) {
+      // No more sessions for this team — remove it from memory
+      this.teams.delete(teamName);
+      this.emitter?.emit('onTeamRemoved', { teamName });
+    }
+  }
+
   // ── Auto-linking ──
 
   autoLinkSessions(teamName: string): void {
@@ -185,51 +216,64 @@ export class AgentTeamManager {
     }
   }
 
+  /**
+   * Scan ~/.claude/teams/ for team directories.
+   * Each team is a directory containing config.json.
+   * On startup, skip stale teams (config not modified recently).
+   */
   private async scanTeams(): Promise<void> {
     try {
-      const files = fs.readdirSync(TEAMS_DIR);
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          this.loadTeamFile(file);
+      const entries = fs.readdirSync(TEAMS_DIR, { withFileTypes: true });
+      const now = Date.now();
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        // Check config.json freshness — skip stale teams from previous runs
+        const configPath = path.join(TEAMS_DIR, entry.name, 'config.json');
+        try {
+          const stat = fs.statSync(configPath);
+          if (now - stat.mtimeMs > STALE_TEAM_THRESHOLD_MS) {
+            continue; // Stale team from a previous session
+          }
+        } catch {
+          continue; // No config.json
         }
+
+        this.loadTeamConfig(entry.name);
       }
     } catch (err) {
       console.error('Failed to scan teams directory:', err);
     }
   }
 
-  private async scanTasks(): Promise<void> {
+  /**
+   * Load a team's config from ~/.claude/teams/<teamName>/config.json
+   */
+  private loadTeamConfig(teamName: string): void {
     try {
-      const files = fs.readdirSync(TASKS_DIR);
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          this.loadTaskFile(file);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to scan tasks directory:', err);
-    }
-  }
+      const configPath = path.join(TEAMS_DIR, teamName, 'config.json');
+      if (!fs.existsSync(configPath)) return;
 
-  private loadTeamFile(filename: string): void {
-    try {
-      const filePath = path.join(TEAMS_DIR, filename);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const config = JSON.parse(content) as TeamConfig;
+      const content = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(content);
 
       if (!config.members || !Array.isArray(config.members)) return;
 
-      const teamName = path.basename(filename, '.json');
       const existing = this.teams.get(teamName);
+
+      const members: TeamMember[] = config.members.map((m: any) => ({
+        name: m.name || m.agentId || 'Unknown',
+        agentId: m.agentId || m.name || 'unknown',
+        agentType: normalizeAgentType(m.agentType || ''),
+        color: m.color,
+        model: m.model,
+      }));
 
       const team: TeamInfo = {
         name: teamName,
-        leadSessionId: existing?.leadSessionId,
-        members: config.members.map(m => ({
-          name: m.name || m.agentId,
-          agentId: m.agentId,
-          agentType: m.agentType || 'teammate',
-        })),
+        description: config.description,
+        leadSessionId: config.leadSessionId || existing?.leadSessionId,
+        members,
         tasks: existing?.tasks || [],
         createdAt: existing?.createdAt || Date.now(),
         updatedAt: Date.now(),
@@ -257,40 +301,59 @@ export class AgentTeamManager {
         }
       }
     } catch (err) {
-      // Skip malformed files silently
-      console.warn(`Failed to parse team file ${filename}:`, err);
+      // Skip malformed configs silently
+      console.warn(`Failed to parse team config for ${teamName}:`, err);
     }
   }
 
-  private loadTaskFile(filename: string): void {
+  /**
+   * Scan ~/.claude/tasks/ for per-team task directories.
+   */
+  private async scanTasks(): Promise<void> {
     try {
-      const filePath = path.join(TASKS_DIR, filename);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(content);
+      const entries = fs.readdirSync(TASKS_DIR, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          this.loadTeamTasks(entry.name);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to scan tasks directory:', err);
+    }
+  }
 
-      // Tasks can be structured in different ways
-      // Try to extract tasks from the file
-      let tasks: Task[] = [];
+  /**
+   * Load all task files from ~/.claude/tasks/<teamName>/*.json
+   * Skips .lock files.
+   */
+  private loadTeamTasks(teamName: string): void {
+    try {
+      const taskDir = path.join(TASKS_DIR, teamName);
+      if (!fs.existsSync(taskDir)) return;
 
-      if (Array.isArray(data)) {
-        tasks = data.map(this.normalizeTask).filter(Boolean) as Task[];
-      } else if (data.tasks && Array.isArray(data.tasks)) {
-        tasks = data.tasks.map(this.normalizeTask).filter(Boolean) as Task[];
-      } else if (data.taskId || data.subject) {
-        const task = this.normalizeTask(data);
-        if (task) tasks = [task];
+      const files = fs.readdirSync(taskDir);
+      const tasks: Task[] = [];
+
+      for (const file of files) {
+        // Skip non-JSON and lock files
+        if (!file.endsWith('.json') || file === '.lock') continue;
+
+        try {
+          const filePath = path.join(taskDir, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const data = JSON.parse(content);
+          const task = this.normalizeTask(data);
+          if (task) tasks.push(task);
+        } catch (err) {
+          // Skip individual malformed task files
+          console.warn(`Failed to parse task file ${teamName}/${file}:`, err);
+        }
       }
 
-      if (tasks.length === 0) return;
-
-      // Determine which team this task file belongs to
-      // Try to match by filename or owner
-      const taskTeamName = path.basename(filename, '.json');
-
-      // Update tasks for matching team or create a virtual team
-      let team = this.teams.get(taskTeamName);
+      // Find the matching team (or any team if name doesn't match directly)
+      let team = this.teams.get(teamName);
       if (!team) {
-        // Try to find team by checking task owners
+        // Try to find team by checking task owners against team members
         for (const [, t] of this.teams) {
           const memberIds = new Set(t.members.map(m => m.agentId));
           if (tasks.some(task => task.owner && memberIds.has(task.owner))) {
@@ -300,22 +363,22 @@ export class AgentTeamManager {
         }
       }
 
-      if (team) {
+      if (team && tasks.length > 0) {
         team.tasks = tasks;
         team.updatedAt = Date.now();
         this.emitter?.emit('onTasksUpdated', { teamName: team.name, tasks });
       }
     } catch (err) {
-      console.warn(`Failed to parse task file ${filename}:`, err);
+      console.warn(`Failed to load tasks for team ${teamName}:`, err);
     }
   }
 
   private normalizeTask(data: any): Task | null {
     if (!data || typeof data !== 'object') return null;
-    if (!data.taskId && !data.id && !data.subject) return null;
+    if (!data.id && !data.taskId && !data.subject) return null;
 
     return {
-      taskId: String(data.taskId || data.id || `task-${Date.now()}`),
+      taskId: String(data.id || data.taskId || `task-${Date.now()}`),
       subject: String(data.subject || data.title || 'Untitled'),
       description: String(data.description || ''),
       status: this.normalizeTaskStatus(data.status),
@@ -334,19 +397,46 @@ export class AgentTeamManager {
 
   // ── File Watchers ──
 
+  /**
+   * Watch ~/.claude/teams/ recursively.
+   * Parses relative paths to determine what changed:
+   *   <team-name>/config.json → reload team config
+   *   new directory at top level → check for config.json
+   *   team directory deleted → remove team
+   */
   private startTeamsWatcher(retryCount = 0): void {
     try {
-      this.teamsWatcher = fs.watch(TEAMS_DIR, (_eventType, filename) => {
-        if (!filename || !filename.endsWith('.json')) return;
-        this.debounce(`team:${filename}`, () => {
-          const filePath = path.join(TEAMS_DIR, filename);
-          if (fs.existsSync(filePath)) {
-            this.loadTeamFile(filename);
-          } else {
-            // Team file removed
-            const teamName = path.basename(filename, '.json');
-            this.teams.delete(teamName);
-            this.emitter?.emit('onTeamRemoved', { teamName });
+      this.teamsWatcher = fs.watch(TEAMS_DIR, { recursive: true }, (_eventType, filename) => {
+        if (!filename) return;
+
+        // Normalize path separators (Windows uses backslashes)
+        const normalized = filename.replace(/\\/g, '/');
+        const parts = normalized.split('/');
+
+        if (parts.length === 0) return;
+
+        const teamName = parts[0];
+
+        this.debounce(`team:${teamName}`, () => {
+          const teamDir = path.join(TEAMS_DIR, teamName);
+
+          if (!fs.existsSync(teamDir)) {
+            // Team directory was deleted
+            if (this.teams.has(teamName)) {
+              this.teams.delete(teamName);
+              this.emitter?.emit('onTeamRemoved', { teamName });
+            }
+            return;
+          }
+
+          // Check if it's a directory (new or updated team)
+          try {
+            const stat = fs.statSync(teamDir);
+            if (stat.isDirectory()) {
+              this.loadTeamConfig(teamName);
+            }
+          } catch {
+            // Stat failed, directory may have been removed between check and stat
           }
         });
       });
@@ -367,15 +457,31 @@ export class AgentTeamManager {
     }
   }
 
+  /**
+   * Watch ~/.claude/tasks/ recursively.
+   * Parses relative paths: <team-name>/<id>.json → reload that team's tasks.
+   * Skips .lock files.
+   */
   private startTasksWatcher(retryCount = 0): void {
     try {
-      this.tasksWatcher = fs.watch(TASKS_DIR, (_eventType, filename) => {
-        if (!filename || !filename.endsWith('.json')) return;
-        this.debounce(`task:${filename}`, () => {
-          const filePath = path.join(TASKS_DIR, filename);
-          if (fs.existsSync(filePath)) {
-            this.loadTaskFile(filename);
-          }
+      this.tasksWatcher = fs.watch(TASKS_DIR, { recursive: true }, (_eventType, filename) => {
+        if (!filename) return;
+
+        // Normalize path separators
+        const normalized = filename.replace(/\\/g, '/');
+        const parts = normalized.split('/');
+
+        // We expect <team-name>/<file>.json
+        if (parts.length < 2) return;
+
+        const teamName = parts[0];
+        const file = parts[parts.length - 1];
+
+        // Skip non-JSON and lock files
+        if (!file.endsWith('.json') || file === '.lock') return;
+
+        this.debounce(`tasks:${teamName}`, () => {
+          this.loadTeamTasks(teamName);
         });
       });
 

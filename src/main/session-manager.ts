@@ -30,10 +30,24 @@ export class SessionManager {
   private emitter: IPCEmitter | null = null;
   private historyManager: HistoryManager;
   private sessionPool: SessionPool;
+  private sessionEndCallbacks: Array<(sessionId: string) => void> = [];
 
   constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
     this.sessionPool = sessionPool;
+  }
+
+  /** Register a callback to be called when a session closes or exits. */
+  onSessionEnd(callback: (sessionId: string) => void): void {
+    this.sessionEndCallbacks.push(callback);
+  }
+
+  private notifySessionEnd(sessionId: string): void {
+    for (const cb of this.sessionEndCallbacks) {
+      try { cb(sessionId); } catch (err) {
+        console.error('Session end callback error:', err);
+      }
+    }
   }
 
   setMainWindow(window: BrowserWindow): void {
@@ -155,6 +169,7 @@ export class SessionManager {
         this.emitter?.emit('onSessionUpdated', session.metadata);
         this.emitter?.emit('onSessionExited', { sessionId: id, exitCode });
         this.persistState();
+        this.notifySessionEnd(id);
 
         // Flush final history buffer
         this.historyManager.onSessionExit(id, exitCode).catch(err => {
@@ -208,6 +223,7 @@ export class SessionManager {
 
     this.persistState();
     this.emitter?.emit('onSessionClosed', sessionId);
+    this.notifySessionEnd(sessionId);
 
     return true;
   }

@@ -145,7 +145,13 @@ export function TeamPanel({
                                     onClick={() => session && onFocusSession(session.id)}
                                     title={session ? 'Click to focus session' : 'No linked session'}
                                   >
-                                    <span className={`member-role ${member.agentType}`}>
+                                    <span
+                                      className={`member-role ${member.agentType}`}
+                                      style={member.color ? {
+                                        color: member.color,
+                                        background: `${member.color}1f`,
+                                      } : undefined}
+                                    >
                                       {member.agentType === 'lead' ? (
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -210,7 +216,7 @@ export function TeamPanel({
             <MessageStream
               teamName={activeTeam.name}
               members={activeTeam.members}
-              sessions={sessions.filter(s => s.teamName === activeTeam.name)}
+              sessions={sessions.filter(s => s.status === 'running')}
             />
           )}
 

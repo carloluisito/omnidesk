@@ -8,23 +8,53 @@ export interface ParsedMessage {
   raw: string;
 }
 
+// Strip ANSI escape sequences from terminal output
+function stripAnsi(text: string): string {
+  // Matches all common ANSI escape sequences (colors, cursor movement, etc.)
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?(?:\x07|\x1b\\)/g, '');
+}
+
 // Message patterns from Claude Code's agent team communication
-const PATTERNS = [
+const PATTERNS: Array<{
+  regex: RegExp;
+  extract: (match: RegExpMatchArray) => { sender: string; receiver?: string; content: string } | null;
+}> = [
+  // @agentname> message content (real Claude Code agent output)
+  {
+    regex: /^@([\w-]+)>\s*(.+)/,
+    extract: (m) => ({ sender: m[1], content: m[2].trim() }),
+  },
+  // @agentname → @targetname: message (SendMessage between agents)
+  {
+    regex: /^@([\w-]+)\s*→\s*@([\w-]+):\s*(.+)/,
+    extract: (m) => ({ sender: m[1], receiver: m[2], content: m[3].trim() }),
+  },
   // [AgentName → TargetName]: message
-  /\[(\w[\w\s]*?)\s*→\s*(\w[\w\s]*?)\]:\s*(.+)/,
+  {
+    regex: /^\[([\w][\w\s-]*?)\s*→\s*([\w][\w\s-]*?)\]:\s*(.+)/,
+    extract: (m) => ({ sender: m[1].trim(), receiver: m[2].trim(), content: m[3].trim() }),
+  },
   // Sending message to AgentName: message
-  /Sending message to (\w[\w\s]*?):\s*(.+)/,
+  {
+    regex: /^Sending message to ([\w][\w\s-]*?):\s*(.+)/,
+    extract: (m) => ({ sender: 'lead', receiver: m[1].trim(), content: m[2].trim() }),
+  },
   // Message from AgentName: message
-  /Message from (\w[\w\s]*?):\s*(.+)/,
+  {
+    regex: /^Message from ([\w][\w\s-]*?):\s*(.+)/,
+    extract: (m) => ({ sender: m[1].trim(), content: m[2].trim() }),
+  },
   // → AgentName: message
-  /→\s*(\w[\w\s]*?):\s*(.+)/,
+  {
+    regex: /^→\s*([\w][\w\s-]*?):\s*(.+)/,
+    extract: (m) => ({ sender: m[1].trim(), content: m[2].trim() }),
+  },
 ];
 
 const seenHashes = new Set<string>();
 let messageCounter = 0;
 
 function hashContent(content: string): string {
-  // Simple hash for dedup
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const chr = content.charCodeAt(i);
@@ -36,35 +66,26 @@ function hashContent(content: string): string {
 
 export function parseMessages(text: string, sessionId: string): ParsedMessage[] {
   const messages: ParsedMessage[] = [];
-  const lines = text.split('\n');
+  // Strip ANSI codes before splitting into lines
+  const clean = stripAnsi(text);
+  const lines = clean.split('\n');
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
     for (const pattern of PATTERNS) {
-      const match = trimmed.match(pattern);
+      const match = trimmed.match(pattern.regex);
       if (!match) continue;
 
-      let sender: string;
-      let receiver: string | undefined;
-      let content: string;
+      const extracted = pattern.extract(match);
+      if (!extracted) continue;
 
-      if (match.length === 4) {
-        // Pattern with sender → receiver
-        sender = match[1].trim();
-        receiver = match[2].trim();
-        content = match[3].trim();
-      } else if (match.length === 3) {
-        sender = match[1].trim();
-        content = match[2].trim();
-      } else {
-        continue;
-      }
+      const { sender, receiver, content } = extracted;
 
       // Deduplicate
       const dedupKey = hashContent(`${sender}:${receiver || ''}:${content}`);
-      if (seenHashes.has(dedupKey)) continue;
+      if (seenHashes.has(dedupKey)) break;
       seenHashes.add(dedupKey);
 
       // Keep hash set bounded

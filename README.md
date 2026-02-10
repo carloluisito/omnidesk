@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-4.1.1-green.svg)
+![Version](https://img.shields.io/badge/version-4.2.0-green.svg)
 
 > A powerful desktop terminal for Claude Code CLI with multi-session management, split-view layouts, and advanced productivity features.
 
@@ -67,12 +67,13 @@ _Screenshots coming soon! For now, see [Features](#-features) for a detailed ove
 - **Monospace font** - JetBrains Mono for optimal readability
 
 ### Agent Teams
-- **Automatic team detection** - monitors `~/.claude/teams/` for agent team activity
-- **Team Panel** - sidebar showing team hierarchy, members, and status
-- **Task Board** - Kanban-style visualization of team tasks
-- **Message Stream** - real-time inter-agent communication feed
+- **Automatic team detection** - recursively monitors `~/.claude/teams/` directories for agent team activity
+- **Team Panel** - sidebar showing team hierarchy, members with color badges, and status
+- **Task Board** - Kanban-style visualization with per-team task directories
+- **Message Stream** - real-time inter-agent communication feed (parses `@agent>` messages, strips ANSI codes)
 - **Agent Graph** - interactive node-based relationship visualization
 - **Auto-layout** - automatically arranges panes when teammates join
+- **Lifecycle management** - stale teams auto-cleaned on startup; teams removed when sessions end
 - See [Agent Teams Guide](docs/AGENT_TEAMS.md) and [Quick Start](docs/QUICKSTART_AGENT_TEAMS.md)
 
 ### Session Control

@@ -138,6 +138,11 @@ function createWindow(): void {
     (sessionId) => sessionManager!.closeSession(sessionId),
   );
 
+  // Clean up teams when sessions close or exit
+  sessionManager.onSessionEnd((sessionId) => {
+    agentTeamManager?.onSessionClosed(sessionId);
+  });
+
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
     mainWindow,
