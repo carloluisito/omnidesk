@@ -21,6 +21,8 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [workingDirectory, setWorkingDirectory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const hasWorkspaces = workspaces.length > 0;
 
@@ -41,6 +43,8 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
       setError(null);
       setShowAdvanced(false);
       setSearchQuery('');
+      setIsCreatingFolder(false);
+      setNewFolderName('');
 
       // Auto-load first workspace's subdirectories
       if (workspaces.length > 0) {
@@ -49,15 +53,17 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
     }
   }, [isOpen, workspaces]);
 
-  const loadSubdirectories = async (workspace: Workspace) => {
+  const loadSubdirectories = async (workspace: Workspace): Promise<SubdirectoryEntry[]> => {
     setIsLoadingSubdirs(true);
     setPermissionMode(workspace.defaultPermissionMode);
     try {
       const subdirs = await window.electronAPI.listSubdirectories(workspace.path);
       setSubdirectories(subdirs);
+      return subdirs;
     } catch (err) {
       console.error('Failed to load subdirectories:', err);
       setSubdirectories([]);
+      return [];
     } finally {
       setIsLoadingSubdirs(false);
     }
@@ -78,6 +84,35 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
   const handleSubdirectorySelect = (subdir: SubdirectoryEntry) => {
     setSelectedSubdirectory(subdir.path);
     setError(null);
+  };
+
+  const INVALID_FOLDER_CHARS = /[/\\:*?"<>|]/;
+
+  const handleCreateFolder = async () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) {
+      setError('Folder name cannot be empty');
+      return;
+    }
+    if (INVALID_FOLDER_CHARS.test(trimmed)) {
+      setError('Folder name contains invalid characters');
+      return;
+    }
+    const workspace = workspaces.find(w => w.id === selectedWorkspaceId);
+    if (!workspace) return;
+
+    const fullPath = workspace.path + '/' + trimmed;
+    const success = await window.electronAPI.createDirectory(fullPath);
+    if (success) {
+      setIsCreatingFolder(false);
+      setNewFolderName('');
+      setError(null);
+      const updatedSubdirs = await loadSubdirectories(workspace);
+      const match = updatedSubdirs.find(s => s.name === trimmed);
+      if (match) setSelectedSubdirectory(match.path);
+    } else {
+      setError('Failed to create folder — it may already exist');
+    }
   };
 
   const handleClose = () => {
@@ -185,30 +220,68 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
               {/* Directory Panel */}
               <div className="nsd-panel">
                 <div className="nsd-panel-header">
-                  <div className="nsd-search-wrapper">
-                    <svg className="nsd-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8"/>
-                      <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                    <input
-                      type="text"
-                      className="nsd-search"
-                      placeholder="Search directories..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        className="nsd-search-clear"
-                        onClick={() => setSearchQuery('')}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <div className="nsd-search-row">
+                    <div className="nsd-search-wrapper">
+                      <svg className="nsd-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                      </svg>
+                      <input
+                        type="text"
+                        className="nsd-search"
+                        placeholder="Search directories..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          className="nsd-search-clear"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="nsd-new-folder-btn"
+                      title="New folder"
+                      onClick={() => { setIsCreatingFolder(!isCreatingFolder); setNewFolderName(''); setError(null); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14M5 12h14"/>
+                      </svg>
+                    </button>
+                  </div>
+                  {isCreatingFolder && (
+                    <div className="nsd-new-folder-row">
+                      <input
+                        type="text"
+                        className="nsd-new-folder-input"
+                        placeholder="Folder name..."
+                        value={newFolderName}
+                        onChange={(e) => { setNewFolderName(e.target.value); setError(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); handleCreateFolder(); }
+                          if (e.key === 'Escape') { setIsCreatingFolder(false); setNewFolderName(''); setError(null); }
+                        }}
+                        autoFocus
+                      />
+                      <button type="button" className="nsd-new-folder-confirm" onClick={handleCreateFolder} title="Create">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                      <button type="button" className="nsd-new-folder-cancel" onClick={() => { setIsCreatingFolder(false); setNewFolderName(''); setError(null); }} title="Cancel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M18 6L6 18M6 6l12 12"/>
                         </svg>
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
                 <div className="nsd-dir-list">
                   {isLoadingSubdirs ? (
@@ -587,6 +660,100 @@ const styles = `
   }
 
   .nsd-search-clear:hover {
+    background: #292e42;
+    color: #a9b1d6;
+  }
+
+  .nsd-search-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .nsd-search-row .nsd-search-wrapper {
+    flex: 1;
+  }
+
+  .nsd-new-folder-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #292e42;
+    border-radius: 8px;
+    color: #565f89;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .nsd-new-folder-btn:hover {
+    background: #292e42;
+    color: #7aa2f7;
+    border-color: #3b4261;
+  }
+
+  .nsd-new-folder-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    animation: nsd-slideDown 0.15s ease;
+  }
+
+  .nsd-new-folder-input {
+    flex: 1;
+    height: 32px;
+    padding: 0 10px;
+    background: #16161e;
+    border: 1px solid #7aa2f7;
+    border-radius: 6px;
+    color: #c0caf5;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .nsd-new-folder-input::placeholder {
+    color: #3b4261;
+  }
+
+  .nsd-new-folder-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.1);
+  }
+
+  .nsd-new-folder-confirm,
+  .nsd-new-folder-cancel {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .nsd-new-folder-confirm {
+    color: #9ece6a;
+  }
+
+  .nsd-new-folder-confirm:hover {
+    background: rgba(158, 206, 106, 0.1);
+    border-color: #9ece6a;
+  }
+
+  .nsd-new-folder-cancel {
+    color: #565f89;
+  }
+
+  .nsd-new-folder-cancel:hover {
     background: #292e42;
     color: #a9b1d6;
   }

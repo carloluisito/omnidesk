@@ -107,6 +107,13 @@ export function setupIPCHandlers(
     } catch (err) { console.error('Failed to list subdirectories:', err); return []; }
   });
 
+  registry.handle('createDirectory', async (_e, dirPath) => {
+    try {
+      await fs.promises.mkdir(dirPath);
+      return true;
+    } catch (err) { console.error('Failed to create directory:', err); return false; }
+  });
+
   // ── Settings & Workspaces ──
 
   registry.handle('getSettings', async () => settingsManager.getSettings());

@@ -62,7 +62,7 @@ That's it. The preload bridge and types auto-derive.
 
 ## Critical Implementation Patterns
 
-- **Directory locking**: Shell overrides in `cli-manager.ts:64-100` prevent `cd` in sessions. PowerShell needs `\r` line endings, paths need `\\` escaping.
+- **Shell setup**: `cli-manager.ts` uses `cmd.exe` on Windows and the user's default shell on Unix. No directory locking or shell overrides.
 - **Output buffering**: 16ms batches in `CLIManager` prevent IPC flooding (~60fps).
 - **Claude readiness**: Pattern detection ("Claude Code", "Sonnet", "Tips for getting started") + 5s fallback timeout in `Terminal.tsx`.
 - **Ctrl+C interception**: Caught in `terminal.onData()`, shows `ConfirmDialog`. Never forward `\x03` to Claude (it exits).
@@ -73,7 +73,6 @@ That's it. The preload bridge and types auto-derive.
 
 ## Pitfalls
 
-- PowerShell needs `\r` not `\n` line endings (`.replace(/\n/g, '\r')`)
 - Windows paths need `.replace(/\\/g, '\\\\')`
 - Never send Ctrl+C (`\x03`) to Claude — it exits immediately
 - Never use React hooks inside callbacks (caused SplitLayout crash — see `useSplitView.ts`)

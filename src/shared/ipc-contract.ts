@@ -1,4 +1,4 @@
-// @atlas-entrypoint: IPC single source of truth — 80 methods, auto-derives preload bridge and types
+// @atlas-entrypoint: IPC single source of truth — 81 methods, auto-derives preload bridge and types
 /**
  * IPC Contract — Single source of truth for all IPC methods.
  *
@@ -125,6 +125,7 @@ export interface IPCContractMap {
   showSaveDialog:      InvokeContract<'dialog:showSaveDialog',  [{ defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }], string | null>;
   writeFile:           InvokeContract<'fs:writeFile',            [string, string],                boolean>;
   listSubdirectories:  InvokeContract<'fs:listSubdirectories',   [string],                       SubdirectoryEntry[]>;
+  createDirectory:     InvokeContract<'fs:createDirectory',      [string],                       boolean>;
 
   // ── Settings & Workspaces (invoke) ──
   getSettings:         InvokeContract<'settings:get',            [],                              AppSettings>;
@@ -250,6 +251,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   showSaveDialog:      'dialog:showSaveDialog',
   writeFile:           'fs:writeFile',
   listSubdirectories:  'fs:listSubdirectories',
+  createDirectory:     'fs:createDirectory',
 
   // Settings & Workspaces
   getSettings:         'settings:get',
@@ -370,6 +372,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   showSaveDialog:      'invoke',
   writeFile:           'invoke',
   listSubdirectories:  'invoke',
+  createDirectory:     'invoke',
 
   getSettings:         'invoke',
   listWorkspaces:      'invoke',

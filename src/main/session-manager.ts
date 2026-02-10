@@ -137,7 +137,7 @@ export class SessionManager {
           workingDirectory: workingDir,
           permissionMode: request.permissionMode,
         });
-        cliManager.spawn();
+        await cliManager.spawn();
       }
     } else {
       // FALLBACK PATH: Direct creation (existing behavior)

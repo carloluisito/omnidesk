@@ -31,47 +31,15 @@ export class CLIManager {
 
   /**
    * Phase 1: Spawn shell only (for pooling).
-   * Creates PTY and initializes shell, but does NOT inject directory lock or launch Claude.
+   * Creates lightweight shell, but does NOT launch Claude.
    */
   async spawnShell(): Promise<void> {
-    const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash';
-
-    this.ptyProcess = pty.spawn(shell, [], {
-      name: 'xterm-256color',
-      cols: 80,
-      rows: 24,
-      cwd: this.options.workingDirectory,
-      env: {
-        ...process.env,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        CLAUDEDESK_LOCKED_DIR: this.options.workingDirectory,
-        CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
-      } as { [key: string]: string },
-    });
-
-    this._isRunning = true;
-
-    this.ptyProcess.onData((data: string) => {
-      this.bufferOutput(data);
-    });
-
-    this.ptyProcess.onExit(({ exitCode }) => {
-      this._isRunning = false;
-      this._isInitialized = false;
-      this.flushOutput(); // Flush any remaining output
-      if (this.exitCallback) {
-        this.exitCallback(exitCode);
-      }
-    });
-
-    // Wait for shell to initialize (150ms)
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await this.createPtyProcess();
   }
 
   /**
    * Phase 2: Activate session (for pool claim).
-   * Updates working directory and permission mode, injects directory lock, and launches Claude.
+   * Updates working directory and permission mode, then launches Claude.
    */
   async initializeSession(workingDirectory: string, permissionMode: PermissionMode): Promise<void> {
     if (!this._isRunning || this._isInitialized) {
@@ -82,39 +50,45 @@ export class CLIManager {
     this.options.workingDirectory = workingDirectory;
     this.options.permissionMode = permissionMode;
 
-    // Change to the target directory first (shell was spawned at process.cwd())
+    // Change to the target directory (shell was spawned at process.cwd())
     if (process.platform === 'win32') {
-      const escapedDir = workingDirectory.replace(/'/g, "''");
-      this.write(`Set-Location '${escapedDir}'\r`);
+      this.write(`cd /d "${workingDirectory}"\r`);
     } else {
       const escapedDir = workingDirectory.replace(/'/g, "'\\''");
       this.write(`cd '${escapedDir}'\r`);
     }
 
-    // Update the CLAUDEDESK_LOCKED_DIR env var for the running shell
-    if (process.platform === 'win32') {
-      const escapedDir = workingDirectory.replace(/\\/g, '\\\\');
-      this.write(`$env:CLAUDEDESK_LOCKED_DIR="${escapedDir}"\r`);
-    } else {
-      this.write(`export CLAUDEDESK_LOCKED_DIR="${workingDirectory}"\r`);
-    }
-
-    // Inject directory lock and launch Claude
-    this.injectDirectoryLock();
     this.launchClaudeCommand();
-
     this._isInitialized = true;
 
-    // Wait for Claude to launch (200ms)
+    // Wait for Claude to launch
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
   /**
-   * Existing spawn method (backward compatible, synchronous).
-   * Creates shell and launches Claude immediately for direct session creation.
+   * Create shell and launch Claude directly.
+   * Waits for shell readiness before sending the claude command.
    */
-  spawn(): void {
-    const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash';
+  async spawn(): Promise<void> {
+    await this.createPtyProcess();
+    this.launchClaudeCommand();
+    this._isInitialized = true;
+  }
+
+  /**
+   * Shared PTY creation: spawn a lightweight shell, wire handlers, wait for readiness.
+   * Uses cmd.exe on Windows (fast startup, no .NET overhead) and user's shell on Unix.
+   */
+  private async createPtyProcess(): Promise<void> {
+    const shell = process.platform === 'win32' ? 'cmd.exe' : process.env.SHELL || '/bin/bash';
+
+    // Build clean env: filter out Electron-specific vars that can break child processes
+    const cleanEnv: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined && !key.startsWith('ELECTRON_') && !key.startsWith('ORIGINAL_')) {
+        cleanEnv[key] = value;
+      }
+    }
 
     this.ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-256color',
@@ -122,12 +96,11 @@ export class CLIManager {
       rows: 24,
       cwd: this.options.workingDirectory,
       env: {
-        ...process.env,
+        ...cleanEnv,
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
-        CLAUDEDESK_LOCKED_DIR: this.options.workingDirectory,
         CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
-      } as { [key: string]: string },
+      },
     });
 
     this._isRunning = true;
@@ -139,31 +112,14 @@ export class CLIManager {
     this.ptyProcess.onExit(({ exitCode }) => {
       this._isRunning = false;
       this._isInitialized = false;
-      this.flushOutput(); // Flush any remaining output
+      this.flushOutput();
       if (this.exitCallback) {
         this.exitCallback(exitCode);
       }
     });
 
-    // Inject directory lock and launch Claude immediately (synchronous for backward compatibility)
-    this.injectDirectoryLock();
-    this.launchClaudeCommand();
-    this._isInitialized = true;
-  }
-
-  private injectDirectoryLock(): void {
-    const lockedDir = this.options.workingDirectory;
-
-    if (process.platform === 'win32') {
-      // PowerShell: Compact prompt hook for directory locking
-      const escapedDir = lockedDir.replace(/\\/g, '\\\\');
-      this.write(`$env:CLAUDEDESK_LOCKED_DIR="${escapedDir}"\r`);
-      this.write(`function global:prompt{if($PWD.Path -ne $env:CLAUDEDESK_LOCKED_DIR){sl $env:CLAUDEDESK_LOCKED_DIR -EA silent;Write-Host "Directory locked to: $env:CLAUDEDESK_LOCKED_DIR" -F Red}"PS $($PWD.Path)> "}\r`);
-    } else {
-      // Bash/Zsh: Compact directory lock setup
-      const bashInit = `export CLAUDEDESK_LOCKED_DIR="${lockedDir}"\rPROMPT_COMMAND='if [ "$PWD" != "$CLAUDEDESK_LOCKED_DIR" ]; then cd "$CLAUDEDESK_LOCKED_DIR" 2>/dev/null; echo -e "\\033[0;31mError: Directory change blocked. Locked to: $CLAUDEDESK_LOCKED_DIR\\033[0m" >&2; fi'\rcd() { echo -e "\\033[0;31mError: cd disabled. Locked to: $CLAUDEDESK_LOCKED_DIR\\033[0m" >&2; return 1; }\rpushd() { echo -e "\\033[0;31mError: pushd disabled. Locked to: $CLAUDEDESK_LOCKED_DIR\\033[0m" >&2; return 1; }\rpopd() { echo -e "\\033[0;31mError: popd disabled. Locked to: $CLAUDEDESK_LOCKED_DIR\\033[0m" >&2; return 1; }\r`;
-      this.write(bashInit);
-    }
+    // Wait for shell to initialize before sending commands
+    await new Promise(resolve => setTimeout(resolve, 150));
   }
 
   private launchClaudeCommand(): void {

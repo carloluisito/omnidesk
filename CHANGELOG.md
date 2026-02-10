@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.3.1] - 2026-02-10
+
+### Fixed
+- **Documentation updates** - Removed all references to deprecated directory locking and PowerShell features
+  - Updated `CLAUDE.md` to reflect simplified shell setup (cmd.exe on Windows, user shell on Unix)
+  - Updated `SESSION_POOLING_IMPLEMENTATION.md` to remove directory locking references
+  - Updated `CHANGELOG.md` to accurately describe current shell implementation
+  - Updated `docs/repo-index.md` and `docs/atlas-ui-prototype.html`
+
+### Changed
+- **Shell implementation** - Simplified to use cmd.exe on Windows and user's default shell on Unix
+  - Removed directory locking mechanism (CLAUDEDESK_LOCKED_DIR)
+  - Removed PowerShell wrapper and line ending conversions
+  - Improved session spawning reliability and reduced complexity
+
+---
+
 ## [4.1.1] - 2026-02-09
 
 ### Changed
@@ -68,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Core Features
 - **Multi-session management** - Run multiple Claude Code sessions in tabbed interface
 - **Split-view terminal** - Up to 4 terminal panes with flexible layouts
-- **Directory locking** - Sessions locked to their creation directory, prevents accidental `cd` commands
+- **Simplified shell setup** - Uses `cmd.exe` on Windows and user's default shell on Unix for reliable cross-platform PTY spawning
 - **Session persistence** - Automatic save/restore of session state across app restarts
 - **xterm.js integration** - Full-featured terminal emulation with rich text support
 
@@ -123,7 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Context bridge** - Secure renderer-main process communication
 
 #### Platform Support
-- **Windows** - PowerShell integration with directory locking
+- **Windows** - cmd.exe integration for reliable session spawning
 - **macOS** - Bash/Zsh support with PROMPT_COMMAND hooks
 - **Linux** - Full compatibility with major distributions
 
@@ -173,7 +190,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...HEAD
+[4.3.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.0...v4.3.1
+[4.3.0]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...v4.3.0
 [4.1.1]: https://github.com/carloluisito/claudedesk/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/carloluisito/claudedesk/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v4.0.0

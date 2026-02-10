@@ -379,6 +379,19 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
     // Open terminal in container
     xterm.open(terminalRef.current);
 
+    // Allow browser-native paste (Ctrl+V / Cmd+V / Shift+Insert)
+    // Without this, xterm.js consumes Ctrl+V as raw \x16 instead of triggering a paste event
+    xterm.attachCustomKeyEventHandler((e) => {
+      if (e.type === 'keydown') {
+        const isPaste = (e.ctrlKey || e.metaKey) && e.key === 'v';
+        const isShiftInsert = e.shiftKey && e.key === 'Insert';
+        if (isPaste || isShiftInsert) {
+          return false; // Let browser handle → fires paste event → xterm picks it up
+        }
+      }
+      return true;
+    });
+
     // Handle terminal input
     xterm.onData((data) => {
       // Detect Ctrl+C (ASCII 0x03) for session termination

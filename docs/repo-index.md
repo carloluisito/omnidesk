@@ -26,7 +26,7 @@
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
 | `src/main/session-manager.ts` | Main | Session CRUD, lifecycle, team metadata | 419 |
-| `src/main/cli-manager.ts` | Main | PTY spawning, dir lock injection, output buffering | 227 |
+| `src/main/cli-manager.ts` | Main | PTY spawning, output buffering | 227 |
 | `src/main/session-pool.ts` | Main | Pre-warmed shell pool for fast session creation | 277 |
 | `src/main/session-persistence.ts` | Main | Session state save/load (JSON) | 93 |
 | `src/renderer/hooks/useSessionManager.ts` | Renderer | Session CRUD hook, IPC event listeners | 199 |
