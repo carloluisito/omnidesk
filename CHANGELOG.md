@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.4.1] - 2026-02-13
+
+### Fixed
+- **Burn rate calculation** — Now filters out samples from before quota resets; negative rates clamped to 0
+
+### Added
+- **Quota service tests** — Unit tests for `quota-service.ts` covering burn rate calculation, quota reset handling, and edge cases
+
+### Changed
+- **Documentation cleanup** — Removed deleted documentation files (agent teams guides, git integration specs, atlas evaluation, atlas UI prototype) and cleaned up dead references in CLAUDE.md and README.md
+
+---
+
 ## [4.3.1] - 2026-02-10
 
 ### Fixed
@@ -22,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `CLAUDE.md` to reflect simplified shell setup (cmd.exe on Windows, user shell on Unix)
   - Updated `SESSION_POOLING_IMPLEMENTATION.md` to remove directory locking references
   - Updated `CHANGELOG.md` to accurately describe current shell implementation
-  - Updated `docs/repo-index.md` and `docs/atlas-ui-prototype.html`
+  - Updated `docs/repo-index.md`
 
 ### Changed
 - **Shell implementation** - Simplified to use cmd.exe on Windows and user's default shell on Unix
@@ -190,7 +203,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...HEAD
+[4.4.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...v4.4.1
 [4.3.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.0...v4.3.1
 [4.3.0]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...v4.3.0
 [4.1.1]: https://github.com/carloluisito/claudedesk/compare/v4.1.0...v4.1.1

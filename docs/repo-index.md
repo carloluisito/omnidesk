@@ -1,6 +1,6 @@
 # ClaudeDesk — Repository Index
 
-114 source files | ~30,200 LOC | 12 domains | 102 IPC methods | 233 tests (v4.4.0)
+114 source files | ~30,200 LOC | 12 domains | 102 IPC methods | 233 tests (v4.4.1)
 
 ## Entrypoints
 
@@ -168,7 +168,7 @@ IPC: `git:*` (21 methods — 19 invoke + 2 events)
 | `src/renderer/main.tsx` | Renderer | React DOM entry point | 10 |
 | `src/renderer/hooks/index.ts` | Renderer | Hooks barrel export | 3 |
 
-## Testing Infrastructure (v4.4.0)
+## Testing Infrastructure (v4.4.1)
 
 233 tests | 18 test files | Vitest 4 + @testing-library/react + Playwright
 

@@ -278,12 +278,37 @@ function findSamplesWithDelta(
   return null;
 }
 
-function buildBurnRateResult(
+/** Drop samples from before the most recent quota reset.
+ *  A reset is detected when utilization drops by more than RESET_DROP_THRESHOLD
+ *  between consecutive samples. */
+const RESET_DROP_THRESHOLD = 5; // percentage points
+
+export function filterPostReset(samples: UtilizationSample[]): UtilizationSample[] {
+  if (samples.length < 2) return samples;
+
+  // Scan forward to find the LAST reset boundary
+  let resetIndex = 0; // default: use all samples
+  for (let i = 1; i < samples.length; i++) {
+    const drop5h = samples[i - 1].fiveHour - samples[i].fiveHour;
+    const drop7d = samples[i - 1].sevenDay - samples[i].sevenDay;
+    if (drop5h > RESET_DROP_THRESHOLD || drop7d > RESET_DROP_THRESHOLD) {
+      resetIndex = i; // keep only from this index onward
+    }
+  }
+
+  return resetIndex > 0 ? samples.slice(resetIndex) : samples;
+}
+
+export function buildBurnRateResult(
   rate5h: number,
   rate7d: number,
   current: UtilizationSample,
   history: UtilizationSample[]
 ): BurnRateData {
+  // Negative rates are artifacts of quota resets — clamp to 0
+  rate5h = Math.max(0, rate5h);
+  rate7d = Math.max(0, rate7d);
+
   // Projected time to 100%
   const remaining5h = 100 - current.fiveHour;
   const remaining7d = 100 - current.sevenDay;
@@ -347,22 +372,30 @@ export function getBurnRate(): BurnRateData {
     return defaultResult;
   }
 
+  // Discard samples from before the most recent quota reset
+  const postResetHistory = filterPostReset(history);
+
+  if (postResetHistory.length < 2) {
+    // Not enough post-reset data yet — return unknown
+    return { ...defaultResult, dataPoints: postResetHistory.length };
+  }
+
   // Try to use samples from the last 30 minutes
   const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
-  const recentSamples = history.filter(s => new Date(s.timestamp).getTime() >= thirtyMinAgo);
+  const recentSamples = postResetHistory.filter(s => new Date(s.timestamp).getTime() >= thirtyMinAgo);
 
   // Try recent samples first
   let samplesWithDelta = findSamplesWithDelta(recentSamples, MIN_DELTA_MS);
 
-  // If recent samples don't have sufficient delta, fall back to all history
+  // If recent samples don't have sufficient delta, fall back to all post-reset history
   if (!samplesWithDelta) {
-    samplesWithDelta = findSamplesWithDelta(history, MIN_DELTA_MS);
+    samplesWithDelta = findSamplesWithDelta(postResetHistory, MIN_DELTA_MS);
   }
 
   // If still no samples with sufficient delta, return stable rate (0)
   if (!samplesWithDelta) {
-    const last = history[history.length - 1];
-    return buildBurnRateResult(0, 0, last, history);
+    const last = postResetHistory[postResetHistory.length - 1];
+    return buildBurnRateResult(0, 0, last, postResetHistory);
   }
 
   const { first, last, deltaMs } = samplesWithDelta;
@@ -370,7 +403,7 @@ export function getBurnRate(): BurnRateData {
   const rate5h = (last.fiveHour - first.fiveHour) / hoursElapsed;
   const rate7d = (last.sevenDay - first.sevenDay) / hoursElapsed;
 
-  return buildBurnRateResult(rate5h, rate7d, last, history);
+  return buildBurnRateResult(rate5h, rate7d, last, postResetHistory);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -122,7 +122,4 @@ Font: JetBrains Mono. Monospace everywhere.
 ## Docs
 
 - [Repo Index](docs/repo-index.md) — detailed domain-to-file mapping
-- [Agent Teams Guide](docs/AGENT_TEAMS.md)
-- [Quick Start: Agent Teams](docs/QUICKSTART_AGENT_TEAMS.md)
 - [Contributing](CONTRIBUTING.md)
-- [Repository Atlas Evaluation](docs/REPO_ATLAS_EVALUATION.md)

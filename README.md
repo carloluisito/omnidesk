@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-4.4.0-green.svg)
+![Version](https://img.shields.io/badge/version-4.4.1-green.svg)
 ![Tests](https://img.shields.io/badge/tests-233%20passing-brightgreen.svg)
 
 > A powerful desktop terminal for Claude Code CLI with multi-session management, split-view layouts, and advanced productivity features.
@@ -109,7 +109,7 @@
 - **Message Stream** — real-time inter-agent communication feed
 - **Agent Graph** — interactive node-based relationship visualization
 - **Auto-layout** — automatically arranges panes when teammates join
-- See [Agent Teams Guide](docs/AGENT_TEAMS.md) and [Quick Start](docs/QUICKSTART_AGENT_TEAMS.md)
+
 
 ### Repository Atlas Engine
 - **Automated codebase mapping** — scans files, analyzes imports, infers domain boundaries
