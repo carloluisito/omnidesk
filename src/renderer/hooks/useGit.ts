@@ -6,6 +6,9 @@ import type {
   GitDiffResult,
   GeneratedCommitMessage,
   GitCommitRequest,
+  GitWorktreeEntry,
+  WorktreeCreateRequest,
+  WorktreeRemoveRequest,
 } from '../../shared/types/git-types';
 import { showToast } from '../utils/toast';
 
@@ -15,6 +18,7 @@ export function useGit(projectPath: string | null) {
   const [log, setLog] = useState<GitCommitInfo[]>([]);
   const [selectedDiff, setSelectedDiff] = useState<GitDiffResult | null>(null);
   const [generatedMessage, setGeneratedMessage] = useState<GeneratedCommitMessage | null>(null);
+  const [worktrees, setWorktrees] = useState<GitWorktreeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [operationInProgress, setOperationInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,18 @@ export function useGit(projectPath: string | null) {
     });
     return unsub;
   }, []);
+
+  // Subscribe to worktree events
+  useEffect(() => {
+    const unsubCreated = window.electronAPI.onWorktreeCreated(() => {
+      if (projectPath) loadWorktrees();
+    });
+    const unsubRemoved = window.electronAPI.onWorktreeRemoved(() => {
+      if (projectPath) loadWorktrees();
+    });
+    return () => { unsubCreated(); unsubRemoved(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectPath]);
 
   // Load status when project path changes
   useEffect(() => {
@@ -146,6 +162,7 @@ export function useGit(projectPath: string | null) {
       const result = await window.electronAPI.gitCommit(request);
       if (result.success) {
         showToast(result.message, 'success');
+        setGeneratedMessage(null);
         await refreshStatus();
         await loadHistory(10);
       } else {
@@ -161,7 +178,10 @@ export function useGit(projectPath: string | null) {
   }, [refreshStatus, loadHistory]);
 
   const generateMessage = useCallback(async () => {
-    if (!projectPath) return;
+    if (!projectPath) {
+      showToast('No project directory available', 'error');
+      return null;
+    }
     setOperationInProgress('generating');
     try {
       const msg = await window.electronAPI.gitGenerateMessage(projectPath);
@@ -289,6 +309,16 @@ export function useGit(projectPath: string | null) {
     }
   }, [projectPath]);
 
+  const viewFileContent = useCallback(async (filePath: string) => {
+    if (!projectPath) return;
+    try {
+      const diff = await window.electronAPI.gitFileContent(projectPath, filePath);
+      setSelectedDiff(diff);
+    } catch (err) {
+      showToast('Failed to load file content', 'error');
+    }
+  }, [projectPath]);
+
   const discardFile = useCallback(async (filePath: string) => {
     if (!projectPath) return;
     setOperationInProgress('discarding');
@@ -343,6 +373,74 @@ export function useGit(projectPath: string | null) {
     }
   }, [projectPath, refreshStatus]);
 
+  const loadWorktrees = useCallback(async () => {
+    if (!projectPath) return;
+    try {
+      const wt = await window.electronAPI.gitWorktreeList(projectPath);
+      setWorktrees(wt);
+    } catch (err) {
+      console.warn('Failed to load worktrees:', err);
+    }
+  }, [projectPath]);
+
+  const addWorktree = useCallback(async (request: WorktreeCreateRequest) => {
+    setOperationInProgress('creating worktree');
+    try {
+      const result = await window.electronAPI.gitWorktreeAdd(request);
+      if (result.success) {
+        showToast(result.message, 'success');
+        await loadWorktrees();
+      } else {
+        showToast(result.message, 'error');
+      }
+      return result;
+    } catch (err) {
+      showToast('Failed to create worktree', 'error');
+      return { success: false, message: 'Failed to create worktree', errorCode: 'UNKNOWN' as const };
+    } finally {
+      setOperationInProgress(null);
+    }
+  }, [loadWorktrees]);
+
+  const removeWorktree = useCallback(async (request: WorktreeRemoveRequest) => {
+    setOperationInProgress('removing worktree');
+    try {
+      const result = await window.electronAPI.gitWorktreeRemove(request);
+      if (result.success) {
+        showToast(result.message, 'success');
+        await loadWorktrees();
+      } else {
+        showToast(result.message, 'error');
+      }
+      return result;
+    } catch (err) {
+      showToast('Failed to remove worktree', 'error');
+      return { success: false, message: 'Failed to remove worktree', errorCode: 'UNKNOWN' as const };
+    } finally {
+      setOperationInProgress(null);
+    }
+  }, [loadWorktrees]);
+
+  const pruneWorktrees = useCallback(async () => {
+    if (!projectPath) return;
+    setOperationInProgress('pruning worktrees');
+    try {
+      const result = await window.electronAPI.gitWorktreePrune(projectPath);
+      if (result.success) {
+        showToast('Pruned stale worktrees', 'success');
+        await loadWorktrees();
+      } else {
+        showToast(result.message, 'error');
+      }
+      return result;
+    } catch (err) {
+      showToast('Failed to prune worktrees', 'error');
+      return null;
+    } finally {
+      setOperationInProgress(null);
+    }
+  }, [projectPath, loadWorktrees]);
+
   const startWatching = useCallback(async () => {
     if (!projectPath) return;
     try {
@@ -367,6 +465,7 @@ export function useGit(projectPath: string | null) {
     log,
     selectedDiff,
     generatedMessage,
+    worktrees,
     isLoading,
     operationInProgress,
     error,
@@ -385,10 +484,15 @@ export function useGit(projectPath: string | null) {
     switchBranch,
     createBranch,
     viewDiff,
+    viewFileContent,
     setSelectedDiff,
     discardFile,
     discardAll,
     initRepo,
+    loadWorktrees,
+    addWorktree,
+    removeWorktree,
+    pruneWorktrees,
     startWatching,
     stopWatching,
   };

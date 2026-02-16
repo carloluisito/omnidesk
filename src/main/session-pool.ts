@@ -20,9 +20,14 @@ export class SessionPool {
   private isShuttingDown: boolean = false;
   private cleanupInterval: NodeJS.Timeout | null = null;
   private nextPoolId: number = 0;
+  private agentTeamsGetter: (() => boolean) | null = null;
 
   constructor(config: SessionPoolConfig) {
     this.config = config;
+  }
+
+  setAgentTeamsGetter(fn: () => boolean): void {
+    this.agentTeamsGetter = fn;
   }
 
   /**
@@ -155,6 +160,20 @@ export class SessionPool {
   }
 
   /**
+   * Drain all idle sessions and replenish with fresh ones.
+   * Used when environment changes (e.g., enableAgentTeams toggled)
+   * require new shell processes with different env vars.
+   */
+  drainAndReplenish(): void {
+    if (!this.config.enabled || this.isShuttingDown) return;
+    console.log('[SessionPool] Draining and replenishing (env changed)');
+    this.destroyAllIdle();
+    this.replenishPool().catch(err => {
+      console.error('[SessionPool] Failed to replenish after drain:', err);
+    });
+  }
+
+  /**
    * Get current pool status (for UI/debugging)
    */
   getStatus(): { idleCount: number; enabled: boolean; size: number } {
@@ -193,6 +212,7 @@ export class SessionPool {
       const cliManager = new CLIManager({
         workingDirectory: process.cwd(), // Placeholder, will be overridden
         permissionMode: 'standard' as PermissionMode, // Placeholder
+        enableAgentTeams: this.agentTeamsGetter?.() ?? true,
       });
 
       // Spawn shell only (Phase 1)

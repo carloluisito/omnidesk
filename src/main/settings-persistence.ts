@@ -14,8 +14,10 @@ import {
   LayoutNode,
 } from '../shared/ipc-types';
 import type { AtlasSettings } from '../shared/types/atlas-types';
+import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
 
 const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
+const WORKTREE_REGISTRY_FILE = path.join(CONFIG_DIR, 'worktrees.json');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
 const MAX_WORKSPACES = 50;
 
@@ -55,6 +57,7 @@ function getDefaultSettings(): AppSettings {
       excludePatterns: [],
       scanTimeoutMs: 30000,
     },
+    enableAgentTeams: true,
     defaultModel: 'sonnet',
     modelPreset: 'balanced',
   };
@@ -408,6 +411,15 @@ export class SettingsManager {
     return this.settings.atlasSettings;
   }
 
+  getEnableAgentTeams(): boolean {
+    return this.settings.enableAgentTeams !== false;
+  }
+
+  updateEnableAgentTeams(enabled: boolean): void {
+    this.settings.enableAgentTeams = enabled;
+    saveSettings(this.settings);
+  }
+
   updateAutoLayoutTeams(enabled: boolean): void {
     this.settings.autoLayoutTeams = enabled;
     saveSettings(this.settings);
@@ -467,6 +479,22 @@ export class SettingsManager {
     saveSettings(this.settings);
   }
 
+  getWorktreeSettings(): WorktreeSettings {
+    return this.settings.worktreeSettings || {
+      basePath: 'sibling',
+      cleanupOnSessionClose: 'ask',
+    };
+  }
+
+  updateWorktreeSettings(settings: Partial<WorktreeSettings>): WorktreeSettings {
+    this.settings.worktreeSettings = {
+      ...this.getWorktreeSettings(),
+      ...settings,
+    };
+    saveSettings(this.settings);
+    return this.settings.worktreeSettings;
+  }
+
   private getValidationErrorMessage(error: string): string {
     switch (error) {
       case 'NOT_FOUND':
@@ -481,4 +509,61 @@ export class SettingsManager {
         return 'Invalid path';
     }
   }
+}
+
+// ── Worktree Registry ──
+
+interface WorktreeRegistry {
+  version: 1;
+  worktrees: WorktreeInfo[];
+}
+
+export function loadWorktreeRegistry(): WorktreeInfo[] {
+  try {
+    if (fs.existsSync(WORKTREE_REGISTRY_FILE)) {
+      const data = fs.readFileSync(WORKTREE_REGISTRY_FILE, 'utf-8');
+      const registry = JSON.parse(data) as WorktreeRegistry;
+      if (registry.version === 1 && Array.isArray(registry.worktrees)) {
+        // Prune entries where the path no longer exists
+        return registry.worktrees.filter(wt => fs.existsSync(wt.worktreePath));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load worktree registry:', err);
+  }
+  return [];
+}
+
+export function saveWorktreeRegistry(worktrees: WorktreeInfo[]): void {
+  try {
+    ensureConfigDir();
+    const registry: WorktreeRegistry = { version: 1, worktrees };
+    const tempFile = `${WORKTREE_REGISTRY_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(registry, null, 2), 'utf-8');
+    fs.renameSync(tempFile, WORKTREE_REGISTRY_FILE);
+  } catch (err) {
+    console.error('Failed to save worktree registry:', err);
+  }
+}
+
+export function addWorktreeToRegistry(info: WorktreeInfo): void {
+  const worktrees = loadWorktreeRegistry();
+  // Avoid duplicates
+  const existing = worktrees.findIndex(wt => wt.worktreePath === info.worktreePath);
+  if (existing >= 0) {
+    worktrees[existing] = info;
+  } else {
+    worktrees.push(info);
+  }
+  saveWorktreeRegistry(worktrees);
+}
+
+export function removeWorktreeFromRegistry(worktreePath: string): void {
+  const worktrees = loadWorktreeRegistry().filter(wt => wt.worktreePath !== worktreePath);
+  saveWorktreeRegistry(worktrees);
+}
+
+export function isWorktreeManagedByClaudeDesk(worktreePath: string): boolean {
+  const worktrees = loadWorktreeRegistry();
+  return worktrees.some(wt => wt.worktreePath === worktreePath && wt.managedByClaudeDesk);
 }

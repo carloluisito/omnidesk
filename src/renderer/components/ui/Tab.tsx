@@ -6,6 +6,7 @@ export interface TabData {
   workingDirectory: string;
   permissionMode: 'standard' | 'skip-permissions';
   status: 'running' | 'exited' | 'error';
+  worktreeBranch?: string | null;
 }
 
 export interface ContextMenuPosition {
@@ -167,6 +168,19 @@ export function Tab({
         </div>
       )}
 
+      {/* Worktree branch badge */}
+      {data.worktreeBranch && (
+        <div className="worktree-badge" title={`Worktree: ${data.worktreeBranch}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M18 9a9 9 0 01-9 9" />
+          </svg>
+          <span className="worktree-branch-name">{data.worktreeBranch}</span>
+        </div>
+      )}
+
       {/* Exited dot indicator */}
       {isExited && <div className="exited-dot" />}
 
@@ -259,6 +273,23 @@ export function Tab({
         .tab.dangerous.active .active-indicator {
           background: linear-gradient(90deg, #e0af68, #ff9e64);
           animation: danger-pulse 2s ease-in-out infinite;
+        }
+
+        .worktree-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+          color: #9ece6a;
+          font-size: 10px;
+          max-width: 80px;
+        }
+
+        .worktree-branch-name {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-weight: 500;
         }
 
         @keyframes danger-pulse {

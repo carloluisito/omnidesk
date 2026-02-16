@@ -341,6 +341,34 @@ const indicatorStyles = `
     font-size: 10px;
   }
 
+  /* Animations */
+  @keyframes fuel-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(247, 118, 142, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 8px 2px rgba(247, 118, 142, 0.6);
+    }
+  }
+
+  @keyframes fuel-shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: 200px 0;
+    }
+  }
+
+  @keyframes fuel-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     .fuel-indicator-critical {

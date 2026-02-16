@@ -124,3 +124,53 @@ export interface GitSettings {
   createCheckpointAfterCommit: boolean;
   maxDiffSizeBytes: number;
 }
+
+// ── Git Worktree types ──
+
+export interface WorktreeInfo {
+  mainRepoPath: string;
+  worktreePath: string;
+  branch: string;
+  managedByClaudeDesk: boolean;
+  createdAt: number;
+}
+
+export interface GitWorktreeEntry {
+  path: string;
+  head: string;
+  branch: string | null;
+  isMainWorktree: boolean;
+  isBare: boolean;
+  isLocked: boolean;
+  isPrunable: boolean;
+  linkedSessionId: string | null;
+  managedByClaudeDesk: boolean;
+}
+
+export interface WorktreeCreateRequest {
+  mainRepoPath: string;
+  branch: string;
+  isNewBranch: boolean;
+  baseBranch?: string;
+  customPath?: string;
+}
+
+export interface WorktreeRemoveRequest {
+  mainRepoPath: string;
+  worktreePath: string;
+  force: boolean;
+}
+
+export interface WorktreeSettings {
+  basePath: 'sibling' | 'subdirectory' | 'custom';
+  customBasePath?: string;
+  cleanupOnSessionClose: 'ask' | 'always' | 'never';
+}
+
+export type WorktreeErrorCode =
+  | 'WORKTREE_BRANCH_IN_USE'
+  | 'WORKTREE_PATH_EXISTS'
+  | 'WORKTREE_NOT_FOUND'
+  | 'WORKTREE_LOCKED'
+  | 'WORKTREE_DIRTY'
+  | 'GIT_VERSION_TOO_OLD';

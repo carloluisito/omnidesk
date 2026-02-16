@@ -1,14 +1,14 @@
 # ClaudeDesk — Repository Index
 
-114 source files | ~30,200 LOC | 12 domains | 102 IPC methods | 233 tests (v4.4.1)
+138 source files | ~45,800 LOC | 13 domains | 149 IPC methods | 250 tests (v4.5.0)
 
 ## Entrypoints
 
 | File | Role |
 |------|------|
-| `src/main/index.ts` (262 lines) | Main process — creates window, initializes all 8 managers, wires IPC |
+| `src/main/index.ts` (262 lines) | Main process — creates window, initializes all 13 managers, wires IPC |
 | `src/renderer/App.tsx` (880 lines) | Root React component — composes all hooks, panels, and dialogs |
-| `src/shared/ipc-contract.ts` (~550 lines) | IPC single source of truth — 102 methods, auto-derives preload bridge and types |
+| `src/shared/ipc-contract.ts` (~550 lines) | IPC single source of truth — 149 methods, auto-derives preload bridge and types |
 
 ## IPC Infrastructure (cross-cutting)
 
@@ -16,7 +16,7 @@
 |------|-------|------|-------|
 | `src/shared/ipc-contract.ts` | Shared | Contract map: channel names, arg types, return types | 528 |
 | `src/shared/ipc-types.ts` | Shared | All IPC payload/response types | 355 |
-| `src/main/ipc-handlers.ts` | Main | Handler implementations for all 102 methods | ~450 |
+| `src/main/ipc-handlers.ts` | Main | Handler implementations for all 149 methods | ~450 |
 | `src/main/ipc-registry.ts` | Main | Typed `handle()` / `on()` wrappers for `ipcMain` | 72 |
 | `src/main/ipc-emitter.ts` | Main | Typed `emit()` wrapper for `webContents.send()` | 28 |
 | `src/preload/index.ts` | Preload | Auto-derived context bridge from contract | 54 |
@@ -145,15 +145,40 @@ IPC: `atlas:*`
 
 ## Git Integration
 
-IPC: `git:*` (21 methods — 19 invoke + 2 events)
+IPC: `git:*` (30 methods — 26 invoke + 4 events)
 
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
-| `src/main/git-manager.ts` | Main | Git command execution, status parsing, AI commit messages, file watching | ~580 |
-| `src/shared/types/git-types.ts` | Shared | Git type definitions (status, branches, commits, diffs, operations) | ~120 |
-| `src/renderer/hooks/useGit.ts` | Renderer | Git state management and IPC calls | ~395 |
-| `src/renderer/components/GitPanel.tsx` | Renderer | Git panel: branch bar, file staging, inline diff, commit history | ~1000 |
+| `src/main/git-manager.ts` | Main | Git command execution, status parsing, AI commit messages, file watching, worktree ops | ~800 |
+| `src/shared/types/git-types.ts` | Shared | Git type definitions (status, branches, commits, diffs, operations, worktrees) | ~170 |
+| `src/renderer/hooks/useGit.ts` | Renderer | Git state management and IPC calls (including worktree methods) | ~500 |
+| `src/renderer/hooks/useDiffViewer.ts` | Renderer | Diff viewer state: active file, keyboard nav (J/K), stage/unstage/discard | ~130 |
+| `src/renderer/utils/diff-parser.ts` | Renderer | Parse unified diff into DiffChunk[] with old/new line numbers | ~120 |
+| `src/renderer/components/GitPanel.tsx` | Renderer | Git panel: branch bar, file staging, commit history | ~900 |
+| `src/renderer/components/DiffViewer.tsx` | Renderer | Full-screen diff overlay: container, keyboard, discard confirm | ~300 |
+| `src/renderer/components/DiffFileNav.tsx` | Renderer | Diff sidebar: categorized file list (staged/unstaged/untracked/conflicted) | ~110 |
+| `src/renderer/components/DiffViewerHeader.tsx` | Renderer | Diff header: file path, status badge, stage/unstage/discard/close actions | ~80 |
+| `src/renderer/components/DiffContentArea.tsx` | Renderer | Diff rendering: dual gutter line numbers, colored add/remove/context lines | ~120 |
 | `src/renderer/components/ui/CommitDialog.tsx` | UI | Commit message editor with AI generation | ~465 |
+| `src/renderer/components/WorktreePanel.tsx` | Renderer | Worktree management panel: list, remove, prune stale | ~520 |
+| `src/renderer/components/WorktreeCleanupDialog.tsx` | Renderer | Cleanup prompt when closing managed worktree session | ~313 |
+
+## Session Playbooks
+
+IPC: `playbook:*` (15 methods — 12 invoke + 3 events)
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/main/playbook-manager.ts` | Main | Playbook CRUD, persistence, import/export, validation | ~230 |
+| `src/main/playbook-executor.ts` | Main | Execution engine: silence detection, step sequencing, confirmation gates | ~280 |
+| `src/main/built-in-playbooks.ts` | Main | 5 built-in playbooks (API endpoint, bug investigation, code review, component, refactor) | ~220 |
+| `src/shared/types/playbook-types.ts` | Shared | Playbook type definitions (variables, steps, execution state, events) | ~130 |
+| `src/renderer/hooks/usePlaybooks.ts` | Renderer | Playbook state management, IPC calls, event listeners | ~200 |
+| `src/renderer/components/PlaybookPicker.tsx` | Renderer | Modal overlay: fuzzy search, keyboard nav, category badges | ~280 |
+| `src/renderer/components/PlaybookParameterDialog.tsx` | Renderer | Dynamic form: text/multiline/select/filepath fields, step preview | ~320 |
+| `src/renderer/components/PlaybookProgressPanel.tsx` | Renderer | Bottom-docked progress bar, confirmation gates, auto-dismiss | ~230 |
+| `src/renderer/components/PlaybookPanel.tsx` | Renderer | Library browser: built-in + custom playbooks, import/export | ~350 |
+| `src/renderer/components/PlaybookEditor.tsx` | Renderer | Slide-in editor: 3 tabs (details, params, steps), variable inserter | ~700 |
 
 ## Shared Utilities
 
@@ -168,9 +193,9 @@ IPC: `git:*` (21 methods — 19 invoke + 2 events)
 | `src/renderer/main.tsx` | Renderer | React DOM entry point | 10 |
 | `src/renderer/hooks/index.ts` | Renderer | Hooks barrel export | 3 |
 
-## Testing Infrastructure (v4.4.1)
+## Testing Infrastructure (v4.5.0)
 
-233 tests | 18 test files | Vitest 4 + @testing-library/react + Playwright
+250 tests | 20 test files | Vitest 4 + @testing-library/react + Playwright
 
 ### Config & Setup
 
@@ -203,6 +228,7 @@ IPC: `git:*` (21 methods — 19 invoke + 2 events)
 | `src/main/session-persistence.test.ts` | 16 | Load/save/clear, validation, atomic write |
 | `src/main/ipc-registry.test.ts` | 5 | handle(), on(), removeAll() |
 | `src/main/ipc-emitter.test.ts` | 3 | emit(), destroyed window guard |
+| `src/main/ipc-handlers.test.ts` | 4 | IPC handler integration |
 
 ### Component Tests (Phase 3 — mocked hooks)
 

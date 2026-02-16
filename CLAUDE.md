@@ -11,9 +11,9 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 ```
 ┌─────────────────────────────────────────────┐
 │  Main Process (Node.js)                     │
-│  9 managers + IPC handlers + session pool   │
+│  13 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (102 methods)
+                   │ IPC (149 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
@@ -26,7 +26,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 
 **3-layer pattern per domain:** Manager (main) → Hook (renderer) → Components (renderer)
 
-**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 102 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 149 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
 
 ## Domain Map
 
@@ -42,7 +42,8 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 | Drag-Drop | file-dragdrop-handler, file-utils | useDragDrop, DragDropOverlay, DragDropContextMenu, DragDropSettings | ipc-types.ts | `dragdrop:*` |
 | Workspaces | settings-persistence | SettingsDialog | ipc-types.ts | `workspace:*` |
 | Atlas | atlas-manager | useAtlas, AtlasPanel | types/atlas-types.ts | `atlas:*` |
-| Git | git-manager | useGit, GitPanel, CommitDialog | types/git-types.ts | `git:*` |
+| Git | git-manager | useGit, useDiffViewer, GitPanel, DiffViewer, DiffFileNav, DiffViewerHeader, DiffContentArea, CommitDialog, WorktreePanel, WorktreeCleanupDialog, diff-parser | types/git-types.ts | `git:*` |
+| Playbooks | playbook-manager, playbook-executor, built-in-playbooks | usePlaybooks, PlaybookPicker, PlaybookParameterDialog, PlaybookProgressPanel, PlaybookPanel, PlaybookEditor | types/playbook-types.ts | `playbook:*` |
 | Window | index.ts | ConfirmDialog, SettingsDialog, AboutDialog, TitleBarBranding | ipc-types.ts | `window:*`, `dialog:*` |
 
 ## Adding a New IPC Method
@@ -72,6 +73,7 @@ That's it. The preload bridge and types auto-derive.
 - **Split view**: `useSplitView` manages a tree of leaf/branch nodes. Max 4 panes. State persisted in settings.
 - **Agent team detection**: `AgentTeamManager` watches `~/.claude/teams/` and `~/.claude/tasks/` via `fs.watch()`. Auto-links sessions within 30s of team creation.
 - **Git integration**: `GitManager` uses `child_process.execFile` (not `exec` — prevents shell injection). Per-directory mutex serializes operations. `.git` directory watching with 500ms debounce for real-time status. Heuristic-based AI commit message generation (conventional commits format).
+- **Playbook execution**: `PlaybookExecutor` writes prompts to PTY and uses silence-based detection (3s no output = step done) for step completion. Never sends Ctrl+C on cancel (just stops sending further steps). One execution per session, confirmation gates pause between steps.
 
 ## Testing
 

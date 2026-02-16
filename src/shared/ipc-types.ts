@@ -16,6 +16,7 @@ export interface SessionCreateRequest {
   workingDirectory: string;
   permissionMode: PermissionMode;
   model?: ClaudeModel; // Starting model override (defaults to AppSettings.defaultModel)
+  worktree?: import('./types/git-types').WorktreeCreateRequest;
 }
 
 // Session metadata
@@ -32,6 +33,7 @@ export interface SessionMetadata {
   agentType?: 'lead' | 'teammate';
   isTeammate?: boolean;
   currentModel?: ClaudeModel | null; // null = not yet detected
+  worktreeInfo?: import('./types/git-types').WorktreeInfo;
 }
 
 // Session list response
@@ -169,6 +171,7 @@ export interface AppSettings {
   dragDropSettings?: DragDropSettings;
   splitViewState?: SplitViewState | null;
   sessionPoolSettings?: SessionPoolSettings;
+  enableAgentTeams?: boolean;
   autoLayoutTeams?: boolean;
   atlasSettings?: import('./types/atlas-types').AtlasSettings;
   hasLaunchedBefore?: boolean; // Track first launch for Layout Picker
@@ -180,6 +183,7 @@ export interface AppSettings {
   defaultModel?: ClaudeModel; // Default model for new sessions (default: 'sonnet')
   modelPreset?: ModelPreset; // Model preset mode (default: 'balanced')
   gitSettings?: import('./types/git-types').GitSettings;
+  worktreeSettings?: import('./types/git-types').WorktreeSettings;
 }
 
 // Workspace create request
@@ -372,5 +376,11 @@ export type {
   GitCommitRequest,
   GitRemoteProgress,
   GitSettings,
+  WorktreeInfo,
+  GitWorktreeEntry,
+  WorktreeCreateRequest,
+  WorktreeRemoveRequest,
+  WorktreeSettings,
+  WorktreeErrorCode,
 } from './types/git-types';
 

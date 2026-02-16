@@ -1,4 +1,4 @@
-// @atlas-entrypoint: IPC single source of truth — 81 methods, auto-derives preload bridge and types
+// @atlas-entrypoint: IPC single source of truth — 149 methods, auto-derives preload bridge and types
 /**
  * IPC Contract — Single source of truth for all IPC methods.
  *
@@ -81,7 +81,24 @@ import type {
   GitCommitRequest,
   GeneratedCommitMessage,
   GitRemoteProgress,
+  GitWorktreeEntry,
+  WorktreeCreateRequest,
+  WorktreeRemoveRequest,
+  WorktreeSettings,
+  WorktreeInfo,
 } from './types/git-types';
+
+import type {
+  Playbook,
+  PlaybookRunRequest,
+  PlaybookCreateRequest,
+  PlaybookUpdateRequest,
+  PlaybookExportData,
+  PlaybookExecutionState,
+  PlaybookStepChangedEvent,
+  PlaybookCompletedEvent,
+  PlaybookErrorEvent,
+} from './types/playbook-types';
 
 // ─── Contract helper types ──────────────────────────────────────────
 
@@ -120,6 +137,7 @@ export interface IPCContractMap {
   listSessions:        InvokeContract<'session:list',      [],                                   SessionListResponse>;
   restartSession:      InvokeContract<'session:restart',   [string],                             boolean>;
   getActiveSession:    InvokeContract<'session:getActive', [],                                   string | null>;
+  revealInExplorer:    InvokeContract<'session:revealInExplorer', [string],                      boolean>;
 
   // ── Session I/O (send — fire-and-forget) ──
   sendSessionInput:    SendContract<'session:input',  [SessionInput]>;
@@ -218,6 +236,7 @@ export interface IPCContractMap {
   linkSessionToTeam:   InvokeContract<'teams:linkSession',    [string, string, string],            boolean>;
   unlinkSessionFromTeam: InvokeContract<'teams:unlinkSession', [string],                          boolean>;
   closeTeam:           InvokeContract<'teams:close',          [string],                           boolean>;
+  updateEnableAgentTeams: InvokeContract<'settings:updateEnableAgentTeams', [boolean],             boolean>;
   updateAutoLayoutTeams: InvokeContract<'settings:updateAutoLayout', [boolean],                   boolean>;
   updateUIMode:          InvokeContract<'settings:updateUIMode',     ['beginner' | 'expert'],     boolean>;
   updateDefaultModel:    InvokeContract<'settings:updateDefaultModel', [ClaudeModel],              boolean>;
@@ -266,15 +285,45 @@ export interface IPCContractMap {
   gitLog:              InvokeContract<'git:log',             [string, number?],                     GitCommitInfo[]>;
   gitDiff:             InvokeContract<'git:diff',            [string, string, boolean],             GitDiffResult>;
   gitCommitDiff:       InvokeContract<'git:commitDiff',      [string, string],                      GitCommitInfo>;
+  gitFileContent:      InvokeContract<'git:fileContent',      [string, string],                      GitDiffResult>;
   gitDiscardFile:      InvokeContract<'git:discardFile',     [string, string],                      GitOperationResult>;
   gitDiscardAll:       InvokeContract<'git:discardAll',      [string],                              GitOperationResult>;
   gitInit:             InvokeContract<'git:init',            [string],                              GitOperationResult>;
   gitStartWatching:    InvokeContract<'git:startWatching',   [string],                              boolean>;
   gitStopWatching:     InvokeContract<'git:stopWatching',    [string],                              boolean>;
 
+  // ── Git Worktrees (invoke) ──
+  gitWorktreeList:       InvokeContract<'git:worktreeList',       [string],                              GitWorktreeEntry[]>;
+  gitWorktreeAdd:        InvokeContract<'git:worktreeAdd',        [WorktreeCreateRequest],               GitOperationResult & { worktreePath?: string }>;
+  gitWorktreeRemove:     InvokeContract<'git:worktreeRemove',     [WorktreeRemoveRequest],               GitOperationResult>;
+  gitWorktreePrune:      InvokeContract<'git:worktreePrune',      [string],                              GitOperationResult>;
+  getWorktreeSettings:   InvokeContract<'git:getWorktreeSettings', [],                                   WorktreeSettings>;
+  updateWorktreeSettings: InvokeContract<'git:updateWorktreeSettings', [Partial<WorktreeSettings>],      WorktreeSettings>;
+
   // ── Git events (main→renderer) ──
   onGitStatusChanged:  EventContract<'git:statusChanged',    GitStatus>;
   onGitRemoteProgress: EventContract<'git:remoteProgress',   GitRemoteProgress>;
+  onWorktreeCreated:   EventContract<'git:worktreeCreated',  WorktreeInfo>;
+  onWorktreeRemoved:   EventContract<'git:worktreeRemoved',  string>;
+
+  // ── Session Playbooks (invoke) ──
+  listPlaybooks:       InvokeContract<'playbook:list',        [],                                  Playbook[]>;
+  getPlaybook:         InvokeContract<'playbook:get',         [string],                            Playbook | null>;
+  addPlaybook:         InvokeContract<'playbook:add',         [PlaybookCreateRequest],             Playbook>;
+  updatePlaybook:      InvokeContract<'playbook:update',      [PlaybookUpdateRequest],             Playbook>;
+  deletePlaybook:      InvokeContract<'playbook:delete',      [string],                            boolean>;
+  importPlaybook:      InvokeContract<'playbook:import',      [PlaybookExportData],                Playbook>;
+  exportPlaybook:      InvokeContract<'playbook:export',      [string],                            PlaybookExportData>;
+  duplicatePlaybook:   InvokeContract<'playbook:duplicate',   [string],                            Playbook>;
+  runPlaybook:         InvokeContract<'playbook:run',         [PlaybookRunRequest],                PlaybookExecutionState>;
+  cancelPlaybook:      InvokeContract<'playbook:cancel',      [string],                            boolean>;
+  confirmPlaybook:     InvokeContract<'playbook:confirm',     [string],                            boolean>;
+  getPlaybookExecution: InvokeContract<'playbook:getExecution', [string],                          PlaybookExecutionState | null>;
+
+  // ── Session Playbooks events (main→renderer) ──
+  onPlaybookStepChanged: EventContract<'playbook:stepChanged', PlaybookStepChangedEvent>;
+  onPlaybookCompleted:   EventContract<'playbook:completed',   PlaybookCompletedEvent>;
+  onPlaybookError:       EventContract<'playbook:error',       PlaybookErrorEvent>;
 
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
@@ -294,6 +343,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   listSessions:        'session:list',
   restartSession:      'session:restart',
   getActiveSession:    'session:getActive',
+  revealInExplorer:    'session:revealInExplorer',
 
   // Session I/O
   sendSessionInput:    'session:input',
@@ -392,6 +442,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   linkSessionToTeam:   'teams:linkSession',
   unlinkSessionFromTeam: 'teams:unlinkSession',
   closeTeam:           'teams:close',
+  updateEnableAgentTeams: 'settings:updateEnableAgentTeams',
   updateAutoLayoutTeams: 'settings:updateAutoLayout',
   updateUIMode:          'settings:updateUIMode',
   updateDefaultModel:    'settings:updateDefaultModel',
@@ -440,15 +491,43 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   gitLog:              'git:log',
   gitDiff:             'git:diff',
   gitCommitDiff:       'git:commitDiff',
+  gitFileContent:      'git:fileContent',
   gitDiscardFile:      'git:discardFile',
   gitDiscardAll:       'git:discardAll',
   gitInit:             'git:init',
   gitStartWatching:    'git:startWatching',
   gitStopWatching:     'git:stopWatching',
 
+  // Git Worktrees
+  gitWorktreeList:       'git:worktreeList',
+  gitWorktreeAdd:        'git:worktreeAdd',
+  gitWorktreeRemove:     'git:worktreeRemove',
+  gitWorktreePrune:      'git:worktreePrune',
+  getWorktreeSettings:   'git:getWorktreeSettings',
+  updateWorktreeSettings: 'git:updateWorktreeSettings',
+
   // Git events
   onGitStatusChanged:  'git:statusChanged',
   onGitRemoteProgress: 'git:remoteProgress',
+  onWorktreeCreated:   'git:worktreeCreated',
+  onWorktreeRemoved:   'git:worktreeRemoved',
+
+  // Session Playbooks
+  listPlaybooks:       'playbook:list',
+  getPlaybook:         'playbook:get',
+  addPlaybook:         'playbook:add',
+  updatePlaybook:      'playbook:update',
+  deletePlaybook:      'playbook:delete',
+  importPlaybook:      'playbook:import',
+  exportPlaybook:      'playbook:export',
+  duplicatePlaybook:   'playbook:duplicate',
+  runPlaybook:         'playbook:run',
+  cancelPlaybook:      'playbook:cancel',
+  confirmPlaybook:     'playbook:confirm',
+  getPlaybookExecution: 'playbook:getExecution',
+  onPlaybookStepChanged: 'playbook:stepChanged',
+  onPlaybookCompleted:   'playbook:completed',
+  onPlaybookError:       'playbook:error',
 
   // App info
   getVersionInfo:      'app:getVersionInfo',
@@ -467,6 +546,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   listSessions:        'invoke',
   restartSession:      'invoke',
   getActiveSession:    'invoke',
+  revealInExplorer:    'invoke',
 
   sendSessionInput:    'send',
   resizeSession:       'send',
@@ -553,6 +633,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   linkSessionToTeam:   'invoke',
   unlinkSessionFromTeam: 'invoke',
   closeTeam:           'invoke',
+  updateEnableAgentTeams: 'invoke',
   updateAutoLayoutTeams: 'invoke',
   updateUIMode:          'invoke',
   updateDefaultModel:    'invoke',
@@ -592,13 +673,39 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   gitLog:              'invoke',
   gitDiff:             'invoke',
   gitCommitDiff:       'invoke',
+  gitFileContent:      'invoke',
   gitDiscardFile:      'invoke',
   gitDiscardAll:       'invoke',
   gitInit:             'invoke',
   gitStartWatching:    'invoke',
   gitStopWatching:     'invoke',
+  gitWorktreeList:       'invoke',
+  gitWorktreeAdd:        'invoke',
+  gitWorktreeRemove:     'invoke',
+  gitWorktreePrune:      'invoke',
+  getWorktreeSettings:   'invoke',
+  updateWorktreeSettings: 'invoke',
   onGitStatusChanged:  'event',
   onGitRemoteProgress: 'event',
+  onWorktreeCreated:   'event',
+  onWorktreeRemoved:   'event',
+
+  // Session Playbooks
+  listPlaybooks:       'invoke',
+  getPlaybook:         'invoke',
+  addPlaybook:         'invoke',
+  updatePlaybook:      'invoke',
+  deletePlaybook:      'invoke',
+  importPlaybook:      'invoke',
+  exportPlaybook:      'invoke',
+  duplicatePlaybook:   'invoke',
+  runPlaybook:         'invoke',
+  cancelPlaybook:      'invoke',
+  confirmPlaybook:     'invoke',
+  getPlaybookExecution: 'invoke',
+  onPlaybookStepChanged: 'event',
+  onPlaybookCompleted:   'event',
+  onPlaybookError:       'event',
 
   getVersionInfo:      'invoke',
 };

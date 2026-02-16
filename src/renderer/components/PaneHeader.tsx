@@ -11,6 +11,7 @@ interface PaneHeaderProps {
   availableSessions: TabData[];
   canSplit: boolean;
   sessionStatus?: SessionStatus;
+  worktreeBranch?: string | null;
   onChangeSession: (sessionId: string) => void;
   onClosePane: () => void;
   onSplitHorizontal: () => void;
@@ -28,6 +29,7 @@ export function PaneHeader({
   availableSessions,
   canSplit,
   sessionStatus = 'ready',
+  worktreeBranch,
   onChangeSession,
   onClosePane,
   onSplitHorizontal,
@@ -68,6 +70,17 @@ export function PaneHeader({
           size={8}
         />
         <span className="pane-session-name">{sessionName}</span>
+        {worktreeBranch && (
+          <span className="pane-worktree-badge" title={`Worktree: ${worktreeBranch}`}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="6" y1="3" x2="6" y2="15" />
+              <circle cx="18" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M18 9a9 9 0 01-9 9" />
+            </svg>
+            {worktreeBranch}
+          </span>
+        )}
         <span className="pane-working-dir">{workingDirectory}</span>
       </div>
       <div className="pane-header-right">
@@ -175,6 +188,20 @@ export function PaneHeader({
 
         .pane-header.focused .pane-session-name {
           color: #a9b1d6;
+        }
+
+        .pane-worktree-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #9ece6a;
+          font-size: 10px;
+          font-weight: 500;
+          white-space: nowrap;
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-shrink: 0;
         }
 
         .pane-working-dir {

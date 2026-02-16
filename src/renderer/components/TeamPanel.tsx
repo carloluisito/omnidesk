@@ -256,7 +256,7 @@ const teamPanelStyles = `
 
   .team-panel {
     position: fixed;
-    top: 0;
+    top: 36px;
     right: 0;
     bottom: 0;
     width: 340px;

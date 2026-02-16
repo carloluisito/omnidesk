@@ -19,6 +19,12 @@ import {
   validateDirectory,
   getHomeDirectory,
 } from './session-persistence';
+import {
+  addWorktreeToRegistry,
+  removeWorktreeFromRegistry,
+} from './settings-persistence';
+import type { GitManager } from './git-manager';
+import type { WorktreeSettings } from '../shared/types/git-types';
 
 const MAX_SESSIONS = 10;
 
@@ -35,10 +41,26 @@ export class SessionManager {
   private sessionPool: SessionPool;
   private sessionEndCallbacks: Array<(sessionId: string) => void> = [];
   private modelHistoryManager: ModelHistoryManager | null = null;
+  private gitManager: GitManager | null = null;
+  private agentTeamsGetter: (() => boolean) | null = null;
+  private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
+  private outputSubscribers: Map<string, Set<(data: string) => void>> = new Map();
 
   constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
     this.sessionPool = sessionPool;
+  }
+
+  setGitManager(manager: GitManager): void {
+    this.gitManager = manager;
+  }
+
+  setAgentTeamsGetter(fn: () => boolean): void {
+    this.agentTeamsGetter = fn;
+  }
+
+  setWorktreeSettings(settings: WorktreeSettings): void {
+    this.worktreeSettings = settings;
   }
 
   /** Register a callback to be called when a session closes or exits. */
@@ -112,9 +134,27 @@ export class SessionManager {
     }
 
     // Validate working directory
-    const workingDir = request.workingDirectory || getHomeDirectory();
+    let workingDir = request.workingDirectory || getHomeDirectory();
     if (!validateDirectory(workingDir)) {
       throw new Error('Invalid working directory');
+    }
+
+    // Handle worktree creation if requested
+    let worktreeInfo: import('../shared/types/git-types').WorktreeInfo | undefined;
+    if (request.worktree && this.gitManager) {
+      const result = await this.gitManager.addWorktree(request.worktree, this.worktreeSettings);
+      if (!result.success || !result.worktreePath) {
+        throw new Error(`Failed to create worktree: ${result.message}`);
+      }
+      workingDir = result.worktreePath;
+      worktreeInfo = {
+        mainRepoPath: request.worktree.mainRepoPath,
+        worktreePath: result.worktreePath,
+        branch: request.worktree.branch,
+        managedByClaudeDesk: true,
+        createdAt: Date.now(),
+      };
+      addWorktreeToRegistry(worktreeInfo);
     }
 
     const model = request.model;
@@ -127,6 +167,7 @@ export class SessionManager {
       permissionMode: request.permissionMode,
       status: 'starting',
       createdAt: Date.now(),
+      worktreeInfo,
     };
 
     // Register all callbacks on a CLIManager BEFORE any async operations
@@ -162,6 +203,7 @@ export class SessionManager {
       mgr.onOutput((data: string) => {
         const output: SessionOutput = { sessionId: id, data };
         this.emitter?.emit('onSessionOutput', output);
+        this.notifyOutputSubscribers(id, data);
 
         // Record to history (async, non-blocking)
         this.historyManager.recordOutput(id, data).catch(err => {
@@ -206,6 +248,7 @@ export class SessionManager {
           workingDirectory: workingDir,
           permissionMode: request.permissionMode,
           model,
+          enableAgentTeams: this.agentTeamsGetter?.() ?? true,
         });
         registerCallbacks(cliManager);
         await cliManager.spawn();
@@ -217,6 +260,7 @@ export class SessionManager {
         workingDirectory: workingDir,
         permissionMode: request.permissionMode,
         model,
+        enableAgentTeams: this.agentTeamsGetter?.() ?? true,
       });
       registerCallbacks(cliManager);
       cliManager.spawn();
@@ -242,7 +286,7 @@ export class SessionManager {
     return metadata;
   }
 
-  async closeSession(sessionId: string): Promise<boolean> {
+  async closeSession(sessionId: string, removeWorktree?: boolean): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       return false;
@@ -251,6 +295,34 @@ export class SessionManager {
     // Destroy CLI manager if running
     if (session.cliManager) {
       session.cliManager.destroy();
+    }
+
+    // Handle worktree cleanup
+    const wt = session.metadata.worktreeInfo;
+    if (wt?.managedByClaudeDesk && this.gitManager) {
+      // Check if any other active session uses this worktree
+      const otherSessionUsesWorktree = Array.from(this.sessions.entries()).some(
+        ([id, s]) => id !== sessionId && s.metadata.worktreeInfo?.worktreePath === wt.worktreePath
+      );
+
+      if (!otherSessionUsesWorktree) {
+        const cleanup = removeWorktree !== undefined
+          ? removeWorktree
+          : this.worktreeSettings.cleanupOnSessionClose === 'always';
+
+        if (cleanup) {
+          try {
+            await this.gitManager.removeWorktree({
+              mainRepoPath: wt.mainRepoPath,
+              worktreePath: wt.worktreePath,
+              force: false,
+            });
+            removeWorktreeFromRegistry(wt.worktreePath);
+          } catch (err) {
+            console.warn('[SessionManager] Failed to cleanup worktree:', err);
+          }
+        }
+      }
     }
 
     // Remove session
@@ -340,6 +412,7 @@ export class SessionManager {
     const cliManager = new CLIManager({
       workingDirectory: session.metadata.workingDirectory,
       permissionMode: session.metadata.permissionMode,
+      enableAgentTeams: this.agentTeamsGetter?.() ?? true,
     });
 
     // Set up handlers
@@ -373,6 +446,7 @@ export class SessionManager {
     cliManager.onOutput((data: string) => {
       const output: SessionOutput = { sessionId, data };
       this.emitter?.emit('onSessionOutput', output);
+      this.notifyOutputSubscribers(sessionId, data);
 
       // Record to history (async, non-blocking)
       this.historyManager.recordOutput(sessionId, data).catch(err => {
@@ -487,5 +561,33 @@ export class SessionManager {
 
     this.emitter?.emit('onSessionUpdated', session.metadata);
     this.persistState();
+  }
+
+  /** Subscribe to output from a specific session. Returns an unsubscribe function. */
+  subscribeToOutput(sessionId: string, callback: (data: string) => void): () => void {
+    let subs = this.outputSubscribers.get(sessionId);
+    if (!subs) {
+      subs = new Set();
+      this.outputSubscribers.set(sessionId, subs);
+    }
+    subs.add(callback);
+    return () => {
+      subs!.delete(callback);
+      if (subs!.size === 0) {
+        this.outputSubscribers.delete(sessionId);
+      }
+    };
+  }
+
+  /** Dispatch output to subscribers (called from output handlers). */
+  private notifyOutputSubscribers(sessionId: string, data: string): void {
+    const subs = this.outputSubscribers.get(sessionId);
+    if (subs) {
+      for (const cb of subs) {
+        try { cb(data); } catch (err) {
+          console.error('[SessionManager] Output subscriber error:', err);
+        }
+      }
+    }
   }
 }

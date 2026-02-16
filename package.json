@@ -1,6 +1,6 @@
 {
   "name": "claudedesk",
-  "version": "4.4.1",
+  "version": "4.5.0",
   "description": "A minimal Electron desktop application wrapping Claude Code CLI",
   "main": "dist/main/index.js",
   "scripts": {

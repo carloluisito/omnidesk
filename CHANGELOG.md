@@ -8,10 +8,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Screenshot capture for README documentation
-- Automated tests with Jest/Vitest
 - Homebrew/Chocolatey packaging for easier installation
 - Development dependency security updates (electron v40+, vite v7+)
+
+---
+
+## [4.5.0] - 2026-02-17
+
+### Added
+- **Testing infrastructure** — Vitest 4 + @testing-library/react + Playwright for Electron
+  - 250 tests across 20 test files, 3 workspace projects (shared/main/renderer)
+  - Auto-derived electronAPI mock from IPC contract
+  - E2E tests with Playwright for Electron (app launch, sessions, split view, keyboard shortcuts)
+  - CI workflow with coverage artifacts
+- **Git integration** — Full Git panel with staging, commits, branches, and real-time status
+  - `GitManager` with `child_process.execFile` (shell injection safe), per-directory mutex, `.git` fs.watch()
+  - File staging/unstaging (individual + bulk), branch display, commit history log
+  - AI commit message generation (heuristic-based conventional commits format)
+  - Optional checkpoint creation on commit
+  - Ctrl+Shift+G keyboard shortcut, ToolsDropdown entry with staged count badge
+  - 30 IPC methods (`git:*`): 26 invoke + 4 events
+- **Diff viewer** — Full-screen diff overlay with syntax-highlighted unified diffs
+  - Categorized file navigation (staged/unstaged/untracked/conflicted)
+  - Dual gutter line numbers, colored add/remove/context lines
+  - Keyboard navigation (J/K between files), stage/unstage/discard actions from diff view
+  - Unified diff parser (`diff-parser.ts`) with old/new line number tracking
+- **Git worktrees** — Worktree management panel with create, remove, and prune operations
+  - `WorktreePanel` for listing and managing worktrees
+  - `WorktreeCleanupDialog` for cleanup prompts when closing managed worktree sessions
+- **Session playbooks** — Automated multi-step prompt sequences (13th domain)
+  - `PlaybookManager` (CRUD + persistence), `PlaybookExecutor` (execution engine)
+  - 5 built-in playbooks: API endpoint, bug investigation, code review, component creation, refactor
+  - Silence-based step completion (3s no output = done), confirmation gates between steps
+  - Dynamic parameter forms (text/multiline/select/filepath), variable interpolation
+  - PlaybookPicker (fuzzy search), PlaybookEditor (3-tab slide-in), PlaybookProgressPanel (bottom-docked)
+  - Import/export playbooks as JSON, library browser for built-in + custom playbooks
+  - Persistence: `~/.claudedesk/playbooks.json`
+  - Ctrl+Shift+B keyboard shortcut, ToolsDropdown entry
+  - 15 IPC methods (`playbook:*`): 12 invoke + 3 events
+- **Repository Atlas Engine (RAE)** — Automated CLAUDE.md + repo-index.md generation
+  - File enumeration via `git ls-files`, regex import analysis, 3-tier domain inference
+  - AtlasPanel UI with idle/scanning/preview states
+  - 6 IPC methods (`atlas:*`)
+
+### Fixed
+- **Git generate button** — Action bar Generate now auto-opens CommitDialog with the generated message
+- **CommitDialog generate button** — Directly sets title from return value instead of relying on fragile useEffect prop chain
+- **Silent null guard in useGit** — `generateMessage()` now shows error toast when no project directory is available instead of silently returning
+- **Stale generated message** — Generated commit message state is cleared after successful commit
+
+### Changed
+- **IPC contract** — Expanded from 102 to 149 methods (118 invoke + 8 send + 23 event)
+- **Project scale** — 138 source files, ~45,800 LOC, 13 domains, 13 managers
 
 ---
 
@@ -203,7 +251,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...v4.5.0
 [4.4.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...v4.4.1
 [4.3.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.0...v4.3.1
 [4.3.0]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...v4.3.0

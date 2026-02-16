@@ -161,7 +161,13 @@ export function CommitDialog({
           </label>
           <button
             className="commit-dialog-generate-btn"
-            onClick={onGenerateMessage}
+            onClick={async () => {
+              const msg = await onGenerateMessage();
+              if (msg) {
+                setTitle(msg.message);
+                setBody('');
+              }
+            }}
             disabled={isGenerating || stagedFiles.length === 0 || isCommitting}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

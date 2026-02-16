@@ -21,6 +21,12 @@ import { AboutDialog } from './components/AboutDialog';
 import { TeamPanel } from './components/TeamPanel';
 import { AtlasPanel } from './components/AtlasPanel';
 import { GitPanel } from './components/GitPanel';
+import { WorktreePanel } from './components/WorktreePanel';
+import { PlaybookPicker } from './components/PlaybookPicker';
+import { PlaybookParameterDialog } from './components/PlaybookParameterDialog';
+import { PlaybookProgressPanel } from './components/PlaybookProgressPanel';
+import { PlaybookPanel } from './components/PlaybookPanel';
+import { PlaybookEditor } from './components/PlaybookEditor';
 import { LayoutPicker } from './components/LayoutPicker';
 import { WelcomeWizard } from './components/WelcomeWizard';
 import { ShortcutsPanel } from './components/ui/ShortcutsPanel';
@@ -32,6 +38,7 @@ import { useSplitView } from './hooks/useSplitView';
 import { useAgentTeams } from './hooks/useAgentTeams';
 import { useAtlas } from './hooks/useAtlas';
 import { useGit } from './hooks/useGit';
+import { usePlaybooks } from './hooks/usePlaybooks';
 import { useAutoTeamLayout } from './hooks/useAutoTeamLayout';
 import { useLayoutPicker } from './hooks/useLayoutPicker';
 import { Workspace, PermissionMode, WorkspaceValidationResult } from '../shared/ipc-types';
@@ -80,13 +87,14 @@ function App() {
   const [showModelHistoryPanel, setShowModelHistoryPanel] = useState(false);
 
   // Agent Teams
-  const { teams, closeTeam } = useAgentTeams();
+  const [agentTeamsEnabled, setAgentTeamsEnabled] = useState<boolean | undefined>(undefined);
+  const { teams, closeTeam } = useAgentTeams({ enabled: agentTeamsEnabled === true });
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [autoLayoutEnabled] = useState(true);
 
   // Auto-layout for teams
   useAutoTeamLayout({
-    enabled: autoLayoutEnabled,
+    enabled: agentTeamsEnabled === true && autoLayoutEnabled,
     sessions: sessions as any,
     paneCount,
     splitPane,
@@ -103,6 +111,10 @@ function App() {
   // Git Integration
   const git = useGit(atlasProjectPath);
   const [showGitPanel, setShowGitPanel] = useState(false);
+  const [showWorktreePanel, setShowWorktreePanel] = useState(false);
+
+  // Session Playbooks
+  const pb = usePlaybooks(activeSessionId);
 
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -132,7 +144,7 @@ function App() {
   // Budget/quota state from real API
   const { quota: quotaData, burnRate: burnRateData, isLoading: isQuotaLoading, refresh: refreshQuota } = useQuota();
 
-  // Load workspaces on mount
+  // Load workspaces and settings on mount
   useEffect(() => {
     const loadWorkspaces = async () => {
       try {
@@ -142,8 +154,25 @@ function App() {
         console.error('Failed to load workspaces:', err);
       }
     };
+    const loadAgentTeamsSetting = async () => {
+      try {
+        const settings = await window.electronAPI.getSettings();
+        setAgentTeamsEnabled(settings.enableAgentTeams !== false);
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+        setAgentTeamsEnabled(true); // default
+      }
+    };
     loadWorkspaces();
+    loadAgentTeamsSetting();
   }, []);
+
+  // Close team panel when agent teams disabled
+  useEffect(() => {
+    if (agentTeamsEnabled === false) {
+      setShowTeamPanel(false);
+    }
+  }, [agentTeamsEnabled]);
 
   // Check if wizard should be shown
   useEffect(() => {
@@ -352,6 +381,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + B: Playbook picker
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
+        e.preventDefault();
+        pb.openPicker();
+        return;
+      }
+
       // Ctrl/Cmd + Shift + G: Git panel
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
         e.preventDefault();
@@ -378,6 +414,19 @@ function App() {
         e.preventDefault();
         if (!activeSessionId) return;
         setShowCheckpointDialog(true);
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + E: Reveal in File Explorer
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        if (!activeSessionId) return;
+        window.electronAPI.revealInExplorer(activeSessionId)
+          .then(success => {
+            if (!success) {
+              console.error('Failed to reveal session in file explorer');
+            }
+          });
         return;
       }
 
@@ -467,15 +516,16 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [sessions, activeSessionId, switchSession, commandPalette, layoutPicker, isSplitActive, paneCount, focusedPaneId, splitPane, closePane, focusDirection, layout]);
+  }, [sessions, activeSessionId, switchSession, commandPalette, layoutPicker, pb, isSplitActive, paneCount, focusedPaneId, splitPane, closePane, focusDirection, layout]);
 
   const handleCreateSession = useCallback(async (
     name: string,
     workingDirectory: string,
-    permissionMode: 'standard' | 'skip-permissions'
+    permissionMode: 'standard' | 'skip-permissions',
+    worktree?: import('../shared/types/git-types').WorktreeCreateRequest
   ) => {
     try {
-      await createSession(name, workingDirectory, permissionMode);
+      await createSession(name, workingDirectory, permissionMode, worktree);
     } catch (err) {
       console.error('Failed to create session:', err);
     }
@@ -707,9 +757,11 @@ function App() {
         workspaces={workspaces}
         onOpenAtlas={() => openPanel('atlas', setShowAtlasPanel)}
         onOpenLayoutPicker={() => layoutPicker.openPicker()}
-        onOpenTeams={() => openPanel('teams', setShowTeamPanel)}
+        onOpenTeams={agentTeamsEnabled ? () => openPanel('teams', setShowTeamPanel) : undefined}
         onOpenGit={() => openPanel('git', setShowGitPanel)}
-        teamCount={teams.length}
+        onOpenWorktrees={() => openPanel('worktrees', setShowWorktreePanel)}
+        onOpenPlaybooks={() => pb.openPicker()}
+        teamCount={agentTeamsEnabled ? teams.length : 0}
         gitStagedCount={git.status?.stagedCount ?? 0}
         quotaData={quotaData}
         burnRateData={burnRateData}
@@ -764,6 +816,7 @@ function App() {
                         isFocused={isFocused}
                         availableSessions={availableSessions}
                         canSplit={paneCount < 4}
+                        worktreeBranch={session.worktreeBranch}
                         onChangeSession={(newSessionId) => assignSession(paneId, newSessionId)}
                         onClosePane={() => closePane(paneId)}
                         onSplitHorizontal={() => splitPane(paneId, 'horizontal')}
@@ -865,20 +918,94 @@ function App() {
         activeSessionId={activeSessionId}
       />
 
-      {/* Team panel */}
-      <TeamPanel
-        isOpen={showTeamPanel}
-        onClose={() => closePanel('teams', setShowTeamPanel)}
-        teams={teams}
-        sessions={sessions as any}
-        onCloseTeam={closeTeam}
-        onFocusSession={handleFocusPaneWithSession}
+      {/* Worktree panel */}
+      <WorktreePanel
+        isOpen={showWorktreePanel}
+        onClose={() => setShowWorktreePanel(false)}
+        projectPath={atlasProjectPath}
       />
+
+      {/* Playbook Picker */}
+      <PlaybookPicker
+        isOpen={pb.isPickerOpen}
+        playbooks={pb.playbooks}
+        onSelect={pb.selectPlaybook}
+        onClose={pb.closePicker}
+        onManagePlaybooks={() => pb.setIsPanelOpen(true)}
+      />
+
+      {/* Playbook Parameter Dialog */}
+      <PlaybookParameterDialog
+        isOpen={pb.isParamDialogOpen}
+        playbook={pb.selectedPlaybook}
+        onRun={pb.runPlaybook}
+        onCancel={() => pb.setIsParamDialogOpen(false)}
+      />
+
+      {/* Playbook Progress Panel */}
+      {pb.execution && (
+        <PlaybookProgressPanel
+          execution={pb.execution}
+          onCancel={pb.cancelPlaybook}
+          onConfirm={pb.confirmStep}
+        />
+      )}
+
+      {/* Playbook Panel (Library) */}
+      <PlaybookPanel
+        isOpen={pb.isPanelOpen}
+        onClose={() => pb.setIsPanelOpen(false)}
+        playbooks={pb.playbooks}
+        onRun={(playbook) => {
+          pb.setIsPanelOpen(false);
+          pb.selectPlaybook(playbook);
+        }}
+        onEdit={(playbook) => {
+          pb.openEditor(playbook);
+        }}
+        onCreate={() => pb.openEditor()}
+        onDelete={pb.deletePlaybook}
+        onDuplicate={pb.duplicatePlaybook}
+        onImport={pb.importPlaybook}
+        onExport={pb.exportPlaybook}
+      />
+
+      {/* Playbook Editor */}
+      <PlaybookEditor
+        isOpen={pb.isEditorOpen}
+        playbook={pb.editingPlaybook}
+        onSave={async (request) => {
+          if ('id' in request) {
+            await pb.updatePlaybook(request);
+          } else {
+            await pb.addPlaybook(request);
+          }
+        }}
+        onClose={pb.closeEditor}
+      />
+
+      {/* Team panel */}
+      {agentTeamsEnabled && (
+        <TeamPanel
+          isOpen={showTeamPanel}
+          onClose={() => closePanel('teams', setShowTeamPanel)}
+          teams={teams}
+          sessions={sessions as any}
+          onCloseTeam={closeTeam}
+          onFocusSession={handleFocusPaneWithSession}
+        />
+      )}
 
       {/* Settings dialog */}
       <SettingsDialog
         isOpen={showSettingsDialog}
-        onClose={() => closePanel('settings', setShowSettingsDialog)}
+        onClose={() => {
+          closePanel('settings', setShowSettingsDialog);
+          // Re-read settings to pick up changes (e.g., enableAgentTeams toggle)
+          window.electronAPI.getSettings().then(s => {
+            setAgentTeamsEnabled(s.enableAgentTeams !== false);
+          }).catch(console.error);
+        }}
         workspaces={workspaces}
         onAddWorkspace={handleAddWorkspace}
         onUpdateWorkspace={handleUpdateWorkspace}

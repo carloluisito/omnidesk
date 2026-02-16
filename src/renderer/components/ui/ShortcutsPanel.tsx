@@ -46,6 +46,7 @@ const shortcuts: ShortcutGroup[] = [
       { keys: ['Ctrl', 'Shift', 'P'], description: 'Command Palette (Templates)' },
       { keys: ['Ctrl', 'Shift', 'A'], description: 'Repository Atlas' },
       { keys: ['Ctrl', 'Shift', 'T'], description: 'Agent Teams' },
+      { keys: ['Ctrl', 'Shift', 'E'], description: 'Reveal in File Explorer' },
     ],
   },
   {

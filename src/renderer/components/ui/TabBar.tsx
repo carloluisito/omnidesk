@@ -12,7 +12,7 @@ interface TabBarProps {
   activeSessionId: string | null;
   onSelectSession: (id: string) => void;
   onCloseSession: (id: string) => void;
-  onCreateSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions') => void;
+  onCreateSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../../shared/types/git-types').WorktreeCreateRequest) => void;
   onRenameSession: (id: string, name: string) => void;
   onRestartSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
@@ -29,6 +29,8 @@ interface TabBarProps {
   onOpenLayoutPicker?: () => void;
   onOpenTeams?: () => void;
   onOpenGit?: () => void;
+  onOpenWorktrees?: () => void;
+  onOpenPlaybooks?: () => void;
   teamCount?: number;
   gitStagedCount?: number;
   quotaData?: ClaudeUsageQuota | null;
@@ -64,6 +66,8 @@ export function TabBar({
   onOpenLayoutPicker,
   onOpenTeams,
   onOpenGit,
+  onOpenWorktrees,
+  onOpenPlaybooks,
   onOpenHelp,
   teamCount = 0,
   gitStagedCount = 0,
@@ -203,6 +207,9 @@ export function TabBar({
           onOpenCheckpoints();
         }
         break;
+      case 'revealInExplorer':
+        window.electronAPI.revealInExplorer(sessionId);
+        break;
       case 'restart':
         onRestartSession(sessionId);
         break;
@@ -328,13 +335,15 @@ export function TabBar({
         )}
 
         {/* Tools Dropdown */}
-        {(onOpenAtlas || onOpenLayoutPicker || onOpenTeams || onOpenGit || onOpenHistory) && (
+        {(onOpenAtlas || onOpenLayoutPicker || onOpenTeams || onOpenGit || onOpenWorktrees || onOpenHistory || onOpenPlaybooks) && (
           <ToolsDropdown
             onOpenAtlas={onOpenAtlas}
             onOpenLayoutPicker={onOpenLayoutPicker}
             onOpenTeams={onOpenTeams}
             onOpenGit={onOpenGit}
+            onOpenWorktrees={onOpenWorktrees}
             onOpenHistory={onOpenHistory}
+            onOpenPlaybooks={onOpenPlaybooks}
             teamCount={teamCount}
             gitStagedCount={gitStagedCount}
           />

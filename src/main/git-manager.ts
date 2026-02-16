@@ -15,6 +15,11 @@ import type {
   CommitType,
   CommitConfidence,
   GitErrorCode,
+  GitWorktreeEntry,
+  WorktreeCreateRequest,
+  WorktreeRemoveRequest,
+  WorktreeSettings,
+  WorktreeErrorCode,
 } from '../shared/types/git-types';
 
 interface ExecResult {
@@ -757,6 +762,27 @@ export class GitManager {
     });
   }
 
+  async fileContent(workDir: string, filePath: string): Promise<GitDiffResult> {
+    const fullPath = path.resolve(workDir, filePath);
+    try {
+      const content = await fs.promises.readFile(fullPath, 'utf-8');
+      const totalSize = Buffer.byteLength(content, 'utf-8');
+      const isTruncated = totalSize > this.maxDiffSizeBytes;
+      const raw = isTruncated ? content.slice(0, this.maxDiffSizeBytes) : content;
+
+      // Format as unified diff: every line prefixed with +
+      const lines = raw.split('\n');
+      if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+      const header = `diff --git a/${filePath} b/${filePath}\nnew file mode 100644\n--- /dev/null\n+++ b/${filePath}\n@@ -0,0 +1,${lines.length} @@\n`;
+      const diffBody = lines.map(l => `+${l}`).join('\n');
+      const diff = header + diffBody;
+
+      return { filePath, diff, isTruncated, totalSizeBytes: totalSize };
+    } catch (err: any) {
+      return { filePath, diff: '', isTruncated: false, totalSizeBytes: 0 };
+    }
+  }
+
   async commitDiff(workDir: string, hash: string): Promise<GitCommitInfo> {
     return this.withMutex(workDir, async () => {
       // Get commit info
@@ -823,6 +849,268 @@ export class GitManager {
       if (result.exitCode !== 0) return this.makeError(result.stderr, result.exitCode);
       return { success: true, message: 'Initialized git repository', errorCode: null };
     });
+  }
+
+  // ── Public API: Worktrees ──
+
+  private gitVersionCache: string | null = null;
+
+  async getGitVersion(): Promise<string | null> {
+    if (this.gitVersionCache) return this.gitVersionCache;
+    const binary = this.gitBinary || 'git';
+    return new Promise((resolve) => {
+      execFile(binary, ['--version'], { timeout: 5000 }, (err, stdout) => {
+        if (err || !stdout) { resolve(null); return; }
+        const match = stdout.match(/(\d+\.\d+(?:\.\d+)?)/);
+        if (match) {
+          this.gitVersionCache = match[1];
+          resolve(match[1]);
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  private isVersionAtLeast(version: string, minimum: string): boolean {
+    const v = version.split('.').map(Number);
+    const m = minimum.split('.').map(Number);
+    for (let i = 0; i < m.length; i++) {
+      const a = v[i] || 0;
+      const b = m[i] || 0;
+      if (a > b) return true;
+      if (a < b) return false;
+    }
+    return true;
+  }
+
+  async isWorktree(workDir: string): Promise<boolean> {
+    const commonDir = await this.execGit(workDir, ['rev-parse', '--git-common-dir']);
+    const gitDir = await this.execGit(workDir, ['rev-parse', '--git-dir']);
+    if (commonDir.exitCode !== 0 || gitDir.exitCode !== 0) return false;
+    const common = path.resolve(workDir, commonDir.stdout.trim());
+    const git = path.resolve(workDir, gitDir.stdout.trim());
+    return common !== git;
+  }
+
+  async getMainRepoPath(workDir: string): Promise<string> {
+    const commonDir = await this.execGit(workDir, ['rev-parse', '--git-common-dir']);
+    if (commonDir.exitCode !== 0) return workDir;
+    const resolved = path.resolve(workDir, commonDir.stdout.trim());
+    // git-common-dir points to the .git dir of main repo; parent is the repo root
+    return path.dirname(resolved);
+  }
+
+  async listWorktrees(workDir: string): Promise<GitWorktreeEntry[]> {
+    const version = await this.getGitVersion();
+    if (!version || !this.isVersionAtLeast(version, '2.5')) return [];
+
+    return this.withMutex(workDir, async () => {
+      const result = await this.execGit(workDir, ['worktree', 'list', '--porcelain']);
+      if (result.exitCode !== 0) return [];
+      return this.parseWorktreeListPorcelain(result.stdout, workDir);
+    });
+  }
+
+  private parseWorktreeListPorcelain(raw: string, _mainRepoPath: string): GitWorktreeEntry[] {
+    const entries: GitWorktreeEntry[] = [];
+    // Split on blank lines (double newline)
+    const blocks = raw.split(/\n\n/).filter(b => b.trim());
+
+    for (const block of blocks) {
+      const lines = block.split('\n').filter(l => l.trim());
+      let wtPath = '';
+      let head = '';
+      let branch: string | null = null;
+      let isBare = false;
+      let isLocked = false;
+      let isPrunable = false;
+      let isMainWorktree = false;
+
+      for (const line of lines) {
+        if (line.startsWith('worktree ')) {
+          wtPath = line.slice('worktree '.length);
+        } else if (line.startsWith('HEAD ')) {
+          head = line.slice('HEAD '.length);
+        } else if (line.startsWith('branch ')) {
+          branch = line.slice('branch '.length).replace('refs/heads/', '');
+        } else if (line === 'bare') {
+          isBare = true;
+        } else if (line.startsWith('locked')) {
+          isLocked = true;
+        } else if (line.startsWith('prunable')) {
+          isPrunable = true;
+        }
+      }
+
+      // First entry is always the main worktree
+      if (entries.length === 0) {
+        isMainWorktree = true;
+      }
+
+      if (wtPath) {
+        entries.push({
+          path: wtPath,
+          head,
+          branch,
+          isMainWorktree,
+          isBare,
+          isLocked,
+          isPrunable,
+          linkedSessionId: null,
+          managedByClaudeDesk: false,
+        });
+      }
+    }
+
+    return entries;
+  }
+
+  sanitizeBranchNameForDir(branch: string): string {
+    let sanitized = branch
+      .replace(/[/\\]/g, '-')
+      .replace(/\.\./g, '-')
+      .replace(/^\./, '_')
+      .replace(/\.lock$/i, '_lock')
+      .replace(/[~^:?*[\]@{}\s]/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (sanitized.length > 100) {
+      sanitized = sanitized.slice(0, 100);
+    }
+
+    return sanitized || 'worktree';
+  }
+
+  computeWorktreePath(mainRepoPath: string, branch: string, settings: WorktreeSettings): string {
+    const sanitized = this.sanitizeBranchNameForDir(branch);
+    const repoName = path.basename(mainRepoPath);
+
+    switch (settings.basePath) {
+      case 'sibling': {
+        const parent = path.dirname(mainRepoPath);
+        return path.join(parent, `${repoName}-worktrees`, sanitized);
+      }
+      case 'subdirectory': {
+        return path.join(mainRepoPath, '.worktrees', sanitized);
+      }
+      case 'custom': {
+        const base = settings.customBasePath || path.join(path.dirname(mainRepoPath), `${repoName}-worktrees`);
+        return path.join(base, sanitized);
+      }
+      default: {
+        const parent = path.dirname(mainRepoPath);
+        return path.join(parent, `${repoName}-worktrees`, sanitized);
+      }
+    }
+  }
+
+  async addWorktree(request: WorktreeCreateRequest, settings: WorktreeSettings): Promise<GitOperationResult & { worktreePath?: string }> {
+    const version = await this.getGitVersion();
+    if (!version || !this.isVersionAtLeast(version, '2.5')) {
+      return { success: false, message: 'Git version 2.5+ required for worktrees', errorCode: 'GIT_VERSION_TOO_OLD' as any };
+    }
+
+    const targetPath = request.customPath || this.computeWorktreePath(request.mainRepoPath, request.branch, settings);
+
+    // Ensure parent directory exists
+    const parentDir = path.dirname(targetPath);
+    try {
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+    } catch (err) {
+      return { success: false, message: `Failed to create directory: ${parentDir}`, errorCode: 'UNKNOWN' };
+    }
+
+    // Use main repo path as mutex key (all worktree ops modify shared .git/worktrees)
+    return this.withMutex(request.mainRepoPath, async () => {
+      const args = ['worktree', 'add'];
+
+      if (request.isNewBranch) {
+        args.push('-b', request.branch, targetPath);
+        if (request.baseBranch) {
+          args.push(request.baseBranch);
+        }
+      } else {
+        args.push(targetPath, request.branch);
+      }
+
+      const result = await this.execGit(request.mainRepoPath, args);
+
+      if (result.exitCode !== 0) {
+        const errorCode = this.detectWorktreeErrorCode(result.stderr);
+        return {
+          success: false,
+          message: result.stderr.trim() || `Failed to create worktree (exit code ${result.exitCode})`,
+          errorCode: errorCode as any,
+          worktreePath: undefined,
+        };
+      }
+
+      // Emit event
+      if (this.emitter) {
+        this.emitter.emit('onWorktreeCreated', {
+          mainRepoPath: request.mainRepoPath,
+          worktreePath: targetPath,
+          branch: request.branch,
+          managedByClaudeDesk: true,
+          createdAt: Date.now(),
+        });
+      }
+
+      return {
+        success: true,
+        message: `Created worktree at ${targetPath}`,
+        errorCode: null,
+        worktreePath: targetPath,
+      };
+    });
+  }
+
+  async removeWorktree(request: WorktreeRemoveRequest): Promise<GitOperationResult> {
+    return this.withMutex(request.mainRepoPath, async () => {
+      const args = ['worktree', 'remove'];
+      if (request.force) args.push('--force');
+      args.push(request.worktreePath);
+
+      const result = await this.execGit(request.mainRepoPath, args);
+
+      if (result.exitCode !== 0) {
+        const errorCode = this.detectWorktreeErrorCode(result.stderr);
+        return {
+          success: false,
+          message: result.stderr.trim() || `Failed to remove worktree (exit code ${result.exitCode})`,
+          errorCode: errorCode as any,
+        };
+      }
+
+      // Emit event
+      if (this.emitter) {
+        this.emitter.emit('onWorktreeRemoved', request.worktreePath);
+      }
+
+      return { success: true, message: `Removed worktree at ${request.worktreePath}`, errorCode: null };
+    });
+  }
+
+  async pruneWorktrees(workDir: string): Promise<GitOperationResult> {
+    return this.withMutex(workDir, async () => {
+      const result = await this.execGit(workDir, ['worktree', 'prune']);
+      if (result.exitCode !== 0) return this.makeError(result.stderr, result.exitCode);
+      return { success: true, message: 'Pruned stale worktrees', errorCode: null };
+    });
+  }
+
+  private detectWorktreeErrorCode(stderr: string): WorktreeErrorCode | GitErrorCode {
+    const msg = stderr.toLowerCase();
+    if (msg.includes('is already checked out') || msg.includes('already used by worktree')) return 'WORKTREE_BRANCH_IN_USE';
+    if (msg.includes('already exists')) return 'WORKTREE_PATH_EXISTS';
+    if (msg.includes('is not a working tree') || msg.includes('is not a valid')) return 'WORKTREE_NOT_FOUND';
+    if (msg.includes('is locked')) return 'WORKTREE_LOCKED';
+    if (msg.includes('contains modified or untracked files') || msg.includes('dirty')) return 'WORKTREE_DIRTY';
+    return this.detectErrorCode(stderr, 1);
   }
 
   // ── Public API: Watching ──

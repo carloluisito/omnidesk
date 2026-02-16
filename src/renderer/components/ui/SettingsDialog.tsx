@@ -43,7 +43,8 @@ export function SettingsDialog({
   const [editingTemplate, setEditingTemplate] = useState<PromptTemplate | null>(null);
   const [deleteTemplateConfirm, setDeleteTemplateConfirm] = useState<string | null>(null);
 
-  // Auto-layout teams state
+  // Agent teams state
+  const [enableAgentTeams, setEnableAgentTeams] = useState(true);
   const [autoLayoutTeams, setAutoLayoutTeams] = useState(true);
 
   // UI mode state
@@ -110,6 +111,7 @@ export function SettingsDialog({
       if (settings.sessionPoolSettings) {
         setPoolSettings(settings.sessionPoolSettings);
       }
+      setEnableAgentTeams(settings.enableAgentTeams !== false);
       if (settings.autoLayoutTeams !== undefined) {
         setAutoLayoutTeams(settings.autoLayoutTeams);
       }
@@ -607,6 +609,27 @@ export function SettingsDialog({
                 <label className="setting-checkbox">
                   <input
                     type="checkbox"
+                    checked={enableAgentTeams}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setEnableAgentTeams(enabled);
+                      window.electronAPI.updateEnableAgentTeams(enabled).catch(console.error);
+                    }}
+                  />
+                  <span className="checkbox-indicator" />
+                  <span className="checkbox-label">Enable Agent Teams</span>
+                </label>
+                <p className="setting-hint" style={{ paddingLeft: 10 }}>
+                  Watch for agent teams and show team UI. Disabling stops file watchers and hides team features.
+                  New sessions won't set the agent teams environment variable.
+                </p>
+              </div>
+
+              {enableAgentTeams && (
+              <div className="setting-item">
+                <label className="setting-checkbox">
+                  <input
+                    type="checkbox"
                     checked={autoLayoutTeams}
                     onChange={(e) => {
                       const enabled = e.target.checked;
@@ -621,6 +644,7 @@ export function SettingsDialog({
                   Automatically arrange split panes when new teammates join.
                 </p>
               </div>
+              )}
             </div>
           </div>
           )}

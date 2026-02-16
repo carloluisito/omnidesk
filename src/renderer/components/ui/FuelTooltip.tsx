@@ -261,6 +261,17 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
           margin-top: 4px;
           opacity: 0.8;
         }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
       `}</style>
     </div>
   );

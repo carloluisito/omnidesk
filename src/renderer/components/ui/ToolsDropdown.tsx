@@ -5,7 +5,9 @@ interface ToolsDropdownProps {
   onOpenLayoutPicker?: () => void;
   onOpenTeams?: () => void;
   onOpenGit?: () => void;
+  onOpenWorktrees?: () => void;
   onOpenHistory?: () => void;
+  onOpenPlaybooks?: () => void;
   teamCount?: number;
   gitStagedCount?: number;
 }
@@ -15,7 +17,9 @@ export function ToolsDropdown({
   onOpenLayoutPicker,
   onOpenTeams,
   onOpenGit,
+  onOpenWorktrees,
   onOpenHistory,
+  onOpenPlaybooks,
   teamCount = 0,
   gitStagedCount = 0,
 }: ToolsDropdownProps) {
@@ -53,6 +57,24 @@ export function ToolsDropdown({
     });
   }
 
+  if (onOpenPlaybooks) {
+    items.push({
+      id: 'playbooks',
+      label: 'Session Playbooks',
+      shortcut: 'Ctrl+Shift+B',
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      ),
+      onClick: onOpenPlaybooks,
+    });
+  }
+
   if (onOpenGit) {
     items.push({
       id: 'git',
@@ -68,6 +90,23 @@ export function ToolsDropdown({
         </svg>
       ),
       onClick: onOpenGit,
+    });
+  }
+
+  if (onOpenWorktrees) {
+    items.push({
+      id: 'worktrees',
+      label: 'Git Worktrees',
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="6" y1="3" x2="6" y2="15" />
+          <circle cx="18" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M18 9a9 9 0 01-9 9" />
+          <line x1="18" y1="12" x2="18" y2="21" strokeDasharray="3 2" />
+        </svg>
+      ),
+      onClick: onOpenWorktrees,
     });
   }
 

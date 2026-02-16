@@ -6,7 +6,7 @@ export interface UseSessionManagerReturn {
   sessions: TabData[];
   activeSessionId: string | null;
   isLoading: boolean;
-  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions') => Promise<void>;
+  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -24,6 +24,7 @@ function sessionMetadataToTabData(metadata: SessionMetadata): TabData {
     workingDirectory: metadata.workingDirectory,
     permissionMode: metadata.permissionMode,
     status: metadata.status === 'starting' ? 'running' : metadata.status,
+    worktreeBranch: metadata.worktreeInfo?.branch ?? null,
   };
 }
 
@@ -99,7 +100,8 @@ export function useSessionManager(): UseSessionManagerReturn {
   const createSession = useCallback(async (
     name: string,
     workingDirectory: string,
-    permissionMode: 'standard' | 'skip-permissions'
+    permissionMode: 'standard' | 'skip-permissions',
+    worktree?: import('../../shared/types/git-types').WorktreeCreateRequest
   ) => {
     try {
       // Read default model from settings
@@ -111,6 +113,7 @@ export function useSessionManager(): UseSessionManagerReturn {
         workingDirectory,
         permissionMode,
         model: defaultModel,
+        worktree,
       });
     } catch (err) {
       console.error('Failed to create session:', err);

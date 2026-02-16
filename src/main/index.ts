@@ -14,8 +14,14 @@ import { LayoutPresetsManager } from './layout-presets-manager';
 import { CommandRegistry } from './command-registry';
 import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
+import { PlaybookManager } from './playbook-manager';
+import { PlaybookExecutor } from './playbook-executor';
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
 import { WindowState } from '../shared/ipc-types';
+
+// Prevent EPIPE crashes when stdout/stderr pipe breaks (e.g., renderer window closes while PTY is active)
+process.stdout?.on?.('error', (err: NodeJS.ErrnoException) => { if (err.code !== 'EPIPE') throw err; });
+process.stderr?.on?.('error', (err: NodeJS.ErrnoException) => { if (err.code !== 'EPIPE') throw err; });
 
 // Check for dev mode via environment variable or if dist files don't exist
 const isDev = process.env.ELECTRON_IS_DEV === 'true' ||
@@ -34,6 +40,8 @@ let layoutPresetsManager: LayoutPresetsManager | null = null;
 let commandRegistry: CommandRegistry | null = null;
 let modelHistoryManager: ModelHistoryManager | null = null;
 let gitManager: GitManager | null = null;
+let playbookManager: PlaybookManager | null = null;
+let playbookExecutor: PlaybookExecutor | null = null;
 
 const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
@@ -151,6 +159,18 @@ function createWindow(): void {
   gitManager = new GitManager(checkpointManager);
   gitManager.setMainWindow(mainWindow);
 
+  // Wire git manager into session manager for worktree support
+  sessionManager.setGitManager(gitManager);
+  sessionManager.setWorktreeSettings(settingsManager.getWorktreeSettings());
+
+  // Wire agent teams getter into session manager and session pool
+  sessionManager.setAgentTeamsGetter(() => settingsManager!.getEnableAgentTeams());
+  sessionPool.setAgentTeamsGetter(() => settingsManager!.getEnableAgentTeams());
+
+  // Initialize playbook manager + executor
+  playbookManager = new PlaybookManager();
+  playbookExecutor = new PlaybookExecutor(sessionManager, checkpointManager, playbookManager);
+
   // Initialize command registry
   commandRegistry = new CommandRegistry();
 
@@ -182,7 +202,9 @@ function createWindow(): void {
     layoutPresetsManager,
     commandRegistry,
     modelHistoryManager,
-    gitManager
+    gitManager,
+    playbookManager,
+    playbookExecutor
   );
 
   // Initialize pool (delayed, async)
@@ -196,7 +218,7 @@ function createWindow(): void {
 
   // Initialize agent team manager (delayed to avoid slowing app startup)
   setTimeout(() => {
-    if (agentTeamManager) {
+    if (agentTeamManager && settingsManager!.getEnableAgentTeams()) {
       agentTeamManager.initialize().catch(err => {
         console.error('Failed to initialize agent team manager:', err);
       });
@@ -238,6 +260,11 @@ function createWindow(): void {
       modelHistoryManager.shutdown();
       modelHistoryManager = null;
     }
+    if (playbookExecutor) {
+      playbookExecutor.destroy();
+      playbookExecutor = null;
+    }
+    playbookManager = null;
     if (gitManager) {
       gitManager.destroy();
       gitManager = null;

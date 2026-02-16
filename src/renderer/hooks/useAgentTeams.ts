@@ -1,11 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TeamInfo, SessionMetadata } from '../../shared/ipc-types';
 
-export function useAgentTeams() {
-  const [teams, setTeams] = useState<TeamInfo[]>([]);
+interface UseAgentTeamsOptions {
+  enabled?: boolean;
+}
 
-  // Load initial teams
+export function useAgentTeams(options: UseAgentTeamsOptions = {}) {
+  const { enabled = true } = options;
+  const [teams, setTeams] = useState<TeamInfo[]>([]);
+  const prevEnabled = useRef(enabled);
+
+  // Load initial teams (and re-load when re-enabled)
   useEffect(() => {
+    if (!enabled) {
+      setTeams([]);
+      return;
+    }
+
     const load = async () => {
       try {
         const loadedTeams = await window.electronAPI.getTeams();
@@ -15,10 +26,12 @@ export function useAgentTeams() {
       }
     };
     load();
-  }, []);
+  }, [enabled]);
 
   // Listen for team events
   useEffect(() => {
+    if (!enabled) return;
+
     const unsubDetected = window.electronAPI.onTeamDetected((team: TeamInfo) => {
       setTeams(prev => {
         const idx = prev.findIndex(t => t.name === team.name);
@@ -52,7 +65,12 @@ export function useAgentTeams() {
       unsubTasks();
       unsubRemoved();
     };
-  }, []);
+  }, [enabled]);
+
+  // Track enabled transitions
+  useEffect(() => {
+    prevEnabled.current = enabled;
+  }, [enabled]);
 
   const getTeamForSession = useCallback(async (sessionId: string): Promise<TeamInfo | null> => {
     try {

@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SubdirectoryEntry } from '../shared/ipc-types';
@@ -14,8 +14,11 @@ import { LayoutPresetsManager } from './layout-presets-manager';
 import { CommandRegistry } from './command-registry';
 import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
+import { PlaybookManager } from './playbook-manager';
+import { PlaybookExecutor } from './playbook-executor';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
+import { IPCEmitter } from './ipc-emitter';
 import { IPCRegistry } from './ipc-registry';
 
 let registry: IPCRegistry | null = null;
@@ -33,11 +36,14 @@ export function setupIPCHandlers(
   layoutPresetsManager: LayoutPresetsManager,
   commandRegistry: CommandRegistry,
   modelHistoryManager: ModelHistoryManager,
-  gitManager: GitManager
+  gitManager: GitManager,
+  playbookManager: PlaybookManager,
+  playbookExecutor: PlaybookExecutor
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
   checkpointManager.setMainWindow(mainWindow);
+  playbookExecutor.setEmitter(new IPCEmitter(mainWindow));
 
   registry = new IPCRegistry();
 
@@ -77,6 +83,31 @@ export function setupIPCHandlers(
 
   registry.handle('getActiveSession', async () => {
     return sessionManager.getActiveSessionId();
+  });
+
+  registry.handle('revealInExplorer', async (_e, sessionId) => {
+    try {
+      const session = sessionManager.getSession(sessionId);
+      if (!session) {
+        console.error('[revealInExplorer] Session not found:', sessionId);
+        return false;
+      }
+
+      const workDir = session.workingDirectory;
+
+      // Validate directory exists
+      if (!fs.existsSync(workDir)) {
+        console.error('[revealInExplorer] Directory does not exist:', workDir);
+        return false;
+      }
+
+      // Reveal in file manager
+      shell.showItemInFolder(workDir);
+      return true;
+    } catch (err) {
+      console.error('[revealInExplorer] Failed:', err);
+      return false;
+    }
   });
 
   // ── Model switching ──
@@ -385,27 +416,49 @@ export function setupIPCHandlers(
 
   // ── Agent Teams ──
 
-  registry.handle('getTeams', async () => agentTeamManager.getTeams());
+  registry.handle('getTeams', async () => {
+    if (!settingsManager.getEnableAgentTeams()) return [];
+    return agentTeamManager.getTeams();
+  });
 
   registry.handle('getTeamForSession', async (_e, sessionId) => {
+    if (!settingsManager.getEnableAgentTeams()) return null;
     return agentTeamManager.getTeamForSession(sessionId);
   });
 
   registry.handle('getTeamSessions', async (_e, teamName) => {
+    if (!settingsManager.getEnableAgentTeams()) return [];
     return agentTeamManager.getTeamSessions(teamName);
   });
 
   registry.handle('linkSessionToTeam', async (_e, sessionId, teamName, agentId) => {
+    if (!settingsManager.getEnableAgentTeams()) return false;
     return agentTeamManager.linkSessionToTeam(sessionId, teamName, agentId);
   });
 
   registry.handle('unlinkSessionFromTeam', async (_e, sessionId) => {
+    if (!settingsManager.getEnableAgentTeams()) return false;
     return agentTeamManager.unlinkSessionFromTeam(sessionId);
   });
 
   registry.handle('closeTeam', async (_e, teamName) => {
+    if (!settingsManager.getEnableAgentTeams()) return false;
     try { return await agentTeamManager.closeTeam(teamName); }
     catch (err) { console.error('Failed to close team:', err); return false; }
+  });
+
+  registry.handle('updateEnableAgentTeams', async (_e, enabled) => {
+    try {
+      settingsManager.updateEnableAgentTeams(enabled);
+      if (enabled) {
+        await agentTeamManager.initialize();
+      } else {
+        agentTeamManager.destroy();
+      }
+      // Drain and replenish pool so new sessions get correct env var
+      sessionPool.drainAndReplenish();
+      return true;
+    } catch (err) { console.error('Failed to update enableAgentTeams:', err); return false; }
   });
 
   registry.handle('updateAutoLayoutTeams', async (_e, enabled) => {
@@ -607,6 +660,11 @@ export function setupIPCHandlers(
     catch (err) { console.error('Failed to get diff:', err); throw err; }
   });
 
+  registry.handle('gitFileContent', async (_e, workDir, filePath) => {
+    try { return await gitManager.fileContent(workDir, filePath); }
+    catch (err) { console.error('Failed to read file content:', err); throw err; }
+  });
+
   registry.handle('gitCommitDiff', async (_e, workDir, hash) => {
     try { return await gitManager.commitDiff(workDir, hash); }
     catch (err) { console.error('Failed to get commit diff:', err); throw err; }
@@ -633,6 +691,92 @@ export function setupIPCHandlers(
 
   registry.handle('gitStopWatching', async (_e, workDir) => {
     return gitManager.stopWatching(workDir);
+  });
+
+  // ── Git Worktrees ──
+
+  registry.handle('gitWorktreeList', async (_e, workDir) => {
+    try { return await gitManager.listWorktrees(workDir); }
+    catch (err) { console.error('Failed to list worktrees:', err); throw err; }
+  });
+
+  registry.handle('gitWorktreeAdd', async (_e, request) => {
+    try {
+      const wtSettings = settingsManager.getWorktreeSettings();
+      return await gitManager.addWorktree(request, wtSettings);
+    }
+    catch (err) { console.error('Failed to add worktree:', err); throw err; }
+  });
+
+  registry.handle('gitWorktreeRemove', async (_e, request) => {
+    try { return await gitManager.removeWorktree(request); }
+    catch (err) { console.error('Failed to remove worktree:', err); throw err; }
+  });
+
+  registry.handle('gitWorktreePrune', async (_e, workDir) => {
+    try { return await gitManager.pruneWorktrees(workDir); }
+    catch (err) { console.error('Failed to prune worktrees:', err); throw err; }
+  });
+
+  registry.handle('getWorktreeSettings', async () => {
+    return settingsManager.getWorktreeSettings();
+  });
+
+  registry.handle('updateWorktreeSettings', async (_e, settings) => {
+    try { return settingsManager.updateWorktreeSettings(settings); }
+    catch (err) { console.error('Failed to update worktree settings:', err); throw err; }
+  });
+
+  // ── Session Playbooks ──
+
+  registry.handle('listPlaybooks', async () => playbookManager.listAll());
+  registry.handle('getPlaybook', async (_e, id) => playbookManager.get(id));
+
+  registry.handle('addPlaybook', async (_e, request) => {
+    try { return playbookManager.add(request); }
+    catch (err) { console.error('Failed to add playbook:', err); throw err; }
+  });
+
+  registry.handle('updatePlaybook', async (_e, request) => {
+    try { return playbookManager.update(request); }
+    catch (err) { console.error('Failed to update playbook:', err); throw err; }
+  });
+
+  registry.handle('deletePlaybook', async (_e, id) => {
+    try { return playbookManager.delete(id); }
+    catch (err) { console.error('Failed to delete playbook:', err); throw err; }
+  });
+
+  registry.handle('importPlaybook', async (_e, data) => {
+    try { return playbookManager.importPlaybook(data); }
+    catch (err) { console.error('Failed to import playbook:', err); throw err; }
+  });
+
+  registry.handle('exportPlaybook', async (_e, id) => {
+    try { return playbookManager.exportPlaybook(id); }
+    catch (err) { console.error('Failed to export playbook:', err); throw err; }
+  });
+
+  registry.handle('duplicatePlaybook', async (_e, id) => {
+    try { return playbookManager.duplicate(id); }
+    catch (err) { console.error('Failed to duplicate playbook:', err); throw err; }
+  });
+
+  registry.handle('runPlaybook', async (_e, request) => {
+    try { return await playbookExecutor.run(request); }
+    catch (err) { console.error('Failed to run playbook:', err); throw err; }
+  });
+
+  registry.handle('cancelPlaybook', async (_e, sessionId) => {
+    return playbookExecutor.cancel(sessionId);
+  });
+
+  registry.handle('confirmPlaybook', async (_e, sessionId) => {
+    return playbookExecutor.confirm(sessionId);
+  });
+
+  registry.handle('getPlaybookExecution', async (_e, sessionId) => {
+    return playbookExecutor.getExecution(sessionId);
   });
 
   // ── App info ──

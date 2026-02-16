@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGit } from '../hooks/useGit';
 import { CommitDialog } from './ui/CommitDialog';
 import { ConfirmDialog } from './ui';
+import { DiffViewer } from './DiffViewer';
 import type { GitFileEntry } from '../../shared/types/git-types';
 
 interface GitPanelProps {
@@ -14,7 +15,8 @@ interface GitPanelProps {
 export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitPanelProps) {
   const git = useGit(projectPath);
   const [showCommitDialog, setShowCommitDialog] = useState(false);
-  const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+  const [diffViewerFile, setDiffViewerFile] = useState<GitFileEntry | null>(null);
   const [stagedCollapsed, setStagedCollapsed] = useState(false);
   const [unstagedCollapsed, setUnstagedCollapsed] = useState(false);
   const [untrackedCollapsed, setUntrackedCollapsed] = useState(false);
@@ -48,15 +50,10 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
     }
   }, [git]);
 
-  const handleFileClick = useCallback(async (file: GitFileEntry) => {
-    if (expandedFile === file.path) {
-      setExpandedFile(null);
-      git.setSelectedDiff(null);
-    } else {
-      setExpandedFile(file.path);
-      await git.viewDiff(file.path, file.area === 'staged');
-    }
-  }, [expandedFile, git]);
+  const handleFileClick = useCallback((file: GitFileEntry) => {
+    setDiffViewerFile(file);
+    setShowDiffViewer(true);
+  }, []);
 
   const handleBranchSwitch = useCallback(async (branch: string) => {
     setBranchDropdownOpen(false);
@@ -323,8 +320,6 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
                   onToggleCollapse={() => setConflictedCollapsed(!conflictedCollapsed)}
                   onFileToggle={handleFileToggle}
                   onFileClick={handleFileClick}
-                  expandedFile={expandedFile}
-                  selectedDiff={git.selectedDiff}
                   isConflict
                 />
               )}
@@ -339,8 +334,6 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
                   onToggleCollapse={() => setStagedCollapsed(!stagedCollapsed)}
                   onFileToggle={handleFileToggle}
                   onFileClick={handleFileClick}
-                  expandedFile={expandedFile}
-                  selectedDiff={git.selectedDiff}
                   actionLabel="Unstage All"
                   onAction={git.unstageAll}
                 />
@@ -356,8 +349,6 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
                   onToggleCollapse={() => setUnstagedCollapsed(!unstagedCollapsed)}
                   onFileToggle={handleFileToggle}
                   onFileClick={handleFileClick}
-                  expandedFile={expandedFile}
-                  selectedDiff={git.selectedDiff}
                   actionLabel="Stage All"
                   onAction={git.stageAll}
                   secondaryAction="Discard All"
@@ -375,8 +366,6 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
                   onToggleCollapse={() => setUntrackedCollapsed(!untrackedCollapsed)}
                   onFileToggle={handleFileToggle}
                   onFileClick={handleFileClick}
-                  expandedFile={expandedFile}
-                  selectedDiff={git.selectedDiff}
                   actionLabel="Add All"
                   onAction={git.stageAll}
                 />
@@ -396,7 +385,10 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
               <div className="git-panel-action-right">
                 <button
                   className="git-panel-generate-btn"
-                  onClick={() => git.generateMessage()}
+                  onClick={async () => {
+                    const msg = await git.generateMessage();
+                    if (msg) setShowCommitDialog(true);
+                  }}
                   disabled={stagedFiles.length === 0 || git.operationInProgress !== null}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -474,6 +466,20 @@ export function GitPanel({ isOpen, onClose, projectPath, activeSessionId }: GitP
         )}
       </div>
 
+      {/* Diff viewer overlay */}
+      <DiffViewer
+        isOpen={showDiffViewer}
+        initialFile={diffViewerFile}
+        files={status?.files || []}
+        selectedDiff={git.selectedDiff}
+        onClose={() => { setShowDiffViewer(false); setDiffViewerFile(null); }}
+        viewDiff={git.viewDiff}
+        viewFileContent={git.viewFileContent}
+        stageFiles={git.stageFiles}
+        unstageFiles={git.unstageFiles}
+        discardFile={git.discardFile}
+      />
+
       {/* Commit dialog */}
       <CommitDialog
         isOpen={showCommitDialog}
@@ -514,8 +520,6 @@ interface FileSectionProps {
   onToggleCollapse: () => void;
   onFileToggle: (file: GitFileEntry) => void;
   onFileClick: (file: GitFileEntry) => void;
-  expandedFile: string | null;
-  selectedDiff: import('../../shared/types/git-types').GitDiffResult | null;
   actionLabel?: string;
   onAction?: () => void;
   secondaryAction?: string;
@@ -531,8 +535,6 @@ function FileSection({
   onToggleCollapse,
   onFileToggle,
   onFileClick,
-  expandedFile,
-  selectedDiff,
   actionLabel,
   onAction,
   secondaryAction,
@@ -565,69 +567,32 @@ function FileSection({
       {!collapsed && (
         <div className="git-file-list">
           {files.map((file) => (
-            <div key={`${file.area}-${file.path}`}>
-              <div className="git-file-entry">
-                {!isConflict ? (
-                  <input
-                    type="checkbox"
-                    className="git-file-checkbox"
-                    checked={file.area === 'staged'}
-                    onChange={() => onFileToggle(file)}
-                  />
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f7768e" strokeWidth="2">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                  </svg>
-                )}
-                <div className="git-file-info" onClick={() => onFileClick(file)}>
-                  <span className="git-file-name" title={file.path}>
-                    {file.path.split('/').pop() || file.path}
-                  </span>
-                  {file.path.includes('/') && (
-                    <span className="git-file-dir">{file.path.slice(0, file.path.lastIndexOf('/'))}/</span>
-                  )}
-                </div>
-                <span className={`git-file-status git-status-${file.indexStatus}`}>
-                  {statusLabel(file.area === 'staged' ? file.indexStatus : file.workTreeStatus)}
-                </span>
-              </div>
-              {/* Inline diff */}
-              {expandedFile === file.path && selectedDiff && (
-                <div className="git-diff-viewer">
-                  <div className="git-diff-header">
-                    <span className="git-diff-path">{file.path}</span>
-                    <button
-                      className="git-diff-close"
-                      onClick={(e) => { e.stopPropagation(); onFileClick(file); }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                  {selectedDiff.isTruncated && (
-                    <div className="git-diff-truncated">Diff too large — showing first 100KB</div>
-                  )}
-                  <pre className="git-diff-content">
-                    {selectedDiff.diff.split('\n').map((line, i) => (
-                      <div
-                        key={i}
-                        className={`git-diff-line ${
-                          line.startsWith('+') && !line.startsWith('+++') ? 'added' :
-                          line.startsWith('-') && !line.startsWith('---') ? 'removed' :
-                          line.startsWith('@@') ? 'hunk' : ''
-                        }`}
-                      >
-                        <span className="git-diff-linenum">{i + 1}</span>
-                        <span className="git-diff-text">{line}</span>
-                      </div>
-                    ))}
-                  </pre>
-                </div>
+            <div key={`${file.area}-${file.path}`} className="git-file-entry">
+              {!isConflict ? (
+                <input
+                  type="checkbox"
+                  className="git-file-checkbox"
+                  checked={file.area === 'staged'}
+                  onChange={() => onFileToggle(file)}
+                />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f7768e" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
               )}
+              <div className="git-file-info" onClick={() => onFileClick(file)}>
+                <span className="git-file-name" title={file.path}>
+                  {file.path.split('/').pop() || file.path}
+                </span>
+                {file.path.includes('/') && (
+                  <span className="git-file-dir">{file.path.slice(0, file.path.lastIndexOf('/'))}/</span>
+                )}
+              </div>
+              <span className={`git-file-status git-status-${file.indexStatus}`}>
+                {statusLabel(file.area === 'staged' ? file.indexStatus : file.workTreeStatus)}
+              </span>
             </div>
           ))}
         </div>
@@ -695,10 +660,10 @@ const gitPanelStyles = `
 
   .git-panel {
     position: fixed;
-    top: 0;
+    top: 36px;
     right: 0;
     width: 420px;
-    height: 100%;
+    height: calc(100% - 36px);
     background: #1a1b26;
     border-left: 1px solid #292e42;
     z-index: 8000;
@@ -1155,86 +1120,6 @@ const gitPanelStyles = `
   .git-status-renamed { color: #7dcfff; }
   .git-status-untracked { color: #565f89; }
   .git-status-unmerged { color: #f7768e; }
-
-  /* Diff viewer */
-  .git-diff-viewer {
-    margin: 4px 12px 8px 12px;
-    background: #1a1b26;
-    border: 1px solid #292e42;
-    border-radius: 4px;
-    max-height: 400px;
-    overflow: auto;
-  }
-
-  .git-diff-header {
-    padding: 8px 12px;
-    background: #24283b;
-    border-bottom: 1px solid #292e42;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .git-diff-path {
-    font-size: 12px;
-    color: #7dcfff;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .git-diff-close {
-    background: none;
-    border: none;
-    color: #565f89;
-    cursor: pointer;
-    padding: 2px;
-  }
-
-  .git-diff-close:hover { color: #c0caf5; }
-
-  .git-diff-truncated {
-    padding: 8px 12px;
-    background: rgba(224, 175, 104, 0.1);
-    color: #e0af68;
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .git-diff-content {
-    margin: 0;
-    padding: 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-
-  .git-diff-line {
-    display: flex;
-    padding: 0 8px;
-  }
-
-  .git-diff-line.added { background: rgba(158, 206, 106, 0.12); }
-  .git-diff-line.removed { background: rgba(247, 118, 142, 0.12); }
-  .git-diff-line.hunk { background: rgba(122, 162, 247, 0.08); font-style: italic; }
-
-  .git-diff-linenum {
-    width: 40px;
-    text-align: right;
-    padding-right: 8px;
-    color: #565f89;
-    flex-shrink: 0;
-    user-select: none;
-  }
-
-  .git-diff-text {
-    flex: 1;
-    color: #c0caf5;
-    white-space: pre;
-    overflow-x: auto;
-  }
-
-  .git-diff-line.added .git-diff-text { color: #9ece6a; }
-  .git-diff-line.removed .git-diff-text { color: #f7768e; }
-  .git-diff-line.hunk .git-diff-text { color: #7aa2f7; }
 
   /* Action bar */
   .git-panel-action-bar {

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Workspace, PermissionMode, SubdirectoryEntry } from '../../../shared/ipc-types';
+import type { WorktreeCreateRequest, GitBranchInfo } from '../../../shared/types/git-types';
 
 interface NewSessionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions') => void;
+  onSubmit: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: WorktreeCreateRequest) => void;
   sessionCount: number;
   workspaces?: Workspace[];
 }
@@ -23,6 +24,18 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+
+  // Worktree state
+  const [isGitRepo, setIsGitRepo] = useState(false);
+  const [worktreeEnabled, setWorktreeEnabled] = useState(false);
+  const [worktreeBranchMode, setWorktreeBranchMode] = useState<'existing' | 'new'>('existing');
+  const [worktreeBranch, setWorktreeBranch] = useState('');
+  const [worktreeNewBranch, setWorktreeNewBranch] = useState('');
+  const [worktreeBaseBranch, setWorktreeBaseBranch] = useState('');
+  const [gitBranches, setGitBranches] = useState<GitBranchInfo[]>([]);
+  const [worktreeBranchSearch, setWorktreeBranchSearch] = useState('');
+  const [isCheckingGit, setIsCheckingGit] = useState(false);
+  const [worktreeError, setWorktreeError] = useState<string | null>(null);
 
   const hasWorkspaces = workspaces.length > 0;
 
@@ -45,6 +58,15 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
       setSearchQuery('');
       setIsCreatingFolder(false);
       setNewFolderName('');
+      setIsGitRepo(false);
+      setWorktreeEnabled(false);
+      setWorktreeBranchMode('existing');
+      setWorktreeBranch('');
+      setWorktreeNewBranch('');
+      setWorktreeBaseBranch('');
+      setGitBranches([]);
+      setWorktreeBranchSearch('');
+      setWorktreeError(null);
 
       // Auto-load first workspace's subdirectories
       if (workspaces.length > 0) {
@@ -81,9 +103,32 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
     }
   };
 
+  const checkGitRepo = async (dirPath: string) => {
+    setIsCheckingGit(true);
+    setIsGitRepo(false);
+    setWorktreeEnabled(false);
+    setGitBranches([]);
+    setWorktreeError(null);
+    try {
+      const status = await window.electronAPI.getGitStatus(dirPath);
+      if (status.isRepo) {
+        setIsGitRepo(true);
+        const branches = await window.electronAPI.getGitBranches(dirPath);
+        setGitBranches(branches);
+        const current = branches.find(b => b.isCurrent);
+        if (current) setWorktreeBaseBranch(current.name);
+      }
+    } catch {
+      setIsGitRepo(false);
+    } finally {
+      setIsCheckingGit(false);
+    }
+  };
+
   const handleSubdirectorySelect = (subdir: SubdirectoryEntry) => {
     setSelectedSubdirectory(subdir.path);
     setError(null);
+    checkGitRepo(subdir.path);
   };
 
   const INVALID_FOLDER_CHARS = /[/\\:*?"<>|]/;
@@ -146,7 +191,24 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
 
     const finalPath = hasWorkspaces ? selectedSubdirectory! : workingDirectory.trim();
     const sessionName = name.trim() || `Session ${sessionCount + 1}`;
-    onSubmit(sessionName, finalPath, permissionMode);
+
+    // Build worktree request if enabled
+    let worktreeRequest: WorktreeCreateRequest | undefined;
+    if (worktreeEnabled && isGitRepo) {
+      const branch = worktreeBranchMode === 'new' ? worktreeNewBranch.trim() : worktreeBranch;
+      if (!branch) {
+        setWorktreeError('Select or enter a branch name');
+        return;
+      }
+      worktreeRequest = {
+        mainRepoPath: finalPath,
+        branch,
+        isNewBranch: worktreeBranchMode === 'new',
+        baseBranch: worktreeBranchMode === 'new' ? worktreeBaseBranch : undefined,
+      };
+    }
+
+    onSubmit(sessionName, finalPath, permissionMode, worktreeRequest);
     handleClose();
   };
 
@@ -156,6 +218,7 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
       if (dir) {
         setWorkingDirectory(dir);
         setError(null);
+        checkGitRepo(dir);
       }
     }
   };
@@ -340,6 +403,122 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
                   </svg>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Worktree Toggle */}
+          {isGitRepo && !isCheckingGit && (
+            <div className="nsd-worktree-section">
+              <div className="nsd-worktree-header" onClick={() => setWorktreeEnabled(!worktreeEnabled)}>
+                <div className="nsd-worktree-toggle">
+                  <div className={`nsd-checkbox ${worktreeEnabled ? 'checked' : ''}`}>
+                    {worktreeEnabled && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="nsd-worktree-label">Create worktree for this session</span>
+                </div>
+                <span className="nsd-worktree-hint">Isolated working directory</span>
+              </div>
+
+              {worktreeEnabled && (
+                <div className="nsd-worktree-options">
+                  {/* Branch mode radio */}
+                  <div className="nsd-wt-radio-group">
+                    <label className={`nsd-wt-radio ${worktreeBranchMode === 'existing' ? 'active' : ''}`}>
+                      <input
+                        type="radio"
+                        name="wt-branch-mode"
+                        checked={worktreeBranchMode === 'existing'}
+                        onChange={() => setWorktreeBranchMode('existing')}
+                      />
+                      Existing branch
+                    </label>
+                    <label className={`nsd-wt-radio ${worktreeBranchMode === 'new' ? 'active' : ''}`}>
+                      <input
+                        type="radio"
+                        name="wt-branch-mode"
+                        checked={worktreeBranchMode === 'new'}
+                        onChange={() => setWorktreeBranchMode('new')}
+                      />
+                      New branch
+                    </label>
+                  </div>
+
+                  {worktreeBranchMode === 'existing' ? (
+                    <div className="nsd-wt-branch-select">
+                      <input
+                        type="text"
+                        className="nsd-wt-search"
+                        placeholder="Search branches..."
+                        value={worktreeBranchSearch}
+                        onChange={(e) => setWorktreeBranchSearch(e.target.value)}
+                      />
+                      <div className="nsd-wt-branch-list">
+                        {gitBranches
+                          .filter(b => !b.isCurrent && b.name.toLowerCase().includes(worktreeBranchSearch.toLowerCase()))
+                          .map(b => (
+                            <button
+                              key={b.name}
+                              type="button"
+                              className={`nsd-wt-branch-item ${worktreeBranch === b.name ? 'selected' : ''}`}
+                              onClick={() => setWorktreeBranch(b.name)}
+                            >
+                              {b.name}
+                            </button>
+                          ))
+                        }
+                        {gitBranches.filter(b => !b.isCurrent && b.name.toLowerCase().includes(worktreeBranchSearch.toLowerCase())).length === 0 && (
+                          <div className="nsd-wt-no-branches">No matching branches</div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="nsd-wt-new-branch">
+                      <input
+                        type="text"
+                        className="nsd-wt-input"
+                        placeholder="feature/my-branch"
+                        value={worktreeNewBranch}
+                        onChange={(e) => { setWorktreeNewBranch(e.target.value); setWorktreeError(null); }}
+                      />
+                      <div className="nsd-wt-base-label">
+                        Base:
+                        <select
+                          className="nsd-wt-base-select"
+                          value={worktreeBaseBranch}
+                          onChange={(e) => setWorktreeBaseBranch(e.target.value)}
+                        >
+                          {gitBranches.map(b => (
+                            <option key={b.name} value={b.name}>{b.name}{b.isCurrent ? ' (current)' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Worktree path preview */}
+                  <div className="nsd-wt-path-preview">
+                    <span className="nsd-wt-path-label">Worktree path:</span>
+                    <code className="nsd-wt-path-value">
+                      {(() => {
+                        const dirPath = hasWorkspaces ? selectedSubdirectory : workingDirectory.trim();
+                        const branch = worktreeBranchMode === 'new' ? worktreeNewBranch.trim() : worktreeBranch;
+                        if (!dirPath || !branch) return '...';
+                        const repoName = dirPath.split(/[\\/]/).pop() || 'repo';
+                        const sanitized = branch.replace(/[/\\]/g, '-').replace(/\.\./g, '-');
+                        return `../${repoName}-worktrees/${sanitized}/`;
+                      })()}
+                    </code>
+                  </div>
+
+                  {worktreeError && (
+                    <div className="nsd-wt-error">{worktreeError}</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1062,6 +1241,242 @@ const styles = `
     border-radius: 8px;
     font-size: 12px;
     color: #f7768e;
+  }
+
+  /* Worktree Section */
+  .nsd-worktree-section {
+    border-bottom: 1px solid #292e42;
+    padding: 12px 16px;
+  }
+
+  .nsd-worktree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .nsd-worktree-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nsd-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #3b4261;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .nsd-checkbox.checked {
+    background: #9ece6a;
+    border-color: #9ece6a;
+    color: #1a1b26;
+  }
+
+  .nsd-worktree-label {
+    font-size: 12px;
+    color: #a9b1d6;
+    font-weight: 500;
+  }
+
+  .nsd-worktree-hint {
+    font-size: 11px;
+    color: #565f89;
+  }
+
+  .nsd-worktree-options {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #292e42;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: nsd-slideDown 0.15s ease;
+  }
+
+  .nsd-wt-radio-group {
+    display: flex;
+    gap: 16px;
+  }
+
+  .nsd-wt-radio {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #565f89;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .nsd-wt-radio.active {
+    color: #a9b1d6;
+  }
+
+  .nsd-wt-radio input {
+    accent-color: #9ece6a;
+  }
+
+  .nsd-wt-branch-select {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .nsd-wt-search {
+    height: 32px;
+    padding: 0 10px;
+    background: #16161e;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    color: #c0caf5;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .nsd-wt-search:focus {
+    outline: none;
+    border-color: #9ece6a;
+  }
+
+  .nsd-wt-search::placeholder {
+    color: #3b4261;
+  }
+
+  .nsd-wt-branch-list {
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    background: #16161e;
+  }
+
+  .nsd-wt-branch-item {
+    width: 100%;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    color: #a9b1d6;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .nsd-wt-branch-item:hover {
+    background: #1e2030;
+  }
+
+  .nsd-wt-branch-item.selected {
+    background: rgba(158, 206, 106, 0.15);
+    color: #9ece6a;
+  }
+
+  .nsd-wt-no-branches {
+    padding: 12px;
+    text-align: center;
+    color: #3b4261;
+    font-size: 12px;
+  }
+
+  .nsd-wt-new-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nsd-wt-input {
+    height: 32px;
+    padding: 0 10px;
+    background: #16161e;
+    border: 1px solid #292e42;
+    border-radius: 6px;
+    color: #c0caf5;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .nsd-wt-input:focus {
+    outline: none;
+    border-color: #9ece6a;
+  }
+
+  .nsd-wt-input::placeholder {
+    color: #3b4261;
+  }
+
+  .nsd-wt-base-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #565f89;
+  }
+
+  .nsd-wt-base-select {
+    flex: 1;
+    height: 28px;
+    padding: 0 8px;
+    background: #16161e;
+    border: 1px solid #292e42;
+    border-radius: 4px;
+    color: #a9b1d6;
+    font-size: 11px;
+    font-family: inherit;
+  }
+
+  .nsd-wt-path-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .nsd-wt-path-label {
+    font-size: 10px;
+    color: #565f89;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .nsd-wt-path-value {
+    padding: 6px 10px;
+    background: #1f2335;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #565f89;
+    word-break: break-all;
+  }
+
+  .nsd-wt-error {
+    font-size: 11px;
+    color: #f7768e;
+    padding: 6px 10px;
+    background: rgba(247, 118, 142, 0.1);
+    border-radius: 4px;
+  }
+
+  .nsd-wt-branch-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .nsd-wt-branch-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .nsd-wt-branch-list::-webkit-scrollbar-thumb {
+    background: #292e42;
+    border-radius: 2px;
   }
 
   /* Scrollbar styling */

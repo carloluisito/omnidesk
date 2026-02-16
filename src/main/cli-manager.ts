@@ -6,6 +6,7 @@ export interface CLIManagerOptions {
   workingDirectory: string;
   permissionMode: PermissionMode;
   model?: ClaudeModel;
+  enableAgentTeams?: boolean;
 }
 
 export class CLIManager {
@@ -23,6 +24,15 @@ export class CLIManager {
   private initialDetectionBuffer: string = '';
   private initialDetectionDone: boolean = false;
   private switchDetectionBuffer: string = '';
+
+  // Safe log that ignores EPIPE errors (broken pipe when app window closes)
+  private safeLog(...args: unknown[]): void {
+    try {
+      console.log(...args);
+    } catch {
+      // Ignore EPIPE / broken pipe errors on stdout
+    }
+  }
 
   constructor(options: CLIManagerOptions) {
     this.options = options;
@@ -103,17 +113,21 @@ export class CLIManager {
       }
     }
 
+    const ptyEnv: { [key: string]: string } = {
+      ...cleanEnv,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+    };
+    if (this.options.enableAgentTeams !== false) {
+      ptyEnv.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = '1';
+    }
+
     this.ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
       cwd: this.options.workingDirectory,
-      env: {
-        ...cleanEnv,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1',
-      },
+      env: ptyEnv,
     });
 
     this._isRunning = true;
@@ -156,7 +170,7 @@ export class CLIManager {
       this.initialDetectionBuffer += data;
       const result = detectModelFromOutput(this.initialDetectionBuffer, true);
       if (result.model) {
-        console.log('[ModelDetect] Phase 1 detected:', result.model, '(bufLen:', this.initialDetectionBuffer.length, ')');
+        this.safeLog('[ModelDetect] Phase 1 detected:', result.model, '(bufLen:', this.initialDetectionBuffer.length, ')');
         this.currentModel = result.model;
         if (this.modelChangeCallback) {
           this.modelChangeCallback(result.model);
@@ -164,7 +178,7 @@ export class CLIManager {
         this.initialDetectionDone = true;
         this.initialDetectionBuffer = '';
       } else if (this.initialDetectionBuffer.length > 8192) {
-        console.log('[ModelDetect] Phase 1 gave up after 8KB');
+        this.safeLog('[ModelDetect] Phase 1 gave up after 8KB');
         this.initialDetectionDone = true;
         this.initialDetectionBuffer = '';
       }
@@ -179,7 +193,7 @@ export class CLIManager {
       }
       const result = detectModelFromOutput(this.switchDetectionBuffer, false);
       if (result.model && result.model !== this.currentModel) {
-        console.log('[ModelDetect] Phase 2 detected:', result.model, '(was:', this.currentModel, ')');
+        this.safeLog('[ModelDetect] Phase 2 detected:', result.model, '(was:', this.currentModel, ')');
         this.currentModel = result.model;
         this.switchDetectionBuffer = ''; // Reset after successful detection
         if (this.modelChangeCallback) {
