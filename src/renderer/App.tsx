@@ -21,6 +21,7 @@ import { AboutDialog } from './components/AboutDialog';
 import { TeamPanel } from './components/TeamPanel';
 import { AtlasPanel } from './components/AtlasPanel';
 import { GitPanel } from './components/GitPanel';
+import { TunnelPanel } from './components/TunnelPanel';
 import { WorktreePanel } from './components/WorktreePanel';
 import { PlaybookPicker } from './components/PlaybookPicker';
 import { PlaybookParameterDialog } from './components/PlaybookParameterDialog';
@@ -112,6 +113,9 @@ function App() {
   const git = useGit(atlasProjectPath);
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showWorktreePanel, setShowWorktreePanel] = useState(false);
+
+  // Tunnel panel
+  const [showTunnelPanel, setShowTunnelPanel] = useState(false);
 
   // Session Playbooks
   const pb = usePlaybooks(activeSessionId);
@@ -392,6 +396,13 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
         e.preventDefault();
         setShowGitPanel(prev => !prev);
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + U: Tunnel panel
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'U') {
+        e.preventDefault();
+        setShowTunnelPanel(prev => !prev);
         return;
       }
 
@@ -761,8 +772,10 @@ function App() {
         onOpenGit={() => openPanel('git', setShowGitPanel)}
         onOpenWorktrees={() => openPanel('worktrees', setShowWorktreePanel)}
         onOpenPlaybooks={() => pb.openPicker()}
+        onOpenTunnels={() => setShowTunnelPanel(prev => !prev)}
         teamCount={agentTeamsEnabled ? teams.length : 0}
         gitStagedCount={git.status?.stagedCount ?? 0}
+        activeTunnelCount={0}
         quotaData={quotaData}
         burnRateData={burnRateData}
         isQuotaLoading={isQuotaLoading}
@@ -923,6 +936,12 @@ function App() {
         isOpen={showWorktreePanel}
         onClose={() => setShowWorktreePanel(false)}
         projectPath={atlasProjectPath}
+      />
+
+      {/* Tunnel panel */}
+      <TunnelPanel
+        isOpen={showTunnelPanel}
+        onClose={() => setShowTunnelPanel(false)}
       />
 
       {/* Playbook Picker */}

@@ -150,12 +150,20 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
 
       <div className="fuel-tooltip-divider" />
 
-      {/* Burn Rate */}
+      {/* Burn Rates */}
       {burnRateData && burnRateData.ratePerHour5h !== null && (
         <div className="fuel-tooltip-row">
-          <span className="fuel-tooltip-label">Burn Rate</span>
+          <span className="fuel-tooltip-label">5H Burn</span>
           <span className="fuel-tooltip-value">
             {burnRateData.ratePerHour5h.toFixed(1)}%/hr
+          </span>
+        </div>
+      )}
+      {burnRateData && burnRateData.ratePerHour7d !== null && (
+        <div className="fuel-tooltip-row">
+          <span className="fuel-tooltip-label">7D Burn</span>
+          <span className="fuel-tooltip-value">
+            {burnRateData.ratePerHour7d.toFixed(1)}%/hr
           </span>
         </div>
       )}

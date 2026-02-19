@@ -16,6 +16,7 @@ import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
+import { TunnelManager } from './tunnel-manager';
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
 import { WindowState } from '../shared/ipc-types';
 
@@ -42,6 +43,7 @@ let modelHistoryManager: ModelHistoryManager | null = null;
 let gitManager: GitManager | null = null;
 let playbookManager: PlaybookManager | null = null;
 let playbookExecutor: PlaybookExecutor | null = null;
+let tunnelManager: TunnelManager | null = null;
 
 const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
@@ -171,6 +173,10 @@ function createWindow(): void {
   playbookManager = new PlaybookManager();
   playbookExecutor = new PlaybookExecutor(sessionManager, checkpointManager, playbookManager);
 
+  // Initialize tunnel manager
+  tunnelManager = new TunnelManager();
+  tunnelManager.setMainWindow(mainWindow);
+
   // Initialize command registry
   commandRegistry = new CommandRegistry();
 
@@ -204,7 +210,8 @@ function createWindow(): void {
     modelHistoryManager,
     gitManager,
     playbookManager,
-    playbookExecutor
+    playbookExecutor,
+    tunnelManager
   );
 
   // Initialize pool (delayed, async)
@@ -256,6 +263,10 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     removeIPCHandlers();
+    if (tunnelManager) {
+      tunnelManager.destroy();
+      tunnelManager = null;
+    }
     if (modelHistoryManager) {
       modelHistoryManager.shutdown();
       modelHistoryManager = null;

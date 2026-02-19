@@ -31,8 +31,10 @@ interface TabBarProps {
   onOpenGit?: () => void;
   onOpenWorktrees?: () => void;
   onOpenPlaybooks?: () => void;
+  onOpenTunnels?: () => void;
   teamCount?: number;
   gitStagedCount?: number;
+  activeTunnelCount?: number;
   quotaData?: ClaudeUsageQuota | null;
   burnRateData?: BurnRateData | null;
   isQuotaLoading?: boolean;
@@ -68,9 +70,11 @@ export function TabBar({
   onOpenGit,
   onOpenWorktrees,
   onOpenPlaybooks,
+  onOpenTunnels,
   onOpenHelp,
   teamCount = 0,
   gitStagedCount = 0,
+  activeTunnelCount = 0,
   quotaData = null,
   burnRateData = null,
   isQuotaLoading = false,
@@ -335,7 +339,7 @@ export function TabBar({
         )}
 
         {/* Tools Dropdown */}
-        {(onOpenAtlas || onOpenLayoutPicker || onOpenTeams || onOpenGit || onOpenWorktrees || onOpenHistory || onOpenPlaybooks) && (
+        {(onOpenAtlas || onOpenLayoutPicker || onOpenTeams || onOpenGit || onOpenWorktrees || onOpenHistory || onOpenPlaybooks || onOpenTunnels) && (
           <ToolsDropdown
             onOpenAtlas={onOpenAtlas}
             onOpenLayoutPicker={onOpenLayoutPicker}
@@ -344,8 +348,10 @@ export function TabBar({
             onOpenWorktrees={onOpenWorktrees}
             onOpenHistory={onOpenHistory}
             onOpenPlaybooks={onOpenPlaybooks}
+            onOpenTunnels={onOpenTunnels}
             teamCount={teamCount}
             gitStagedCount={gitStagedCount}
+            activeTunnelCount={activeTunnelCount}
           />
         )}
 

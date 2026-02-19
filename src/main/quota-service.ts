@@ -336,11 +336,13 @@ export function buildBurnRateResult(
     else if (recentRate < olderRate - 0.5) trend = 'decreasing';
   }
 
-  // Label based on projected time to limit
+  // Label based on projected time to limit (worst of both quotas)
   let label: BurnRateData['label'] = 'on-track';
-  if (projectedMinutes5h !== null) {
-    if (projectedMinutes5h < 60) label = 'critical';
-    else if (projectedMinutes5h < 120) label = 'elevated';
+  const projections = [projectedMinutes5h, projectedMinutes7d].filter((v): v is number => v !== null);
+  if (projections.length > 0) {
+    const minProjected = Math.min(...projections);
+    if (minProjected < 60) label = 'critical';
+    else if (minProjected < 120) label = 'elevated';
   }
 
   return {

@@ -233,6 +233,23 @@ function BurnRateCard({ burnRate }: { burnRate: BurnRateData }) {
         </span>
       </div>
 
+      {/* Per-Quota Burn Rates */}
+      <div className="burn-projections">
+        <div className="projection-item">
+          <span className="projection-label">5H RATE</span>
+          <span className="projection-value">
+            {burnRate.ratePerHour5h !== null ? `${burnRate.ratePerHour5h.toFixed(1)}%/hr` : '—'}
+          </span>
+        </div>
+        <div className="projection-divider" />
+        <div className="projection-item">
+          <span className="projection-label">7D RATE</span>
+          <span className="projection-value">
+            {burnRate.ratePerHour7d !== null ? `${burnRate.ratePerHour7d.toFixed(1)}%/hr` : '—'}
+          </span>
+        </div>
+      </div>
+
       {/* Projections Grid */}
       <div className="burn-projections">
         <div className="projection-item">

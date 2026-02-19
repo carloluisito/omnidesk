@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.6.0] - 2026-02-19
+
+### Added
+- **LaunchTunnel integration** — Expose local ports to the internet via LaunchTunnel (14th domain)
+  - `TunnelManager` with hybrid REST API + CLI (`lt preview`) process management
+  - API key management with validation, stored in `~/.claudedesk/tunnel-settings.json`
+  - Tunnel list with 30s cache, status mapping (API snake_case → camelCase)
+  - Account info section (email, plan badge, status)
+  - Request log viewer with method/path/status/duration/size columns
+  - TunnelPanel (4 views: setup/main/settings/logs), TunnelCreateDialog, TunnelRequestLogs
+  - CLI auto-detection via `where`/`which`, `shell: true` for cross-platform spawn
+  - Ctrl+Shift+U keyboard shortcut, ToolsDropdown entry with active count badge
+  - 17 IPC methods (`tunnel:*`): 13 invoke + 4 events
+
+### Fixed
+- **Tunnel spawn ENOENT** — Use `shell: true` in spawn for cross-platform `.cmd` shim compatibility
+- **Tunnel status mapping** — API returns `"active"` not `"connected"`; added to `mapApiStatus`
+- **Tunnel CLI subcommand** — Fixed `lt preview --port` (was missing `preview` subcommand)
+- **Tunnel URL parsing** — Match `URL:` output format from LaunchTunnel CLI (not `your url is:`)
+- **API snake_case mapping** — Map `created_at`, `status_code`, `duration_ms` etc. to camelCase
+- **Account response unwrapping** — API returns `{"user": {...}}` wrapper; now unwrapped correctly
+- **Request logs endpoint** — Reverted from `/requests` back to correct `/logs` path
+
+### Changed
+- **IPC contract** — Expanded from 149 to ~166 methods (added 17 tunnel methods)
+- **Project scale** — ~150 source files, ~49,000 LOC, 14 domains, 14 managers
+
+---
+
 ## [4.5.0] - 2026-02-17
 
 ### Added
@@ -251,7 +280,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...v4.5.0
 [4.4.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...v4.4.1
 [4.3.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.0...v4.3.1

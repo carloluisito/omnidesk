@@ -2,6 +2,10 @@
 
 Electron desktop app wrapping Claude Code CLI with multi-session terminals, split views, and agent team visualization.
 
+## Workflow Rule
+
+**Always run the `requirements-clarifier` agent (via the Task tool) on the user's initial prompt before planning or implementing.** This ensures requirements are analyzed, ambiguities are surfaced, and acceptance criteria are established before any work begins. Skip only for trivial tasks (typo fixes, single-line changes, or purely informational questions).
+
 ## Tech Stack
 
 Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | reactflow
@@ -11,9 +15,9 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 ```
 ┌─────────────────────────────────────────────┐
 │  Main Process (Node.js)                     │
-│  13 managers + IPC handlers + session pool  │
+│  14 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (149 methods)
+                   │ IPC (~166 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
@@ -26,7 +30,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 
 **3-layer pattern per domain:** Manager (main) → Hook (renderer) → Components (renderer)
 
-**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 149 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — ~166 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
 
 ## Domain Map
 
@@ -44,6 +48,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 | Atlas | atlas-manager | useAtlas, AtlasPanel | types/atlas-types.ts | `atlas:*` |
 | Git | git-manager | useGit, useDiffViewer, GitPanel, DiffViewer, DiffFileNav, DiffViewerHeader, DiffContentArea, CommitDialog, WorktreePanel, WorktreeCleanupDialog, diff-parser | types/git-types.ts | `git:*` |
 | Playbooks | playbook-manager, playbook-executor, built-in-playbooks | usePlaybooks, PlaybookPicker, PlaybookParameterDialog, PlaybookProgressPanel, PlaybookPanel, PlaybookEditor | types/playbook-types.ts | `playbook:*` |
+| Tunnels | tunnel-manager | useTunnel, TunnelPanel, TunnelCreateDialog, TunnelRequestLogs | types/tunnel-types.ts | `tunnel:*` |
 | Window | index.ts | ConfirmDialog, SettingsDialog, AboutDialog, TitleBarBranding | ipc-types.ts | `window:*`, `dialog:*` |
 
 ## Adding a New IPC Method

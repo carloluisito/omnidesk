@@ -1,6 +1,6 @@
 # ClaudeDesk — Repository Index
 
-138 source files | ~45,800 LOC | 13 domains | 149 IPC methods | 250 tests (v4.5.0)
+~150 source files | ~49,000 LOC | 14 domains | ~166 IPC methods | 250 tests (v4.6.0)
 
 ## Entrypoints
 
@@ -8,7 +8,7 @@
 |------|------|
 | `src/main/index.ts` (262 lines) | Main process — creates window, initializes all 13 managers, wires IPC |
 | `src/renderer/App.tsx` (880 lines) | Root React component — composes all hooks, panels, and dialogs |
-| `src/shared/ipc-contract.ts` (~550 lines) | IPC single source of truth — 149 methods, auto-derives preload bridge and types |
+| `src/shared/ipc-contract.ts` (~550 lines) | IPC single source of truth — ~166 methods, auto-derives preload bridge and types |
 
 ## IPC Infrastructure (cross-cutting)
 
@@ -179,6 +179,19 @@ IPC: `playbook:*` (15 methods — 12 invoke + 3 events)
 | `src/renderer/components/PlaybookProgressPanel.tsx` | Renderer | Bottom-docked progress bar, confirmation gates, auto-dismiss | ~230 |
 | `src/renderer/components/PlaybookPanel.tsx` | Renderer | Library browser: built-in + custom playbooks, import/export | ~350 |
 | `src/renderer/components/PlaybookEditor.tsx` | Renderer | Slide-in editor: 3 tabs (details, params, steps), variable inserter | ~700 |
+
+## LaunchTunnel
+
+IPC: `tunnel:*` (17 methods — 13 invoke + 4 events)
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/main/tunnel-manager.ts` | Main | REST API + CLI process management, settings persistence | 622 |
+| `src/shared/types/tunnel-types.ts` | Shared | Tunnel types, settings, events | 81 |
+| `src/renderer/hooks/useTunnel.ts` | Renderer | Tunnel state + IPC calls + event listeners | 267 |
+| `src/renderer/components/TunnelPanel.tsx` | Renderer | Main panel: tunnel list, create, account | 2006 |
+| `src/renderer/components/TunnelCreateDialog.tsx` | Renderer | Create tunnel form | 669 |
+| `src/renderer/components/TunnelRequestLogs.tsx` | Renderer | Request log table | 569 |
 
 ## Shared Utilities
 

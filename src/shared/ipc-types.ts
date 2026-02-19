@@ -384,3 +384,20 @@ export type {
   WorktreeErrorCode,
 } from './types/git-types';
 
+export type {
+  TunnelStatus,
+  TunnelProtocol,
+  TunnelInfo,
+  TunnelCreateRequest,
+  TunnelSettings,
+  TunnelAccountInfo,
+  TunnelUsageStats,
+  TunnelRequestLog,
+  TunnelOperationResult,
+  TunnelErrorCode,
+  TunnelCreatedEvent,
+  TunnelStoppedEvent,
+  TunnelErrorEvent,
+  TunnelOutputEvent,
+} from './types/tunnel-types';
+

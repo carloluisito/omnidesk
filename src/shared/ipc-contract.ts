@@ -100,6 +100,20 @@ import type {
   PlaybookErrorEvent,
 } from './types/playbook-types';
 
+import type {
+  TunnelInfo,
+  TunnelCreateRequest,
+  TunnelSettings,
+  TunnelAccountInfo,
+  TunnelUsageStats,
+  TunnelRequestLog,
+  TunnelOperationResult,
+  TunnelCreatedEvent,
+  TunnelStoppedEvent,
+  TunnelErrorEvent,
+  TunnelOutputEvent,
+} from './types/tunnel-types';
+
 // ─── Contract helper types ──────────────────────────────────────────
 
 /** renderer → main, expects a return value (ipcRenderer.invoke / ipcMain.handle) */
@@ -325,6 +339,27 @@ export interface IPCContractMap {
   onPlaybookCompleted:   EventContract<'playbook:completed',   PlaybookCompletedEvent>;
   onPlaybookError:       EventContract<'playbook:error',       PlaybookErrorEvent>;
 
+  // ── LaunchTunnel (invoke) ──
+  tunnelList:          InvokeContract<'tunnel:list',          [],                                  TunnelInfo[]>;
+  tunnelCreate:        InvokeContract<'tunnel:create',         [TunnelCreateRequest],               TunnelOperationResult>;
+  tunnelStop:          InvokeContract<'tunnel:stop',           [string],                            TunnelOperationResult>;
+  tunnelGetInfo:       InvokeContract<'tunnel:getInfo',        [string],                            TunnelInfo | null>;
+  tunnelGetLogs:       InvokeContract<'tunnel:getLogs',        [string, number?],                   TunnelRequestLog[]>;
+  tunnelGetSettings:   InvokeContract<'tunnel:getSettings',    [],                                  TunnelSettings>;
+  tunnelUpdateSettings: InvokeContract<'tunnel:updateSettings', [Partial<TunnelSettings>],          TunnelSettings>;
+  tunnelGetAccount:    InvokeContract<'tunnel:getAccount',     [],                                  TunnelAccountInfo | null>;
+  tunnelGetUsage:      InvokeContract<'tunnel:getUsage',       [string],                            TunnelUsageStats | null>;
+  tunnelRefresh:       InvokeContract<'tunnel:refresh',        [],                                  TunnelInfo[]>;
+  tunnelDetectBinary:  InvokeContract<'tunnel:detectBinary',   [],                                  boolean>;
+  tunnelValidateKey:   InvokeContract<'tunnel:validateKey',    [string],                            TunnelOperationResult>;
+  tunnelStopAll:       InvokeContract<'tunnel:stopAll',        [],                                  TunnelOperationResult>;
+
+  // ── LaunchTunnel events (main→renderer) ──
+  onTunnelCreated:     EventContract<'tunnel:created',   TunnelCreatedEvent>;
+  onTunnelStopped:     EventContract<'tunnel:stopped',   TunnelStoppedEvent>;
+  onTunnelError:       EventContract<'tunnel:error',     TunnelErrorEvent>;
+  onTunnelOutput:      EventContract<'tunnel:output',    TunnelOutputEvent>;
+
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
 }
@@ -529,6 +564,25 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onPlaybookCompleted:   'playbook:completed',
   onPlaybookError:       'playbook:error',
 
+  // LaunchTunnel
+  tunnelList:          'tunnel:list',
+  tunnelCreate:        'tunnel:create',
+  tunnelStop:          'tunnel:stop',
+  tunnelGetInfo:       'tunnel:getInfo',
+  tunnelGetLogs:       'tunnel:getLogs',
+  tunnelGetSettings:   'tunnel:getSettings',
+  tunnelUpdateSettings: 'tunnel:updateSettings',
+  tunnelGetAccount:    'tunnel:getAccount',
+  tunnelGetUsage:      'tunnel:getUsage',
+  tunnelRefresh:       'tunnel:refresh',
+  tunnelDetectBinary:  'tunnel:detectBinary',
+  tunnelValidateKey:   'tunnel:validateKey',
+  tunnelStopAll:       'tunnel:stopAll',
+  onTunnelCreated:     'tunnel:created',
+  onTunnelStopped:     'tunnel:stopped',
+  onTunnelError:       'tunnel:error',
+  onTunnelOutput:      'tunnel:output',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 };
@@ -706,6 +760,25 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onPlaybookStepChanged: 'event',
   onPlaybookCompleted:   'event',
   onPlaybookError:       'event',
+
+  // LaunchTunnel
+  tunnelList:          'invoke',
+  tunnelCreate:        'invoke',
+  tunnelStop:          'invoke',
+  tunnelGetInfo:       'invoke',
+  tunnelGetLogs:       'invoke',
+  tunnelGetSettings:   'invoke',
+  tunnelUpdateSettings: 'invoke',
+  tunnelGetAccount:    'invoke',
+  tunnelGetUsage:      'invoke',
+  tunnelRefresh:       'invoke',
+  tunnelDetectBinary:  'invoke',
+  tunnelValidateKey:   'invoke',
+  tunnelStopAll:       'invoke',
+  onTunnelCreated:     'event',
+  onTunnelStopped:     'event',
+  onTunnelError:       'event',
+  onTunnelOutput:      'event',
 
   getVersionInfo:      'invoke',
 };
