@@ -1,6 +1,6 @@
 {
   "name": "@carloluisito/omnidesk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A multi-provider Electron desktop application for AI coding CLIs",
   "repository": {
     "type": "git",

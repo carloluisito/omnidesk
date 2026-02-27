@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.3] - 2026-02-28
+
+### Fixed
+- **Share panel sync on stop/start** — `SharingManager.stopShare()` now emits `onShareStopped` and `startShare()` emits `onShareStarted`, keeping all `useSessionSharing` hook instances in sync. `ShareSessionDialog` hydrates from main process on open. New `ShareStartedEvent` type + `sharing:shareStarted` IPC event.
+- **Git status cross-panel leak** — `GitManager` now populates `workDir` on status-change events; `useGit` filters `onGitStatusChanged` by `projectPath`; `GitPanel` cleans up watcher on unmount/projectPath change. New `workDir?` field on `GitStatus` type.
+
+### Changed
+- **IPC contract** — Expanded from ~191 to ~192 methods (added `sharing:shareStarted` event)
+- **Test count** — 483 → 487 tests across 33 test files
+- **Documentation screenshots** — Updated 5 screenshots (create-session, fuel-status-side-panel, main-screen, settings-workspace, work-space-layout)
+
+---
+
 ## [1.0.2] - 2026-02-27
 
 ### Fixed
@@ -349,7 +362,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/carloluisito/omnidesk/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/carloluisito/omnidesk/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/carloluisito/omnidesk/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/carloluisito/omnidesk/compare/v4.6.0...v1.0.0
