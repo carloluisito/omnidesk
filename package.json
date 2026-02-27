@@ -1,7 +1,11 @@
 {
-  "name": "omnidesk",
-  "version": "1.0.0",
+  "name": "@carloluisito/omnidesk",
+  "version": "1.0.1",
   "description": "A multi-provider Electron desktop application for AI coding CLIs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carloluisito/omnidesk.git"
+  },
   "main": "dist/main/index.js",
   "scripts": {
     "postinstall": "node -e \"console.log('\\n⚠️  OmniDesk is a desktop application.\\n\\nYou\\'ve installed the SOURCE CODE. To get the INSTALLABLE APP:\\n→ https://github.com/carloluisito/omnidesk/releases\\n\\nTo build from source: npm run package\\n')\"",

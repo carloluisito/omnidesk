@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-02-27
+
+### Fixed
+- **npm package name** — switched to scoped `@carloluisito/omnidesk` (unscoped `omnidesk` was taken)
+- **npm repo link** — added `repository` field to `package.json` for GitHub sidebar linking
+
+### Changed
+- **Release artifacts** — renamed from `claudedesk-*` to `omnidesk-*`
+
+---
+
 ## [1.0.0] - 2026-02-27
 
 Version reset to 1.0.0 — marks the official start of OmniDesk as an independent product. The GitHub repository has been renamed from `carloluisito/claudedesk` to `carloluisito/omnidesk`. This release consolidates all changes from v5.0.0 and v5.0.1 under the new versioning.
@@ -331,7 +342,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/carloluisito/omnidesk/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/carloluisito/omnidesk/compare/v4.6.0...v1.0.0
 [4.6.0]: https://github.com/carloluisito/omnidesk/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/carloluisito/omnidesk/compare/v4.4.1...v4.5.0
