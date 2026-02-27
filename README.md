@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-5.0.1-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 ![Tests](https://img.shields.io/badge/tests-483%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
@@ -159,7 +159,7 @@ Before installing OmniDesk, ensure you have:
 
 ### Option 1: Download Pre-built Binary (Recommended)
 
-Download the latest release for your platform from the [Releases](https://github.com/carloluisito/claudedesk/releases) page.
+Download the latest release for your platform from the [Releases](https://github.com/carloluisito/omnidesk/releases) page.
 
 - **Windows**: `.exe` installer
 - **macOS**: `.dmg`
@@ -169,8 +169,8 @@ Download the latest release for your platform from the [Releases](https://github
 
 ```bash
 # Clone the repository
-git clone https://github.com/carloluisito/claudedesk.git
-cd claudedesk
+git clone https://github.com/carloluisito/omnidesk.git
+cd omnidesk
 
 # Install dependencies
 npm install
@@ -235,7 +235,7 @@ Built packages will be in the `release/` directory.
 ## Project Structure
 
 ```
-claudedesk/
+omnidesk/
 ├── src/
 │   ├── main/              # Electron main process (16 managers)
 │   ├── preload/           # Context bridge (auto-derived from contract)
@@ -287,8 +287,8 @@ For more details, see [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
-1. **Report bugs** — [Open an issue](https://github.com/carloluisito/claudedesk/issues/new?template=bug_report.md)
-2. **Suggest features** — [Request a feature](https://github.com/carloluisito/claudedesk/issues/new?template=feature_request.md)
+1. **Report bugs** — [Open an issue](https://github.com/carloluisito/omnidesk/issues/new?template=bug_report.md)
+2. **Suggest features** — [Request a feature](https://github.com/carloluisito/omnidesk/issues/new?template=feature_request.md)
 3. **Submit PRs** — See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
@@ -315,12 +315,12 @@ This is an independent wrapper around the Claude Code CLI. For official support,
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/carloluisito/claudedesk/issues)
+- **Issues**: [GitHub Issues](https://github.com/carloluisito/omnidesk/issues)
 - **Security**: See [SECURITY.md](SECURITY.md) for reporting vulnerabilities
 - **Email**: carlo.adap@hotmail.com
 
 ---
 
-[![GitHub stars](https://img.shields.io/github/stars/carloluisito/claudedesk?style=social)](https://github.com/carloluisito/claudedesk/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/carloluisito/omnidesk?style=social)](https://github.com/carloluisito/omnidesk/stargazers)
 
 **Made with love by [Carlo Luisito Adap](https://github.com/carloluisito)**

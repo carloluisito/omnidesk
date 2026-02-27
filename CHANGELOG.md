@@ -13,22 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [5.0.1] - 2026-02-27
+## [1.0.0] - 2026-02-27
 
-### Fixed
-- **Orphaned share rooms** — `cleanupHostShare()` now sends a fire-and-forget `DELETE /v1/shares/{id}` to the server on all cleanup paths (app shutdown, unexpected WebSocket close, keepalive pong timeout), preventing orphaned share rooms that exhausted the concurrent room limit
-- **TIER_LIMIT_EXCEEDED recovery** — `startShare()` now catches `TIER_LIMIT_EXCEEDED` errors, attempts to clean up stale server-side share rooms via `cleanupStaleShares()`, and retries the create if orphans were found
-- **Test mock format** — Fixed all 16 sharing-manager test fetch mocks to match the actual API response wrapper format (`{ share: { id, share_code, ... } }`)
-
-### Added
-- **`cleanupStaleShares()`** — New method that lists server-side share rooms (`GET /v1/shares`) and deletes any not tracked locally (orphan recovery from crashes or unclean shutdowns)
-
-### Changed
-- **Test count** — 483 tests across 33 test files (was 475+)
-
----
-
-## [5.0.0] - 2026-02-27
+Version reset to 1.0.0 — marks the official start of OmniDesk as an independent product. The GitHub repository has been renamed from `carloluisito/claudedesk` to `carloluisito/omnidesk`. This release consolidates all changes from v5.0.0 and v5.0.1 under the new versioning.
 
 ### Added
 - **Multi-provider abstraction** — Pluggable provider layer decoupling CLI specifics from session management
@@ -63,10 +50,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ActivityBar` (left sidebar navigation), `StatusBar` (bottom status strip), `SidePanel` (collapsible side panels)
   - New component library: `Button`, `Toast`, `ToastContainer`, `Tooltip`, `ProgressBar`, `StatusDot`, `BrandMark`, `ProviderBadge`
   - `tokens.css` (design token definitions), `animations.css` (shared animation keyframes)
+- **`cleanupStaleShares()`** — New method that lists server-side share rooms (`GET /v1/shares`) and deletes any not tracked locally (orphan recovery from crashes or unclean shutdowns)
+
+### Fixed
+- **Orphaned share rooms** — `cleanupHostShare()` now sends a fire-and-forget `DELETE /v1/shares/{id}` to the server on all cleanup paths (app shutdown, unexpected WebSocket close, keepalive pong timeout), preventing orphaned share rooms that exhausted the concurrent room limit
+- **TIER_LIMIT_EXCEEDED recovery** — `startShare()` now catches `TIER_LIMIT_EXCEEDED` errors, attempts to clean up stale server-side share rooms via `cleanupStaleShares()`, and retries the create if orphans were found
+- **Test mock format** — Fixed all 16 sharing-manager test fetch mocks to match the actual API response wrapper format (`{ share: { id, share_code, ... } }`)
 
 ### Changed
 - **IPC contract** — Expanded from ~166 to ~191 methods (16 domains)
-- **Project scale** — ~160 source files, ~51,000 LOC, 16 domains, 16 managers, 475+ tests across 24+ test files
+- **Project scale** — ~160 source files, ~51,000 LOC, 16 domains, 16 managers, 483 tests across 33 test files
+- **Version reset** — Repository renamed from `claudedesk` to `omnidesk`; version reset from 5.0.1 to 1.0.0
 
 ---
 
@@ -315,7 +309,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Versioning Strategy
 
-ClaudeDesk follows [Semantic Versioning](https://semver.org/):
+OmniDesk follows [Semantic Versioning](https://semver.org/):
 - **Major (x.0.0)**: Breaking changes, major features, architectural changes
 - **Minor (1.x.0)**: New features, non-breaking improvements
 - **Patch (1.0.x)**: Bug fixes, security patches, minor tweaks
@@ -337,14 +331,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v5.0.1...HEAD
-[5.0.1]: https://github.com/carloluisito/claudedesk/compare/v5.0.0...v5.0.1
-[5.0.0]: https://github.com/carloluisito/claudedesk/compare/v4.6.0...v5.0.0
-[4.6.0]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...v4.6.0
-[4.5.0]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...v4.5.0
-[4.4.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...v4.4.1
-[4.3.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.0...v4.3.1
-[4.3.0]: https://github.com/carloluisito/claudedesk/compare/v4.1.1...v4.3.0
-[4.1.1]: https://github.com/carloluisito/claudedesk/compare/v4.1.0...v4.1.1
-[4.1.0]: https://github.com/carloluisito/claudedesk/compare/v4.0.0...v4.1.0
-[4.0.0]: https://github.com/carloluisito/claudedesk/releases/tag/v4.0.0
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/carloluisito/omnidesk/compare/v4.6.0...v1.0.0
+[4.6.0]: https://github.com/carloluisito/omnidesk/compare/v4.5.0...v4.6.0
+[4.5.0]: https://github.com/carloluisito/omnidesk/compare/v4.4.1...v4.5.0
+[4.4.1]: https://github.com/carloluisito/omnidesk/compare/v4.3.1...v4.4.1
+[4.3.1]: https://github.com/carloluisito/omnidesk/compare/v4.3.0...v4.3.1
+[4.3.0]: https://github.com/carloluisito/omnidesk/compare/v4.1.1...v4.3.0
+[4.1.1]: https://github.com/carloluisito/omnidesk/compare/v4.1.0...v4.1.1
+[4.1.0]: https://github.com/carloluisito/omnidesk/compare/v4.0.0...v4.1.0
+[4.0.0]: https://github.com/carloluisito/omnidesk/releases/tag/v4.0.0

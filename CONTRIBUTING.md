@@ -74,11 +74,11 @@ Unsure where to begin? Look for issues labeled:
 ```bash
 # 1. Fork the repository on GitHub
 # 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/claudedesk.git
-cd claudedesk
+git clone https://github.com/YOUR_USERNAME/omnidesk.git
+cd omnidesk
 
 # 3. Add upstream remote
-git remote add upstream https://github.com/ORIGINAL_OWNER/claudedesk.git
+git remote add upstream https://github.com/ORIGINAL_OWNER/omnidesk.git
 
 # 4. Install dependencies
 npm install
