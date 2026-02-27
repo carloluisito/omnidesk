@@ -413,15 +413,36 @@ export class SharingManager {
       expires_at?: string;
       has_password: boolean;
     }
-    const rawResponse = await this.apiRequest<{ share: CreateShareResponse }>(
-      'POST',
-      '/v1/shares',
-      {
-        session_name: session.name,
-        password: password ?? undefined,
-        expires_in_ms: expiresInMs ?? this.settings.autoExpireMs ?? undefined,
+    const createBody = {
+      session_name: session.name,
+      password: password ?? undefined,
+      expires_in_ms: expiresInMs ?? this.settings.autoExpireMs ?? undefined,
+    };
+
+    let rawResponse: { share: CreateShareResponse };
+    try {
+      rawResponse = await this.apiRequest<{ share: CreateShareResponse }>(
+        'POST', '/v1/shares', createBody
+      );
+    } catch (err) {
+      // If we hit the concurrent share room limit, try cleaning up orphaned
+      // rooms from previous sessions that weren't properly deleted, then retry.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('TIER_LIMIT_EXCEEDED')) {
+        const cleaned = await this.cleanupStaleShares();
+        if (cleaned > 0) {
+          console.log(`[SharingManager] Cleaned ${cleaned} stale share room(s), retrying create`);
+          rawResponse = await this.apiRequest<{ share: CreateShareResponse }>(
+            'POST', '/v1/shares', createBody
+          );
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
       }
-    );
+    }
+
     const apiResponse = rawResponse.share;
 
     const shareId = apiResponse.id;
@@ -589,6 +610,17 @@ export class SharingManager {
     const share = this.activeShares.get(sessionId);
     if (!share) return;
 
+    // Fire-and-forget server-side DELETE to release the share room.
+    // This prevents orphaned rooms when cleanup is triggered by app shutdown,
+    // unexpected WebSocket close, or keepalive pong timeout.
+    // If stopShare() already deleted it, the 404 is silently caught.
+    const shareId = share.shareInfo.shareId;
+    if (shareId) {
+      this.apiRequest('DELETE', `/v1/shares/${shareId}`).catch(() => {
+        // Best-effort — ignore errors (room may already be deleted)
+      });
+    }
+
     clearInterval(share.metadataInterval);
     clearInterval(share.pingInterval);
     if (share.pongTimer) clearTimeout(share.pongTimer);
@@ -611,6 +643,40 @@ export class SharingManager {
 
   listActiveShares(): ShareInfo[] {
     return Array.from(this.activeShares.values()).map((s) => ({ ...s.shareInfo }));
+  }
+
+  /**
+   * Attempt to list server-side share rooms and delete any that are not tracked
+   * locally (orphans from crashes / unclean shutdowns). Returns the number of
+   * stale rooms deleted. If the API doesn't support listing, returns 0.
+   */
+  async cleanupStaleShares(): Promise<number> {
+    interface ServerShare { id: string }
+    let serverShares: ServerShare[];
+    try {
+      const response = await this.apiRequest<{ shares: ServerShare[] }>('GET', '/v1/shares');
+      serverShares = response.shares ?? [];
+    } catch {
+      // API may not support listing — nothing we can do
+      return 0;
+    }
+
+    const localShareIds = new Set(
+      Array.from(this.activeShares.values()).map((s) => s.shareInfo.shareId)
+    );
+
+    let deleted = 0;
+    for (const share of serverShares) {
+      if (!localShareIds.has(share.id)) {
+        try {
+          await this.apiRequest('DELETE', `/v1/shares/${share.id}`);
+          deleted++;
+        } catch {
+          // Best-effort — skip if individual delete fails
+        }
+      }
+    }
+    return deleted;
   }
 
   // ── Host: observer management ─────────────────────────────────────────────────

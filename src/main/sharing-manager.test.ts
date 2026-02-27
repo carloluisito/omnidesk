@@ -327,11 +327,14 @@ describe('SharingManager.startShare', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
-        expiresAt: undefined,
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -442,10 +445,14 @@ describe('SharingManager.stopShare', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -505,10 +512,14 @@ describe('SharingManager.broadcastOutput', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -560,10 +571,14 @@ describe('SharingManager observer management (kickObserver, grantControl, revoke
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -645,10 +660,14 @@ describe('SharingManager host frame handling', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -750,10 +769,14 @@ describe('SharingManager.listActiveShares / getShareInfo', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -828,10 +851,14 @@ describe('SharingManager.destroy', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId: 'share-uuid-1',
-        shareCode: 'ABC123',
-        shareUrl: 'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -857,10 +884,14 @@ describe('Phase 12.1 — host starts sharing: share code generated and IPC event
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:     'share-uuid-1',
-        shareCode:   'ABC123',
-        shareUrl:    'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint:  'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -897,10 +928,14 @@ describe('Phase 12.2 — observer joins: output events fire', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:     'share-uuid-1',
-        shareCode:   'ABC123',
-        shareUrl:    'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint:  'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -948,10 +983,14 @@ describe('Phase 12.3 — control request/grant/revoke lifecycle', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:    'share-uuid-1',
-        shareCode:  'ABC123',
-        shareUrl:   'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -1011,10 +1050,14 @@ describe('Phase 12.4 — host stops sharing: ShareClose frame sent', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:    'share-uuid-1',
-        shareCode:  'ABC123',
-        shareUrl:   'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -1047,10 +1090,14 @@ describe('Phase 12.5 — host closes session: auto-stop (regression)', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:    'share-uuid-1',
-        shareCode:  'ABC123',
-        shareUrl:   'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -1142,11 +1189,14 @@ describe('Phase 12.8 — share link expires: graceful disconnect path', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        shareId:    'share-uuid-1',
-        shareCode:  'ABC123',
-        shareUrl:   'https://share.launchtunnel.dev/ABC123',
-        wsEndpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
-        expiresAt:  new Date(Date.now() + 3600_000).toISOString(), // 1h from now
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: new Date(Date.now() + 3600_000).toISOString(), // 1h from now
+          has_password: false,
+        },
       }),
       text: vi.fn().mockResolvedValue(''),
     } as unknown as Response);
@@ -1168,5 +1218,280 @@ describe('Phase 12.8 — share link expires: graceful disconnect path', () => {
     const result = await manager.stopShare('session-1');
     expect(result.success).toBe(true);
     expect(manager.listActiveShares()).toHaveLength(0);
+  });
+});
+
+// ── Tests: server-side cleanup on abnormal termination ───────────────────────
+
+describe('SharingManager — server-side share room cleanup', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    resetWsMock();
+
+    fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        share: {
+          id: 'share-uuid-1',
+          share_code: 'ABC123',
+          share_url: 'https://share.launchtunnel.dev/ABC123',
+          ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-1',
+          expires_at: undefined,
+          has_password: false,
+        },
+      }),
+      text: vi.fn().mockResolvedValue(''),
+    } as unknown as Response);
+    global.fetch = fetchMock;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('destroy() sends DELETE API call for active share rooms', async () => {
+    const { manager } = createManager();
+    await manager.startShare({ sessionId: 'session-1' });
+
+    // Clear fetch calls from startShare
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue(''),
+    } as unknown as Response);
+
+    manager.destroy();
+
+    // Should have called fetch with DELETE for the share room
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/shares/share-uuid-1'),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+    expect(manager.listActiveShares()).toHaveLength(0);
+  });
+
+  it('unexpected WebSocket close sends DELETE API call', async () => {
+    const { manager } = createManager();
+    await manager.startShare({ sessionId: 'session-1' });
+
+    // Clear fetch calls from startShare
+    fetchMock.mockClear();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue(''),
+    } as unknown as Response);
+
+    // Simulate unexpected WebSocket close
+    const closeListeners = mockWsListeners['close'] ?? [];
+    for (const listener of closeListeners) {
+      listener(1006, Buffer.from(''));
+    }
+
+    // Should send DELETE for the orphaned share room
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/shares/share-uuid-1'),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+  });
+
+  it('cleanupHostShare tolerates DELETE failure gracefully', async () => {
+    const { manager } = createManager();
+    await manager.startShare({ sessionId: 'session-1' });
+
+    // Make DELETE fail
+    fetchMock.mockClear();
+    fetchMock.mockRejectedValue(new Error('Network error'));
+
+    // Should not throw when destroy calls cleanupHostShare
+    expect(() => manager.destroy()).not.toThrow();
+    expect(manager.listActiveShares()).toHaveLength(0);
+  });
+});
+
+// ── Tests: stale share cleanup ───────────────────────────────────────────────
+
+describe('SharingManager.cleanupStaleShares', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    resetWsMock();
+    fetchMock = vi.fn();
+    global.fetch = fetchMock;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('deletes server-side shares not tracked locally', async () => {
+    // GET /v1/shares returns two orphaned rooms
+    const getResponse = {
+      ok: true,
+      json: vi.fn().mockResolvedValue({ shares: [
+        { id: 'orphan-1' },
+        { id: 'orphan-2' },
+      ] }),
+      text: vi.fn().mockResolvedValue(''),
+    };
+    const deleteResponse = {
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue(''),
+    };
+    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (options?.method === 'DELETE') return Promise.resolve(deleteResponse);
+      return Promise.resolve(getResponse);
+    });
+
+    const { manager } = createManager();
+    const deleted = await manager.cleanupStaleShares();
+
+    expect(deleted).toBe(2);
+    // Two DELETE calls for the two orphans
+    const deleteCalls = fetchMock.mock.calls.filter(
+      ([, opts]: [string, RequestInit]) => opts?.method === 'DELETE'
+    );
+    expect(deleteCalls).toHaveLength(2);
+  });
+
+  it('returns 0 when GET /v1/shares is not supported (404)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue('Not Found'),
+    } as unknown as Response);
+
+    const { manager } = createManager();
+    const deleted = await manager.cleanupStaleShares();
+    expect(deleted).toBe(0);
+  });
+
+  it('returns 0 when no stale shares exist', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ shares: [] }),
+      text: vi.fn().mockResolvedValue(''),
+    } as unknown as Response);
+
+    const { manager } = createManager();
+    const deleted = await manager.cleanupStaleShares();
+    expect(deleted).toBe(0);
+  });
+});
+
+// ── Tests: TIER_LIMIT_EXCEEDED retry with cleanup ───────────────────────────
+
+describe('SharingManager.startShare — TIER_LIMIT_EXCEEDED retry', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    resetWsMock();
+    fetchMock = vi.fn();
+    global.fetch = fetchMock;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('retries after cleaning stale shares when TIER_LIMIT_EXCEEDED', async () => {
+    let postCallCount = 0;
+    const successShareResponse = {
+      share: {
+        id: 'share-uuid-retry',
+        share_code: 'XYZ789',
+        share_url: 'https://share.launchtunnel.dev/XYZ789',
+        ws_endpoint: 'wss://relay.launchtunnel.dev/share/share-uuid-retry',
+        expires_at: undefined,
+        has_password: false,
+      },
+    };
+
+    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      const method = options?.method ?? 'GET';
+
+      // POST /v1/shares — first call fails with TIER_LIMIT_EXCEEDED, second succeeds
+      if (method === 'POST' && (url as string).includes('/v1/shares')) {
+        postCallCount++;
+        if (postCallCount === 1) {
+          return Promise.resolve({
+            ok: false,
+            status: 403,
+            json: vi.fn().mockResolvedValue({ error: { code: 'TIER_LIMIT_EXCEEDED' } }),
+            text: vi.fn().mockResolvedValue('{"error":{"code":"TIER_LIMIT_EXCEEDED","message":"limit reached"}}'),
+          } as unknown as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: vi.fn().mockResolvedValue(successShareResponse),
+          text: vi.fn().mockResolvedValue(''),
+        } as unknown as Response);
+      }
+
+      // GET /v1/shares — returns one orphan
+      if (method === 'GET' && (url as string).includes('/v1/shares')) {
+        return Promise.resolve({
+          ok: true,
+          json: vi.fn().mockResolvedValue({ shares: [{ id: 'orphan-1' }] }),
+          text: vi.fn().mockResolvedValue(''),
+        } as unknown as Response);
+      }
+
+      // DELETE — success
+      return Promise.resolve({
+        ok: true,
+        json: vi.fn().mockResolvedValue({}),
+        text: vi.fn().mockResolvedValue(''),
+      } as unknown as Response);
+    });
+
+    const { manager } = createManager();
+    const info = await manager.startShare({ sessionId: 'session-1' });
+
+    expect(info.shareId).toBe('share-uuid-retry');
+    expect(info.shareCode).toBe('XYZ789');
+    // POST was called twice (first failed, second succeeded)
+    expect(postCallCount).toBe(2);
+  });
+
+  it('throws if TIER_LIMIT_EXCEEDED and no stale shares to clean', async () => {
+    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      const method = options?.method ?? 'GET';
+
+      // POST /v1/shares — always fails
+      if (method === 'POST') {
+        return Promise.resolve({
+          ok: false,
+          status: 403,
+          json: vi.fn().mockResolvedValue({ error: { code: 'TIER_LIMIT_EXCEEDED' } }),
+          text: vi.fn().mockResolvedValue('{"error":{"code":"TIER_LIMIT_EXCEEDED","message":"limit reached"}}'),
+        } as unknown as Response);
+      }
+
+      // GET /v1/shares — returns empty list (no stale shares to clean)
+      if (method === 'GET') {
+        return Promise.resolve({
+          ok: true,
+          json: vi.fn().mockResolvedValue({ shares: [] }),
+          text: vi.fn().mockResolvedValue(''),
+        } as unknown as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: vi.fn().mockResolvedValue({}),
+        text: vi.fn().mockResolvedValue(''),
+      } as unknown as Response);
+    });
+
+    const { manager } = createManager();
+    await expect(manager.startShare({ sessionId: 'session-1' })).rejects.toThrow('TIER_LIMIT_EXCEEDED');
   });
 });
