@@ -24,9 +24,17 @@ export function useGit(projectPath: string | null) {
   const [error, setError] = useState<string | null>(null);
   const lastPath = useRef<string | null>(null);
 
-  // Subscribe to status change events
+  // Subscribe to status change events — filter by projectPath
+  const projectPathRef = useRef(projectPath);
+  projectPathRef.current = projectPath;
+
   useEffect(() => {
     const unsub = window.electronAPI.onGitStatusChanged((newStatus) => {
+      const cur = projectPathRef.current;
+      if (!cur) return;
+      // Only accept events for our directory (normalize slashes for Windows)
+      const normalize = (p: string) => p.replace(/\\/g, '/').toLowerCase();
+      if (newStatus.workDir && normalize(newStatus.workDir) !== normalize(cur)) return;
       setStatus(newStatus);
     });
     return unsub;

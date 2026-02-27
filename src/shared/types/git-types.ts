@@ -40,6 +40,8 @@ export interface GitStatus {
   unstagedCount: number;
   untrackedCount: number;
   conflictedCount: number;
+  /** Directory this status was fetched from (set on push events). */
+  workDir?: string;
 }
 
 export interface GitCommitInfo {

@@ -552,6 +552,10 @@ export class SharingManager {
     });
 
     shareInfo.status = 'active';
+
+    // Notify all renderer hook instances about the new share
+    this.emitter?.emit('onShareStarted', { sessionId, shareInfo });
+
     return shareInfo;
   }
 
@@ -587,6 +591,7 @@ export class SharingManager {
     }
 
     share.shareInfo.status = 'stopping';
+    const shareCode = share.shareInfo.shareCode;
 
     try {
       // Send ShareClose frame to observers
@@ -602,6 +607,9 @@ export class SharingManager {
     } finally {
       this.cleanupHostShare(sessionId);
     }
+
+    // Notify renderer so all hook instances remove this share from their state
+    this.emitter?.emit('onShareStopped', { shareCode, reason: 'host-stopped', message: 'Host ended the session' } as ShareStoppedEvent);
 
     return { success: true, message: 'Sharing stopped' };
   }

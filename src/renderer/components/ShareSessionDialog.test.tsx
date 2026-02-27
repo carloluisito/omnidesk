@@ -162,4 +162,46 @@ describe('ShareSessionDialog', () => {
     render(<ShareSessionDialog {...defaultProps} isOpen={false} />);
     expect(screen.queryByTestId('share-session-dialog')).not.toBeInTheDocument();
   });
+
+  it('re-opening dialog for an already-shared session shows existing share info', async () => {
+    // Simulate main process reporting an active share (dialog was closed then reopened)
+    (window.electronAPI.getShareInfo as ReturnType<typeof vi.fn>).mockResolvedValue(mockShareInfo);
+
+    render(<ShareSessionDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('share-code')).toHaveTextContent('ABC123');
+    });
+
+    // startSharing should NOT have been called — we reused the existing share
+    expect(mockStartSharing).not.toHaveBeenCalled();
+  });
+
+  it('retry detects existing share instead of calling startSharing again', async () => {
+    // First open: startSharing fails
+    mockCheckEligibility.mockResolvedValue({ eligible: true });
+    mockStartSharing.mockResolvedValue(null);
+    (window.electronAPI.getShareInfo as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    render(<ShareSessionDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    // Before retry: main process now has an active share (e.g. race condition resolved)
+    (window.electronAPI.getShareInfo as ReturnType<typeof vi.fn>).mockResolvedValue(mockShareInfo);
+    mockStartSharing.mockClear();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Retry'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('share-code')).toHaveTextContent('ABC123');
+    });
+
+    // startSharing should NOT have been called — getShareInfo returned the existing share
+    expect(mockStartSharing).not.toHaveBeenCalled();
+  });
 });

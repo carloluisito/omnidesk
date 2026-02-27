@@ -39,7 +39,6 @@ export function ShareSessionDialog({
   sessionName,
 }: ShareSessionDialogProps) {
   const {
-    activeShares,
     startSharing,
     stopSharing,
     checkEligibility,
@@ -74,15 +73,19 @@ export function ShareSessionDialog({
     setCodeCopied(false);
     setUrlCopied(false);
 
-    // If session is already being shared, show its info
-    const existing = activeShares.get(sessionId);
-    if (existing) {
-      setShareInfo(existing);
-      setDialogState('active');
-      return;
-    }
-
     const doStart = async () => {
+      // Check main process for an existing active share (survives dialog unmount/remount)
+      try {
+        const existing = await window.electronAPI.getShareInfo(sessionId);
+        if (existing) {
+          setShareInfo(existing);
+          setDialogState('active');
+          return;
+        }
+      } catch {
+        // Fall through to create a new share
+      }
+
       const eligibility = await checkEligibility();
       if (!eligibility.eligible) {
         setDialogState('ineligible');
@@ -171,6 +174,15 @@ export function ShareSessionDialog({
   const handleRetry = useCallback(async () => {
     setDialogState('creating');
     setErrorMsg('');
+    // Check if session is already shared (main process is source of truth)
+    try {
+      const existing = await window.electronAPI.getShareInfo(sessionId);
+      if (existing) {
+        setShareInfo(existing);
+        setDialogState('active');
+        return;
+      }
+    } catch { /* fall through */ }
     const info = await startSharing(sessionId);
     if (info) {
       setShareInfo(info);

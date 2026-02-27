@@ -309,6 +309,12 @@ export function GitPanel({ isOpen, onClose, projectPath }: GitPanelProps) {
     if (!isOpen && projectPath) {
       git.stopWatching();
     }
+    // Cleanup: stop watcher when projectPath changes or panel closes
+    return () => {
+      if (projectPath) {
+        git.stopWatching();
+      }
+    };
   }, [isOpen, projectPath]);
 
   const handleFileClick = useCallback((file: GitFileEntry) => {

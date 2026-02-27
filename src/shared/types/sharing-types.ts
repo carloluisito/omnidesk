@@ -110,6 +110,11 @@ export interface ControlRevokedEvent {
   reason: 'host-revoked' | 'host-kicked' | 'share-stopped';
 }
 
+export interface ShareStartedEvent {
+  sessionId: string;
+  shareInfo: ShareInfo;
+}
+
 export interface ShareStoppedEvent {
   shareCode: string;
   reason: 'host-stopped' | 'expired' | 'subscription-lapsed' | 'error';

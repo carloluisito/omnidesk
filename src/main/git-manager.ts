@@ -1185,6 +1185,7 @@ export class GitManager {
       try {
         const status = await this.getStatus(workDir);
         if (this.emitter) {
+          status.workDir = workDir;
           this.emitter.emit('onGitStatusChanged', status);
         }
       } catch (err) {

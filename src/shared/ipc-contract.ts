@@ -131,6 +131,7 @@ import type {
   ControlRequestedEvent,
   ControlGrantedEvent,
   ControlRevokedEvent,
+  ShareStartedEvent,
   ShareStoppedEvent,
   ShareOutputEvent,
   ShareMetadataEvent,
@@ -415,6 +416,7 @@ export interface IPCContractMap {
   onControlRequested:      EventContract<'sharing:controlRequested', ControlRequestedEvent>;
   onControlGranted:        EventContract<'sharing:controlGranted',   ControlGrantedEvent>;
   onControlRevoked:        EventContract<'sharing:controlRevoked',   ControlRevokedEvent>;
+  onShareStarted:          EventContract<'sharing:shareStarted',     ShareStartedEvent>;
   onShareStopped:          EventContract<'sharing:shareStopped',     ShareStoppedEvent>;
   onShareOutput:           EventContract<'sharing:output',           ShareOutputEvent>;
   onShareMetadata:         EventContract<'sharing:metadata',         ShareMetadataEvent>;
@@ -676,6 +678,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onControlRequested:      'sharing:controlRequested',
   onControlGranted:        'sharing:controlGranted',
   onControlRevoked:        'sharing:controlRevoked',
+  onShareStarted:          'sharing:shareStarted',
   onShareStopped:          'sharing:shareStopped',
   onShareOutput:           'sharing:output',
   onShareMetadata:         'sharing:metadata',
@@ -911,6 +914,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onControlRequested:      'event',
   onControlGranted:        'event',
   onControlRevoked:        'event',
+  onShareStarted:          'event',
   onShareStopped:          'event',
   onShareOutput:           'event',
   onShareMetadata:         'event',

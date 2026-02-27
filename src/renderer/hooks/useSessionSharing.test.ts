@@ -44,11 +44,38 @@ describe('useSessionSharing', () => {
     expect(result.current.eligibilityInfo).toBeNull();
   });
 
+  // ── Hydration from main process ──────────────────────────────────────────
+
+  it('hydrates activeShares from listActiveShares on mount', async () => {
+    const share = makeShare({ sessionId: 'session-1' });
+    api.listActiveShares.mockResolvedValue([share]);
+
+    const { result } = renderHook(() => useSessionSharing());
+
+    await waitFor(() => {
+      expect(result.current.activeShares.size).toBe(1);
+    });
+    expect(result.current.activeShares.get('session-1')).toEqual(share);
+  });
+
+  it('handles listActiveShares failure gracefully', async () => {
+    api.listActiveShares.mockRejectedValue(new Error('IPC unavailable'));
+
+    const { result } = renderHook(() => useSessionSharing());
+
+    // Should remain empty and not throw
+    await waitFor(() => {
+      expect(api.listActiveShares).toHaveBeenCalled();
+    });
+    expect(result.current.activeShares.size).toBe(0);
+  });
+
   // ── Event subscriptions / cleanup ─────────────────────────────────────────
 
-  it('subscribes to all 8 sharing events on mount', () => {
+  it('subscribes to all 9 sharing events on mount', () => {
     renderHook(() => useSessionSharing());
 
+    expect(api.onShareStarted).toHaveBeenCalled();
     expect(api.onObserverJoined).toHaveBeenCalled();
     expect(api.onObserverLeft).toHaveBeenCalled();
     expect(api.onControlRequested).toHaveBeenCalled();
@@ -63,9 +90,10 @@ describe('useSessionSharing', () => {
     const unsubs = [
       vi.fn(), vi.fn(), vi.fn(), vi.fn(),
       vi.fn(), vi.fn(), vi.fn(), vi.fn(),
+      vi.fn(),
     ];
     const eventMethods = [
-      'onObserverJoined', 'onObserverLeft', 'onControlRequested',
+      'onShareStarted', 'onObserverJoined', 'onObserverLeft', 'onControlRequested',
       'onControlGranted', 'onControlRevoked', 'onShareStopped',
       'onShareOutput', 'onShareMetadata',
     ] as const;

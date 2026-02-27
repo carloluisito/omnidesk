@@ -76,6 +76,15 @@ export function useSessionSharing(): UseSessionSharingReturn {
   const outputCallbacks = useRef<Map<string, (data: string) => void>>(new Map());
   const metadataCallbacks = useRef<Map<string, (metadata: SessionMetadataFrame) => void>>(new Map());
 
+  // ── Hydrate active shares from main process on mount ──────────────
+  useEffect(() => {
+    window.electronAPI.listActiveShares().then((shares) => {
+      if (shares && shares.length > 0) {
+        setActiveShares(new Map(shares.map((s) => [s.sessionId, s])));
+      }
+    }).catch(() => { /* ignore — main process unavailable */ });
+  }, []);
+
   // ── Helper: push a notification ───────────────────────────────────
   const pushNotification = useCallback((type: string, message: string) => {
     setNotifications((prev) => [
@@ -86,6 +95,15 @@ export function useSessionSharing(): UseSessionSharingReturn {
 
   // ── Event subscriptions ───────────────────────────────────────────
   useEffect(() => {
+    // sharing:shareStarted — a new share was created (keeps all hook instances in sync)
+    const unsubStarted = window.electronAPI.onShareStarted((event) => {
+      setActiveShares((prev) => {
+        const next = new Map(prev);
+        next.set(event.sessionId, event.shareInfo);
+        return next;
+      });
+    });
+
     // sharing:observerJoined — update observer list in the active share
     const unsubJoined = window.electronAPI.onObserverJoined((event) => {
       setActiveShares((prev) => {
@@ -145,11 +163,22 @@ export function useSessionSharing(): UseSessionSharingReturn {
       });
     });
 
-    // sharing:shareStopped — remove from observedSessions, notify
+    // sharing:shareStopped — remove from activeShares + observedSessions, notify
     const unsubShareStopped = window.electronAPI.onShareStopped((event) => {
+      // Remove from host activeShares (keyed by sessionId, matched by shareCode)
+      setActiveShares((prev) => {
+        const next = new Map(prev);
+        for (const [sessionId, share] of next.entries()) {
+          if (share.shareCode === event.shareCode) {
+            next.delete(sessionId);
+            break;
+          }
+        }
+        return next;
+      });
+      // Remove from observer sessions
       setObservedSessions((prev) => {
         const next = new Map(prev);
-        // Remove any entry whose shareCode matches
         for (const [key, entry] of next.entries()) {
           if (entry.shareCode === event.shareCode) {
             next.delete(key);
@@ -177,6 +206,7 @@ export function useSessionSharing(): UseSessionSharingReturn {
     });
 
     return () => {
+      unsubStarted();
       unsubJoined();
       unsubLeft();
       unsubControlRequested();
