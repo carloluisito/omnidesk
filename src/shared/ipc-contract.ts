@@ -114,6 +114,28 @@ import type {
   TunnelOutputEvent,
 } from './types/tunnel-types';
 
+import type {
+  ProviderInfo,
+  ProviderCapabilities,
+  ProviderId,
+} from './types/provider-types';
+
+import type {
+  ShareInfo,
+  ShareOperationResult,
+  SharingSettings,
+  StartShareRequest,
+  JoinShareRequest,
+  ObserverJoinedEvent,
+  ObserverLeftEvent,
+  ControlRequestedEvent,
+  ControlGrantedEvent,
+  ControlRevokedEvent,
+  ShareStoppedEvent,
+  ShareOutputEvent,
+  ShareMetadataEvent,
+} from './types/sharing-types';
+
 // ─── Contract helper types ──────────────────────────────────────────
 
 /** renderer → main, expects a return value (ipcRenderer.invoke / ipcMain.handle) */
@@ -360,6 +382,44 @@ export interface IPCContractMap {
   onTunnelError:       EventContract<'tunnel:error',     TunnelErrorEvent>;
   onTunnelOutput:      EventContract<'tunnel:output',    TunnelOutputEvent>;
 
+  // ── Providers (invoke) ──
+  listProviders:           InvokeContract<'provider:list',         [],              ProviderInfo[]>;
+  getAvailableProviders:   InvokeContract<'provider:available',    [],              ProviderInfo[]>;
+  getProviderCapabilities: InvokeContract<'provider:capabilities', [ProviderId],   ProviderCapabilities>;
+
+  // ── Session Sharing — host actions (invoke) ──
+  startShare:              InvokeContract<'sharing:start',           [StartShareRequest],                      ShareInfo>;
+  stopShare:               InvokeContract<'sharing:stop',            [string],                                 ShareOperationResult>;
+  getShareInfo:            InvokeContract<'sharing:getInfo',         [string],                                 ShareInfo | null>;
+  listActiveShares:        InvokeContract<'sharing:listActive',      [],                                       ShareInfo[]>;
+  kickObserver:            InvokeContract<'sharing:kick',            [string, string],                         ShareOperationResult>;
+  grantControl:            InvokeContract<'sharing:grantControl',    [string, string],                         ShareOperationResult>;
+  revokeControl:           InvokeContract<'sharing:revokeControl',   [string, string],                         ShareOperationResult>;
+
+  // ── Session Sharing — observer actions (invoke) ──
+  joinShare:               InvokeContract<'sharing:join',            [JoinShareRequest],                       ShareOperationResult>;
+  leaveShare:              InvokeContract<'sharing:leave',           [string],                                 ShareOperationResult>;
+  requestControl:          InvokeContract<'sharing:requestControl',  [string],                                 ShareOperationResult>;
+  releaseControl:          InvokeContract<'sharing:releaseControl',  [string],                                 ShareOperationResult>;
+
+  // ── Session Sharing — settings (invoke) ──
+  getSharingSettings:      InvokeContract<'sharing:getSettings',     [],                                       SharingSettings>;
+  updateSharingSettings:   InvokeContract<'sharing:updateSettings',  [Partial<SharingSettings>],               SharingSettings>;
+
+  // ── Session Sharing — subscription check (invoke) ──
+  checkShareEligibility:   InvokeContract<'sharing:checkEligibility', [],                                      { eligible: boolean; reason?: string; plan?: string }>;
+
+  // ── Session Sharing — events (main -> renderer) ──
+  onObserverJoined:        EventContract<'sharing:observerJoined',   ObserverJoinedEvent>;
+  onObserverLeft:          EventContract<'sharing:observerLeft',      ObserverLeftEvent>;
+  onControlRequested:      EventContract<'sharing:controlRequested', ControlRequestedEvent>;
+  onControlGranted:        EventContract<'sharing:controlGranted',   ControlGrantedEvent>;
+  onControlRevoked:        EventContract<'sharing:controlRevoked',   ControlRevokedEvent>;
+  onShareStopped:          EventContract<'sharing:shareStopped',     ShareStoppedEvent>;
+  onShareOutput:           EventContract<'sharing:output',           ShareOutputEvent>;
+  onShareMetadata:         EventContract<'sharing:metadata',         ShareMetadataEvent>;
+  onDeepLinkJoin:          EventContract<'sharing:deepLinkJoin',     { shareCode: string }>;
+
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
 }
@@ -583,6 +643,44 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onTunnelError:       'tunnel:error',
   onTunnelOutput:      'tunnel:output',
 
+  // Providers
+  listProviders:           'provider:list',
+  getAvailableProviders:   'provider:available',
+  getProviderCapabilities: 'provider:capabilities',
+
+  // Session Sharing — host actions
+  startShare:              'sharing:start',
+  stopShare:               'sharing:stop',
+  getShareInfo:            'sharing:getInfo',
+  listActiveShares:        'sharing:listActive',
+  kickObserver:            'sharing:kick',
+  grantControl:            'sharing:grantControl',
+  revokeControl:           'sharing:revokeControl',
+
+  // Session Sharing — observer actions
+  joinShare:               'sharing:join',
+  leaveShare:              'sharing:leave',
+  requestControl:          'sharing:requestControl',
+  releaseControl:          'sharing:releaseControl',
+
+  // Session Sharing — settings
+  getSharingSettings:      'sharing:getSettings',
+  updateSharingSettings:   'sharing:updateSettings',
+
+  // Session Sharing — subscription check
+  checkShareEligibility:   'sharing:checkEligibility',
+
+  // Session Sharing — events
+  onObserverJoined:        'sharing:observerJoined',
+  onObserverLeft:          'sharing:observerLeft',
+  onControlRequested:      'sharing:controlRequested',
+  onControlGranted:        'sharing:controlGranted',
+  onControlRevoked:        'sharing:controlRevoked',
+  onShareStopped:          'sharing:shareStopped',
+  onShareOutput:           'sharing:output',
+  onShareMetadata:         'sharing:metadata',
+  onDeepLinkJoin:          'sharing:deepLinkJoin',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 };
@@ -779,6 +877,44 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onTunnelStopped:     'event',
   onTunnelError:       'event',
   onTunnelOutput:      'event',
+
+  // Providers
+  listProviders:           'invoke',
+  getAvailableProviders:   'invoke',
+  getProviderCapabilities: 'invoke',
+
+  // Session Sharing — host actions
+  startShare:              'invoke',
+  stopShare:               'invoke',
+  getShareInfo:            'invoke',
+  listActiveShares:        'invoke',
+  kickObserver:            'invoke',
+  grantControl:            'invoke',
+  revokeControl:           'invoke',
+
+  // Session Sharing — observer actions
+  joinShare:               'invoke',
+  leaveShare:              'invoke',
+  requestControl:          'invoke',
+  releaseControl:          'invoke',
+
+  // Session Sharing — settings
+  getSharingSettings:      'invoke',
+  updateSharingSettings:   'invoke',
+
+  // Session Sharing — subscription check
+  checkShareEligibility:   'invoke',
+
+  // Session Sharing — events
+  onObserverJoined:        'event',
+  onObserverLeft:          'event',
+  onControlRequested:      'event',
+  onControlGranted:        'event',
+  onControlRevoked:        'event',
+  onShareStopped:          'event',
+  onShareOutput:           'event',
+  onShareMetadata:         'event',
+  onDeepLinkJoin:          'event',
 
   getVersionInfo:      'invoke',
 };

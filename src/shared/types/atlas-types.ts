@@ -25,7 +25,7 @@ export type DomainSensitivity = 'low' | 'medium' | 'high';
 /** Atlas output location */
 export type AtlasOutputLocation = 'root' | 'docs';
 
-/** Atlas settings persisted in ~/.claudedesk/settings.json */
+/** Atlas settings persisted in ~/.omnidesk/settings.json */
 export interface AtlasSettings {
   enableAtlas: boolean;
   maxInlineTags: number;

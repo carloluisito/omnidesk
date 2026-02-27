@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ClaudeModel } from '../../../shared/ipc-types';
+import type { ProviderId } from '../../../shared/types/provider-types';
 
 interface ModelSwitcherProps {
   currentModel: ClaudeModel | null;
   onSwitch: (model: ClaudeModel) => Promise<void>;
   disabled?: boolean;
+  providerId?: ProviderId;
 }
 
 const MODELS: Array<{ id: ClaudeModel; label: string; tier: string }> = [
@@ -14,7 +16,9 @@ const MODELS: Array<{ id: ClaudeModel; label: string; tier: string }> = [
   { id: 'auto', label: 'Auto', tier: 'CLI default' },
 ];
 
-export function ModelSwitcher({ currentModel, onSwitch, disabled }: ModelSwitcherProps) {
+export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: ModelSwitcherProps) {
+  // Hide when provider is not Claude (Claude-specific feature)
+  if (providerId && providerId !== 'claude') return null;
   const [isOpen, setIsOpen] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,46 +71,18 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled }: ModelSwitche
           setIsOpen(!isOpen);
         }}
         disabled={disabled || isSwitching}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 8px',
-          height: '24px',
-          background: '#1e2030',
-          border: '1px solid #292e42',
-          borderRadius: '4px',
-          color: '#a9b1d6',
-          fontSize: '12px',
-          fontFamily: 'JetBrains Mono, monospace',
-          cursor: disabled || isSwitching ? 'not-allowed' : 'pointer',
-          transition: 'all 0.15s ease',
-          opacity: disabled || isSwitching ? 0.6 : 1,
-        }}
-        onMouseEnter={(e) => {
-          if (!disabled && !isSwitching) {
-            e.currentTarget.style.background = '#24283b';
-            e.currentTarget.style.borderColor = '#3b4261';
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#1e2030';
-          e.currentTarget.style.borderColor = '#292e42';
-        }}
       >
         <span>{currentLabel}</span>
         <svg
-          width="12"
-          height="12"
+          width="10"
+          height="10"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{
-            animation: isSwitching ? 'spin 1s linear infinite' : 'none',
-          }}
+          className={isSwitching ? 'switcher-spin' : ''}
         >
           {isSwitching ? (
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -123,56 +99,138 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled }: ModelSwitche
             position: 'fixed',
             top: menuPos.top,
             left: menuPos.left,
-            minWidth: '180px',
-            background: '#1a1b26',
-            border: '1px solid #292e42',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
             zIndex: 10000,
-            overflow: 'hidden',
           }}
         >
           {MODELS.map((model) => (
             <button
               key={model.id}
-              className={`menu-option ${model.id === currentModel ? 'active' : ''}`}
+              type="button"
+              className={`menu-option${model.id === currentModel ? ' menu-option-active' : ''}`}
               onClick={() => handleSelect(model.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 12px',
-                width: '100%',
-                background: model.id === currentModel ? '#1e2030' : 'transparent',
-                border: 'none',
-                color: model.id === currentModel ? '#7aa2f7' : '#a9b1d6',
-                fontSize: '13px',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'background 0.1s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#24283b';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = model.id === currentModel ? '#1e2030' : 'transparent';
-              }}
             >
-              <span style={{ flex: 1, fontWeight: 600 }}>{model.label}</span>
-              <span style={{ fontSize: '11px', color: '#565f89' }}>{model.tier}</span>
-              {model.id === currentModel && <span style={{ color: '#7aa2f7' }}>✓</span>}
+              <span className="menu-option-label">{model.label}</span>
+              <span className="menu-option-tier">{model.tier}</span>
+              {model.id === currentModel && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="menu-option-check">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
             </button>
           ))}
         </div>
       )}
 
       <style>{`
-        @keyframes spin {
+        @keyframes switcher-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+
         .model-switcher {
           position: relative;
+        }
+
+        .switcher-button {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px var(--space-2, 8px);
+          height: 22px;
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          color: var(--text-secondary, #9DA3BE);
+          font-size: var(--text-xs, 11px);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          cursor: pointer;
+          transition:
+            background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+            border-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+            color var(--duration-fast, 150ms) var(--ease-inout, ease);
+        }
+
+        .switcher-button:hover:not(:disabled) {
+          background: var(--state-hover, #FFFFFF0A);
+          border-color: var(--border-strong, #3D4163);
+          color: var(--text-primary, #E2E4F0);
+        }
+
+        .switcher-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .switcher-button:focus-visible {
+          outline: 2px solid var(--state-focus, #00C9A740);
+          outline-offset: 2px;
+        }
+
+        .switcher-spin {
+          animation: switcher-spin 1s linear infinite;
+        }
+
+        .switcher-menu {
+          min-width: 180px;
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          box-shadow: var(--shadow-lg, 0 12px 32px #00000080);
+          overflow: hidden;
+          padding: var(--space-1, 4px);
+        }
+
+        .menu-option {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2, 8px);
+          padding: var(--space-2, 8px) var(--space-3, 12px);
+          width: 100%;
+          background: transparent;
+          border: none;
+          border-radius: var(--radius-sm, 3px);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-sm, 12px);
+          color: var(--text-secondary, #9DA3BE);
+          text-align: left;
+          cursor: pointer;
+          transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                      color var(--duration-fast, 150ms) var(--ease-inout, ease);
+        }
+
+        .menu-option:hover {
+          background: var(--state-hover, #FFFFFF0A);
+          color: var(--text-primary, #E2E4F0);
+        }
+
+        .menu-option-active {
+          background: var(--accent-primary-muted, #00C9A714);
+          color: var(--text-accent, #00C9A7);
+        }
+
+        .menu-option-active:hover {
+          background: var(--accent-primary-muted, #00C9A714);
+          color: var(--text-accent, #00C9A7);
+        }
+
+        .menu-option-label {
+          flex: 1;
+          font-weight: var(--weight-semibold, 600);
+        }
+
+        .menu-option-tier {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+        }
+
+        .menu-option-active .menu-option-tier {
+          color: var(--text-accent, #00C9A7);
+          opacity: 0.7;
+        }
+
+        .menu-option-check {
+          color: var(--text-accent, #00C9A7);
+          flex-shrink: 0;
         }
       `}</style>
     </div>

@@ -2,15 +2,9 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PersistedSessionState, SessionMetadata } from '../shared/ipc-types';
+import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
-const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const SESSIONS_FILE = path.join(CONFIG_DIR, 'sessions.json');
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
 
 export function loadSessionState(): PersistedSessionState | null {
   try {
@@ -53,6 +47,8 @@ export function saveSessionState(
       createdAt: session.createdAt,
       exitCode: session.exitCode,
       currentModel: session.currentModel,
+      // providerId is optional; missing on load defaults to 'claude' (backward compat)
+      ...(session.providerId !== undefined ? { providerId: session.providerId } : {}),
     })),
     activeSessionId,
     lastModified: Date.now(),

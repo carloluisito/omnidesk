@@ -243,8 +243,8 @@ const dialogStyles = `
   .pb-param-dialog {
     width: 520px;
     max-height: 80vh;
-    background: #1f2335;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 12px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
     display: flex;
@@ -257,7 +257,7 @@ const dialogStyles = `
     align-items: center;
     gap: 12px;
     padding: 16px 20px;
-    border-bottom: 1px solid #292e42;
+    border-bottom: 1px solid var(--border-default, #292E44);
   }
 
   .pb-param-icon {
@@ -265,13 +265,13 @@ const dialogStyles = `
   }
 
   .pb-param-title {
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 15px;
     font-weight: 600;
   }
 
   .pb-param-subtitle {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 12px;
     margin-top: 2px;
   }
@@ -291,25 +291,25 @@ const dialogStyles = `
   }
 
   .pb-param-label {
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 12px;
     font-weight: 500;
   }
 
   .pb-param-required {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
     margin-left: 2px;
   }
 
   .pb-param-input,
   .pb-param-textarea,
   .pb-param-select {
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 8px 10px;
     outline: none;
     transition: border-color 0.15s;
@@ -318,13 +318,13 @@ const dialogStyles = `
   .pb-param-input:focus,
   .pb-param-textarea:focus,
   .pb-param-select:focus {
-    border-color: #7aa2f7;
+    border-color: var(--accent-primary, #00C9A7);
   }
 
   .pb-param-input.error,
   .pb-param-textarea.error,
   .pb-param-select.error {
-    border-color: #f7768e;
+    border-color: var(--semantic-error, #F7678E);
   }
 
   .pb-param-textarea {
@@ -333,8 +333,8 @@ const dialogStyles = `
   }
 
   .pb-param-select option {
-    background: #1a1b26;
-    color: #c0caf5;
+    background: var(--surface-overlay, #1A1B26);
+    color: var(--text-primary, #E2E4F0);
   }
 
   .pb-param-filepath {
@@ -347,22 +347,22 @@ const dialogStyles = `
   }
 
   .pb-param-browse {
-    background: #292e42;
-    border: 1px solid #3b4261;
+    background: var(--border-default, #292E44);
+    border: 1px solid var(--border-strong, #3D4163);
     border-radius: 6px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 12px;
     padding: 0 12px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-param-browse:hover {
-    background: #3b4261;
+    background: var(--border-strong, #3D4163);
   }
 
   .pb-param-error {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
     font-size: 11px;
   }
 
@@ -373,11 +373,11 @@ const dialogStyles = `
   .pb-param-preview-btn {
     background: transparent;
     border: none;
-    color: #7aa2f7;
+    color: var(--accent-primary, #00C9A7);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 0;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-param-preview-btn:hover {
@@ -388,14 +388,14 @@ const dialogStyles = `
     max-height: 200px;
     overflow-y: auto;
     margin: 0 20px 12px;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
-    background: #1a1b26;
+    background: var(--surface-overlay, #1A1B26);
   }
 
   .pb-param-preview-step {
     padding: 8px 12px;
-    border-bottom: 1px solid #292e42;
+    border-bottom: 1px solid var(--border-default, #292E44);
   }
 
   .pb-param-preview-step:last-child {
@@ -413,8 +413,8 @@ const dialogStyles = `
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #292e42;
-    color: #7aa2f7;
+    background: var(--border-default, #292E44);
+    color: var(--accent-primary, #00C9A7);
     font-size: 11px;
     display: flex;
     align-items: center;
@@ -422,7 +422,7 @@ const dialogStyles = `
   }
 
   .pb-param-preview-step-name {
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 12px;
     font-weight: 500;
   }
@@ -431,12 +431,12 @@ const dialogStyles = `
     font-size: 10px;
     padding: 1px 6px;
     border-radius: 4px;
-    background: rgba(224, 175, 104, 0.15);
-    color: #e0af68;
+    background: rgba(247, 168, 74, 0.15);
+    color: var(--semantic-warning, #F7A84A);
   }
 
   .pb-param-preview-prompt {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-word;
@@ -451,29 +451,29 @@ const dialogStyles = `
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
-    border-top: 1px solid #292e42;
+    border-top: 1px solid var(--border-default, #292E44);
   }
 
   .pb-param-cancel {
     background: transparent;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 12px;
     padding: 6px 14px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-param-cancel:hover {
-    background: #292e42;
+    background: var(--border-default, #292E44);
   }
 
   .pb-param-run {
-    background: #7aa2f7;
+    background: var(--accent-primary, #00C9A7);
     border: none;
     border-radius: 6px;
-    color: #1a1b26;
+    color: var(--surface-overlay, #1A1B26);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 14px;
@@ -481,11 +481,11 @@ const dialogStyles = `
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-param-run:hover {
-    background: #89b4fa;
+    background: var(--accent-primary-dim, #009E84);
   }
 
   .pb-param-run kbd {

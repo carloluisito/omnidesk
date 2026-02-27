@@ -348,7 +348,7 @@ export function TunnelCreateDialog({
 
 const tunnelCreateDialogStyles = `
   .tcd-wrapper {
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -359,38 +359,38 @@ const tunnelCreateDialogStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background: #16161e;
+    background: var(--surface-raised, #13141C);
     border: none;
     cursor: pointer;
     transition: background 0.15s ease;
   }
 
   .tcd-section-header:hover {
-    background: #1f2335;
+    background: var(--surface-overlay, #1A1B26);
   }
 
   .tcd-section-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.12em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .tcd-section-hint {
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
   }
 
   .tcd-body {
     padding: 14px;
-    background: #13141b;
+    background: var(--surface-raised, #13141C);
     display: flex;
     flex-direction: column;
     gap: 12px;
-    border-top: 1px solid #292e42;
+    border-top: 1px solid var(--border-default, #292E44);
   }
 
   .tcd-field {
@@ -408,8 +408,8 @@ const tunnelCreateDialogStyles = `
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: #565f89;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-tertiary, #5C6080);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -422,7 +422,7 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-required {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
   }
 
   .tcd-pro-badge {
@@ -430,20 +430,20 @@ const tunnelCreateDialogStyles = `
     font-weight: 700;
     padding: 2px 5px;
     border-radius: 3px;
-    background: rgba(224, 175, 104, 0.15);
-    color: #e0af68;
-    border: 1px solid rgba(224, 175, 104, 0.3);
+    background: rgba(247, 168, 74, 0.15);
+    color: var(--semantic-warning, #F7A84A);
+    border: 1px solid rgba(247, 168, 74, 0.3);
     letter-spacing: 0.05em;
   }
 
   .tcd-input {
     height: 34px;
     padding: 0 10px;
-    background: #0d0e14;
-    border: 1px solid #292e42;
+    background: var(--surface-base, #0D0E14);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #c0caf5;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     font-size: 12px;
     outline: none;
     transition: border-color 0.15s ease;
@@ -456,12 +456,12 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-input:focus {
-    border-color: #7aa2f7;
-    box-shadow: 0 0 0 1px rgba(122, 162, 247, 0.2);
+    border-color: var(--accent-primary, #00C9A7);
+    box-shadow: 0 0 0 1px rgba(0, 201, 167, 0.2);
   }
 
   .tcd-input::placeholder {
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
   }
 
   .tcd-input:disabled {
@@ -470,23 +470,23 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-input-error {
-    border-color: #f7768e !important;
+    border-color: var(--semantic-error, #F7678E) !important;
   }
 
   .tcd-error-msg {
     font-size: 10px;
-    color: #f7768e;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--semantic-error, #F7678E);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .tcd-select {
     height: 34px;
     padding: 0 10px;
-    background: #0d0e14;
-    border: 1px solid #292e42;
+    background: var(--surface-base, #0D0E14);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #c0caf5;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     font-size: 12px;
     outline: none;
     cursor: pointer;
@@ -499,7 +499,7 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-select:focus {
-    border-color: #7aa2f7;
+    border-color: var(--accent-primary, #00C9A7);
   }
 
   .tcd-select:disabled {
@@ -508,13 +508,13 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-select option {
-    background: #16161e;
-    color: #c0caf5;
+    background: var(--surface-raised, #13141C);
+    color: var(--text-primary, #E2E4F0);
   }
 
   .tcd-protocol-toggle {
     display: flex;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     overflow: hidden;
     width: fit-content;
@@ -525,26 +525,26 @@ const tunnelCreateDialogStyles = `
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     background: transparent;
     border: none;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .tcd-protocol-btn + .tcd-protocol-btn {
-    border-left: 1px solid #292e42;
+    border-left: 1px solid var(--border-default, #292E44);
   }
 
   .tcd-protocol-btn.active {
-    background: rgba(122, 162, 247, 0.15);
-    color: #7aa2f7;
+    background: rgba(0, 201, 167, 0.15);
+    color: var(--accent-primary, #00C9A7);
   }
 
   .tcd-protocol-btn:hover:not(.active):not(:disabled) {
-    background: #1f2335;
-    color: #a9b1d6;
+    background: var(--surface-overlay, #1A1B26);
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .tcd-protocol-btn:disabled {
@@ -563,17 +563,17 @@ const tunnelCreateDialogStyles = `
     background: none;
     border: none;
     cursor: pointer;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 0;
     transition: color 0.15s ease;
   }
 
   .tcd-advanced-btn:hover:not(:disabled) {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .tcd-advanced-btn:disabled {
@@ -587,27 +587,27 @@ const tunnelCreateDialogStyles = `
     padding: 10px 12px;
     background: rgba(13, 14, 20, 0.5);
     border-radius: 6px;
-    border: 1px solid #1e2030;
+    border: 1px solid var(--surface-float, #222435);
   }
 
   .tcd-checkbox {
     width: 13px;
     height: 13px;
-    accent-color: #7aa2f7;
+    accent-color: var(--accent-primary, #00C9A7);
     cursor: pointer;
   }
 
   .tcd-submit-btn {
     height: 40px;
     width: 100%;
-    background: #7aa2f7;
-    color: #1a1b26;
+    background: var(--accent-primary, #00C9A7);
+    color: var(--surface-overlay, #1A1B26);
     border: none;
     border-radius: 7px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -618,9 +618,9 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-submit-btn:hover:not(:disabled) {
-    background: #89b4fa;
+    background: var(--accent-primary-dim, #009E84);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(122, 162, 247, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 201, 167, 0.3);
   }
 
   .tcd-submit-btn:active:not(:disabled) {
@@ -633,7 +633,7 @@ const tunnelCreateDialogStyles = `
   }
 
   .tcd-submit-btn.loading {
-    background: rgba(122, 162, 247, 0.7);
+    background: rgba(0, 201, 167, 0.7);
   }
 
   .tcd-spinner {
@@ -647,19 +647,19 @@ const tunnelCreateDialogStyles = `
 
   .tcd-cli-output {
     height: 80px;
-    background: #0d0e14;
-    border: 1px solid #292e42;
+    background: var(--surface-base, #0D0E14);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #292e42 transparent;
+    scrollbar-color: var(--border-default, #292E44) transparent;
   }
 
   .tcd-cli-content {
     padding: 8px 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     font-size: 10px;
-    color: #9ece6a;
+    color: var(--semantic-success, #3DD68C);
     white-space: pre-wrap;
     word-break: break-all;
     line-height: 1.6;

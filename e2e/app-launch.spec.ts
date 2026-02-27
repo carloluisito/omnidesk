@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/electron';
 test.describe('App Launch', () => {
   test('window opens with correct title', async ({ window }) => {
     const title = await window.title();
-    expect(title).toContain('ClaudeDesk');
+    expect(title).toContain('OmniDesk');
   });
 
   test('window has minimum dimensions', async ({ electronApp }) => {

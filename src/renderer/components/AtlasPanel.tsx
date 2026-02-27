@@ -1,7 +1,8 @@
 /**
- * Atlas Panel — Repository Atlas Engine UI
+ * Atlas Panel — Redesigned to match Obsidian spec §6.13.
  *
- * Three states: idle (status + generate), scanning (progress timeline), preview (tabbed content + approve)
+ * Three states: idle → scanning → preview.
+ * Preserves all existing hooks/IPC/props.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -14,7 +15,8 @@ import type {
   AtlasScanPhase,
 } from '../../shared/types/atlas-types';
 import { showToast } from '../utils/toast';
-import './AtlasPanel.css';
+import { SidePanel } from './SidePanel';
+import { MapIcon, Copy, FileText, RotateCcw, Check } from 'lucide-react';
 
 interface AtlasPanelProps {
   isOpen: boolean;
@@ -31,8 +33,6 @@ interface AtlasPanelProps {
   onReset: () => void;
 }
 
-type PreviewTab = 'claude-md' | 'repo-index' | 'inline-tags';
-
 const PHASE_ORDER: AtlasScanPhase[] = ['enumerating', 'analyzing', 'inferring', 'generating'];
 const PHASE_LABELS: Record<AtlasScanPhase, string> = {
   enumerating: 'Discover Files',
@@ -40,6 +40,63 @@ const PHASE_LABELS: Record<AtlasScanPhase, string> = {
   inferring: 'Infer Domains',
   generating: 'Generate Content',
 };
+
+// ─── Thin progress bar ─────────────────────────────────────────────────────
+
+function ProgressBar({ value, max }: { value: number; max: number }) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return (
+    <div
+      style={{
+        height: 6,
+        background: 'var(--surface-float)',
+        borderRadius: 'var(--radius-full)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          height: '100%',
+          width: `${pct}%`,
+          background: 'var(--accent-primary)',
+          borderRadius: 'var(--radius-full)',
+          transition: 'width 0.3s var(--ease-out)',
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Section label ─────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-2)',
+        padding: '10px var(--space-3) 6px',
+      }}
+    >
+      <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      <span
+        style={{
+          fontSize: 'var(--text-2xs)',
+          fontFamily: 'var(--font-mono-ui)',
+          color: 'var(--text-tertiary)',
+          letterSpacing: 'var(--tracking-widest)',
+          textTransform: 'uppercase',
+        }}
+      >
+        {children}
+      </span>
+      <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────
 
 export function AtlasPanel({
   isOpen,
@@ -55,12 +112,11 @@ export function AtlasPanel({
   onWrite,
   onReset,
 }: AtlasPanelProps) {
-  const [previewTab, setPreviewTab] = useState<PreviewTab>('claude-md');
   const [editedClaudeMd, setEditedClaudeMd] = useState('');
   const [editedRepoIndex, setEditedRepoIndex] = useState('');
   const [editedTags, setEditedTags] = useState<InlineTag[]>([]);
+  const [copied, setCopied] = useState(false);
 
-  // When generated content changes, initialize editable copies
   useEffect(() => {
     if (generatedContent) {
       setEditedClaudeMd(generatedContent.claudeMd);
@@ -69,13 +125,7 @@ export function AtlasPanel({
     }
   }, [generatedContent]);
 
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  }, [onClose]);
-
-  const handleApprove = useCallback(async () => {
+  const handleWrite = useCallback(async () => {
     try {
       const success = await onWrite(editedClaudeMd, editedRepoIndex, editedTags);
       if (success) {
@@ -85,254 +135,383 @@ export function AtlasPanel({
         showToast('Failed to write atlas files', 'error');
       }
     } catch (err) {
-      console.error('Failed to write atlas:', err);
       showToast(err instanceof Error ? err.message : 'Failed to write atlas files', 'error');
     }
   }, [editedClaudeMd, editedRepoIndex, editedTags, onWrite, onClose]);
 
-  const handleCancel = useCallback(() => {
-    onReset();
-  }, [onReset]);
-
-  const handleToggleTag = useCallback((index: number) => {
-    setEditedTags(prev => prev.map((tag, i) =>
-      i === index ? { ...tag, selected: !tag.selected } : tag
-    ));
-  }, []);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(editedClaudeMd);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showToast('Failed to copy to clipboard', 'error');
+    }
+  }, [editedClaudeMd]);
 
   if (!isOpen) return null;
 
   const isPreviewMode = !isScanning && generatedContent !== null;
   const isIdleMode = !isScanning && generatedContent === null;
 
+  // Scan progress percentage
+  const scanPct = scanProgress && scanProgress.total > 0
+    ? Math.round((scanProgress.current / scanProgress.total) * 100)
+    : 0;
+
   return (
-    <div className="atlas-overlay" onClick={handleOverlayClick}>
-      <div className="atlas-dialog">
-        {/* Header */}
-        <div className="atlas-header">
-          <div className="atlas-header-left">
-            <svg className="atlas-header-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-              <line x1="8" y1="2" x2="8" y2="18" />
-              <line x1="16" y1="6" x2="16" y2="22" />
-            </svg>
-            <h2>Repository Atlas</h2>
+    <SidePanel isOpen={isOpen} onClose={onClose} title="Atlas Engine">
+      <div style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+
+        {/* Working directory */}
+        {projectPath && (
+          <div
+            style={{
+              fontSize: 'var(--text-xs)',
+              fontFamily: 'var(--font-mono-ui)',
+              color: 'var(--text-tertiary)',
+              padding: '4px var(--space-2)',
+              background: 'var(--surface-float)',
+              borderRadius: 'var(--radius-sm)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={projectPath}
+          >
+            {projectPath}
           </div>
-          <button className="atlas-close-btn" onClick={onClose}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 'var(--space-2)',
+              padding: 'var(--space-2) var(--space-3)',
+              background: 'var(--semantic-error-muted)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--semantic-error)',
+            }}
+          >
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--semantic-error)', lineHeight: 'var(--leading-normal)' }}>
+              {error}
+            </span>
+          </div>
+        )}
+
+        {/* Scan button */}
+        {isIdleMode && (
+          <button
+            onClick={onGenerate}
+            disabled={!projectPath || isScanning}
+            style={{
+              width: '100%',
+              padding: '8px var(--space-3)',
+              background: 'var(--accent-primary)',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-inverse)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)',
+              fontFamily: 'var(--font-ui)',
+              cursor: !projectPath ? 'not-allowed' : 'pointer',
+              opacity: !projectPath ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            <MapIcon size={14} />
+            {atlasStatus?.hasAtlas ? 'Rebuild Atlas' : 'Scan Repository'}
           </button>
-        </div>
+        )}
 
-        {/* Body */}
-        <div className="atlas-body">
-          {/* Error display */}
-          {error && (
-            <div className="atlas-error">
-              <svg className="atlas-error-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              <span className="atlas-error-text">{error}</span>
-            </div>
-          )}
-
-          {/* Idle state */}
-          {isIdleMode && (
-            <>
-              <div className={`atlas-status ${atlasStatus?.hasAtlas ? 'has-atlas' : 'no-atlas'}`}>
-                <svg className="atlas-status-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {atlasStatus?.hasAtlas ? (
-                    <>
-                      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </>
-                  ) : (
-                    <>
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </>
-                  )}
-                </svg>
-                <div className="atlas-status-text">
-                  <h3>{atlasStatus?.hasAtlas ? 'Atlas Found' : 'No Atlas Detected'}</h3>
-                  <p>
-                    {atlasStatus?.hasAtlas
-                      ? `CLAUDE.md and repo-index.md present. ${atlasStatus.inlineTagCount} inline tags.`
-                      : 'Generate an atlas to help AI tools navigate this codebase.'}
-                  </p>
-                  {atlasStatus?.lastGenerated && (
-                    <p>Last updated: {new Date(atlasStatus.lastGenerated).toLocaleString()}</p>
-                  )}
+        {/* Idle — atlas status */}
+        {isIdleMode && atlasStatus && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: '8px var(--space-3)',
+              background: 'var(--surface-float)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: atlasStatus.hasAtlas ? 'var(--semantic-success)' : 'var(--text-tertiary)',
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}>
+                {atlasStatus.hasAtlas ? 'Atlas found' : 'Repository not scanned'}
+              </div>
+              {!atlasStatus.hasAtlas && (
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)', marginTop: 2 }}>
+                  Scan this project to generate an intelligent CLAUDE.md
                 </div>
-              </div>
-
-              <button
-                className="atlas-generate-btn"
-                onClick={onGenerate}
-                disabled={!projectPath}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                  <line x1="8" y1="2" x2="8" y2="18" />
-                  <line x1="16" y1="6" x2="16" y2="22" />
-                </svg>
-                {atlasStatus?.hasAtlas ? 'Rebuild Atlas' : 'Generate Atlas'}
-              </button>
-            </>
-          )}
-
-          {/* Scanning state */}
-          {isScanning && (
-            <div className="atlas-scanning">
-              <div className="atlas-scan-timeline">
-                {PHASE_ORDER.map((phase) => {
-                  const isActive = scanProgress?.phase === phase;
-                  const phaseIndex = PHASE_ORDER.indexOf(phase);
-                  const currentIndex = scanProgress ? PHASE_ORDER.indexOf(scanProgress.phase) : -1;
-                  const isCompleted = currentIndex > phaseIndex;
-
-                  return (
-                    <div
-                      key={phase}
-                      className={`atlas-scan-phase ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-                    >
-                      <div className={`atlas-scan-phase-icon ${isActive ? 'active' : isCompleted ? 'completed' : 'pending'}`}>
-                        {isCompleted ? (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        ) : isActive ? (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                          </svg>
-                        ) : (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="atlas-scan-phase-text">
-                        <div className="atlas-scan-phase-name">{PHASE_LABELS[phase]}</div>
-                        {isActive && scanProgress && (
-                          <div className="atlas-scan-phase-msg">{scanProgress.message}</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {scanProgress && scanProgress.total > 0 && (
-                <div className="atlas-scan-progress-bar">
-                  <div
-                    className="atlas-scan-progress-fill"
-                    style={{ width: `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` }}
-                  />
+              )}
+              {atlasStatus.hasAtlas && atlasStatus.lastGenerated && (
+                <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono-ui)', marginTop: 2 }}>
+                  Updated {new Date(atlasStatus.lastGenerated).toLocaleDateString()}
+                  {atlasStatus.inlineTagCount ? ` · ${atlasStatus.inlineTagCount} tags` : ''}
                 </div>
               )}
             </div>
-          )}
-
-          {/* Preview state */}
-          {isPreviewMode && scanResult && (
-            <>
-              {/* Scan stats */}
-              <div className="atlas-scan-stats">
-                <div className="atlas-stat-card">
-                  <div className="atlas-stat-value">{scanResult.totalFiles}</div>
-                  <div className="atlas-stat-label">Files</div>
-                </div>
-                <div className="atlas-stat-card">
-                  <div className="atlas-stat-value">{scanResult.totalLines.toLocaleString()}</div>
-                  <div className="atlas-stat-label">Lines</div>
-                </div>
-                <div className="atlas-stat-card">
-                  <div className="atlas-stat-value">{scanResult.domains.length}</div>
-                  <div className="atlas-stat-label">Domains</div>
-                </div>
-                <div className="atlas-stat-card">
-                  <div className="atlas-stat-value">{scanResult.scanDurationMs}ms</div>
-                  <div className="atlas-stat-label">Scan Time</div>
-                </div>
-              </div>
-
-              {/* Preview tabs */}
-              <div className="atlas-preview-tabs">
-                <button
-                  className={`atlas-preview-tab ${previewTab === 'claude-md' ? 'active' : ''}`}
-                  onClick={() => setPreviewTab('claude-md')}
-                >
-                  CLAUDE.md
-                </button>
-                <button
-                  className={`atlas-preview-tab ${previewTab === 'repo-index' ? 'active' : ''}`}
-                  onClick={() => setPreviewTab('repo-index')}
-                >
-                  repo-index.md
-                </button>
-                <button
-                  className={`atlas-preview-tab ${previewTab === 'inline-tags' ? 'active' : ''}`}
-                  onClick={() => setPreviewTab('inline-tags')}
-                >
-                  Inline Tags ({editedTags.filter(t => t.selected).length})
-                </button>
-              </div>
-
-              {/* Tab content */}
-              {previewTab === 'claude-md' && (
-                <div className="atlas-preview-content">{editedClaudeMd}</div>
-              )}
-
-              {previewTab === 'repo-index' && (
-                <div className="atlas-preview-content">{editedRepoIndex}</div>
-              )}
-
-              {previewTab === 'inline-tags' && (
-                <div className="atlas-tags-list">
-                  {editedTags.length === 0 ? (
-                    <div className="atlas-preview-content">No inline tags suggested.</div>
-                  ) : (
-                    editedTags.map((tag, index) => (
-                      <div key={tag.relativePath} className="atlas-tag-item">
-                        <input
-                          type="checkbox"
-                          className="atlas-tag-checkbox"
-                          checked={tag.selected}
-                          onChange={() => handleToggleTag(index)}
-                        />
-                        <div className="atlas-tag-info">
-                          <div className="atlas-tag-path">{tag.relativePath}</div>
-                          <div className="atlas-tag-reason">{tag.reason}</div>
-                          {tag.currentTag && (
-                            <div className="atlas-tag-current">Current: {tag.currentTag}</div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        {isPreviewMode && (
-          <div className="atlas-footer">
-            <button className="atlas-btn atlas-btn-secondary" onClick={handleCancel}>
-              Cancel
-            </button>
-            <button className="atlas-btn atlas-btn-primary" onClick={handleApprove}>
-              Write Atlas Files
-            </button>
           </div>
         )}
       </div>
-    </div>
+
+      {/* Scanning state */}
+      {isScanning && (
+        <div style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <SectionLabel>Status</SectionLabel>
+
+          {/* Phase list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {PHASE_ORDER.map((phase) => {
+              const isActive = scanProgress?.phase === phase;
+              const phaseIdx = PHASE_ORDER.indexOf(phase);
+              const currentIdx = scanProgress ? PHASE_ORDER.indexOf(scanProgress.phase) : -1;
+              const isDone = currentIdx > phaseIdx;
+              return (
+                <div
+                  key={phase}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    padding: '4px var(--space-2)',
+                    background: isActive ? 'var(--accent-primary-muted)' : 'transparent',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'background var(--duration-fast)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: isDone
+                        ? 'var(--semantic-success)'
+                        : isActive
+                          ? 'var(--accent-primary)'
+                          : 'var(--border-strong)',
+                      flexShrink: 0,
+                      animation: isActive ? 'pulse 1.5s ease-in-out infinite' : 'none',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      fontFamily: 'var(--font-ui)',
+                      color: isDone
+                        ? 'var(--semantic-success)'
+                        : isActive
+                          ? 'var(--text-accent)'
+                          : 'var(--text-tertiary)',
+                    }}
+                  >
+                    {PHASE_LABELS[phase]}
+                  </span>
+                  {isActive && scanProgress?.message && (
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 'var(--text-2xs)',
+                        fontFamily: 'var(--font-mono-ui)',
+                        color: 'var(--text-tertiary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {scanProgress.message}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress bar */}
+          {scanProgress && scanProgress.total > 0 && (
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono-ui)' }}>
+                  Scanning {scanProgress.current} / {scanProgress.total} files
+                </span>
+                <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-accent)', fontFamily: 'var(--font-mono-ui)' }}>
+                  {scanPct}%
+                </span>
+              </div>
+              <ProgressBar value={scanProgress.current} max={scanProgress.total} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview state */}
+      {isPreviewMode && scanResult && (
+        <div style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            {[
+              { value: scanResult.totalFiles, label: 'Files' },
+              { value: scanResult.domains.length, label: 'Domains' },
+            ].map(({ value, label }) => (
+              <div
+                key={label}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '6px',
+                  background: 'var(--surface-float)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-accent)', fontFamily: 'var(--font-mono-ui)' }}>
+                  {value}
+                </div>
+                <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)' }}>
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <SectionLabel>Preview</SectionLabel>
+
+          {/* CLAUDE.md preview card */}
+          <div
+            style={{
+              background: 'var(--surface-float)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-default)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: '6px var(--space-2)',
+                borderBottom: '1px solid var(--border-subtle)',
+                background: 'var(--surface-raised)',
+              }}
+            >
+              <FileText size={11} style={{ color: 'var(--text-tertiary)' }} />
+              <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono-ui)', color: 'var(--text-secondary)' }}>
+                CLAUDE.md
+              </span>
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                padding: 'var(--space-2)',
+                fontSize: 11,
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-secondary)',
+                lineHeight: 'var(--leading-normal)',
+                maxHeight: 200,
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {editedClaudeMd}
+            </pre>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              onClick={handleCopy}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-1)',
+                padding: '7px',
+                background: 'var(--surface-float)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                color: copied ? 'var(--semantic-success)' : 'var(--text-secondary)',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-ui)',
+                cursor: 'pointer',
+              }}
+            >
+              {copied ? <Check size={11} /> : <Copy size={11} />}
+              {copied ? 'Copied' : 'Copy to Clipboard'}
+            </button>
+            <button
+              onClick={handleWrite}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-1)',
+                padding: '7px',
+                background: 'var(--accent-primary)',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-inverse)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 'var(--weight-semibold)',
+                fontFamily: 'var(--font-ui)',
+                cursor: 'pointer',
+              }}
+            >
+              <FileText size={11} />
+              Write CLAUDE.md
+            </button>
+          </div>
+
+          {/* Reset link */}
+          <button
+            onClick={onReset}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-tertiary)',
+              fontSize: 'var(--text-xs)',
+              fontFamily: 'var(--font-ui)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: 0,
+              margin: '0 auto',
+            }}
+          >
+            <RotateCcw size={10} />
+            Discard and rescan
+          </button>
+        </div>
+      )}
+
+      <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }`}</style>
+    </SidePanel>
   );
 }

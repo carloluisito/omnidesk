@@ -1,4 +1,3 @@
-import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,8 +10,8 @@ import type {
   PlaybookExecutionSettings,
 } from '../shared/types/playbook-types';
 import { BUILT_IN_PLAYBOOKS } from './built-in-playbooks';
+import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
-const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const PLAYBOOKS_FILE = path.join(CONFIG_DIR, 'playbooks.json');
 const MAX_USER_PLAYBOOKS = 50;
 const MAX_STEPS = 20;
@@ -26,12 +25,6 @@ const DEFAULT_EXECUTION: PlaybookExecutionSettings = {
   stepTimeoutPolicy: 'pause',
   createCheckpointBeforeRun: false,
 };
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
 
 function getDefaultData(): PlaybooksData {
   return { version: 1, playbooks: [], lastModified: Date.now() };

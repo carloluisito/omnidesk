@@ -21,7 +21,7 @@ export function WorktreeCleanupDialog({ isOpen, worktreeInfo, onClose }: Worktre
     <div className="wtc-overlay">
       <div className="wtc-dialog">
         <div className="wtc-header">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success)" strokeWidth="2">
             <line x1="6" y1="3" x2="6" y2="15" />
             <circle cx="18" cy="6" r="3" />
             <circle cx="6" cy="18" r="3" />
@@ -107,95 +107,100 @@ const styles = `
   .wtc-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(13, 14, 20, 0.8);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1100;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    z-index: var(--z-modal, 400);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .wtc-dialog {
     width: 440px;
     max-width: calc(100vw - 32px);
-    background: #1a1b26;
-    border: 1px solid #292e42;
-    border-radius: 12px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-lg, 10px);
+    box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
     overflow: hidden;
+    animation: wtc-fade-in var(--duration-normal, 200ms) var(--ease-out, ease) both;
+  }
+
+  @keyframes wtc-fade-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
   }
 
   .wtc-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 16px 20px;
-    border-bottom: 1px solid #292e42;
-    background: linear-gradient(to bottom, #1e2030, #1a1b26);
+    gap: var(--space-2, 8px);
+    padding: var(--space-4, 16px) var(--space-5, 20px);
+    border-bottom: 1px solid var(--border-subtle, #1E2030);
   }
 
   .wtc-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #c0caf5;
+    font-size: var(--text-base, 13px);
+    font-weight: var(--weight-semibold, 600);
+    color: var(--text-primary, #E2E4F0);
     margin: 0;
   }
 
   .wtc-body {
-    padding: 16px 20px;
+    padding: var(--space-4, 16px) var(--space-5, 20px);
   }
 
   .wtc-description {
-    font-size: 12px;
-    color: #a9b1d6;
-    line-height: 1.5;
-    margin: 0 0 16px;
+    font-size: var(--text-sm, 12px);
+    color: var(--text-secondary, #9DA3BE);
+    line-height: var(--leading-normal, 1.5);
+    margin: 0 0 var(--space-4, 16px);
   }
 
   .wtc-description strong {
-    color: #9ece6a;
-    font-weight: 600;
+    color: var(--semantic-success, #3DD68C);
+    font-weight: var(--weight-semibold, 600);
   }
 
   .wtc-options {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-2, 8px);
+    margin-bottom: var(--space-3, 12px);
   }
 
   .wtc-option {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-    border: 1px solid #292e42;
-    border-radius: 8px;
+    gap: var(--space-2, 8px);
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: border-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
   }
 
   .wtc-option:hover {
-    border-color: #3b4261;
+    border-color: var(--border-strong, #3D4163);
+    background: var(--state-hover, #FFFFFF0A);
   }
 
   .wtc-option.active {
-    border-color: #9ece6a;
-    background: rgba(158, 206, 106, 0.05);
+    border-color: var(--semantic-success, #3DD68C);
+    background: rgba(61, 214, 140, 0.05);
   }
 
   .wtc-option.active.danger {
-    border-color: #f7768e;
-    background: rgba(247, 118, 142, 0.05);
+    border-color: var(--semantic-error, #F7678E);
+    background: rgba(247, 103, 142, 0.05);
   }
 
   .wtc-option input {
-    accent-color: #9ece6a;
+    accent-color: var(--accent-primary, #00C9A7);
     margin-top: 2px;
-  }
-
-  .wtc-option.danger input {
-    accent-color: #f7768e;
+    flex-shrink: 0;
   }
 
   .wtc-option-content {
@@ -205,108 +210,123 @@ const styles = `
   }
 
   .wtc-option-label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #c0caf5;
+    font-size: var(--text-sm, 12px);
+    font-weight: var(--weight-medium, 500);
+    color: var(--text-primary, #E2E4F0);
   }
 
   .wtc-option-desc {
-    font-size: 11px;
-    color: #565f89;
+    font-size: var(--text-xs, 11px);
+    color: var(--text-tertiary, #5C6080);
+    line-height: var(--leading-normal, 1.5);
   }
 
   .wtc-warning {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(247, 118, 142, 0.1);
-    border: 1px solid rgba(247, 118, 142, 0.2);
-    border-radius: 6px;
-    font-size: 11px;
-    color: #f7768e;
-    margin-bottom: 12px;
-    animation: wtc-slideDown 0.15s ease;
+    gap: var(--space-2, 8px);
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    background: rgba(247, 103, 142, 0.08);
+    border: 1px solid rgba(247, 103, 142, 0.2);
+    border-radius: var(--radius-md, 6px);
+    font-size: var(--text-xs, 11px);
+    color: var(--semantic-error, #F7678E);
+    margin-bottom: var(--space-3, 12px);
+    animation: wtc-slideDown var(--duration-fast, 150ms) var(--ease-out, ease);
   }
 
   @keyframes wtc-slideDown {
     from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .wtc-remember {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: #565f89;
+    gap: var(--space-2, 8px);
+    font-size: var(--text-xs, 11px);
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
+    user-select: none;
   }
 
   .wtc-checkbox {
     width: 14px;
     height: 14px;
-    border: 1px solid #3b4261;
-    border-radius: 3px;
+    border: 1px solid var(--border-strong, #3D4163);
+    border-radius: var(--radius-sm, 3px);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
+    transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                border-color var(--duration-fast, 150ms) var(--ease-inout, ease);
     flex-shrink: 0;
   }
 
   .wtc-checkbox.checked {
-    background: #7aa2f7;
-    border-color: #7aa2f7;
-    color: #1a1b26;
+    background: var(--accent-primary, #00C9A7);
+    border-color: var(--accent-primary, #00C9A7);
+    color: var(--text-inverse, #0D0E14);
   }
 
   .wtc-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 20px;
-    border-top: 1px solid #292e42;
-    background: #16161e;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-5, 20px);
+    border-top: 1px solid var(--border-subtle, #1E2030);
+    background: var(--surface-raised, #13141C);
   }
 
   .wtc-btn {
-    height: 34px;
-    padding: 0 16px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
-    border-radius: 8px;
+    height: 32px;
+    padding: 0 var(--space-4, 16px);
+    font-size: var(--text-sm, 12px);
+    font-weight: var(--weight-semibold, 600);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+    border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                border-color var(--duration-fast, 150ms) var(--ease-inout, ease);
+  }
+
+  .wtc-btn:focus-visible {
+    outline: 2px solid var(--state-focus, #00C9A740);
+    outline-offset: 2px;
   }
 
   .wtc-btn-cancel {
     background: transparent;
-    border: 1px solid #292e42;
-    color: #a9b1d6;
+    border: 1px solid var(--border-default, #292E44);
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .wtc-btn-cancel:hover {
-    background: #1a1b26;
-    border-color: #3b4261;
+    background: var(--state-hover, #FFFFFF0A);
+    border-color: var(--border-strong, #3D4163);
+    color: var(--text-primary, #E2E4F0);
   }
 
   .wtc-btn-submit {
-    background: #7aa2f7;
+    background: var(--accent-primary, #00C9A7);
     border: none;
-    color: #1a1b26;
+    color: var(--text-inverse, #0D0E14);
   }
 
   .wtc-btn-submit:hover {
-    background: #89b4fa;
+    background: var(--accent-primary-dim, #009E84);
   }
 
   .wtc-btn-submit.danger {
-    background: #f7768e;
+    background: var(--semantic-error, #F7678E);
   }
 
   .wtc-btn-submit.danger:hover {
-    background: #ff899b;
+    background: #e8567d;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wtc-dialog { animation: none; }
+    .wtc-warning { animation: none; }
   }
 `;

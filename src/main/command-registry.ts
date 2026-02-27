@@ -111,7 +111,7 @@ export class CommandRegistry {
       id: 'settings.open',
       category: 'settings',
       title: 'Open Settings',
-      description: 'Configure ClaudeDesk preferences',
+      description: 'Configure OmniDesk preferences',
       shortcut: 'Ctrl+,',
       keywords: ['preferences', 'config', 'options'],
       action: 'ui:openSettings',

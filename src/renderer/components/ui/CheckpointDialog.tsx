@@ -104,38 +104,36 @@ export function CheckpointDialog({
   const descCharsRemaining = 500 - description.length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4">
+    <div className="ckpt-overlay">
       <div
-        className="bg-[#1a1b26] rounded-lg shadow-2xl w-full max-w-md border border-[#292e42] animate-fade-in"
+        className="ckpt-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#292e42]">
-          <h2 className="text-lg font-semibold text-[#a9b1d6]">Create Checkpoint</h2>
+        <div className="ckpt-header">
+          <h2 className="ckpt-title">Create Checkpoint</h2>
           {sessionName && (
-            <div className="text-xs text-[#565f89] mt-1">
+            <div className="ckpt-session-name">
               Session: {sessionName}
             </div>
           )}
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="ckpt-form">
           {/* Name field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="checkpoint-name" className="text-sm font-medium text-[#a9b1d6]">
-                Name <span className="text-[#f7768e]">*</span>
+          <div className="ckpt-field">
+            <div className="ckpt-field-header">
+              <label htmlFor="checkpoint-name" className="ckpt-label">
+                Name <span className="ckpt-required">*</span>
               </label>
-              <span
-                className={`text-xs ${
-                  nameCharsRemaining < 0
-                    ? 'text-[#f7768e]'
-                    : nameCharsRemaining < 10
-                    ? 'text-[#e0af68]'
-                    : 'text-[#565f89]'
-                }`}
-              >
+              <span className="ckpt-char-count" style={{
+                color: nameCharsRemaining < 0
+                  ? 'var(--semantic-error)'
+                  : nameCharsRemaining < 10
+                  ? 'var(--semantic-warning)'
+                  : 'var(--text-tertiary)',
+              }}>
                 {name.length}/50
               </span>
             </div>
@@ -147,26 +145,24 @@ export function CheckpointDialog({
               onChange={(e) => setName(e.target.value.substring(0, 50))}
               maxLength={50}
               placeholder="e.g., Before API refactor"
-              className="w-full px-3 py-2 bg-[#292e42] border border-[#3b4261] rounded text-[#a9b1d6] placeholder-[#565f89] focus:outline-none focus:border-[#7aa2f7] transition-colors"
+              className="ckpt-input"
               autoComplete="off"
             />
           </div>
 
           {/* Description field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="checkpoint-description" className="text-sm font-medium text-[#a9b1d6]">
-                Description <span className="text-xs text-[#565f89]">(optional)</span>
+          <div className="ckpt-field">
+            <div className="ckpt-field-header">
+              <label htmlFor="checkpoint-description" className="ckpt-label">
+                Description <span className="ckpt-optional">(optional)</span>
               </label>
-              <span
-                className={`text-xs ${
-                  descCharsRemaining < 0
-                    ? 'text-[#f7768e]'
-                    : descCharsRemaining < 50
-                    ? 'text-[#e0af68]'
-                    : 'text-[#565f89]'
-                }`}
-              >
+              <span className="ckpt-char-count" style={{
+                color: descCharsRemaining < 0
+                  ? 'var(--semantic-error)'
+                  : descCharsRemaining < 50
+                  ? 'var(--semantic-warning)'
+                  : 'var(--text-tertiary)',
+              }}>
                 {description.length}/500
               </span>
             </div>
@@ -177,17 +173,17 @@ export function CheckpointDialog({
               maxLength={500}
               placeholder="Add notes about this checkpoint..."
               rows={3}
-              className="w-full px-3 py-2 bg-[#292e42] border border-[#3b4261] rounded text-[#a9b1d6] placeholder-[#565f89] focus:outline-none focus:border-[#7aa2f7] transition-colors resize-none"
+              className="ckpt-textarea"
             />
           </div>
 
           {/* Tags field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="checkpoint-tags" className="text-sm font-medium text-[#a9b1d6]">
-                Tags <span className="text-xs text-[#565f89]">(optional)</span>
+          <div className="ckpt-field">
+            <div className="ckpt-field-header">
+              <label htmlFor="checkpoint-tags" className="ckpt-label">
+                Tags <span className="ckpt-optional">(optional)</span>
               </label>
-              <span className="text-xs text-[#565f89]">Comma-separated</span>
+              <span className="ckpt-hint">Comma-separated</span>
             </div>
             <input
               id="checkpoint-tags"
@@ -195,19 +191,16 @@ export function CheckpointDialog({
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="experiment, bug-fix, working"
-              className="w-full px-3 py-2 bg-[#292e42] border border-[#3b4261] rounded text-[#a9b1d6] placeholder-[#565f89] focus:outline-none focus:border-[#7aa2f7] transition-colors"
+              className="ckpt-input"
               autoComplete="off"
             />
             {tagsInput.trim() && (
-              <div className="flex flex-wrap gap-1 pt-1">
+              <div className="ckpt-tags-preview">
                 {tagsInput.split(',').map((tag, i) => {
                   const trimmedTag = tag.trim();
                   if (!trimmedTag) return null;
                   return (
-                    <span
-                      key={i}
-                      className="inline-block px-2 py-0.5 bg-[#7aa2f7]/10 text-[#7aa2f7] rounded text-xs"
-                    >
+                    <span key={i} className="ckpt-tag">
                       {trimmedTag}
                     </span>
                   );
@@ -217,34 +210,34 @@ export function CheckpointDialog({
           </div>
 
           {/* Conversation preview */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-[#a9b1d6]">Recent Conversation</label>
-            <div className="bg-[#292e42] border border-[#3b4261] rounded p-3 max-h-32 overflow-y-auto">
+          <div className="ckpt-field">
+            <label className="ckpt-label">Recent Conversation</label>
+            <div className="ckpt-preview">
               {isLoadingPreview ? (
-                <div className="text-xs text-[#565f89] text-center py-2">Loading preview...</div>
+                <div className="ckpt-preview-loading">Loading preview...</div>
               ) : conversationPreview ? (
-                <pre className="text-xs text-[#565f89] font-mono whitespace-pre-wrap break-words">
+                <pre className="ckpt-preview-text">
                   {conversationPreview}
                 </pre>
               ) : (
-                <div className="text-xs text-[#3b4261] text-center py-2">No preview available</div>
+                <div className="ckpt-preview-empty">No preview available</div>
               )}
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="ckpt-actions">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-2 bg-[#292e42] hover:bg-[#343b58] text-[#a9b1d6] rounded transition-colors"
+              className="ckpt-btn-cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!isNameValid || nameCharsRemaining < 0 || descCharsRemaining < 0}
-              className="flex-1 px-4 py-2 bg-[#7aa2f7] hover:bg-[#7aa2f7]/90 text-[#1a1b26] font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ckpt-btn-confirm"
             >
               Create Checkpoint
             </button>
@@ -253,19 +246,221 @@ export function CheckpointDialog({
       </div>
 
       <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
+        .ckpt-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(13, 14, 20, 0.8);
+          backdrop-filter: blur(4px);
+          z-index: var(--z-modal, 400);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-4, 16px);
         }
 
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
+        .ckpt-dialog {
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-lg, 10px);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
+          width: 100%;
+          max-width: 440px;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          animation: ckpt-fade-in var(--duration-normal, 200ms) var(--ease-out, ease) both;
+        }
+
+        @keyframes ckpt-fade-in {
+          from { opacity: 0; transform: scale(0.96); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+
+        .ckpt-header {
+          padding: var(--space-4, 16px) var(--space-6, 24px);
+          border-bottom: 1px solid var(--border-subtle, #1E2030);
+        }
+
+        .ckpt-title {
+          font-size: var(--text-lg, 16px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
+          margin: 0;
+        }
+
+        .ckpt-session-name {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          margin-top: var(--space-1, 4px);
+        }
+
+        .ckpt-form {
+          padding: var(--space-6, 24px);
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4, 16px);
+        }
+
+        .ckpt-field {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2, 8px);
+        }
+
+        .ckpt-field-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .ckpt-label {
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-secondary, #9DA3BE);
+        }
+
+        .ckpt-required {
+          color: var(--semantic-error, #F7678E);
+        }
+
+        .ckpt-optional {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+        }
+
+        .ckpt-char-count {
+          font-size: var(--text-xs, 11px);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+        }
+
+        .ckpt-hint {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+        }
+
+        .ckpt-input, .ckpt-textarea {
+          width: 100%;
+          padding: var(--space-2, 8px) var(--space-3, 12px);
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          color: var(--text-secondary, #9DA3BE);
+          font-size: var(--text-sm, 12px);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          outline: none;
+          transition: border-color var(--duration-fast, 150ms) var(--ease-inout, ease);
+          box-sizing: border-box;
+        }
+
+        .ckpt-input::placeholder, .ckpt-textarea::placeholder {
+          color: var(--text-tertiary, #5C6080);
+        }
+
+        .ckpt-input:focus, .ckpt-textarea:focus {
+          border-color: var(--border-accent, #00C9A7);
+        }
+
+        .ckpt-textarea {
+          resize: none;
+          line-height: var(--leading-normal, 1.5);
+        }
+
+        .ckpt-tags-preview {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-1, 4px);
+        }
+
+        .ckpt-tag {
+          display: inline-block;
+          padding: 2px var(--space-2, 8px);
+          background: var(--accent-primary-muted, #00C9A714);
+          color: var(--text-accent, #00C9A7);
+          border-radius: var(--radius-sm, 3px);
+          font-size: var(--text-xs, 11px);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+        }
+
+        .ckpt-preview {
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          padding: var(--space-3, 12px);
+          max-height: 128px;
+          overflow-y: auto;
+        }
+
+        .ckpt-preview-loading, .ckpt-preview-empty {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          text-align: center;
+          padding: var(--space-2, 8px) 0;
+        }
+
+        .ckpt-preview-text {
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          font-family: var(--font-mono, 'JetBrains Mono', monospace);
+          white-space: pre-wrap;
+          word-break: break-words;
+          margin: 0;
+        }
+
+        .ckpt-actions {
+          display: flex;
+          gap: var(--space-3, 12px);
+          padding-top: var(--space-2, 8px);
+        }
+
+        .ckpt-btn-cancel {
+          flex: 1;
+          padding: var(--space-2, 8px) var(--space-4, 16px);
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          color: var(--text-secondary, #9DA3BE);
+          font-size: var(--text-sm, 12px);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          cursor: pointer;
+          transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                      border-color var(--duration-fast, 150ms) var(--ease-inout, ease);
+        }
+
+        .ckpt-btn-cancel:hover {
+          background: var(--state-hover, #FFFFFF0A);
+          border-color: var(--border-strong, #3D4163);
+          color: var(--text-primary, #E2E4F0);
+        }
+
+        .ckpt-btn-confirm {
+          flex: 1;
+          padding: var(--space-2, 8px) var(--space-4, 16px);
+          background: var(--accent-primary, #00C9A7);
+          border: none;
+          border-radius: var(--radius-md, 6px);
+          color: var(--text-inverse, #0D0E14);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-semibold, 600);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          cursor: pointer;
+          transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
+        }
+
+        .ckpt-btn-confirm:hover:not(:disabled) {
+          background: var(--accent-primary-dim, #009E84);
+        }
+
+        .ckpt-btn-confirm:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .ckpt-btn-confirm:focus-visible,
+        .ckpt-btn-cancel:focus-visible {
+          outline: 2px solid var(--state-focus, #00C9A740);
+          outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ckpt-dialog { animation: none; }
         }
       `}</style>
     </div>

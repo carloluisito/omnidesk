@@ -1,14 +1,14 @@
-# ClaudeDesk — Repository Index
+# OmniDesk — Repository Index
 
-~150 source files | ~49,000 LOC | 14 domains | ~166 IPC methods | 250 tests (v4.6.0)
+~175 source files | ~55,000 LOC | 16 domains | ~191 IPC methods | 475 tests (v5.1.0)
 
 ## Entrypoints
 
 | File | Role |
 |------|------|
-| `src/main/index.ts` (262 lines) | Main process — creates window, initializes all 13 managers, wires IPC |
-| `src/renderer/App.tsx` (880 lines) | Root React component — composes all hooks, panels, and dialogs |
-| `src/shared/ipc-contract.ts` (~550 lines) | IPC single source of truth — ~166 methods, auto-derives preload bridge and types |
+| `src/main/index.ts` (~420 lines) | Main process — creates window, initializes all 15 managers, wires IPC, handles `omnidesk://` deep links |
+| `src/renderer/App.tsx` (~1350 lines) | Root React component — composes all hooks, panels, and dialogs |
+| `src/shared/ipc-contract.ts` (~580 lines) | IPC single source of truth — ~191 methods, auto-derives preload bridge and types |
 
 ## IPC Infrastructure (cross-cutting)
 
@@ -193,11 +193,53 @@ IPC: `tunnel:*` (17 methods — 13 invoke + 4 events)
 | `src/renderer/components/TunnelCreateDialog.tsx` | Renderer | Create tunnel form | 669 |
 | `src/renderer/components/TunnelRequestLogs.tsx` | Renderer | Request log table | 569 |
 
+## Session Sharing
+
+IPC: `sharing:*` (~23 methods — 14 invoke + 9 events including `sharing:deepLinkJoin`)
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/main/sharing-manager.ts` | Main | Host/observer WebSocket lifecycle, binary frame encoding, scrollback buffer, observer management, control handoff, settings persistence | ~600 |
+| `src/shared/types/sharing-types.ts` | Shared | All sharing type definitions: ShareInfo, ObserverInfo, ShareStatus, ObserverRole, requests, IPC events | ~130 |
+| `src/renderer/hooks/useSessionSharing.ts` | Renderer | All sharing state + IPC event subscriptions + host/observer actions | ~340 |
+| `src/renderer/components/ShareSessionDialog.tsx` | Renderer | Host share initiation dialog: code/URL display, copy buttons, password/expiry options, eligibility gate | ~380 |
+| `src/renderer/components/JoinSessionDialog.tsx` | Renderer | Observer join dialog: code/URL input, password prompt, connecting states, error display | ~300 |
+| `src/renderer/components/ShareManagementPanel.tsx` | Renderer | Side panel (320px): active share cards, observer list, kick/stop/grant-control per observer | ~320 |
+| `src/renderer/components/ObserverToolbar.tsx` | Renderer | Toolbar above observer terminal: Request/Release Control, Leave, connection status | ~200 |
+| `src/renderer/components/ObserverMetadataSidebar.tsx` | Renderer | Collapsible sidebar (280px): active tool, file path, agent status, file changes, model | ~250 |
+| `src/renderer/components/ui/ShareIndicator.tsx` | UI | Circular badge on shared tabs showing observer count; `#00C9A7` background | ~60 |
+| `src/renderer/components/ui/ControlRequestDialog.tsx` | UI | Alert dialog shown to host: observer name, Grant/Deny buttons, 30s auto-dismiss | ~120 |
+
+### Session Sharing Tests
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `src/main/sharing-manager.test.ts` | ~65 | Frame encoding/decoding, extractShareCode, settings, eligibility, startShare lifecycle, stopShare, broadcastOutput, observer management, host frame handling, control lifecycle, destroy, integration tests (12.1–12.8) |
+| `src/renderer/components/ShareManagementPanel.test.tsx` | 11 | Render, empty state, share cards, stop/kick/grant/revoke buttons, observer list expand/collapse, copy code |
+| `src/renderer/components/ShareSessionDialog.test.tsx` | 9 | Creating spinner, share code/URL display, copy buttons, stop/done actions, eligibility gate, error/retry |
+| `src/renderer/components/JoinSessionDialog.test.tsx` | ~8 | Code input, password prompt, connecting state, error display, cancel |
+| `src/renderer/components/ObserverToolbar.test.tsx` | ~8 | Request/release control states, leave button, read-only/has-control visual |
+| `src/renderer/components/ObserverMetadataSidebar.test.tsx` | ~6 | Metadata display, collapse/expand |
+
+## Providers
+
+IPC: `provider:*` (3 methods — all invoke)
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type | ~20 |
+| `src/main/providers/provider-registry.ts` | Main | `ProviderRegistry`: auto-registers Claude + Codex, `get()`, `list()`, `getAvailable()` | ~42 |
+| `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building, readiness patterns, model detection, env vars | ~82 |
+| `src/main/providers/codex-provider.ts` | Main | Codex CLI provider: approval-mode mapping, Codex-specific readiness + model patterns | ~86 |
+| `src/main/config-dir.ts` | Main | Centralized config dir path (`~/.omnidesk/`), migration from `~/.claudedesk/` | ~50 |
+| `src/shared/types/provider-types.ts` | Shared | `ProviderId`, `ProviderCapabilities`, `ProviderInfo` type definitions | ~18 |
+| `src/renderer/hooks/useProvider.ts` | Renderer | Provider state hook: `providers`, `availableProviders`, `getCapabilities()` | ~25 |
+
 ## Shared Utilities
 
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
-| `src/shared/claude-detector.ts` | Shared | Detect Claude CLI readiness patterns | 42 |
+| `src/shared/claude-detector.ts` | Shared | Detect Claude CLI readiness patterns + generic `isProviderReady()` / `findProviderOutputStart()` | ~66 |
 | `src/main/ansi-strip.ts` | Main | Strip ANSI escape codes from terminal output | 25 |
 | `src/renderer/utils/variable-resolver.ts` | Renderer | Template variable resolution (`{{clipboard}}`, etc.) | 111 |
 | `src/renderer/utils/fuzzy-search.ts` | Renderer | Fuzzy string matching for command palette | 184 |
@@ -206,9 +248,9 @@ IPC: `tunnel:*` (17 methods — 13 invoke + 4 events)
 | `src/renderer/main.tsx` | Renderer | React DOM entry point | 10 |
 | `src/renderer/hooks/index.ts` | Renderer | Hooks barrel export | 3 |
 
-## Testing Infrastructure (v4.5.0)
+## Testing Infrastructure (v5.1.0)
 
-250 tests | 20 test files | Vitest 4 + @testing-library/react + Playwright
+475 tests | 33 test files | Vitest 4 + @testing-library/react + Playwright
 
 ### Config & Setup
 
@@ -226,9 +268,13 @@ IPC: `tunnel:*` (17 methods — 13 invoke + 4 events)
 |------|-------|--------|
 | `src/shared/model-detector.test.ts` | 15 | Initial/switch detection, ANSI stripping |
 | `src/shared/message-parser.test.ts` | 10 | 4 message formats, dedup, ANSI stripping |
+| `src/shared/types/provider-types.test.ts` | 7 | ProviderId, ProviderCapabilities, ProviderInfo structural tests |
 | `src/renderer/utils/variable-resolver.test.ts` | 18 | resolveVariables, extractVariables, getMissingVariables |
 | `src/renderer/utils/fuzzy-search.test.ts` | 14 | Score tiers, sorting, minScore, highlightMatches |
 | `src/main/git-manager.test.ts` | 41 | Status parsing, branches, commit, generateMessage, detectErrorCode |
+| `src/main/providers/provider-registry.test.ts` | 9 | Auto-registration, get/list/getAvailable, error handling |
+| `src/main/providers/claude-provider.test.ts` | 19 | getId, getInfo, buildCommand permutations, patterns, normalizeModel, env vars |
+| `src/main/providers/codex-provider.test.ts` | 13 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel |
 | `src/renderer/utils/layout-tree.test.ts` | 33 | countPanes, traverseTree, transformTree, pruneTree, grid nodes |
 
 ### Integration Tests (Phase 2 — mocked dependencies)

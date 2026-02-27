@@ -1,0 +1,237 @@
+/* ============================================================
+   OmniDesk Animation Utilities
+   Keyframes + transition helpers + reduced-motion overrides
+   ============================================================ */
+
+/* === KEYFRAMES === */
+
+/* Panel slide-in from right */
+@keyframes panel-open {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Panel slide-out to right */
+@keyframes panel-close {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+/* Dialog entrance — scale up from 97% */
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Dialog backdrop fade */
+@keyframes backdrop-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes backdrop-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Toast slide in from right */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Toast exit to right + fade */
+@keyframes toast-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+/* Spinner rotation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Status dot pulse — for tunnel active / running states */
+@keyframes dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+/* Accent glow pulse — for active accent elements */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px #00C9A720; }
+  50%       { box-shadow: 0 0 16px #00C9A740; }
+}
+
+/* Fade in generic */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Slide up */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Activity bar badge bounce */
+@keyframes badge-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Indeterminate progress shimmer */
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(200%); }
+}
+
+/* === TRANSITION UTILITIES === */
+
+.transition-fast {
+  transition: all var(--duration-fast) var(--ease-inout);
+}
+
+.transition-normal {
+  transition: all var(--duration-normal) var(--ease-inout);
+}
+
+.transition-slow {
+  transition: all var(--duration-slow) var(--ease-inout);
+}
+
+.transition-colors {
+  transition: color var(--duration-fast) var(--ease-inout),
+              background-color var(--duration-fast) var(--ease-inout),
+              border-color var(--duration-fast) var(--ease-inout);
+}
+
+.transition-transform {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.transition-opacity {
+  transition: opacity var(--duration-fast) var(--ease-inout);
+}
+
+/* === ANIMATION CLASSES === */
+
+.animate-panel-open {
+  animation: panel-open var(--duration-normal) var(--ease-out) both;
+}
+
+.animate-panel-close {
+  animation: panel-close var(--duration-exit) var(--ease-in) both;
+}
+
+.animate-dialog-enter {
+  animation: dialog-enter var(--duration-normal) var(--ease-out) both;
+}
+
+.animate-toast-enter {
+  animation: toast-enter var(--duration-normal) var(--ease-out) both;
+}
+
+.animate-toast-exit {
+  animation: toast-exit var(--duration-exit) var(--ease-in) both;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-normal) var(--ease-out) both;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-normal) var(--ease-out) both;
+}
+
+.animate-badge-pop {
+  animation: badge-pop var(--duration-normal) var(--ease-spring) both;
+}
+
+/* === PREFERS-REDUCED-MOTION OVERRIDES === */
+/* All animations and transitions are removed for users who prefer reduced motion. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin {
+    animation: none;
+  }
+
+  .animate-dot-pulse {
+    animation: none;
+  }
+
+  .animate-glow-pulse {
+    animation: none;
+  }
+
+  /* Replace spinner with static text via content trick */
+  .loading-text-fallback::after {
+    content: "Loading...";
+  }
+}

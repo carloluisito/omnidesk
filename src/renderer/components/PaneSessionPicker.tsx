@@ -62,54 +62,51 @@ export function PaneSessionPicker({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #1a1b26;
-          padding: 24px;
+          background: var(--surface-base, #0D0E14);
+          padding: var(--space-6, 24px);
         }
 
         .picker-card {
-          background: #16161e;
-          border: 1px solid #292e42;
-          border-radius: 8px;
-          padding: 24px;
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-lg, 10px);
+          padding: var(--space-6, 24px);
           max-width: 500px;
           width: 100%;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .picker-header h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #a9b1d6;
-          font-family: 'JetBrains Mono', monospace;
-          margin-bottom: 16px;
+          margin: 0 0 var(--space-4, 16px);
+          font-size: var(--text-base, 13px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
         }
 
         .picker-new-session-btn {
           width: 100%;
-          padding: 12px;
-          background: #7aa2f7;
-          color: #1a1b26;
+          padding: var(--space-3, 12px);
+          background: var(--accent-primary, #00C9A7);
+          color: var(--text-inverse, #0D0E14);
           border: none;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          font-family: 'JetBrains Mono', monospace;
+          border-radius: var(--radius-md, 6px);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-semibold, 600);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: background var(--duration-fast, 150ms) ease;
         }
 
         .picker-new-session-btn:hover {
-          background: #7da6ff;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(122, 162, 247, 0.3);
+          background: var(--accent-primary-dim, #009E84);
         }
 
         .picker-divider {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin: 20px 0;
+          gap: var(--space-3, 12px);
+          margin: var(--space-5, 20px) 0;
         }
 
         .picker-divider::before,
@@ -117,88 +114,90 @@ export function PaneSessionPicker({
           content: '';
           flex: 1;
           height: 1px;
-          background: #292e42;
+          background: var(--border-subtle, #1E2030);
         }
 
         .picker-divider span {
-          color: #565f89;
-          font-size: 11px;
+          color: var(--text-tertiary, #5C6080);
+          font-size: var(--text-xs, 11px);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: var(--tracking-widest, 0.1em);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .picker-sessions {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: var(--space-2, 8px);
           max-height: 300px;
           overflow-y: auto;
         }
 
         .picker-session-item {
-          padding: 12px;
-          background: #1a1b26;
-          border: 1px solid #292e42;
-          border-radius: 6px;
+          padding: var(--space-3, 12px);
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: border-color var(--duration-fast, 150ms) ease,
+                      background var(--duration-fast, 150ms) ease;
         }
 
         .picker-session-item:hover {
-          background: #292e42;
-          border-color: #3b4261;
-          transform: translateX(2px);
+          background: var(--state-hover, #FFFFFF0A);
+          border-color: var(--border-accent, #00C9A7);
         }
 
         .picker-session-name {
-          font-size: 13px;
-          font-weight: 500;
-          color: #a9b1d6;
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-primary, #E2E4F0);
           margin-bottom: 4px;
         }
 
         .picker-session-dir {
-          font-size: 11px;
-          color: #565f89;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           margin-bottom: 6px;
         }
 
         .picker-session-status {
           font-size: 10px;
           display: inline-block;
-          padding: 2px 8px;
-          border-radius: 3px;
-          font-weight: 500;
+          padding: 2px var(--space-2, 8px);
+          border-radius: var(--radius-sm, 3px);
+          font-weight: var(--weight-medium, 500);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .picker-session-status.status-running {
-          color: #9ece6a;
-          background: rgba(158, 206, 106, 0.1);
+          color: var(--semantic-success, #3DD68C);
+          background: rgba(61, 214, 140, 0.08);
         }
 
         .picker-session-status.status-exited {
-          color: #f7768e;
-          background: rgba(247, 118, 142, 0.1);
+          color: var(--text-tertiary, #5C6080);
+          background: var(--surface-raised, #13141C);
         }
 
         .picker-footer {
-          margin-top: 20px;
+          margin-top: var(--space-5, 20px);
           text-align: center;
         }
 
         .picker-cancel-link {
           background: transparent;
           border: none;
-          color: #565f89;
-          font-size: 11px;
+          color: var(--text-tertiary, #5C6080);
+          font-size: var(--text-xs, 11px);
           cursor: pointer;
-          text-decoration: underline;
-          font-family: 'JetBrains Mono', monospace;
-          transition: color 0.15s ease;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          transition: color var(--duration-fast, 150ms) ease;
         }
 
         .picker-cancel-link:hover {
-          color: #a9b1d6;
+          color: var(--text-secondary, #9DA3BE);
         }
       `}</style>
     </div>

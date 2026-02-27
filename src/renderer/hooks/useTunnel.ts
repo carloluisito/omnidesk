@@ -68,6 +68,14 @@ export function useTunnel(): UseTunnelReturn {
 
         const binaryFound = await window.electronAPI.tunnelDetectBinary();
         setCliStatus({ found: binaryFound });
+
+        // Auto-load account info when API key is already configured
+        if (typeof s.apiKey === 'string' && s.apiKey.trim().length > 0) {
+          try {
+            const acct = await window.electronAPI.tunnelGetAccount();
+            setAccount(acct);
+          } catch { /* non-fatal — account info is best-effort */ }
+        }
       } catch (err) {
         console.error('Failed to initialize tunnel settings:', err);
         setError('Failed to load tunnel settings');

@@ -13,6 +13,8 @@ interface ContextMenuProps {
   isOnlyTab: boolean;
   isRightmost: boolean;
   canSplit?: boolean;
+  isShared?: boolean;
+  canShare?: boolean;
 }
 
 interface MenuItem {
@@ -32,6 +34,8 @@ export function ContextMenu({
   isOnlyTab,
   isRightmost,
   canSplit = false,
+  isShared = false,
+  canShare = true,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +96,9 @@ export function ContextMenu({
     { id: 'dividerSplit', label: '', hidden: !canSplit },
     { id: 'splitRight', label: 'Split Right', shortcut: '^\\', hidden: !canSplit },
     { id: 'splitDown', label: 'Split Down', shortcut: '^⇧\\', hidden: !canSplit },
+    { id: 'dividerShare', label: '', hidden: !canShare && !isShared },
+    { id: 'shareSession', label: 'Share Session...', hidden: !canShare || isShared || isExited },
+    { id: 'stopSharing', label: 'Stop Sharing', danger: true, hidden: !isShared },
     { id: 'divider2', label: '' },
     { id: 'close', label: 'Close', shortcut: '^W', danger: true },
     { id: 'closeOthers', label: 'Close Others', disabled: isOnlyTab, danger: true },
@@ -132,13 +139,13 @@ export function ContextMenu({
         .context-menu {
           position: fixed;
           min-width: 200px;
-          background: #1a1b26;
-          border: 1px solid #292e42;
-          border-radius: 10px;
-          padding: 6px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-lg, 10px);
+          padding: var(--space-1, 4px);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           z-index: 100;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           animation: menu-enter 0.12s ease-out;
         }
 
@@ -159,21 +166,21 @@ export function ContextMenu({
           align-items: center;
           justify-content: space-between;
           gap: 24px;
-          padding: 10px 12px;
+          padding: var(--space-2, 8px) var(--space-3, 12px);
           background: transparent;
           border: none;
-          border-radius: 6px;
+          border-radius: var(--radius-md, 6px);
           cursor: pointer;
-          transition: all 0.1s ease;
+          transition: background var(--duration-fast, 150ms) ease;
           text-align: left;
         }
 
         .menu-item:hover:not(.disabled) {
-          background: #292e42;
+          background: var(--state-hover, #FFFFFF0A);
         }
 
         .menu-item.danger:hover:not(.disabled) {
-          background: rgba(247, 118, 142, 0.1);
+          background: rgba(247, 103, 142, 0.08);
         }
 
         .menu-item.disabled {
@@ -182,23 +189,24 @@ export function ContextMenu({
         }
 
         .menu-label {
-          font-size: 13px;
-          color: #a9b1d6;
+          font-size: var(--text-sm, 12px);
+          color: var(--text-secondary, #9DA3BE);
         }
 
         .menu-item.danger .menu-label {
-          color: #f7768e;
+          color: var(--semantic-error, #F7678E);
         }
 
         .menu-shortcut {
-          font-size: 11px;
-          color: #565f89;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .menu-divider {
           height: 1px;
-          background: #292e42;
-          margin: 6px 8px;
+          background: var(--border-subtle, #1E2030);
+          margin: 4px var(--space-2, 8px);
         }
       `}</style>
     </div>

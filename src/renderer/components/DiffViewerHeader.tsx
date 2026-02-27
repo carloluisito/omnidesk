@@ -24,10 +24,10 @@ export function DiffViewerHeader({
   const isRenamed = status === 'renamed';
 
   const statusBadge = () => {
-    if (isStaged) return { label: 'Staged', color: '#9ece6a', bg: 'rgba(158,206,106,0.15)' };
-    if (isUntracked) return { label: 'Untracked', color: '#7dcfff', bg: 'rgba(125,207,255,0.15)' };
-    if (isDeleted) return { label: 'Deleted', color: '#f7768e', bg: 'rgba(247,118,142,0.15)' };
-    return { label: 'Modified', color: '#e0af68', bg: 'rgba(224,175,104,0.15)' };
+    if (isStaged) return { label: 'Staged', color: 'var(--semantic-success, #3DD68C)', bg: 'rgba(158,206,106,0.15)' };
+    if (isUntracked) return { label: 'Untracked', color: 'var(--accent-primary, #00C9A7)', bg: 'rgba(125,207,255,0.15)' };
+    if (isDeleted) return { label: 'Deleted', color: 'var(--semantic-error, #F7678E)', bg: 'rgba(247,118,142,0.15)' };
+    return { label: 'Modified', color: 'var(--semantic-warning, #F7A84A)', bg: 'rgba(224,175,104,0.15)' };
   };
 
   const badge = statusBadge();
@@ -37,7 +37,7 @@ export function DiffViewerHeader({
       <div className="diff-viewer-header-left">
         <span className="diff-viewer-filepath" title={file.path}>
           {isRenamed && file.originalPath
-            ? <>{file.originalPath} <span style={{ color: '#565f89' }}>&rarr;</span> {file.path}</>
+            ? <>{file.originalPath} <span style={{ color: 'var(--text-tertiary, #5C6080)' }}>&rarr;</span> {file.path}</>
             : file.path
           }
         </span>

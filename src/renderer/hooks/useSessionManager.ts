@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionMetadata, SessionOutput, SessionExitEvent } from '../../shared/ipc-types';
+import type { ProviderId } from '../../shared/types/provider-types';
 import { TabData } from '../components/ui/Tab';
 
 export interface UseSessionManagerReturn {
   sessions: TabData[];
   activeSessionId: string | null;
   isLoading: boolean;
-  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest) => Promise<void>;
+  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -25,6 +26,7 @@ function sessionMetadataToTabData(metadata: SessionMetadata): TabData {
     permissionMode: metadata.permissionMode,
     status: metadata.status === 'starting' ? 'running' : metadata.status,
     worktreeBranch: metadata.worktreeInfo?.branch ?? null,
+    providerId: metadata.providerId,
   };
 }
 
@@ -101,7 +103,8 @@ export function useSessionManager(): UseSessionManagerReturn {
     name: string,
     workingDirectory: string,
     permissionMode: 'standard' | 'skip-permissions',
-    worktree?: import('../../shared/types/git-types').WorktreeCreateRequest
+    worktree?: import('../../shared/types/git-types').WorktreeCreateRequest,
+    providerId?: ProviderId
   ) => {
     try {
       // Read default model from settings
@@ -114,6 +117,7 @@ export function useSessionManager(): UseSessionManagerReturn {
         permissionMode,
         model: defaultModel,
         worktree,
+        providerId,
       });
     } catch (err) {
       console.error('Failed to create session:', err);

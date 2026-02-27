@@ -1,124 +1,131 @@
-import { useState, useEffect, useRef } from 'react';
-import { BrandLogo } from './ui/BrandLogo';
+/**
+ * TitleBarBranding — 36px title bar with logo + wordmark + session title.
+ *
+ * Left: BrandMark (18px) + "OmniDesk" wordmark.
+ * Center: active session title (secondary text, truncated).
+ * Bottom: 1px border-subtle.
+ * Draggable region covers full bar.
+ */
+import { useState, useEffect } from 'react';
+import { BrandMark } from './ui/BrandMark';
 
 interface TitleBarBrandingProps {
-  onClick: () => void;
+  onClick:       () => void;
+  sessionTitle?: string;
 }
 
-export function TitleBarBranding({ onClick }: TitleBarBrandingProps) {
-  const [showTooltip, setShowTooltip] = useState(false);
+export function TitleBarBranding({ onClick, sessionTitle }: TitleBarBrandingProps) {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track window width for responsive behavior
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const handle = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handle);
+    return () => window.removeEventListener('resize', handle);
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClick();
-    }
-  };
-
-  const handleMouseEnter = () => {
-    tooltipTimeoutRef.current = setTimeout(() => setShowTooltip(true), 500);
-  };
-
-  const handleMouseLeave = () => {
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current);
-      tooltipTimeoutRef.current = null;
-    }
-    setShowTooltip(false);
-  };
-
-  const showWordmark = windowWidth >= 400;
+  const showWordmark = windowWidth >= 360;
 
   return (
-    <>
+    <div
+      style={{
+        height:          'var(--title-bar-height)',
+        backgroundColor: 'var(--surface-base)',
+        borderBottom:    '1px solid var(--border-subtle)',
+        display:         'flex',
+        alignItems:      'center',
+        position:        'relative',
+        flexShrink:      0,
+        zIndex:          'var(--z-titlebar)' as any,
+      }}
+    >
+      {/* Full-width drag region */}
       <div
-        className="branding-button"
+        aria-hidden="true"
+        style={{
+          position:            'absolute',
+          top:                 0,
+          left:                0,
+          right:               0,
+          bottom:              0,
+          WebkitAppRegion:     'drag',
+        } as React.CSSProperties}
+      />
+
+      {/* Left: logo + wordmark */}
+      <button
         onClick={onClick}
-        onKeyDown={handleKeyDown}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        tabIndex={0}
-        role="button"
-        aria-label="Open About ClaudeDesk"
+        aria-label="Open About OmniDesk"
         aria-haspopup="dialog"
+        style={{
+          position:        'relative',
+          zIndex:          1,
+          display:         'flex',
+          alignItems:      'center',
+          gap:             'var(--space-2)',
+          padding:         '0 var(--space-3)',
+          height:          '100%',
+          background:      'transparent',
+          border:          'none',
+          cursor:          'pointer',
+          borderRadius:    'var(--radius-sm)',
+          outline:         'none',
+          flexShrink:      0,
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+        }}
       >
-        <BrandLogo size={20} />
-        {showWordmark && <span className="branding-wordmark">ClaudeDesk</span>}
-        {showTooltip && !showWordmark && (
-          <div className="branding-tooltip">About ClaudeDesk</div>
+        <BrandMark size={18} />
+        {showWordmark && (
+          <span
+            style={{
+              fontFamily:  'var(--font-ui)',
+              fontSize:    'var(--text-sm)',
+              fontWeight:  'var(--weight-medium)' as any,
+              color:       'var(--text-secondary)',
+              userSelect:  'none',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            <span style={{ fontWeight: 'var(--weight-medium)' as any }}>Omni</span>
+            <span style={{ fontWeight: 'var(--weight-light)'  as any }}>Desk</span>
+          </span>
         )}
-      </div>
+      </button>
+
+      {/* Center: session title */}
+      {sessionTitle && (
+        <div
+          aria-hidden="true"
+          style={{
+            position:     'absolute',
+            left:         '50%',
+            transform:    'translateX(-50%)',
+            maxWidth:     '300px',
+            overflow:     'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace:   'nowrap',
+            fontSize:     'var(--text-sm)',
+            fontFamily:   'var(--font-ui)',
+            color:        'var(--text-tertiary)',
+            userSelect:   'none',
+            pointerEvents: 'none',
+          }}
+        >
+          {sessionTitle}
+        </div>
+      )}
 
       <style>{`
-        .branding-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          cursor: pointer;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-          position: relative;
-          outline: none;
-        }
-
-        .branding-button:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .branding-button:hover svg {
-          filter: brightness(1.2);
-        }
-
-        .branding-button:hover .branding-wordmark {
-          opacity: 1;
-        }
-
-        .branding-button:focus {
-          outline: 2px solid #7aa2f7;
+        button[aria-label="Open About OmniDesk"]:focus-visible {
+          outline: 2px solid var(--state-focus) !important;
           outline-offset: 2px;
         }
-
-        .branding-button:active svg {
-          transform: scale(0.95);
-        }
-
-        .branding-wordmark {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 14px;
-          color: #c0caf5;
-          opacity: 0.9;
-          user-select: none;
-        }
-
-        .branding-tooltip {
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          margin-top: 8px;
-          padding: 6px 12px;
-          background: #1a1b26;
-          border: 1px solid #292e42;
-          border-radius: 6px;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          color: #a9b1d6;
-          white-space: nowrap;
-          pointer-events: none;
-          z-index: 1000;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
       `}</style>
-    </>
+    </div>
   );
 }

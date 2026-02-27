@@ -14,17 +14,17 @@ export function SessionStatusIndicator({
   const getStatusColor = () => {
     switch (status) {
       case 'ready':
-        return '#9ece6a'; // Green
+        return 'var(--semantic-success, #3DD68C)';
       case 'initializing':
-        return '#ff9e64'; // Orange
+        return 'var(--semantic-warning, #F7A84A)';
       case 'error':
-        return '#f7768e'; // Red
+        return 'var(--semantic-error, #F7678E)';
       case 'warning':
-        return '#e0af68'; // Yellow
+        return 'var(--semantic-warning, #F7A84A)';
       case 'idle':
-        return '#565f89'; // Gray
+        return 'var(--text-tertiary, #5C6080)';
       default:
-        return '#565f89';
+        return 'var(--text-tertiary, #5C6080)';
     }
   };
 

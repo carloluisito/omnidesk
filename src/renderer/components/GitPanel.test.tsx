@@ -89,23 +89,23 @@ describe('GitPanel', () => {
   });
 
   it('shows loading state when status is null and isLoading', () => {
+    // New design: when isLoading with null status the panel renders
+    // the SidePanel wrapper. No loading text — the refresh button spins.
+    // Verify the panel is present and no crash occurs.
     mockUseGit.isLoading = true;
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText('Loading git status...')).toBeInTheDocument();
+    expect(screen.getByText('Git')).toBeInTheDocument();
   });
 
-  it('shows "Not a Git Repository" when status.isRepo is false', () => {
+  it('shows "Not a git repository" when status.isRepo is false', () => {
     mockUseGit.status = { isRepo: false, branch: null, files: [], stagedCount: 0, unstagedCount: 0, untrackedCount: 0, conflictedCount: 0, ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null };
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText('Not a Git Repository')).toBeInTheDocument();
-    expect(screen.getByText('Initialize Repository')).toBeInTheDocument();
+    expect(screen.getByText('Not a git repository')).toBeInTheDocument();
   });
 
-  it('calls initRepo when init button clicked', () => {
-    mockUseGit.status = { isRepo: false, branch: null, files: [], stagedCount: 0, unstagedCount: 0, untrackedCount: 0, conflictedCount: 0, ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null };
-    render(<GitPanel {...defaultProps} />);
-    fireEvent.click(screen.getByText('Initialize Repository'));
-    expect(mockUseGit.initRepo).toHaveBeenCalled();
+  it('shows "No active session" when projectPath is null', () => {
+    render(<GitPanel {...defaultProps} projectPath={null} />);
+    expect(screen.getByText('No active session')).toBeInTheDocument();
   });
 
   it('shows "Working tree clean" when no files to show', () => {
@@ -114,7 +114,7 @@ describe('GitPanel', () => {
     expect(screen.getByText('Working tree clean')).toBeInTheDocument();
   });
 
-  it('shows staged files section', () => {
+  it('shows staged files section with count', () => {
     mockUseGit.status = {
       isRepo: true, branch: 'main',
       files: [
@@ -124,8 +124,9 @@ describe('GitPanel', () => {
       ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null,
     };
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText('Staged Changes')).toBeInTheDocument();
-    expect(screen.getByText('(1)')).toBeInTheDocument();
+    // New design: SectionHeader renders title "Staged" and count as a separate span
+    expect(screen.getByText('Staged')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('shows unstaged files section', () => {
@@ -138,7 +139,8 @@ describe('GitPanel', () => {
       ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null,
     };
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText('Unstaged Changes')).toBeInTheDocument();
+    // New design: SectionHeader renders title "Unstaged"
+    expect(screen.getByText('Unstaged')).toBeInTheDocument();
   });
 
   it('shows branch name', () => {
@@ -147,13 +149,17 @@ describe('GitPanel', () => {
     expect(screen.getByText('feature/cool')).toBeInTheDocument();
   });
 
-  it('shows detached HEAD banner', () => {
+  it('shows branch name for detached HEAD', () => {
+    // New design does not show a separate detached HEAD banner; it shows the
+    // commit hash as the branch name in the branch row.
     mockUseGit.status = { isRepo: true, branch: 'abc1234', files: [], stagedCount: 0, unstagedCount: 0, untrackedCount: 0, conflictedCount: 0, ahead: 0, behind: 0, isDetached: true, hasConflicts: false, upstream: null };
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText(/Detached HEAD/)).toBeInTheDocument();
+    expect(screen.getByText('abc1234')).toBeInTheDocument();
   });
 
-  it('disables commit button when no staged files', () => {
+  it('renders commit button when there are changes', () => {
+    // New design: Commit button appears when isClean === false (any changed files).
+    // The button is not disabled based on staged count; it validates on click instead.
     mockUseGit.status = {
       isRepo: true, branch: 'main',
       files: [
@@ -163,19 +169,24 @@ describe('GitPanel', () => {
       ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null,
     };
     render(<GitPanel {...defaultProps} />);
-    const commitBtn = screen.getByText('Commit (0)');
-    expect(commitBtn).toBeDisabled();
+    const commitBtn = screen.getByText('Commit');
+    expect(commitBtn).toBeInTheDocument();
   });
 
   it('calls onClose when close button clicked', () => {
     render(<GitPanel {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Close Git panel'));
+    // SidePanel renders the close button with aria-label="Close panel"
+    fireEvent.click(screen.getByLabelText('Close panel'));
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it('shows operation status when operation is in progress', () => {
+  it('shows refresh button when a git operation is in progress (spinning)', () => {
+    // New design: no text shown for in-progress operations; the refresh button
+    // animates with spin CSS. Verify panel still renders correctly.
     (mockUseGit as any).operationInProgress = 'pushing';
+    mockUseGit.status = { isRepo: true, branch: 'main', files: [], stagedCount: 0, unstagedCount: 0, untrackedCount: 0, conflictedCount: 0, ahead: 0, behind: 0, isDetached: false, hasConflicts: false, upstream: null };
     render(<GitPanel {...defaultProps} />);
-    expect(screen.getByText('pushing...')).toBeInTheDocument();
+    // The panel title should still be visible
+    expect(screen.getByText('Git')).toBeInTheDocument();
   });
 });

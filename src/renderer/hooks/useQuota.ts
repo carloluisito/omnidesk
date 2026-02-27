@@ -15,7 +15,7 @@ export interface UseQuotaReturn {
   refresh: () => Promise<void>;
 }
 
-export function useQuota(): UseQuotaReturn {
+export function useQuota(activeSessionId?: string | null): UseQuotaReturn {
   const [quota, setQuota] = useState<ClaudeUsageQuota | null>(null);
   const [burnRate, setBurnRate] = useState<BurnRateData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +33,7 @@ export function useQuota(): UseQuotaReturn {
       setError(null);
 
       // Fetch quota and burn rate in parallel
+      // The main process resolves the correct config dir from the active session
       const [quotaResult, burnRateResult] = await Promise.all([
         forceRefresh
           ? window.electronAPI.refreshQuota()
@@ -61,6 +62,15 @@ export function useQuota(): UseQuotaReturn {
       fetchQuota();
     }
   }, [fetchQuota]);
+
+  // Re-fetch when active session changes (different account may apply)
+  const prevSessionId = useRef(activeSessionId);
+  useEffect(() => {
+    if (prevSessionId.current !== activeSessionId && hasFetched.current) {
+      prevSessionId.current = activeSessionId;
+      fetchQuota(true);
+    }
+  }, [activeSessionId, fetchQuota]);
 
   // Auto-refresh every 3 minutes
   useEffect(() => {

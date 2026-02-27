@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Mock electron app
+// Mock config-dir.ts so CONFIG_DIR resolves to a predictable test path.
+// Note: vi.mock is hoisted, so we cannot reference variables declared above it.
+vi.mock('./config-dir', () => ({
+  CONFIG_DIR: '/mock/home/.omnidesk',
+  ensureConfigDir: vi.fn(),
+  migrateFromLegacy: vi.fn(),
+}));
+
+// Mock electron app (used only by getHomeDirectory)
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn(() => '/mock/home'),
@@ -28,7 +36,7 @@ import {
   getHomeDirectory,
 } from './session-persistence';
 
-const SESSIONS_FILE = path.join('/mock/home', '.claudedesk', 'sessions.json');
+const SESSIONS_FILE = path.join('/mock/home/.omnidesk', 'sessions.json');
 
 describe('session-persistence', () => {
   beforeEach(() => {
@@ -110,9 +118,12 @@ describe('session-persistence', () => {
 
       saveSessionState([], null);
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith(
-        expect.stringContaining('.claudedesk'),
-        { recursive: true }
+      // saveSessionState calls ensureConfigDir() from config-dir.ts (mocked above).
+      // The atomic write should still target the correct sessions file path.
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('.omnidesk'),
+        expect.any(String),
+        'utf-8'
       );
     });
 

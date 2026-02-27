@@ -5,7 +5,7 @@ interface QuickActionCardProps {
   title: string;
   description: string;
   onClick: () => void;
-  accentColor?: string;
+  /* accentColor prop removed — all cards use --border-accent on hover per Obsidian spec */
 }
 
 export function QuickActionCard({
@@ -13,11 +13,10 @@ export function QuickActionCard({
   title,
   description,
   onClick,
-  accentColor = '#7aa2f7'
 }: QuickActionCardProps) {
   return (
-    <button className="quick-action-card" onClick={onClick}>
-      <div className="card-icon" style={{ color: accentColor }}>
+    <button type="button" className="quick-action-card" onClick={onClick}>
+      <div className="card-icon">
         {icon}
       </div>
       <h3 className="card-title">{title}</h3>
@@ -28,16 +27,19 @@ export function QuickActionCard({
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 24px;
-          background: #1f2335;
-          border: 2px solid #3d4458;
-          border-radius: 16px;
+          padding: var(--space-5, 20px);
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-lg, 10px);
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          width: 280px;
+          transition:
+            border-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+            box-shadow var(--duration-fast, 150ms) var(--ease-inout, ease),
+            transform var(--duration-fast, 150ms) var(--ease-out, ease);
+          width: 260px;
           text-align: left;
-          font-family: inherit;
-          animation: card-fade-in 0.5s ease backwards;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          animation: card-fade-in 0.5s var(--ease-out, ease) backwards;
         }
 
         .quick-action-card:nth-child(1) {
@@ -55,7 +57,7 @@ export function QuickActionCard({
         @keyframes card-fade-in {
           from {
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(12px);
           }
           to {
             opacity: 1;
@@ -64,38 +66,53 @@ export function QuickActionCard({
         }
 
         .quick-action-card:hover {
-          transform: translateY(-4px);
-          border-color: ${accentColor};
-          box-shadow: 0 12px 32px rgba(122, 162, 247, 0.2);
+          transform: translateY(-3px);
+          border-color: var(--border-accent, #00C9A7);
+          box-shadow: var(--shadow-glow-accent, 0 0 16px #00C9A730);
         }
 
         .quick-action-card:active {
-          transform: translateY(-2px);
+          transform: translateY(-1px);
+        }
+
+        .quick-action-card:focus-visible {
+          outline: 2px solid var(--state-focus, #00C9A740);
+          outline-offset: 2px;
         }
 
         .card-icon {
-          width: 48px;
-          height: 48px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(122, 162, 247, 0.1);
-          border-radius: 12px;
-          margin-bottom: 16px;
+          background: var(--accent-primary-muted, #00C9A714);
+          border-radius: var(--radius-md, 6px);
+          margin-bottom: var(--space-3, 12px);
+          color: var(--text-accent, #00C9A7);
         }
 
         .card-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #e9e9ea;
-          margin: 0 0 8px 0;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-base, 13px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
+          margin: 0 0 var(--space-2, 8px) 0;
         }
 
         .card-description {
-          font-size: 12px;
-          color: #a9b1d6;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-regular, 400);
+          color: var(--text-secondary, #9DA3BE);
           margin: 0;
-          line-height: 1.5;
+          line-height: var(--leading-normal, 1.5);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .quick-action-card {
+            animation: none;
+          }
         }
       `}</style>
     </button>

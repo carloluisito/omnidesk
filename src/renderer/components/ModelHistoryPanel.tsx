@@ -9,10 +9,10 @@ interface ModelHistoryPanelProps {
 }
 
 const MODEL_COLORS: Record<ClaudeModel, string> = {
-  haiku: '#9ece6a',   // green
-  sonnet: '#7aa2f7',  // blue
-  opus: '#bb9af7',    // purple
-  auto: '#e0af68',    // yellow
+  haiku: 'var(--semantic-success, #3DD68C)',   // green
+  sonnet: 'var(--accent-primary, #00C9A7)',     // teal
+  opus: 'var(--text-secondary, #9DA3BE)',       // muted
+  auto: 'var(--semantic-warning, #F7A84A)',     // yellow
 };
 
 const MODEL_LABELS: Record<ClaudeModel, string> = {
@@ -179,11 +179,11 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             transform: translateY(-50%);
             width: 420px;
             max-height: 85vh;
-            background: #1a1b26;
-            border: 2px solid #3d4458;
+            background: var(--surface-overlay, #1A1B26);
+            border: 2px solid var(--border-default, #292E44);
             border-radius: 12px;
             z-index: 999;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             display: flex;
             flex-direction: column;
             box-shadow: 0 24px 96px rgba(0, 0, 0, 0.6);
@@ -206,20 +206,20 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             justify-content: space-between;
             align-items: flex-start;
             padding: 24px;
-            border-bottom: 1px solid #3d4458;
+            border-bottom: 1px solid var(--border-default, #292E44);
             flex-shrink: 0;
           }
 
           .model-history-title {
             font-size: 18px;
             font-weight: 600;
-            color: #e9e9ea;
+            color: var(--text-primary, #E2E4F0);
             margin: 0;
           }
 
           .model-history-subtitle {
             font-size: 12px;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
             margin: 4px 0 0 0;
           }
 
@@ -231,7 +231,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             height: 32px;
             background: transparent;
             border: none;
-            color: #a9b1d6;
+            color: var(--text-secondary, #9DA3BE);
             cursor: pointer;
             border-radius: 6px;
             transition: all 0.2s ease;
@@ -239,8 +239,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .close-btn:hover {
-            background: #24283b;
-            color: #f7768e;
+            background: var(--surface-float, #222435);
+            color: var(--semantic-error, #F7678E);
           }
 
           .model-history-stats {
@@ -248,24 +248,24 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             align-items: center;
             gap: 8px;
             padding: 12px 24px;
-            background: #1f2335;
-            border-bottom: 1px solid #3d4458;
+            background: var(--surface-overlay, #1A1B26);
+            border-bottom: 1px solid var(--border-default, #292E44);
             font-size: 12px;
-            color: #a9b1d6;
+            color: var(--text-secondary, #9DA3BE);
             flex-shrink: 0;
           }
 
           .stat-separator {
-            color: #3d4458;
+            color: var(--border-default, #292E44);
           }
 
           .clear-history-btn {
             margin-left: auto;
             padding: 4px 12px;
             background: transparent;
-            border: 1px solid #3d4458;
+            border: 1px solid var(--border-default, #292E44);
             border-radius: 4px;
-            color: #f7768e;
+            color: var(--semantic-error, #F7678E);
             font-size: 11px;
             font-family: inherit;
             cursor: pointer;
@@ -273,8 +273,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .clear-history-btn:hover {
-            background: rgba(247, 118, 142, 0.1);
-            border-color: #f7768e;
+            background: rgba(247, 103, 142, 0.1);
+            border-color: var(--semantic-error, #F7678E);
           }
 
           .model-history-content {
@@ -288,16 +288,16 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .model-history-content::-webkit-scrollbar-track {
-            background: #1f2335;
+            background: var(--surface-overlay, #1A1B26);
           }
 
           .model-history-content::-webkit-scrollbar-thumb {
-            background: #3d4458;
+            background: var(--border-default, #292E44);
             border-radius: 4px;
           }
 
           .model-history-content::-webkit-scrollbar-thumb:hover {
-            background: #565f89;
+            background: var(--text-tertiary, #5C6080);
           }
 
           .model-history-loading {
@@ -312,8 +312,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           .loading-spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid #292e42;
-            border-top-color: #7aa2f7;
+            border: 3px solid var(--border-default, #292E44);
+            border-top-color: var(--accent-primary, #00C9A7);
             border-radius: 50%;
             animation: spin 1s linear infinite;
           }
@@ -324,7 +324,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
 
           .model-history-loading p {
             margin: 0;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
             font-size: 13px;
           }
 
@@ -338,20 +338,20 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .model-history-empty svg {
-            color: #3d4458;
+            color: var(--border-default, #292E44);
             margin-bottom: 16px;
           }
 
           .model-history-empty h3 {
             font-size: 16px;
             font-weight: 600;
-            color: #a9b1d6;
+            color: var(--text-secondary, #9DA3BE);
             margin: 0 0 8px 0;
           }
 
           .model-history-empty p {
             font-size: 13px;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
             margin: 0;
           }
 
@@ -374,14 +374,14 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             top: 24px;
             bottom: -20px;
             width: 2px;
-            background: #3d4458;
+            background: var(--border-default, #292E44);
           }
 
           .timeline-marker {
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            border: 3px solid #1a1b26;
+            border: 3px solid var(--surface-overlay, #1A1B26);
             flex-shrink: 0;
             margin-top: 4px;
             z-index: 1;
@@ -406,7 +406,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
 
           .arrow {
             font-size: 12px;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
           }
 
           .timeline-meta {
@@ -414,19 +414,19 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             align-items: center;
             gap: 6px;
             font-size: 11px;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
           }
 
           .meta-separator {
-            color: #3d4458;
+            color: var(--border-default, #292E44);
           }
 
           .timeline-time {
-            color: #a9b1d6;
+            color: var(--text-secondary, #9DA3BE);
           }
 
           .timeline-duration {
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
           }
         `}</style>
       </div>

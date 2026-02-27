@@ -2,15 +2,15 @@
 
 ## Supported Versions
 
-Currently, only the latest version of ClaudeDesk receives security updates.
+Currently, only the latest version of OmniDesk receives security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
+| 5.x.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-We take the security of ClaudeDesk seriously. If you discover a security vulnerability, please follow these steps:
+We take the security of OmniDesk seriously. If you discover a security vulnerability, please follow these steps:
 
 ### How to Report
 
@@ -33,26 +33,26 @@ We take the security of ClaudeDesk seriously. If you discover a security vulnera
 
 ### Credentials and API Access
 
-ClaudeDesk reads Claude Code CLI credentials from `~/.claude/.credentials.json` to:
+OmniDesk reads Claude Code CLI credentials from `~/.claude/.credentials.json` to:
 - Display API quota usage
 - Monitor burn rate
 - Provide session management features
 
 **Important notes:**
-- Credentials are read locally and never transmitted except to Anthropic's official API endpoints
+- Credentials are read locally and never transmitted except to Anthropic's official API endpoints and LaunchTunnel endpoints (for tunnel/sharing features only)
 - All API calls use HTTPS
-- No credentials are logged or stored by ClaudeDesk
+- No credentials are logged or stored by OmniDesk
 - You can disable quota monitoring in Settings if you prefer
 
 ### Data Privacy
 
 - **Session data**: Stored locally in your user data directory
-- **No telemetry**: ClaudeDesk does not collect or transmit usage data
-- **No third-party services**: All data stays on your machine (except official Anthropic API calls)
+- **No telemetry**: OmniDesk does not collect or transmit usage data
+- **No third-party services**: All data stays on your machine, except official Anthropic API calls and optional LaunchTunnel API calls for tunnels and session sharing (`api.launchtunnel.dev`, `relay.launchtunnel.dev`)
 
 ### Development Dependencies
 
-ClaudeDesk uses Electron and related build tools. Some development dependencies may have security advisories. These tools are only used during development and building - they are not included in the distributed application.
+OmniDesk uses Electron and related build tools. Some development dependencies may have security advisories. These tools are only used during development and building - they are not included in the distributed application.
 
 We regularly monitor and update dependencies to address security issues.
 
@@ -72,11 +72,11 @@ The following vulnerabilities exist in development dependencies (not shipped wit
 
 ## Best Practices for Users
 
-1. **Keep ClaudeDesk updated**: Always use the latest version
+1. **Keep OmniDesk updated**: Always use the latest version
 2. **Download from official sources**: Only download releases from the official GitHub repository
 3. **Verify checksums**: Check release checksums when available
-4. **Review permissions**: ClaudeDesk requires access to your filesystem and Claude CLI credentials
-5. **Report suspicious behavior**: If ClaudeDesk behaves unexpectedly, report it immediately
+4. **Review permissions**: OmniDesk requires access to your filesystem and Claude CLI credentials
+5. **Report suspicious behavior**: If OmniDesk behaves unexpectedly, report it immediately
 
 ## Security Update Policy
 
@@ -85,4 +85,4 @@ Security updates will be released as patch versions (e.g., 1.0.1) and announced 
 - Security advisories on the repository
 - CHANGELOG.md
 
-Thank you for helping keep ClaudeDesk secure!
+Thank you for helping keep OmniDesk secure!

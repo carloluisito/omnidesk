@@ -958,7 +958,7 @@ export class GitManager {
           isLocked,
           isPrunable,
           linkedSessionId: null,
-          managedByClaudeDesk: false,
+          managedByOmniDesk: false,
         });
       }
     }
@@ -1055,7 +1055,7 @@ export class GitManager {
           mainRepoPath: request.mainRepoPath,
           worktreePath: targetPath,
           branch: request.branch,
-          managedByClaudeDesk: true,
+          managedByOmniDesk: true,
           createdAt: Date.now(),
         });
       }

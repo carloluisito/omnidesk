@@ -118,7 +118,7 @@ function NeonToggle({
   checked,
   onChange,
   label,
-  color = '#7aa2f7',
+  color = '#00C9A7',
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -155,7 +155,7 @@ function NeonSlider({
   format,
   onChange,
   disabled,
-  color = '#7aa2f7',
+  color = '#00C9A7',
 }: {
   label: string;
   description: string;
@@ -335,7 +335,7 @@ export function BudgetSettings({
               format={(v) => `${v}%`}
               onChange={(v) => updateDefaults({ sessionCapPercent5h: v })}
               disabled={isDisabled}
-              color="#7aa2f7"
+              color="#00C9A7"
             />
             <NeonSlider
               label="Workspace Cap"
@@ -345,7 +345,7 @@ export function BudgetSettings({
               format={(v) => `${v}%`}
               onChange={(v) => updateDefaults({ workspaceCapPercentWeekly: v })}
               disabled={isDisabled}
-              color="#bb9af7"
+              color="#9DA3BE"
             />
             <NeonSlider
               label="Reserve Buffer"
@@ -355,7 +355,7 @@ export function BudgetSettings({
               format={(v) => `${v}%`}
               onChange={(v) => updateDefaults({ reservePercentWeekly: v })}
               disabled={isDisabled}
-              color="#9ece6a"
+              color="#3DD68C"
             />
           </div>
         </section>
@@ -365,9 +365,9 @@ export function BudgetSettings({
           <SectionHeader title="ALERT THRESHOLDS" icon={AlertTriangle} />
           <div className="sliders-group">
             {[
-              { label: 'Caution', color: '#bb9af7', index: 0 },
-              { label: 'Warning', color: '#e0af68', index: 1 },
-              { label: 'Critical', color: '#f7768e', index: 2 },
+              { label: 'Caution', color: '#9DA3BE', index: 0 },
+              { label: 'Warning', color: '#F7A84A', index: 1 },
+              { label: 'Critical', color: '#F7678E', index: 2 },
             ].map(({ label, color, index }) => (
               <NeonSlider
                 key={label}
@@ -484,7 +484,7 @@ export function BudgetSettings({
               format={(v) => `${v}%`}
               onChange={(v) => onSave({ queue: { ...config.queue, autoPauseAtPercent5h: v } })}
               disabled={isDisabled}
-              color="#e0af68"
+              color="#F7A84A"
             />
           </div>
           <SettingCard
@@ -564,7 +564,7 @@ const budgetSettingsStyles = `
     display: flex;
     flex-direction: column;
     gap: 20px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .budget-settings-loading {
@@ -575,7 +575,7 @@ const budgetSettingsStyles = `
 
   .loading-pulse {
     height: 48px;
-    background: linear-gradient(90deg, #16161e 25%, #1f2335 50%, #16161e 75%);
+    background: linear-gradient(90deg, var(--surface-raised, #13141C) 25%, var(--surface-overlay, #1A1B26) 50%, var(--surface-raised, #13141C) 75%);
     background-size: 200% 100%;
     border-radius: 8px;
     animation: pulse 1.5s ease-in-out infinite;
@@ -595,8 +595,8 @@ const budgetSettingsStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background: linear-gradient(135deg, #16161e 0%, #1a1b26 100%);
-    border: 1px solid #292e42;
+    background: linear-gradient(135deg, var(--surface-raised, #13141C) 0%, var(--surface-overlay, #1A1B26) 100%);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 10px;
   }
 
@@ -612,9 +612,9 @@ const budgetSettingsStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #7aa2f7 0%, #bb9af7 100%);
+    background: linear-gradient(135deg, var(--accent-primary, #00C9A7) 0%, var(--text-secondary, #9DA3BE) 100%);
     border-radius: 8px;
-    color: #1a1b26;
+    color: var(--surface-overlay, #1A1B26);
   }
 
   .master-text {
@@ -626,12 +626,12 @@ const budgetSettingsStyles = `
   .master-label {
     font-size: 13px;
     font-weight: 600;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
   }
 
   .master-description {
     font-size: 10px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -648,7 +648,7 @@ const budgetSettingsStyles = `
   .section-header-line {
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #292e42, transparent);
+    background: linear-gradient(90deg, transparent, var(--border-default, #292E44), transparent);
   }
 
   .section-header-content {
@@ -658,7 +658,7 @@ const budgetSettingsStyles = `
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.15em;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .settings-sections {
@@ -675,7 +675,7 @@ const budgetSettingsStyles = `
 
   .section-note {
     font-size: 10px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     margin-bottom: 12px;
   }
 
@@ -696,8 +696,8 @@ const budgetSettingsStyles = `
     display: block;
     width: 100%;
     height: 100%;
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 12px;
     position: relative;
     transition: all 0.2s ease;
@@ -709,7 +709,7 @@ const budgetSettingsStyles = `
     left: 2px;
     width: 18px;
     height: 18px;
-    background: #565f89;
+    background: var(--text-tertiary, #5C6080);
     border-radius: 9px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -755,8 +755,8 @@ const budgetSettingsStyles = `
 
   .neon-slider-container {
     padding: 12px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     transition: opacity 0.2s ease;
   }
@@ -781,12 +781,12 @@ const budgetSettingsStyles = `
   .slider-label {
     font-size: 11px;
     font-weight: 600;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
   }
 
   .slider-description {
     font-size: 9px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
   }
 
   .slider-value {
@@ -805,7 +805,7 @@ const budgetSettingsStyles = `
     appearance: none;
     width: 100%;
     height: 6px;
-    background: #0d0e14;
+    background: var(--surface-base, #0D0E14);
     border-radius: 3px;
     outline: none;
     position: relative;
@@ -854,8 +854,8 @@ const budgetSettingsStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 12px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     margin-top: 12px;
     transition: opacity 0.2s ease;
@@ -877,10 +877,10 @@ const budgetSettingsStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .setting-text {
@@ -892,12 +892,12 @@ const budgetSettingsStyles = `
   .setting-label {
     font-size: 11px;
     font-weight: 500;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .setting-description {
     font-size: 9px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -912,8 +912,8 @@ const budgetSettingsStyles = `
 
   .enforcement-option {
     padding: 12px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -922,19 +922,19 @@ const budgetSettingsStyles = `
   }
 
   .enforcement-option:hover:not(:disabled) {
-    border-color: #3b4261;
+    border-color: var(--border-strong, #3D4163);
   }
 
   .enforcement-option.active {
-    border-color: #e0af68;
-    background: rgba(224, 175, 104, 0.05);
-    box-shadow: 0 0 12px rgba(224, 175, 104, 0.15);
+    border-color: var(--semantic-warning, #F7A84A);
+    background: rgba(247, 168, 74, 0.05);
+    box-shadow: 0 0 12px rgba(247, 168, 74, 0.15);
   }
 
   .enforcement-option.hard.active {
-    border-color: #f7768e;
-    background: rgba(247, 118, 142, 0.05);
-    box-shadow: 0 0 12px rgba(247, 118, 142, 0.15);
+    border-color: var(--semantic-error, #F7678E);
+    background: rgba(247, 103, 142, 0.05);
+    box-shadow: 0 0 12px rgba(247, 103, 142, 0.15);
   }
 
   .enforcement-label {
@@ -942,21 +942,21 @@ const budgetSettingsStyles = `
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     margin-bottom: 4px;
   }
 
   .enforcement-option.active .enforcement-label {
-    color: #e0af68;
+    color: var(--semantic-warning, #F7A84A);
   }
 
   .enforcement-option.hard.active .enforcement-label {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
   }
 
   .enforcement-desc {
     font-size: 9px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -974,8 +974,8 @@ const budgetSettingsStyles = `
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
   }
 
@@ -994,14 +994,14 @@ const budgetSettingsStyles = `
     justify-content: center;
     background: transparent;
     border: none;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     cursor: pointer;
     padding: 0;
     transition: color 0.15s ease;
   }
 
   .order-btn:hover:not(:disabled) {
-    color: #7aa2f7;
+    color: var(--accent-primary, #00C9A7);
   }
 
   .order-btn:disabled {
@@ -1011,14 +1011,14 @@ const budgetSettingsStyles = `
   .order-num {
     font-size: 9px;
     font-weight: 700;
-    color: #7aa2f7;
-    text-shadow: 0 0 6px rgba(122, 162, 247, 0.4);
+    color: var(--accent-primary, #00C9A7);
+    text-shadow: 0 0 6px rgba(0, 201, 167, 0.4);
   }
 
   .degradation-label {
     flex: 1;
     font-size: 10px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .degradation-remove {
@@ -1030,20 +1030,20 @@ const budgetSettingsStyles = `
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .degradation-remove:hover:not(:disabled) {
-    background: rgba(247, 118, 142, 0.1);
-    color: #f7768e;
+    background: rgba(247, 103, 142, 0.1);
+    color: var(--semantic-error, #F7678E);
   }
 
   .add-step-container {
     padding: 10px;
-    background: #0d0e14;
-    border: 1px dashed #292e42;
+    background: var(--surface-base, #0D0E14);
+    border: 1px dashed var(--border-default, #292E44);
     border-radius: 6px;
     margin-top: 6px;
   }
@@ -1053,7 +1053,7 @@ const budgetSettingsStyles = `
     font-size: 8px;
     font-weight: 600;
     letter-spacing: 0.1em;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     text-transform: uppercase;
     margin-bottom: 8px;
   }
@@ -1071,17 +1071,17 @@ const budgetSettingsStyles = `
     padding: 4px 8px;
     font-size: 9px;
     font-family: inherit;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 4px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .add-step-btn:hover {
-    border-color: #7aa2f7;
-    color: #7aa2f7;
+    border-color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary, #00C9A7);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -1097,27 +1097,27 @@ const budgetSettingsStyles = `
 
   .estimation-option {
     padding: 10px 8px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     font-family: inherit;
     font-size: 10px;
     font-weight: 500;
     text-transform: capitalize;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .estimation-option:hover:not(:disabled) {
-    border-color: #3b4261;
+    border-color: var(--border-strong, #3D4163);
   }
 
   .estimation-option.active {
-    border-color: #7aa2f7;
-    color: #7aa2f7;
-    background: rgba(122, 162, 247, 0.05);
-    box-shadow: 0 0 10px rgba(122, 162, 247, 0.15);
+    border-color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary, #00C9A7);
+    background: rgba(0, 201, 167, 0.05);
+    box-shadow: 0 0 10px rgba(0, 201, 167, 0.15);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -1132,18 +1132,18 @@ const budgetSettingsStyles = `
     width: 100%;
     padding: 10px;
     background: transparent;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     font-family: inherit;
     font-size: 11px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
   .reset-btn:hover:not(:disabled) {
-    border-color: #3b4261;
-    color: #a9b1d6;
+    border-color: var(--border-strong, #3D4163);
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .reset-btn:disabled {
@@ -1160,20 +1160,20 @@ const budgetSettingsStyles = `
     align-items: flex-start;
     gap: 8px;
     padding: 12px;
-    background: rgba(224, 175, 104, 0.05);
-    border: 1px solid rgba(224, 175, 104, 0.2);
+    background: rgba(247, 168, 74, 0.05);
+    border: 1px solid rgba(247, 168, 74, 0.2);
     border-radius: 8px;
   }
 
   .budget-info-note svg {
-    color: #e0af68;
+    color: var(--semantic-warning, #F7A84A);
     flex-shrink: 0;
     margin-top: 1px;
   }
 
   .budget-info-note span {
     font-size: 10px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     line-height: 1.4;
   }
 `;

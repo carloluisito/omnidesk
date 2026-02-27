@@ -1,6 +1,20 @@
 export { TabBar } from './TabBar';
 export { Tab } from './Tab';
 export type { TabData, ContextMenuPosition } from './Tab';
+// New design system components
+export { BrandMark } from './BrandMark';
+export { BrandLogo } from './BrandLogo';
+export { ProviderBadge } from './ProviderBadge';
+export { StatusDot } from './StatusDot';
+export type { StatusDotState } from './StatusDot';
+export { Button } from './Button';
+export type { ButtonVariant, ButtonSize } from './Button';
+export { ProgressBar } from './ProgressBar';
+export { Tooltip } from './Tooltip';
+export type { TooltipPlacement } from './Tooltip';
+export { Toast } from './Toast';
+export type { ToastData, ToastType } from './Toast';
+export { ToastContainer, dispatchToast } from './ToastContainer';
 export { NewSessionDialog } from './NewSessionDialog';
 export { SettingsDialog } from './SettingsDialog';
 export { BudgetPanel } from './BudgetPanel';

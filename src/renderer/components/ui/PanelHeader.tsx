@@ -34,24 +34,24 @@ export function PanelHeader({ title, onClose, actions = [] }: PanelHeaderProps) 
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid #3d4458;
-          background: #1f2335;
+          padding: var(--space-5, 20px) var(--space-6, 24px);
+          border-bottom: 1px solid var(--border-default, #292E44);
+          background: var(--surface-raised, #13141C);
           flex-shrink: 0;
         }
 
         .panel-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: #e9e9ea;
+          font-size: var(--text-lg, 16px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
           margin: 0;
-          letter-spacing: -0.3px;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .panel-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: var(--space-3, 12px);
         }
 
         .action-item {
@@ -62,20 +62,21 @@ export function PanelHeader({ title, onClose, actions = [] }: PanelHeaderProps) 
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           background: transparent;
           border: none;
-          color: #a9b1d6;
+          color: var(--text-tertiary, #5C6080);
           cursor: pointer;
-          border-radius: 6px;
-          transition: all 0.2s ease;
+          border-radius: var(--radius-md, 6px);
+          transition: background var(--duration-fast, 150ms) ease,
+                      color var(--duration-fast, 150ms) ease;
           flex-shrink: 0;
         }
 
         .panel-close-btn:hover {
-          background: #24283b;
-          color: #f7768e;
+          background: var(--state-hover, #FFFFFF0A);
+          color: var(--text-primary, #E2E4F0);
         }
 
         .panel-close-btn:active {

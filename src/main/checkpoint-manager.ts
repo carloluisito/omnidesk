@@ -272,7 +272,7 @@ ${history}
 
 ---
 
-*Checkpoint exported from ClaudeDesk on ${new Date().toISOString()}*
+*Checkpoint exported from OmniDesk on ${new Date().toISOString()}*
 `;
   }
 

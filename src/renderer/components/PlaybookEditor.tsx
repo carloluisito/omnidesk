@@ -417,8 +417,8 @@ const editorStyles = `
     right: 0;
     bottom: 0;
     width: 560px;
-    background: #1f2335;
-    border-left: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border-left: 1px solid var(--border-default, #292E44);
     display: flex;
     flex-direction: column;
     z-index: 951;
@@ -430,11 +430,11 @@ const editorStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid #292e42;
+    border-bottom: 1px solid var(--border-default, #292E44);
   }
 
   .pb-editor-header h2 {
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 16px;
     font-weight: 600;
     margin: 0;
@@ -443,7 +443,7 @@ const editorStyles = `
   .pb-editor-close {
     background: none;
     border: none;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 20px;
     cursor: pointer;
     line-height: 1;
@@ -451,7 +451,7 @@ const editorStyles = `
 
   .pb-editor-tabs {
     display: flex;
-    border-bottom: 1px solid #292e42;
+    border-bottom: 1px solid var(--border-default, #292E44);
     padding: 0 20px;
   }
 
@@ -459,20 +459,20 @@ const editorStyles = `
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 12px;
     padding: 10px 16px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-editor-tab.active {
-    color: #7aa2f7;
-    border-bottom-color: #7aa2f7;
+    color: var(--accent-primary, #00C9A7);
+    border-bottom-color: var(--accent-primary, #00C9A7);
   }
 
   .pb-editor-tab:hover:not(.active) {
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .pb-editor-body {
@@ -495,7 +495,7 @@ const editorStyles = `
   }
 
   .pb-editor-field label {
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 11px;
     font-weight: 500;
   }
@@ -503,12 +503,12 @@ const editorStyles = `
   .pb-editor-field input,
   .pb-editor-field textarea,
   .pb-editor-field select {
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 6px 10px;
     outline: none;
   }
@@ -516,7 +516,7 @@ const editorStyles = `
   .pb-editor-field input:focus,
   .pb-editor-field textarea:focus,
   .pb-editor-field select:focus {
-    border-color: #7aa2f7;
+    border-color: var(--accent-primary, #00C9A7);
   }
 
   .pb-editor-field textarea {
@@ -538,8 +538,8 @@ const editorStyles = `
   .pb-editor-icon-btn {
     width: 32px;
     height: 32px;
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
@@ -549,13 +549,13 @@ const editorStyles = `
   }
 
   .pb-editor-icon-btn.selected {
-    border-color: #7aa2f7;
-    background: rgba(122, 162, 247, 0.1);
+    border-color: var(--accent-primary, #00C9A7);
+    background: rgba(0, 201, 167, 0.1);
   }
 
   .pb-editor-card {
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -565,16 +565,16 @@ const editorStyles = `
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: #16161e;
-    border-bottom: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border-bottom: 1px solid var(--border-default, #292E44);
   }
 
   .pb-editor-card-num {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #292e42;
-    color: #7aa2f7;
+    background: var(--border-default, #292E44);
+    color: var(--accent-primary, #00C9A7);
     font-size: 11px;
     display: flex;
     align-items: center;
@@ -584,7 +584,7 @@ const editorStyles = `
 
   .pb-editor-card-tag {
     font-size: 11px;
-    color: #bb9af7;
+    color: var(--text-secondary, #9DA3BE);
     flex: 1;
   }
 
@@ -592,9 +592,9 @@ const editorStyles = `
     flex: 1;
     background: transparent;
     border: none;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     outline: none;
     padding: 2px 0;
   }
@@ -607,7 +607,7 @@ const editorStyles = `
   .pb-editor-card-controls button {
     background: transparent;
     border: none;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     font-size: 14px;
     padding: 2px 6px;
@@ -615,8 +615,8 @@ const editorStyles = `
   }
 
   .pb-editor-card-controls button:hover:not(:disabled) {
-    color: #c0caf5;
-    background: #292e42;
+    color: var(--text-primary, #E2E4F0);
+    background: var(--border-default, #292E44);
   }
 
   .pb-editor-card-controls button:disabled {
@@ -625,7 +625,7 @@ const editorStyles = `
   }
 
   .pb-editor-card-controls button.danger:hover:not(:disabled) {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
   }
 
   .pb-editor-card-body {
@@ -639,13 +639,13 @@ const editorStyles = `
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 11px;
     cursor: pointer;
   }
 
   .pb-editor-checkbox input {
-    accent-color: #7aa2f7;
+    accent-color: var(--accent-primary, #00C9A7);
   }
 
   .pb-editor-prompt-header {
@@ -661,47 +661,47 @@ const editorStyles = `
   }
 
   .pb-editor-var-chip {
-    background: rgba(187, 154, 247, 0.1);
-    border: 1px solid rgba(187, 154, 247, 0.3);
+    background: rgba(0, 201, 167, 0.1);
+    border: 1px solid rgba(0, 201, 167, 0.3);
     border-radius: 4px;
-    color: #bb9af7;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 10px;
     padding: 1px 6px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-editor-var-chip:hover {
-    background: rgba(187, 154, 247, 0.2);
+    background: rgba(0, 201, 167, 0.2);
   }
 
   .pb-editor-add-btn {
     background: transparent;
-    border: 1px dashed #3b4261;
+    border: 1px dashed var(--border-strong, #3D4163);
     border-radius: 6px;
-    color: #7aa2f7;
+    color: var(--accent-primary, #00C9A7);
     font-size: 12px;
     padding: 8px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     text-align: center;
   }
 
   .pb-editor-add-btn:hover {
-    background: rgba(122, 162, 247, 0.05);
-    border-color: #7aa2f7;
+    background: rgba(0, 201, 167, 0.05);
+    border-color: var(--accent-primary, #00C9A7);
   }
 
   .pb-editor-errors {
     padding: 8px 20px;
-    background: rgba(247, 118, 142, 0.1);
-    border-top: 1px solid rgba(247, 118, 142, 0.2);
+    background: rgba(247, 103, 142, 0.1);
+    border-top: 1px solid rgba(247, 103, 142, 0.2);
     max-height: 100px;
     overflow-y: auto;
   }
 
   .pb-editor-errors div {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
     font-size: 11px;
     padding: 2px 0;
   }
@@ -712,34 +712,34 @@ const editorStyles = `
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
-    border-top: 1px solid #292e42;
+    border-top: 1px solid var(--border-default, #292E44);
   }
 
   .pb-editor-cancel {
     background: transparent;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
     font-size: 12px;
     padding: 6px 14px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-editor-save {
-    background: #7aa2f7;
+    background: var(--accent-primary, #00C9A7);
     border: none;
     border-radius: 6px;
-    color: #1a1b26;
+    color: var(--surface-overlay, #1A1B26);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 14px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-editor-save:hover:not(:disabled) {
-    background: #89b4fa;
+    background: var(--accent-primary-dim, #009E84);
   }
 
   .pb-editor-save:disabled {

@@ -56,12 +56,10 @@ export function DragDropContextMenu({
     let adjustedX = position.x;
     let adjustedY = position.y;
 
-    // Keep menu within horizontal bounds
     if (position.x + rect.width > viewportWidth) {
       adjustedX = viewportWidth - rect.width - 8;
     }
 
-    // Keep menu within vertical bounds
     if (position.y + rect.height > viewportHeight) {
       adjustedY = viewportHeight - rect.height - 8;
     }
@@ -81,6 +79,7 @@ export function DragDropContextMenu({
         ref={menuRef}
         className="dragdrop-menu"
         style={{ left: position.x, top: position.y }}
+        role="menu"
       >
         <div className="dragdrop-menu-header">
           <span className="dragdrop-menu-title">
@@ -90,10 +89,11 @@ export function DragDropContextMenu({
 
         <div className="dragdrop-menu-items">
           <button
+            type="button"
             className="dragdrop-menu-item"
             onClick={onInsertPath}
+            role="menuitem"
           >
-            <span className="dragdrop-menu-icon">📂</span>
             <div className="dragdrop-menu-item-content">
               <span className="dragdrop-menu-item-label">File Path</span>
               <span className="dragdrop-menu-item-hint">Insert quoted path(s)</span>
@@ -101,11 +101,12 @@ export function DragDropContextMenu({
           </button>
 
           <button
+            type="button"
             className="dragdrop-menu-item"
             onClick={onInsertContent}
             disabled={!hasTextFiles}
+            role="menuitem"
           >
-            <span className="dragdrop-menu-icon">📋</span>
             <div className="dragdrop-menu-item-content">
               <span className="dragdrop-menu-item-label">File Content</span>
               <span className="dragdrop-menu-item-hint">
@@ -114,13 +115,14 @@ export function DragDropContextMenu({
             </div>
           </button>
 
-          <div className="dragdrop-menu-divider" />
+          <div className="dragdrop-menu-divider" role="separator" />
 
           <button
+            type="button"
             className="dragdrop-menu-item"
             onClick={onCancel}
+            role="menuitem"
           >
-            <span className="dragdrop-menu-icon">✖️</span>
             <div className="dragdrop-menu-item-content">
               <span className="dragdrop-menu-item-label">Cancel</span>
             </div>
@@ -137,20 +139,21 @@ export function DragDropContextMenu({
 
         .dragdrop-menu {
           position: fixed;
-          background: #1a1b26;
-          border: 1px solid #292e42;
-          border-radius: 12px;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           min-width: 240px;
           z-index: 1100;
-          font-family: 'JetBrains Mono', monospace;
-          animation: menu-enter 0.15s ease;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          animation: menu-enter var(--duration-fast, 150ms) var(--ease-out, ease) both;
+          overflow: hidden;
         }
 
         @keyframes menu-enter {
           from {
             opacity: 0;
-            transform: scale(0.95) translateY(-4px);
+            transform: scale(0.96) translateY(-4px);
           }
           to {
             opacity: 1;
@@ -159,48 +162,47 @@ export function DragDropContextMenu({
         }
 
         .dragdrop-menu-header {
-          padding: 12px 16px;
-          border-bottom: 1px solid #292e42;
+          padding: var(--space-2, 8px) var(--space-3, 12px);
+          border-bottom: 1px solid var(--border-subtle, #1E2030);
         }
 
         .dragdrop-menu-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: #a9b1d6;
+          font-size: var(--text-xs, 11px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-tertiary, #5C6080);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: var(--tracking-widest, 0.08em);
         }
 
         .dragdrop-menu-items {
-          padding: 8px;
+          padding: var(--space-1, 4px);
         }
 
         .dragdrop-menu-item {
           display: flex;
           align-items: center;
-          gap: 12px;
           width: 100%;
-          padding: 10px 12px;
+          padding: var(--space-2, 8px) var(--space-3, 12px);
           background: transparent;
           border: none;
-          border-radius: 8px;
+          border-radius: var(--radius-sm, 3px);
           cursor: pointer;
-          transition: background 0.15s ease;
-          font-family: inherit;
+          transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .dragdrop-menu-item:hover:not(:disabled) {
-          background: #1f2335;
+          background: var(--state-hover, #FFFFFF0A);
+        }
+
+        .dragdrop-menu-item:focus-visible {
+          outline: 2px solid var(--state-focus, #00C9A740);
+          outline-offset: -2px;
         }
 
         .dragdrop-menu-item:disabled {
           opacity: 0.4;
           cursor: not-allowed;
-        }
-
-        .dragdrop-menu-icon {
-          font-size: 18px;
-          flex-shrink: 0;
         }
 
         .dragdrop-menu-item-content {
@@ -212,20 +214,30 @@ export function DragDropContextMenu({
         }
 
         .dragdrop-menu-item-label {
-          font-size: 13px;
-          font-weight: 500;
-          color: #c0caf5;
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-secondary, #9DA3BE);
+        }
+
+        .dragdrop-menu-item:hover:not(:disabled) .dragdrop-menu-item-label {
+          color: var(--text-primary, #E2E4F0);
         }
 
         .dragdrop-menu-item-hint {
-          font-size: 11px;
-          color: #565f89;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
         }
 
         .dragdrop-menu-divider {
           height: 1px;
-          background: #292e42;
-          margin: 4px 0;
+          background: var(--border-subtle, #1E2030);
+          margin: var(--space-1, 4px) 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .dragdrop-menu {
+            animation: none;
+          }
         }
       `}</style>
     </>

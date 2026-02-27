@@ -97,28 +97,30 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           align-items: center;
           gap: 6px;
           height: 32px;
-          padding: 0 12px;
-          background: #24283b;
-          border: 1px solid #3d4458;
-          border-radius: 6px;
-          color: #a9b1d6;
-          font-size: 12px;
-          font-weight: 500;
-          font-family: 'JetBrains Mono', monospace;
+          padding: 0 var(--space-3, 12px);
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          color: var(--text-secondary, #9DA3BE);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: border-color var(--duration-fast, 150ms) ease,
+                      color var(--duration-fast, 150ms) ease,
+                      background var(--duration-fast, 150ms) ease;
         }
 
         .toolbar-dropdown-trigger:hover {
-          background: #292e42;
-          border-color: #7aa2f7;
-          color: #7aa2f7;
+          background: var(--state-hover, #FFFFFF0A);
+          border-color: var(--border-accent, #00C9A7);
+          color: var(--text-accent, #00C9A7);
         }
 
         .toolbar-dropdown-trigger.active {
-          background: #292e42;
-          border-color: #7aa2f7;
-          color: #7aa2f7;
+          background: var(--state-hover, #FFFFFF0A);
+          border-color: var(--border-accent, #00C9A7);
+          color: var(--text-accent, #00C9A7);
         }
 
         .trigger-icon {
@@ -127,7 +129,7 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
         }
 
         .trigger-label {
-          font-weight: 500;
+          font-weight: var(--weight-medium, 500);
         }
 
         .trigger-arrow {
@@ -143,10 +145,10 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           top: calc(100% + 8px);
           left: 0;
           min-width: 200px;
-          background: #1a1b26;
-          border: 1px solid #3d4458;
-          border-radius: 8px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           z-index: 1000;
           overflow: hidden;
           animation: dropdown-slide-in 0.2s cubic-bezier(0, 0, 0.2, 1);
@@ -168,16 +170,17 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           align-items: center;
           gap: 10px;
           width: 100%;
-          padding: 10px 14px;
+          padding: var(--space-2, 8px) var(--space-4, 16px);
           background: transparent;
           border: none;
-          border-bottom: 1px solid #292e42;
-          color: #a9b1d6;
-          font-size: 12px;
-          font-family: inherit;
+          border-bottom: 1px solid var(--border-subtle, #1E2030);
+          color: var(--text-secondary, #9DA3BE);
+          font-size: var(--text-sm, 12px);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
           text-align: left;
-          transition: all 0.15s ease;
+          transition: background var(--duration-fast, 150ms) ease,
+                      color var(--duration-fast, 150ms) ease;
         }
 
         .dropdown-menu-item:last-child {
@@ -185,8 +188,8 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
         }
 
         .dropdown-menu-item:hover:not(.disabled) {
-          background: #24283b;
-          color: #e9e9ea;
+          background: var(--state-hover, #FFFFFF0A);
+          color: var(--text-primary, #E2E4F0);
         }
 
         .dropdown-menu-item.disabled {
@@ -197,7 +200,7 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
         .menu-item-icon {
           display: flex;
           align-items: center;
-          color: #7aa2f7;
+          color: var(--text-accent, #00C9A7);
         }
 
         .menu-item-label {
@@ -206,18 +209,17 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
 
         .menu-item-shortcut {
           font-size: 10px;
-          color: #565f89;
-          opacity: 0.7;
-          font-family: 'JetBrains Mono', monospace;
+          color: var(--text-tertiary, #5C6080);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .menu-item-badge {
           padding: 2px 6px;
-          background: #7aa2f7;
-          color: #1a1b26;
+          background: var(--accent-primary, #00C9A7);
+          color: var(--text-inverse, #0D0E14);
           font-size: 10px;
-          font-weight: 600;
-          border-radius: 10px;
+          font-weight: var(--weight-semibold, 600);
+          border-radius: var(--radius-full, 9999px);
           min-width: 18px;
           text-align: center;
         }

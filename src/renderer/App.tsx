@@ -1,4 +1,6 @@
 // @atlas-entrypoint: Root React component — composes all hooks, panels, and dialogs
+import './styles/tokens.css';
+import './styles/animations.css';
 import { useState, useEffect, useCallback } from 'react';
 import { MultiTerminal } from './components/Terminal';
 import {
@@ -17,12 +19,18 @@ import { SplitLayout } from './components/SplitLayout';
 import { PaneHeader } from './components/PaneHeader';
 import { PaneSessionPicker } from './components/PaneSessionPicker';
 import { TitleBarBranding } from './components/TitleBarBranding';
+import { ActivityBar, ActivityPanelId } from './components/ActivityBar';
+import { StatusBar } from './components/StatusBar';
+import { ToastContainer } from './components/ui/ToastContainer';
 import { AboutDialog } from './components/AboutDialog';
 import { TeamPanel } from './components/TeamPanel';
 import { AtlasPanel } from './components/AtlasPanel';
 import { GitPanel } from './components/GitPanel';
 import { TunnelPanel } from './components/TunnelPanel';
+import { ShareManagementPanel } from './components/ShareManagementPanel';
 import { WorktreePanel } from './components/WorktreePanel';
+import { BrandMark } from './components/ui/BrandMark';
+import { ProgressBar } from './components/ui/ProgressBar';
 import { PlaybookPicker } from './components/PlaybookPicker';
 import { PlaybookParameterDialog } from './components/PlaybookParameterDialog';
 import { PlaybookProgressPanel } from './components/PlaybookProgressPanel';
@@ -42,10 +50,15 @@ import { useGit } from './hooks/useGit';
 import { usePlaybooks } from './hooks/usePlaybooks';
 import { useAutoTeamLayout } from './hooks/useAutoTeamLayout';
 import { useLayoutPicker } from './hooks/useLayoutPicker';
+import { useSessionSharing } from './hooks/useSessionSharing';
 import { Workspace, PermissionMode, WorkspaceValidationResult } from '../shared/ipc-types';
 import { PromptTemplate } from '../shared/types/prompt-templates';
 import { resolveVariables, readClipboard, getMissingVariables } from './utils/variable-resolver';
 import { showToast } from './utils/toast';
+import { dispatchToast } from './components/ui/ToastContainer';
+import { ShareSessionDialog } from './components/ShareSessionDialog';
+import { JoinSessionDialog } from './components/JoinSessionDialog';
+import { ControlRequestDialog } from './components/ui/ControlRequestDialog';
 
 function App() {
   const {
@@ -117,8 +130,14 @@ function App() {
   // Tunnel panel
   const [showTunnelPanel, setShowTunnelPanel] = useState(false);
 
+  // Share management panel
+  const [showSharePanel, setShowSharePanel] = useState(false);
+
   // Session Playbooks
   const pb = usePlaybooks(activeSessionId);
+
+  // Activity bar panel state
+  const [activeActivityPanel, setActiveActivityPanel] = useState<ActivityPanelId>(null);
 
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -127,8 +146,70 @@ function App() {
   const [showCheckpointPanel, setShowCheckpointPanel] = useState(false);
   const [showCheckpointDialog, setShowCheckpointDialog] = useState(false);
   const [showAboutDialog, setShowAboutDialog] = useState(false);
+  const [showJoinSessionDialog, setShowJoinSessionDialog] = useState(false);
+  const [joinSessionInitialCode, setJoinSessionInitialCode] = useState('');
   const [confirmClose, setConfirmClose] = useState<{ sessionId: string; name: string } | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+
+  // Session Sharing
+  const sharing = useSessionSharing();
+  const [shareDialogSessionId, setShareDialogSessionId]   = useState<string | null>(null);
+  const [controlRequestPending, setControlRequestPending] = useState<{
+    observerId:   string;
+    observerName: string;
+    sessionId:    string;
+  } | null>(null);
+
+  // Wire observer-joined / observer-left / control-requested → toasts + control dialog
+  // Also wire sharing:deepLinkJoin (Phase 11) to pre-fill JoinSessionDialog
+  useEffect(() => {
+    const unsubJoined = window.electronAPI.onObserverJoined((event) => {
+      dispatchToast(`${event.observer.displayName} joined your session`, 'success', 4000);
+    });
+    const unsubLeft = window.electronAPI.onObserverLeft((_event) => {
+      dispatchToast('An observer left your session', 'info', 3000);
+    });
+    const unsubControlRequested = window.electronAPI.onControlRequested((event) => {
+      setControlRequestPending({
+        observerId:   event.observerId,
+        observerName: event.observerName,
+        sessionId:    event.sessionId,
+      });
+    });
+
+    // Deep link: omnidesk://join/<code> → pre-fill and open JoinSessionDialog
+    const unsubDeepLink = window.electronAPI.onDeepLinkJoin((data) => {
+      if (data?.shareCode) {
+        setJoinSessionInitialCode(data.shareCode);
+        setShowJoinSessionDialog(true);
+      }
+    });
+
+    return () => {
+      unsubJoined();
+      unsubLeft();
+      unsubControlRequested();
+      unsubDeepLink();
+    };
+  }, []);
+
+  const handleGrantControl = useCallback(async () => {
+    if (!controlRequestPending) return;
+    await sharing.grantControl(controlRequestPending.sessionId, controlRequestPending.observerId);
+    setControlRequestPending(null);
+  }, [controlRequestPending, sharing]);
+
+  const handleDenyControl = useCallback(() => {
+    setControlRequestPending(null);
+  }, []);
+
+  const handleShareSession = useCallback((sessionId: string) => {
+    setShareDialogSessionId(sessionId);
+  }, []);
+
+  const handleStopSharing = useCallback(async (sessionId: string) => {
+    await sharing.stopSharing(sessionId);
+  }, [sharing]);
 
   // Command palette for prompt templates
   const commandPalette = useCommandPalette({
@@ -146,7 +227,7 @@ function App() {
   }, []);
 
   // Budget/quota state from real API
-  const { quota: quotaData, burnRate: burnRateData, isLoading: isQuotaLoading, refresh: refreshQuota } = useQuota();
+  const { quota: quotaData, burnRate: burnRateData, isLoading: isQuotaLoading, refresh: refreshQuota } = useQuota(activeSessionId);
 
   // Load workspaces and settings on mount
   useEffect(() => {
@@ -533,10 +614,11 @@ function App() {
     name: string,
     workingDirectory: string,
     permissionMode: 'standard' | 'skip-permissions',
-    worktree?: import('../shared/types/git-types').WorktreeCreateRequest
+    worktree?: import('../shared/types/git-types').WorktreeCreateRequest,
+    providerId?: import('../shared/types/provider-types').ProviderId
   ) => {
     try {
-      await createSession(name, workingDirectory, permissionMode, worktree);
+      await createSession(name, workingDirectory, permissionMode, worktree, providerId);
     } catch (err) {
       console.error('Failed to create session:', err);
     }
@@ -655,11 +737,9 @@ function App() {
     openPanel('atlas', setShowAtlasPanel);
   }, [createSession, openPanel]);
 
-  const handleQuickTeamProject = useCallback(async () => {
-    // Create new session and open Teams panel
-    await createSession('Team Session', '.', 'standard');
-    openPanel('teams', setShowTeamPanel);
-  }, [createSession, openPanel]);
+  const handleQuickJoinSession = useCallback(() => {
+    setShowJoinSessionDialog(true);
+  }, []);
 
   // Welcome wizard handlers
   const handleWizardComplete = useCallback(async () => {
@@ -694,6 +774,21 @@ function App() {
     }
   }, [createSession, commandPalette, openPanel]);
 
+  // ActivityBar panel toggle — opens corresponding panel or closes if same panel clicked
+  const handleActivityPanelChange = useCallback((panel: ActivityPanelId) => {
+    setActiveActivityPanel(panel);
+    // Close all feature panels first, then open the requested one
+    setShowGitPanel(panel === 'git');
+    setShowHistoryPanel(panel === 'history');
+    setShowTeamPanel(panel === 'teams');
+    setShowAtlasPanel(panel === 'atlas');
+    // For playbooks, open the playbook picker
+    if (panel === 'playbooks') pb.setIsPanelOpen(true);
+    else pb.setIsPanelOpen(false);
+    setShowTunnelPanel(panel === 'tunnels');
+    setShowSharePanel(panel === 'sharing');
+  }, [pb]);
+
   const handleSplitSession = useCallback((sessionId: string, direction: 'horizontal' | 'vertical') => {
     // Find the pane containing this session
     function findPaneIdForSession(node: any): string | null {
@@ -714,30 +809,53 @@ function App() {
       return null;
     }
 
-    const paneId = findPaneIdForSession(layout);
+    let paneId = findPaneIdForSession(layout);
+
+    // Fallback: if session isn't assigned to any pane (single-pane mode),
+    // use the focused pane instead
+    if (!paneId && focusedPaneId) {
+      paneId = focusedPaneId;
+    }
+
     if (paneId) {
       // No longer check pane count limit (unlimited panes)
       const newPaneId = splitPane(paneId, direction);
       // Assign the same session to the new pane
       assignSession(newPaneId, sessionId);
     }
-  }, [layout, splitPane, assignSession]);
+  }, [layout, splitPane, assignSession, focusedPaneId]);
 
-  // Convert sessions to TabData format
-  const tabData: TabData[] = sessions;
+  // Convert sessions to TabData format, injecting sharing state
+  const tabData: TabData[] = sessions.map((s) => ({
+    ...s,
+    isShared:      sharing.activeShares.has(s.id),
+    observerCount: sharing.activeShares.get(s.id)?.observers.length ?? 0,
+  }));
+
+  // Active session's provider (for conditional UI rendering)
+  const activeSessionProviderId = sessions.find(s => s.id === activeSessionId)?.providerId;
+
+  // Map of sessionId → providerId for terminal loading overlay
+  const sessionProviderMap = Object.fromEntries(
+    sessions.filter(s => s.providerId).map(s => [s.id, s.providerId!])
+  ) as Record<string, import('../shared/types/provider-types').ProviderId>;
+
+  // Active session data for status bar
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const activeSessionTitle = activeSession?.name ?? undefined;
 
   if (isLoading) {
     return (
       <div className="app">
-        <div className="titlebar">
-          <div className="titlebar-drag-region" />
-          <div className="titlebar-content">
-            <TitleBarBranding onClick={() => setShowAboutDialog(true)} />
+        <TitleBarBranding onClick={() => setShowAboutDialog(true)} />
+        <div className="loading-container">
+          <BrandMark size={32} color="var(--accent-primary)" />
+          <p className="loading-label">Starting OmniDesk...</p>
+          <div style={{ width: '200px' }}>
+            <ProgressBar indeterminate height={3} label="Starting OmniDesk" />
           </div>
         </div>
-        <div className="loading-container">
-          <div className="loading-spinner" />
-        </div>
+        <ToastContainer />
         <style>{loadingStyles}</style>
       </div>
     );
@@ -746,15 +864,30 @@ function App() {
   return (
     <div className="app">
       {/* Title bar */}
-      <div className="titlebar">
-        <div className="titlebar-drag-region" />
-        <div className="titlebar-content">
-          <TitleBarBranding onClick={() => setShowAboutDialog(true)} />
-        </div>
-      </div>
+      <TitleBarBranding
+        onClick={() => setShowAboutDialog(true)}
+        sessionTitle={activeSessionTitle}
+      />
 
-      {/* Tab bar */}
-      <TabBar
+      {/* Main body: activity bar + content column */}
+      <div className="app-body">
+        {/* Activity Bar */}
+        <ActivityBar
+          activePanel={activeActivityPanel}
+          onPanelChange={handleActivityPanelChange}
+          onOpenSettings={() => openPanel('settings', setShowSettingsDialog)}
+          onOpenAbout={() => setShowAboutDialog(true)}
+          onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
+          onOpenLayoutPicker={() => layoutPicker.openPicker()}
+          tunnelActive={false}
+          teamsEnabled={agentTeamsEnabled === true}
+          activeShareCount={sharing.activeShares.size}
+        />
+
+        {/* Right column: tab bar + content + status bar */}
+        <div className="app-right-col">
+          {/* Tab bar */}
+          <TabBar
         sessions={tabData}
         activeSessionId={activeSessionId}
         onSelectSession={switchSession}
@@ -776,12 +909,7 @@ function App() {
         teamCount={agentTeamsEnabled ? teams.length : 0}
         gitStagedCount={git.status?.stagedCount ?? 0}
         activeTunnelCount={0}
-        quotaData={quotaData}
-        burnRateData={burnRateData}
-        isQuotaLoading={isQuotaLoading}
-        quotaError={null}
         onOpenSettings={() => openPanel('settings', setShowSettingsDialog)}
-        onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
         onOpenHistory={() => openPanel('history', setShowHistoryPanel)}
         onOpenCheckpoints={() => openPanel('checkpoints', setShowCheckpointPanel)}
         onCreateCheckpoint={() => setShowCheckpointDialog(true)}
@@ -792,6 +920,9 @@ function App() {
         onAssignSessionToFocusedPane={handleAssignSessionToFocusedPane}
         paneCount={paneCount}
         onSplitSession={handleSplitSession}
+        onShareSession={handleShareSession}
+        onStopSharing={handleStopSharing}
+        sharedSessionIds={[...sharing.activeShares.keys()]}
       />
 
       {/* Terminal area */}
@@ -802,7 +933,7 @@ function App() {
             onQuickStart={{
               startCoding: handleQuickStartCoding,
               analyzeCodebase: handleQuickAnalyzeCodebase,
-              teamProject: handleQuickTeamProject,
+              joinSession: handleQuickJoinSession,
             }}
           />
         ) : isSplitActive ? (
@@ -830,10 +961,18 @@ function App() {
                         availableSessions={availableSessions}
                         canSplit={paneCount < 4}
                         worktreeBranch={session.worktreeBranch}
+                        providerId={session.providerId}
                         onChangeSession={(newSessionId) => assignSession(paneId, newSessionId)}
                         onClosePane={() => closePane(paneId)}
                         onSplitHorizontal={() => splitPane(paneId, 'horizontal')}
                         onSplitVertical={() => splitPane(paneId, 'vertical')}
+                        onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
+                        onOpenHistory={() => openPanel('history', setShowHistoryPanel)}
+                        onCreateCheckpoint={() => setShowCheckpointDialog(true)}
+                        isShared={sharing.activeShares.has(session.id)}
+                        observerCount={sharing.activeShares.get(session.id)?.observers.length ?? 0}
+                        onShareSession={() => handleShareSession(session.id)}
+                        onStopSharing={() => handleStopSharing(session.id)}
                       />
                     )}
                     <div className="pane-terminal-area">
@@ -842,6 +981,7 @@ function App() {
                           sessionIds={sessions.map(s => s.id)}
                           visibleSessionIds={[sessionId]}
                           focusedSessionId={isFocused ? sessionId : null}
+                          sessionProviderMap={sessionProviderMap}
                           onInput={sendInput}
                           onResize={resizeSession}
                           onOutput={onOutput}
@@ -861,36 +1001,39 @@ function App() {
               />
             ) : (
               <div className="loading-container">
-                <div className="loading-spinner" />
-                <div>Loading split view...</div>
+                <p className="loading-label">Loading split view...</p>
               </div>
             )}
-            <style>{`
-              .split-pane-content {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                background: #1a1b26;
-              }
-
-              .pane-terminal-area {
-                flex: 1;
-                overflow: hidden;
-              }
-            `}</style>
           </>
         ) : (
           <MultiTerminal
             sessionIds={sessions.map(s => s.id)}
             visibleSessionIds={activeSessionId ? [activeSessionId] : []}
             focusedSessionId={activeSessionId}
+            sessionProviderMap={sessionProviderMap}
             onInput={sendInput}
             onResize={resizeSession}
             onOutput={onOutput}
           />
         )}
-      </div>
+          </div>
+
+          {/* Status Bar */}
+          <StatusBar
+            providerId={activeSession?.providerId}
+            modelName={undefined}
+            gitStatus={git.status}
+            tokenCount={undefined}
+            quotaData={quotaData}
+            isConnected={true}
+            onGitClick={() => handleActivityPanelChange('git')}
+            onBudgetClick={() => openPanel('budget', setShowBudgetPanel)}
+          />
+        </div>{/* end app-right-col */}
+      </div>{/* end app-body */}
+
+      {/* Toast notifications */}
+      <ToastContainer />
 
       {/* Close confirmation dialog */}
       <ConfirmDialog
@@ -942,6 +1085,16 @@ function App() {
       <TunnelPanel
         isOpen={showTunnelPanel}
         onClose={() => setShowTunnelPanel(false)}
+      />
+
+      {/* Share Management panel */}
+      <ShareManagementPanel
+        isOpen={showSharePanel}
+        onClose={() => {
+          setShowSharePanel(false);
+          setActiveActivityPanel(null);
+        }}
+        sessionNames={Object.fromEntries(sessions.map(s => [s.id, s.name]))}
       />
 
       {/* Playbook Picker */}
@@ -1040,6 +1193,7 @@ function App() {
         burnRate={burnRateData}
         isLoading={isQuotaLoading}
         onRefresh={refreshQuota}
+        activeSessionProviderId={activeSessionProviderId}
       />
 
       {/* History panel */}
@@ -1124,6 +1278,37 @@ function App() {
         }}
       />
 
+      {/* Share Session Dialog */}
+      {shareDialogSessionId && (
+        <ShareSessionDialog
+          isOpen={shareDialogSessionId !== null}
+          onClose={() => setShareDialogSessionId(null)}
+          sessionId={shareDialogSessionId}
+          sessionName={sessions.find(s => s.id === shareDialogSessionId)?.name ?? ''}
+        />
+      )}
+
+      {/* Join Session Dialog */}
+      <JoinSessionDialog
+        isOpen={showJoinSessionDialog}
+        initialCode={joinSessionInitialCode}
+        onClose={() => {
+          setShowJoinSessionDialog(false);
+          setJoinSessionInitialCode('');
+        }}
+        onJoined={(_shareCode) => {
+          dispatchToast('Joined shared session', 'success', 3000);
+        }}
+      />
+
+      {/* Control Request Dialog (shown to host) */}
+      <ControlRequestDialog
+        isOpen={controlRequestPending !== null}
+        observerName={controlRequestPending?.observerName ?? ''}
+        onGrant={handleGrantControl}
+        onDeny={handleDenyControl}
+      />
+
       <style>{appStyles}</style>
     </div>
   );
@@ -1133,21 +1318,25 @@ const loadingStyles = `
   .loading-container {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--space-3, 12px);
+    background: var(--surface-base, #0D0E14);
+    animation: loading-fade-in var(--duration-normal, 200ms) var(--ease-out, ease) both;
   }
 
-  .loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #292e42;
-    border-top-color: #7aa2f7;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  @keyframes loading-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  .loading-label {
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+    font-size: var(--text-sm, 12px);
+    font-weight: var(--weight-regular, 400);
+    color: var(--text-tertiary, #5C6080);
+    margin: 0;
   }
 `;
 
@@ -1157,41 +1346,66 @@ const appStyles = `
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: #1a1b26;
+    background: var(--surface-base, #0D0E14);
+    overflow: hidden;
   }
 
-  .titlebar {
-    height: 36px;
-    background-color: #1a1b26;
+  /* Main body: activity bar + content column */
+  .app-body {
+    flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    position: relative;
-    flex-shrink: 0;
-    border-bottom: 1px solid #292e42;
+    flex-direction: row;
+    overflow: hidden;
+    min-height: 0;
   }
 
-  .titlebar-drag-region {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    -webkit-app-region: drag;
-  }
-
-  .titlebar-content {
-    position: relative;
-    z-index: 10;
-    -webkit-app-region: no-drag;
+  /* Right column: tab bar + terminal area + status bar */
+  .app-right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .terminal-container {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 8px;
-    background: #1a1b26;
+    overflow: hidden;
+    background: var(--surface-raised, #13141C);
+  }
+
+  .split-pane-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-raised, #13141C);
+  }
+
+  .pane-terminal-area {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .loading-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--text-tertiary, #5C6080);
+    font-family: var(--font-ui, "Inter", sans-serif);
+    font-size: var(--text-sm, 12px);
+  }
+
+  .loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border-default, #292E44);
+    border-top-color: var(--accent-primary, #00C9A7);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 `;
 

@@ -52,7 +52,7 @@ describe('EmptyState', () => {
     render(<EmptyState onCreateSession={vi.fn()} />);
     expect(screen.getByTestId('action-start-coding')).toBeInTheDocument();
     expect(screen.getByTestId('action-analyze-codebase')).toBeInTheDocument();
-    expect(screen.getByTestId('action-team-project')).toBeInTheDocument();
+    expect(screen.getByTestId('action-join-session')).toBeInTheDocument();
   });
 
   it('calls onCreateSession when quick action is clicked (no onQuickStart)', () => {
@@ -66,7 +66,7 @@ describe('EmptyState', () => {
     const onQuickStart = {
       startCoding: vi.fn(),
       analyzeCodebase: vi.fn(),
-      teamProject: vi.fn(),
+      joinSession: vi.fn(),
     };
     render(<EmptyState onCreateSession={vi.fn()} onQuickStart={onQuickStart} />);
 
@@ -76,8 +76,8 @@ describe('EmptyState', () => {
     fireEvent.click(screen.getByTestId('action-analyze-codebase'));
     expect(onQuickStart.analyzeCodebase).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByTestId('action-team-project'));
-    expect(onQuickStart.teamProject).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('action-join-session'));
+    expect(onQuickStart.joinSession).toHaveBeenCalled();
   });
 
   it('renders feature showcase', () => {

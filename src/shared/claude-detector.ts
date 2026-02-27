@@ -40,3 +40,26 @@ export function findClaudeOutputStart(buffer: string): number {
   }
   return earliest;
 }
+
+/**
+ * Generic provider-ready check using caller-supplied patterns.
+ * Complements the Claude-specific `isClaudeReady` for any provider.
+ */
+export function isProviderReady(output: string, patterns: string[]): boolean {
+  return patterns.some(pattern => output.includes(pattern));
+}
+
+/**
+ * Find the earliest index in the buffer where any provider pattern appears.
+ * Returns -1 if none of the patterns are found.
+ */
+export function findProviderOutputStart(buffer: string, patterns: string[]): number {
+  let earliest = -1;
+  for (const pattern of patterns) {
+    const index = buffer.indexOf(pattern);
+    if (index !== -1 && (earliest === -1 || index < earliest)) {
+      earliest = index;
+    }
+  }
+  return earliest;
+}

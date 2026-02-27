@@ -10,7 +10,7 @@ interface MessageStreamProps {
 
 // Generate consistent color from agent name
 function agentColor(name: string): string {
-  const colors = ['#7aa2f7', '#bb9af7', '#9ece6a', '#e0af68', '#f7768e', '#7dcfff', '#2ac3de', '#ff9e64'];
+  const colors = ['var(--text-accent, #00C9A7)', 'var(--accent-secondary, #7C3AED)', 'var(--semantic-success, #3DD68C)', 'var(--semantic-warning, #F7A84A)', 'var(--semantic-error, #F7678E)', 'var(--accent-primary, #00C9A7)', 'var(--accent-primary-dim, #009E84)', 'var(--semantic-warning, #F7A84A)'];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = ((hash << 5) - hash) + name.charCodeAt(i);
@@ -141,6 +141,7 @@ const messageStreamStyles = `
     flex-direction: column;
     gap: 8px;
     height: 100%;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .message-stream-filters {
@@ -150,31 +151,33 @@ const messageStreamStyles = `
 
   .message-search {
     flex: 1;
-    height: 30px;
-    padding: 0 8px;
-    background: #16161e;
-    border: 1px solid #292e42;
-    border-radius: 6px;
-    color: #a9b1d6;
-    font-size: 11px;
-    font-family: inherit;
+    height: 28px;
+    padding: 0 var(--space-2, 8px);
+    background: var(--surface-float, #222435);
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-md, 6px);
+    color: var(--text-secondary, #9DA3BE);
+    font-size: var(--text-xs, 11px);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+    outline: none;
   }
 
-  .message-search::placeholder { color: #3b4261; }
-  .message-search:focus { outline: none; border-color: #7aa2f7; }
+  .message-search::placeholder { color: var(--text-tertiary, #5C6080); }
+  .message-search:focus { border-color: var(--border-accent, #00C9A7); }
 
   .message-filter-select {
     width: 100px;
-    height: 30px;
+    height: 28px;
     padding: 0 6px;
-    background: #16161e;
-    border: 1px solid #292e42;
-    border-radius: 6px;
-    color: #a9b1d6;
-    font-size: 11px;
-    font-family: inherit;
+    background: var(--surface-float, #222435);
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-md, 6px);
+    color: var(--text-secondary, #9DA3BE);
+    font-size: var(--text-xs, 11px);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     cursor: pointer;
     appearance: none;
+    outline: none;
   }
 
   .message-timeline {
@@ -188,20 +191,20 @@ const messageStreamStyles = `
   .message-empty {
     padding: 24px;
     text-align: center;
-    font-size: 11px;
-    color: #3b4261;
+    font-size: var(--text-xs, 11px);
+    color: var(--text-tertiary, #5C6080);
   }
 
   .message-item {
-    padding: 8px 10px;
-    background: #16161e;
-    border: 1px solid #292e42;
-    border-radius: 6px;
+    padding: var(--space-2, 8px) var(--space-2, 8px);
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-subtle, #1E2030);
+    border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: border-color var(--duration-fast, 150ms) ease;
   }
 
-  .message-item:hover { border-color: #3b4261; }
+  .message-item:hover { border-color: var(--border-default, #292E44); }
 
   .message-header {
     display: flex;
@@ -211,24 +214,26 @@ const messageStreamStyles = `
   }
 
   .message-sender, .message-receiver {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--text-xs, 11px);
+    font-weight: var(--weight-semibold, 600);
+    font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
   }
 
   .message-arrow {
     font-size: 10px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .message-time {
     margin-left: auto;
     font-size: 10px;
-    color: #3b4261;
+    color: var(--text-tertiary, #5C6080);
+    font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
   }
 
   .message-content {
-    font-size: 11px;
-    color: #a9b1d6;
+    font-size: var(--text-xs, 11px);
+    color: var(--text-secondary, #9DA3BE);
     line-height: 1.4;
     word-break: break-word;
   }
@@ -236,7 +241,7 @@ const messageStreamStyles = `
   .message-details {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid #292e42;
+    border-top: 1px solid var(--border-subtle, #1E2030);
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -248,17 +253,17 @@ const messageStreamStyles = `
     font-size: 10px;
   }
 
-  .message-detail-label { color: #565f89; }
-  .message-detail-value { color: #7aa2f7; font-family: 'JetBrains Mono', monospace; }
+  .message-detail-label { color: var(--text-tertiary, #5C6080); }
+  .message-detail-value { color: var(--text-accent, #00C9A7); font-family: var(--font-mono-ui, 'JetBrains Mono', monospace); }
 
   .message-raw {
     margin-top: 4px;
     padding: 6px;
-    background: #1a1b26;
-    border-radius: 4px;
+    background: var(--surface-base, #0D0E14);
+    border-radius: var(--radius-sm, 3px);
     font-size: 10px;
-    color: #565f89;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-tertiary, #5C6080);
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
     white-space: pre-wrap;
     word-break: break-all;
   }

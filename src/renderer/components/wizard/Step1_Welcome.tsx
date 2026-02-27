@@ -1,166 +1,300 @@
+/**
+ * Step1_Welcome — Redesigned to match Obsidian spec §6.1.
+ *
+ * Centered card (480px, surface-overlay, radius-xl, shadow-xl) on
+ * surface-base bg with subtle radial gradient.
+ * BrandMark (64px) + "OmniDesk" + tagline + provider detection rows
+ * + "Get Started" accent button + step dots.
+ */
+
+import { useEffect, useState } from 'react';
+import { BrandLogo } from '../ui/BrandLogo';
+import { CheckCircle, XCircle, Loader } from 'lucide-react';
+
 interface Step1WelcomeProps {
   onNext: () => void;
 }
 
+interface ProviderStatus {
+  name: string;
+  detected: boolean | null; // null = loading
+}
+
 export function Step1Welcome({ onNext }: Step1WelcomeProps) {
+  const [providers, setProviders] = useState<ProviderStatus[]>([
+    { name: 'Claude Code', detected: null },
+    { name: 'Codex CLI', detected: null },
+  ]);
+
+  useEffect(() => {
+    // Detect providers via IPC
+    Promise.allSettled([
+      window.electronAPI.listProviders(),
+    ]).then(([listResult]) => {
+      if (listResult.status === 'fulfilled') {
+        const available = listResult.value;
+        setProviders([
+          {
+            name: 'Claude Code',
+            detected: available.some((p: any) => p.id === 'claude'),
+          },
+          {
+            name: 'Codex CLI',
+            detected: available.some((p: any) => p.id === 'codex'),
+          },
+        ]);
+      } else {
+        setProviders([
+          { name: 'Claude Code', detected: false },
+          { name: 'Codex CLI', detected: false },
+        ]);
+      }
+    });
+  }, []);
+
+  const allUndetected = providers.every((p) => p.detected === false);
+  const anyLoading = providers.some((p) => p.detected === null);
+
   return (
-    <div className="wizard-step-content">
-      <div className="welcome-icon">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M9 3v18" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M14 8l-5 5l5 5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--surface-base)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage:
+          'radial-gradient(ellipse 600px 400px at center, rgba(0, 201, 167, 0.03) 0%, transparent 70%)',
+        animation: 'step-fade-in var(--duration-normal) var(--ease-out)',
+      }}
+    >
+      <div
+        style={{
+          width: 480,
+          maxWidth: 'calc(100vw - 48px)',
+          background: 'var(--surface-overlay)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-xl)',
+          padding: 'var(--space-8)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--space-4)',
+        }}
+      >
+        {/* Brand mark */}
+        <BrandLogo size={64} />
+
+        {/* Name */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 28,
+              fontWeight: 'var(--weight-medium)',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-ui)',
+              letterSpacing: '-0.3px',
+            }}
+          >
+            OmniDesk
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-ui)',
+              textAlign: 'center',
+            }}
+          >
+            Multi-provider AI coding terminal
+          </p>
+        </div>
+
+        {/* Provider detection rows */}
+        <div
+          style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-2)',
+            marginTop: 'var(--space-2)',
+          }}
+        >
+          {providers.map((provider) => (
+            <div
+              key={provider.name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                background: 'var(--surface-raised)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                {provider.name}
+              </span>
+              {provider.detected === null ? (
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <Loader
+                    size={12}
+                    style={{
+                      animation: 'spin-icon 1s linear infinite',
+                      color: 'var(--accent-primary)',
+                    }}
+                  />
+                  Detecting...
+                </span>
+              ) : provider.detected ? (
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--semantic-success)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <CheckCircle size={12} />
+                  detected
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <XCircle size={12} />
+                  not found
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Warning banner if none detected */}
+        {!anyLoading && allUndetected && (
+          <div
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'var(--semantic-warning-muted)',
+              border: '1px solid rgba(247, 168, 74, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--semantic-warning)',
+              fontFamily: 'var(--font-ui)',
+              textAlign: 'center',
+            }}
+          >
+            No AI CLIs detected. You can still explore OmniDesk.
+          </div>
+        )}
+
+        {/* CTA button */}
+        <button
+          onClick={onNext}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: 'var(--accent-primary)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-inverse)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-semibold)',
+            fontFamily: 'var(--font-ui)',
+            cursor: 'pointer',
+            transition: 'opacity var(--duration-fast)',
+            marginTop: 'var(--space-2)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          Get Started
+        </button>
+
+        {/* Step dots */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            marginTop: 'var(--space-1)',
+          }}
+        >
+          <StepDot active />
+          <StepDot />
+          <StepDot />
+          <span
+            style={{
+              marginLeft: 6,
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            Step 1 of 3
+          </span>
+        </div>
       </div>
-
-      <h1 className="welcome-title">Welcome to ClaudeDesk</h1>
-      <p className="welcome-subtitle">
-        Your multi-session terminal workspace for Claude Code CLI
-      </p>
-
-      <div className="welcome-features">
-        <div className="feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Work with up to 4 terminal sessions simultaneously</span>
-        </div>
-        <div className="feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Visualize and coordinate multiple AI agent teams</span>
-        </div>
-        <div className="feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Generate AI-powered repository maps for navigation</span>
-        </div>
-        <div className="feature-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Save and restore conversation checkpoints</span>
-        </div>
-      </div>
-
-      <button className="wizard-next-btn" onClick={onNext}>
-        Get Started
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="9 18 15 12 9 6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
 
       <style>{`
-        .wizard-step-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          animation: step-fade-in 0.4s ease;
-        }
-
         @keyframes step-fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .welcome-icon {
-          width: 120px;
-          height: 120px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, rgba(122, 162, 247, 0.15), rgba(125, 207, 255, 0.1));
-          border: 2px solid #3d4458;
-          border-radius: 28px;
-          margin-bottom: 32px;
-          color: #7aa2f7;
-          box-shadow: 0 12px 48px rgba(122, 162, 247, 0.2);
-        }
-
-        .welcome-title {
-          font-size: 32px;
-          font-weight: 700;
-          color: #e9e9ea;
-          margin: 0 0 12px 0;
-          letter-spacing: -0.5px;
-        }
-
-        .welcome-subtitle {
-          font-size: 15px;
-          color: #a9b1d6;
-          margin: 0 0 48px 0;
-          text-align: center;
-          max-width: 500px;
-          line-height: 1.6;
-        }
-
-        .welcome-features {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin-bottom: 48px;
-          width: 100%;
-          max-width: 480px;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: #1f2335;
-          border: 1px solid #3d4458;
-          border-radius: 10px;
-          color: #a9b1d6;
-          font-size: 14px;
-          line-height: 1.5;
-          transition: all 0.2s ease;
-        }
-
-        .feature-item:hover {
-          transform: translateX(4px);
-          border-color: #7aa2f7;
-        }
-
-        .feature-item svg {
-          color: #7aa2f7;
-          flex-shrink: 0;
-        }
-
-        .wizard-next-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 14px 32px;
-          background: linear-gradient(135deg, #7aa2f7, #7dcfff);
-          border: none;
-          border-radius: 10px;
-          color: #1a1b26;
-          font-size: 14px;
-          font-weight: 600;
-          font-family: 'JetBrains Mono', monospace;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          box-shadow: 0 4px 16px rgba(122, 162, 247, 0.3);
-        }
-
-        .wizard-next-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(122, 162, 247, 0.4);
-        }
-
-        .wizard-next-btn:active {
-          transform: translateY(0);
+        @keyframes spin-icon {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
+  );
+}
+
+function StepDot({ active = false }: { active?: boolean }) {
+  return (
+    <div
+      style={{
+        width: active ? 20 : 8,
+        height: 8,
+        borderRadius: 4,
+        background: active ? 'var(--accent-primary)' : 'var(--border-strong)',
+        transition: 'all var(--duration-normal) var(--ease-out)',
+      }}
+    />
   );
 }

@@ -1,246 +1,297 @@
+/**
+ * Step2_LayoutPicker — Redesigned to match Obsidian spec §6.1 Step 2.
+ *
+ * 3 clickable layout cards (Single, Side by Side, Stacked Split).
+ * Selected card: --border-accent 2px + --accent-primary-muted bg.
+ * [Back] ghost + [Continue] accent buttons.
+ * Step dots at bottom.
+ */
+
+import { useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+
 interface Step2LayoutPickerProps {
   onNext: () => void;
   onBack: () => void;
 }
 
-const layoutExamples = [
+const layouts = [
   {
     id: 'single',
     name: 'Single Pane',
-    icon: <rect x="2" y="2" width="20" height="20" rx="2" fill="currentColor" opacity="0.3" />
+    description: 'One focused terminal',
+    preview: (
+      <svg width="64" height="48" viewBox="0 0 64 48" fill="none">
+        <rect x="2" y="2" width="60" height="44" rx="4" fill="currentColor" opacity="0.25" />
+        <rect x="2" y="2" width="60" height="44" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+      </svg>
+    ),
   },
   {
     id: 'horizontal',
-    name: 'Horizontal Split',
-    icon: (
-      <>
-        <rect x="2" y="2" width="9" height="20" rx="2" fill="currentColor" opacity="0.3" />
-        <rect x="13" y="2" width="9" height="20" rx="2" fill="currentColor" opacity="0.3" />
-      </>
-    )
+    name: 'Side by Side',
+    description: 'Two terminals horizontally',
+    preview: (
+      <svg width="64" height="48" viewBox="0 0 64 48" fill="none">
+        <rect x="2" y="2" width="27" height="44" rx="4" fill="currentColor" opacity="0.25" />
+        <rect x="2" y="2" width="27" height="44" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+        <rect x="35" y="2" width="27" height="44" rx="4" fill="currentColor" opacity="0.25" />
+        <rect x="35" y="2" width="27" height="44" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+      </svg>
+    ),
   },
   {
     id: 'vertical',
-    name: 'Vertical Split',
-    icon: (
-      <>
-        <rect x="2" y="2" width="20" height="9" rx="2" fill="currentColor" opacity="0.3" />
-        <rect x="2" y="13" width="20" height="9" rx="2" fill="currentColor" opacity="0.3" />
-      </>
-    )
+    name: 'Stacked Split',
+    description: 'Two terminals vertically',
+    preview: (
+      <svg width="64" height="48" viewBox="0 0 64 48" fill="none">
+        <rect x="2" y="2" width="60" height="20" rx="4" fill="currentColor" opacity="0.25" />
+        <rect x="2" y="2" width="60" height="20" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+        <rect x="2" y="26" width="60" height="20" rx="4" fill="currentColor" opacity="0.25" />
+        <rect x="2" y="26" width="60" height="20" rx="4" stroke="currentColor" strokeWidth="1.5" opacity="0.5" />
+      </svg>
+    ),
   },
-  {
-    id: 'quad',
-    name: 'Quad Grid',
-    icon: (
-      <>
-        <rect x="2" y="2" width="9" height="9" rx="2" fill="currentColor" opacity="0.3" />
-        <rect x="13" y="2" width="9" height="9" rx="2" fill="currentColor" opacity="0.3" />
-        <rect x="2" y="13" width="9" height="9" rx="2" fill="currentColor" opacity="0.3" />
-        <rect x="13" y="13" width="9" height="9" rx="2" fill="currentColor" opacity="0.3" />
-      </>
-    )
-  }
 ];
 
 export function Step2_LayoutPicker({ onNext, onBack }: Step2LayoutPickerProps) {
+  const [selected, setSelected] = useState<string>('single');
+
   return (
-    <div className="wizard-step-content">
-      <h2 className="step-title">Choose Your Workspace Layout</h2>
-      <p className="step-subtitle">
-        ClaudeDesk supports up to 4 terminal panes simultaneously.
-        You can change your layout anytime from the toolbar.
-      </p>
-
-      <div className="layout-examples">
-        {layoutExamples.map((layout, index) => (
-          <div
-            key={layout.id}
-            className="layout-example"
-            style={{ animationDelay: `${index * 0.1}s` }}
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--surface-base)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage:
+          'radial-gradient(ellipse 600px 400px at center, rgba(0, 201, 167, 0.03) 0%, transparent 70%)',
+        animation: 'step-fade-in var(--duration-normal) var(--ease-out)',
+      }}
+    >
+      <div
+        style={{
+          width: 520,
+          maxWidth: 'calc(100vw - 48px)',
+          background: 'var(--surface-overlay)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-xl)',
+          padding: 'var(--space-8)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--space-5)',
+        }}
+      >
+        {/* Heading */}
+        <div style={{ textAlign: 'center' }}>
+          <h2
+            style={{
+              margin: '0 0 var(--space-2)',
+              fontSize: 'var(--text-xl)',
+              fontWeight: 'var(--weight-semibold)',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-ui)',
+            }}
           >
-            <svg width="120" height="120" viewBox="0 0 24 24" className="layout-icon">
-              {layout.icon}
-            </svg>
-            <span className="layout-name">{layout.name}</span>
-          </div>
-        ))}
-      </div>
+            Choose your layout
+          </h2>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            You can change this later in Settings
+          </p>
+        </div>
 
-      <p className="layout-hint">
-        💡 Tip: Use <kbd>Ctrl+\</kbd> to toggle split view and <kbd>Ctrl+Shift+L</kbd> to open the layout picker
-      </p>
+        {/* Layout cards */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 'var(--space-3)',
+            width: '100%',
+          }}
+        >
+          {layouts.map((layout, i) => {
+            const isSelected = selected === layout.id;
+            return (
+              <button
+                key={layout.id}
+                onClick={() => setSelected(layout.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                  padding: 'var(--space-4)',
+                  background: isSelected ? 'var(--accent-primary-muted)' : 'var(--surface-raised)',
+                  border: `2px solid ${isSelected ? 'var(--border-accent)' : 'var(--border-default)'}`,
+                  borderRadius: 'var(--radius-lg)',
+                  cursor: 'pointer',
+                  transition: 'all var(--duration-fast)',
+                  color: isSelected ? 'var(--accent-primary)' : 'var(--text-tertiary)',
+                  animation: `card-in var(--duration-normal) var(--ease-out) ${i * 60}ms both`,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = 'var(--border-strong)';
+                    e.currentTarget.style.background = 'var(--surface-float)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.borderColor = 'var(--border-default)';
+                    e.currentTarget.style.background = 'var(--surface-raised)';
+                  }
+                }}
+              >
+                {layout.preview}
+                <div style={{ textAlign: 'center' }}>
+                  <div
+                    style={{
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--weight-medium)',
+                      color: isSelected ? 'var(--text-accent)' : 'var(--text-primary)',
+                      fontFamily: 'var(--font-ui)',
+                      marginBottom: 2,
+                    }}
+                  >
+                    {layout.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--text-tertiary)',
+                      fontFamily: 'var(--font-ui)',
+                    }}
+                  >
+                    {layout.description}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="wizard-actions">
-        <button className="wizard-back-btn" onClick={onBack}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back
-        </button>
-        <button className="wizard-next-btn" onClick={onNext}>
-          Continue
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        {/* Action buttons */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--space-3)',
+            width: '100%',
+            justifyContent: 'space-between',
+            marginTop: 'var(--space-1)',
+          }}
+        >
+          <button
+            onClick={onBack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: '10px 20px',
+              background: 'transparent',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-secondary)',
+              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-ui)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-fast)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--state-hover)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'var(--border-default)';
+            }}
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
+          <button
+            onClick={onNext}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: '10px 24px',
+              background: 'var(--accent-primary)',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-inverse)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)',
+              fontFamily: 'var(--font-ui)',
+              cursor: 'pointer',
+              transition: 'opacity var(--duration-fast)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+          >
+            Continue
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
+        {/* Step dots */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <StepDot />
+          <StepDot active />
+          <StepDot />
+          <span
+            style={{
+              marginLeft: 6,
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-tertiary)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            Step 2 of 3
+          </span>
+        </div>
       </div>
 
       <style>{`
-        .wizard-step-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 100%;
-          animation: step-fade-in 0.4s ease;
-        }
-
         @keyframes step-fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .step-title {
-          font-size: 24px;
-          font-weight: 600;
-          color: #e9e9ea;
-          margin: 0 0 12px 0;
-          letter-spacing: -0.3px;
-        }
-
-        .step-subtitle {
-          font-size: 14px;
-          color: #a9b1d6;
-          margin: 0 0 32px 0;
-          text-align: center;
-          max-width: 600px;
-          line-height: 1.6;
-        }
-
-        .layout-examples {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-          margin-bottom: 32px;
-        }
-
-        .layout-example {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          padding: 20px;
-          background: #1f2335;
-          border: 2px solid #3d4458;
-          border-radius: 12px;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          animation: card-fade-in 0.5s ease backwards;
-        }
-
-        @keyframes card-fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .layout-example:hover {
-          transform: translateY(-4px);
-          border-color: #7aa2f7;
-        }
-
-        .layout-icon {
-          color: #7aa2f7;
-        }
-
-        .layout-name {
-          font-size: 13px;
-          color: #e9e9ea;
-          font-weight: 500;
-        }
-
-        .layout-hint {
-          font-size: 13px;
-          color: #a9b1d6;
-          margin-bottom: 32px;
-          text-align: center;
-          padding: 16px 24px;
-          background: #1f2335;
-          border: 1px solid #3d4458;
-          border-radius: 8px;
-        }
-
-        .layout-hint kbd {
-          display: inline-block;
-          padding: 3px 6px;
-          background: #24283b;
-          border: 1px solid #3d4458;
-          border-radius: 4px;
-          font-size: 11px;
-          font-family: 'JetBrains Mono', monospace;
-          color: #7aa2f7;
-        }
-
-        .wizard-actions {
-          display: flex;
-          gap: 16px;
-          align-items: center;
-        }
-
-        .wizard-back-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 20px;
-          background: #24283b;
-          border: 1px solid #3d4458;
-          border-radius: 8px;
-          color: #a9b1d6;
-          font-size: 13px;
-          font-weight: 500;
-          font-family: 'JetBrains Mono', monospace;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .wizard-back-btn:hover {
-          background: #292e42;
-          border-color: #7aa2f7;
-          color: #7aa2f7;
-        }
-
-        .wizard-next-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 24px;
-          background: linear-gradient(135deg, #7aa2f7, #7dcfff);
-          border: none;
-          border-radius: 8px;
-          color: #1a1b26;
-          font-size: 13px;
-          font-weight: 600;
-          font-family: 'JetBrains Mono', monospace;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          box-shadow: 0 4px 16px rgba(122, 162, 247, 0.3);
-        }
-
-        .wizard-next-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(122, 162, 247, 0.4);
+        @keyframes card-in {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
+  );
+}
+
+function StepDot({ active = false }: { active?: boolean }) {
+  return (
+    <div
+      style={{
+        width: active ? 20 : 8,
+        height: 8,
+        borderRadius: 4,
+        background: active ? 'var(--accent-primary)' : 'var(--border-strong)',
+        transition: 'all var(--duration-normal) var(--ease-out)',
+      }}
+    />
   );
 }

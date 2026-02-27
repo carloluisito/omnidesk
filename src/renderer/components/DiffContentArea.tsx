@@ -32,7 +32,7 @@ export function DiffContentArea({ file, diff, isLoading }: DiffContentAreaProps)
     return (
       <div className="diff-content-area">
         <div className="diff-content-empty">
-          <span style={{ color: '#565f89' }}>Select a file to view changes</span>
+          <span style={{ color: 'var(--text-tertiary, #5C6080)' }}>Select a file to view changes</span>
         </div>
       </div>
     );
@@ -43,7 +43,7 @@ export function DiffContentArea({ file, diff, isLoading }: DiffContentAreaProps)
     return (
       <div className="diff-content-area">
         <div className="diff-content-empty">
-          <span style={{ color: '#565f89' }}>No changes to display</span>
+          <span style={{ color: 'var(--text-tertiary, #5C6080)' }}>No changes to display</span>
         </div>
       </div>
     );

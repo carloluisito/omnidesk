@@ -79,7 +79,7 @@ export function PlaybookPicker({ isOpen, playbooks, onSelect, onClose, onManageP
     <div className="playbook-picker-overlay" onClick={onClose}>
       <div className="playbook-picker" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div className="playbook-picker-search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#565f89" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary, #5C6080)" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -141,7 +141,8 @@ const pickerStyles = `
   .playbook-picker-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(13, 14, 20, 0.7);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -152,21 +153,22 @@ const pickerStyles = `
   .playbook-picker {
     width: 560px;
     max-height: 480px;
-    background: #1f2335;
-    border: 1px solid #292e42;
-    border-radius: 12px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-lg, 10px);
+    box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .playbook-picker-search {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid #292e42;
+    gap: var(--space-2, 8px);
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    border-bottom: 1px solid var(--border-subtle, #1E2030);
   }
 
   .playbook-picker-search input {
@@ -174,13 +176,13 @@ const pickerStyles = `
     background: transparent;
     border: none;
     outline: none;
-    color: #c0caf5;
-    font-size: 14px;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-size: var(--text-sm, 12px);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .playbook-picker-search input::placeholder {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .playbook-picker-list {
@@ -192,23 +194,23 @@ const pickerStyles = `
   .playbook-picker-empty {
     padding: 24px;
     text-align: center;
-    color: #565f89;
-    font-size: 13px;
+    color: var(--text-tertiary, #5C6080);
+    font-size: var(--text-sm, 12px);
   }
 
   .playbook-picker-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
+    gap: var(--space-3, 12px);
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    transition: background 0.1s;
+    transition: background var(--duration-fast, 150ms) ease;
   }
 
   .playbook-picker-item:hover,
   .playbook-picker-item.selected {
-    background: #292e42;
+    background: var(--state-hover, #FFFFFF0A);
   }
 
   .playbook-picker-icon {
@@ -224,34 +226,34 @@ const pickerStyles = `
   }
 
   .playbook-picker-name {
-    color: #c0caf5;
-    font-size: 13px;
-    font-weight: 500;
+    color: var(--text-primary, #E2E4F0);
+    font-size: var(--text-sm, 12px);
+    font-weight: var(--weight-medium, 500);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2, 8px);
   }
 
   .playbook-picker-badge {
     font-size: 10px;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm, 3px);
     font-weight: 400;
   }
 
   .playbook-picker-badge.built-in {
-    background: rgba(122, 162, 247, 0.2);
-    color: #7aa2f7;
+    background: var(--accent-primary-muted, #00C9A714);
+    color: var(--text-accent, #00C9A7);
   }
 
   .playbook-picker-badge.user {
-    background: rgba(158, 206, 106, 0.2);
-    color: #9ece6a;
+    background: rgba(61, 214, 140, 0.1);
+    color: var(--semantic-success, #3DD68C);
   }
 
   .playbook-picker-desc {
-    color: #565f89;
-    font-size: 11px;
+    color: var(--text-tertiary, #5C6080);
+    font-size: var(--text-xs, 11px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -269,51 +271,53 @@ const pickerStyles = `
   .playbook-picker-category {
     font-size: 10px;
     padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(187, 154, 247, 0.15);
-    color: #bb9af7;
+    border-radius: var(--radius-sm, 3px);
+    background: var(--surface-high, #2A2C3D);
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .playbook-picker-steps {
     font-size: 10px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .playbook-picker-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-top: 1px solid #292e42;
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    border-top: 1px solid var(--border-subtle, #1E2030);
   }
 
   .playbook-picker-manage {
     background: transparent;
     border: none;
-    color: #7aa2f7;
-    font-size: 12px;
+    color: var(--text-accent, #00C9A7);
+    font-size: var(--text-xs, 11px);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    padding: 4px var(--space-2, 8px);
+    border-radius: var(--radius-sm, 3px);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+    transition: background var(--duration-fast, 150ms) ease;
   }
 
   .playbook-picker-manage:hover {
-    background: rgba(122, 162, 247, 0.1);
+    background: var(--accent-primary-muted, #00C9A714);
   }
 
   .playbook-picker-hint {
-    color: #565f89;
-    font-size: 11px;
+    color: var(--text-tertiary, #5C6080);
+    font-size: var(--text-xs, 11px);
   }
 
   .playbook-picker-hint kbd {
     display: inline-block;
     padding: 1px 4px;
-    background: #292e42;
-    border-radius: 3px;
+    background: var(--surface-high, #2A2C3D);
+    border-radius: var(--radius-sm, 3px);
     font-size: 10px;
     margin: 0 2px;
-    color: #7aa2f7;
+    color: var(--text-secondary, #9DA3BE);
+    font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
   }
 `;

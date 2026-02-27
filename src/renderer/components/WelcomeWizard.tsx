@@ -72,35 +72,31 @@ export function WelcomeWizard({ isOpen, onComplete, onTryFeature }: WelcomeWizar
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(26, 27, 38, 0.98);
+          background: rgba(13, 14, 20, 0.95);
           backdrop-filter: blur(12px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 9999;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           animation: overlay-fade-in 0.3s ease;
         }
 
         @keyframes overlay-fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         .wizard-dialog {
           width: 90%;
           max-width: 1000px;
           max-height: 90vh;
-          background: #1a1b26;
-          border: 2px solid #3d4458;
-          border-radius: 16px;
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-xl, 16px);
           padding: 48px;
           overflow-y: auto;
-          box-shadow: 0 24px 96px rgba(0, 0, 0, 0.6);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           animation: dialog-slide-up 0.4s cubic-bezier(0, 0, 0.2, 1);
         }
 
@@ -121,21 +117,20 @@ export function WelcomeWizard({ isOpen, onComplete, onTryFeature }: WelcomeWizar
 
         /* Custom scrollbar for wizard dialog */
         .wizard-dialog::-webkit-scrollbar {
-          width: 12px;
+          width: 6px;
         }
 
         .wizard-dialog::-webkit-scrollbar-track {
-          background: #1f2335;
-          border-radius: 8px;
+          background: transparent;
         }
 
         .wizard-dialog::-webkit-scrollbar-thumb {
-          background: #3d4458;
-          border-radius: 8px;
+          background: var(--border-default, #292E44);
+          border-radius: 3px;
         }
 
         .wizard-dialog::-webkit-scrollbar-thumb:hover {
-          background: #565f89;
+          background: var(--border-strong, #3D4163);
         }
       `}</style>
     </div>

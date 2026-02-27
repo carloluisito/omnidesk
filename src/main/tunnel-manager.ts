@@ -2,7 +2,7 @@ import { BrowserWindow } from 'electron';
 import { execFile, spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
+import { CONFIG_DIR } from './config-dir';
 import { IPCEmitter } from './ipc-emitter';
 import type {
   TunnelInfo,
@@ -39,7 +39,6 @@ interface ApiTunnel {
   created_at: string;
 }
 
-const CONFIG_DIR = path.join(os.homedir(), '.claudedesk');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'tunnel-settings.json');
 const TUNNEL_LIST_CACHE_TTL_MS = 30_000;
 const DEFAULT_API_BASE_URL = 'https://api.launchtunnel.dev/api';

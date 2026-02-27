@@ -7,6 +7,7 @@ import { DragDropOverlay } from './DragDropOverlay';
 import { DragDropContextMenu } from './DragDropContextMenu';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
+import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
 import 'xterm/css/xterm.css';
 
@@ -50,16 +51,25 @@ interface TerminalProps {
   sessionId: string;
   isVisible: boolean; // Terminal is displayed in a pane
   isFocused: boolean; // Terminal has keyboard focus
+  providerId?: ProviderId; // For provider-aware loading overlay copy
+  readOnly?: boolean;  // Observer mode: disables input forwarding, shows overlay
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onReady: (sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => void;
 }
 
-export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, onReady }: TerminalProps) {
+function providerIdToName(providerId?: ProviderId): string | undefined {
+  if (providerId === 'claude') return 'Claude Code';
+  if (providerId === 'codex')  return 'Codex CLI';
+  return undefined;
+}
+
+export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, onInput, onResize, onReady }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const initializedRef = useRef(false);
+  const handleResizeRef = useRef<() => void>(() => {});
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClaudeReady, setIsClaudeReady] = useState(false);
 
@@ -298,6 +308,9 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
     }
   }, [sessionId, isVisible, onResize]);
 
+  // Keep ref in sync so the init effect's ResizeObserver always uses the latest handleResize
+  handleResizeRef.current = handleResize;
+
   const handleConfirmClose = useCallback(() => {
     setShowCloseConfirm(false);
     window.electronAPI.closeSession(sessionId);
@@ -399,11 +412,19 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
 
     // Handle terminal input
     xterm.onData((data) => {
-      // Detect Ctrl+C (ASCII 0x03) for session termination
+      // CRITICAL: Always intercept Ctrl+C — even in read-only/observer mode.
+      // Never forward \x03 to the PTY (it exits Claude immediately).
       if (data === '\x03') {
-        setShowCloseConfirm(true);
+        if (!readOnly) {
+          // Host: show close confirm dialog
+          setShowCloseConfirm(true);
+        }
+        // Observer: silently swallow — do NOT forward to PTY
         return;
       }
+
+      // In read-only mode, discard all other input (observer watching only)
+      if (readOnly) return;
 
       // Normal input handling
       onInput(sessionId, data);
@@ -411,13 +432,13 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
 
     // Initial fit and notify ready
     setTimeout(() => {
-      handleResize();
+      handleResizeRef.current();
       onReady(sessionId, xterm, checkClaudeReady);
     }, 0);
 
-    // Handle window resize
+    // Handle window resize — use ref so we always call the latest handleResize
     const resizeObserver = new ResizeObserver(() => {
-      handleResize();
+      handleResizeRef.current();
     });
     resizeObserver.observe(terminalRef.current);
 
@@ -428,7 +449,10 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
       fitAddonRef.current = null;
       initializedRef.current = false;
     };
-  }, [sessionId, onInput, onReady, handleResize]);
+    // Use stable deps only — handleResize is accessed via ref to avoid
+    // re-running the entire init effect on visibility changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, onInput, onReady]);
 
   // Focus terminal when focused (and visible)
   useEffect(() => {
@@ -438,26 +462,76 @@ export function Terminal({ sessionId, isVisible, isFocused, onInput, onResize, o
     }
   }, [isFocused, isVisible, handleResize]);
 
+  // Force xterm canvas repaint when terminal becomes visible (opacity 0 → 1)
+  useEffect(() => {
+    if (isClaudeReady && xtermRef.current && fitAddonRef.current && isVisible) {
+      // Small delay to let the opacity transition start and container become visible
+      const timer = setTimeout(() => {
+        fitAddonRef.current?.fit();
+        xtermRef.current?.refresh(0, xtermRef.current.rows - 1);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isClaudeReady, isVisible]);
+
   return (
     <>
-      <ClaudeReadinessProgress isVisible={isVisible && !isClaudeReady} />
+      <ClaudeReadinessProgress
+        isVisible={isVisible && !isClaudeReady}
+        providerName={providerIdToName(providerId)}
+      />
 
       <div
         ref={terminalRef}
         className="terminal"
+        aria-readonly={readOnly || undefined}
         style={{
-          display: isVisible ? 'block' : 'none',
-          opacity: isClaudeReady ? 1 : 0,
+          display:  isVisible ? 'block' : 'none',
+          opacity:  isClaudeReady ? 1 : 0,
           transition: 'opacity 0.3s ease',
-          position: 'relative'
+          position: 'relative',
         }}
         onClick={() => xtermRef.current?.focus()}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragEnter={!readOnly ? handleDragEnter : undefined}
+        onDragOver={!readOnly ? handleDragOver : undefined}
+        onDragLeave={!readOnly ? handleDragLeave : undefined}
+        onDrop={!readOnly ? handleDrop : undefined}
       >
-        {isVisible && isDragging && (
+        {/* Read-only observer banner */}
+        {readOnly && isVisible && (
+          <div
+            style={{
+              position:        'absolute',
+              top:             0,
+              left:            0,
+              right:           0,
+              zIndex:          10,
+              backgroundColor: 'rgba(26, 27, 38, 0.88)',
+              borderBottom:    '1px solid rgba(122,162,247,0.2)',
+              padding:         '4px var(--space-3)',
+              display:         'flex',
+              alignItems:      'center',
+              gap:             'var(--space-2)',
+              userSelect:      'none',
+              pointerEvents:   'none',
+            }}
+            aria-live="polite"
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="#7aa2f7" strokeWidth="1.3" fill="none" />
+              <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="#7aa2f7" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            <span style={{
+              fontSize:   'var(--text-xs)',
+              fontFamily: '"JetBrains Mono", monospace',
+              color:      '#7aa2f7',
+            }}>
+              Read-only — Request control to interact
+            </span>
+          </div>
+        )}
+
+        {isVisible && isDragging && !readOnly && (
           <DragDropOverlay
             isVisible={true}
             files={draggedFiles}
@@ -494,6 +568,8 @@ interface MultiTerminalProps {
   sessionIds: string[];
   visibleSessionIds: string[]; // Sessions displayed in panes
   focusedSessionId: string | null; // Session with keyboard focus
+  sessionProviderMap?: Record<string, ProviderId>; // sessionId → providerId for loading overlay
+  readOnlySessionIds?: string[]; // Sessions in read-only (observer) mode
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onOutput: (callback: (sessionId: string, data: string) => void) => () => void;
@@ -503,6 +579,8 @@ export function MultiTerminal({
   sessionIds,
   visibleSessionIds,
   focusedSessionId,
+  sessionProviderMap,
+  readOnlySessionIds = [],
   onInput,
   onResize,
   onOutput,
@@ -511,12 +589,20 @@ export function MultiTerminal({
   const claudeReadyCallbacksRef = useRef<Map<string, (data: string) => void>>(new Map());
   const outputBuffersRef = useRef<Map<string, string>>(new Map());
   const isReadyRef = useRef<Map<string, boolean>>(new Map());
+  // Buffer for output that arrives before the terminal xterm instance is registered
+  const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
 
   // Set up output listener
   useEffect(() => {
     const cleanup = onOutput((sessionId: string, data: string) => {
       const terminal = terminalsRef.current.get(sessionId);
-      if (!terminal) return;
+      if (!terminal) {
+        // Terminal not yet registered — buffer the output for later
+        const pending = pendingOutputRef.current.get(sessionId) || [];
+        pending.push(data);
+        pendingOutputRef.current.set(sessionId, pending);
+        return;
+      }
 
       // Check if Claude is already detected as ready for this session
       const isReady = isReadyRef.current.get(sessionId);
@@ -572,10 +658,11 @@ export function MultiTerminal({
           // Mark this session as ready
           isReadyRef.current.set(sessionId, true);
 
-          // Notify the Terminal component via callback
+          // Notify the Terminal component via callback — pass the full buffer
+          // so readiness pattern detection works across chunk boundaries
           const checkCallback = claudeReadyCallbacksRef.current.get(sessionId);
           if (checkCallback) {
-            checkCallback(data);
+            checkCallback(newBuffer);
           }
 
           // Clear the buffer
@@ -590,6 +677,58 @@ export function MultiTerminal({
   const handleReady = useCallback((sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => {
     terminalsRef.current.set(sessionId, terminal);
     claudeReadyCallbacksRef.current.set(sessionId, checkClaudeReady);
+
+    // Flush any output that arrived before the terminal was registered
+    const pending = pendingOutputRef.current.get(sessionId);
+    if (pending && pending.length > 0) {
+      pendingOutputRef.current.delete(sessionId);
+      for (const data of pending) {
+        // Re-process through the same output pipeline
+        const isReady = isReadyRef.current.get(sessionId);
+        if (isReady) {
+          terminal.write(data);
+        } else {
+          const currentBuffer = outputBuffersRef.current.get(sessionId) || '';
+          const newBuffer = currentBuffer + data;
+          outputBuffersRef.current.set(sessionId, newBuffer);
+
+          if (checkClaudeReadyPatterns(newBuffer)) {
+            let startIndex = 0;
+            const escapeIndex = newBuffer.indexOf('\x1b[');
+            if (escapeIndex !== -1) {
+              startIndex = escapeIndex;
+            } else {
+              const boxChars = ['┌', '╭', '┏'];
+              for (const char of boxChars) {
+                const boxIndex = newBuffer.indexOf(char);
+                if (boxIndex !== -1) {
+                  startIndex = boxIndex;
+                  break;
+                }
+              }
+              if (startIndex === 0) {
+                const patternIndex = findClaudeOutputStart(newBuffer);
+                if (patternIndex !== -1) {
+                  const beforePattern = newBuffer.substring(0, patternIndex);
+                  const lastNewline = Math.max(
+                    beforePattern.lastIndexOf('\n'),
+                    beforePattern.lastIndexOf('\r')
+                  );
+                  startIndex = lastNewline !== -1 ? lastNewline + 1 : patternIndex;
+                }
+              }
+            }
+
+            const claudeOutput = newBuffer.substring(startIndex);
+            terminal.write(claudeOutput);
+            isReadyRef.current.set(sessionId, true);
+            checkClaudeReady(newBuffer);
+            outputBuffersRef.current.delete(sessionId);
+          }
+        }
+      }
+    }
+
     window.electronAPI.sessionReady(sessionId);
   }, []);
 
@@ -602,6 +741,7 @@ export function MultiTerminal({
         claudeReadyCallbacksRef.current.delete(id);
         outputBuffersRef.current.delete(id);
         isReadyRef.current.delete(id);
+        pendingOutputRef.current.delete(id);
       }
     }
   }, [sessionIds]);
@@ -618,6 +758,8 @@ export function MultiTerminal({
           sessionId={sessionId}
           isVisible={visibleSessionIds.includes(sessionId)}
           isFocused={sessionId === focusedSessionId}
+          providerId={sessionProviderMap?.[sessionId]}
+          readOnly={readOnlySessionIds.includes(sessionId)}
           onInput={onInput}
           onResize={onResize}
           onReady={handleReady}
@@ -642,15 +784,15 @@ export function MultiTerminal({
           justify-content: center;
           height: 100%;
           gap: 16px;
-          color: #a9b1d6;
-          font-family: 'JetBrains Mono', monospace;
+          color: var(--text-secondary, #9DA3BE);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .loading-spinner {
           width: 32px;
           height: 32px;
-          border: 3px solid #292e42;
-          border-top-color: #7aa2f7;
+          border: 3px solid var(--border-default, #292E44);
+          border-top-color: var(--accent-primary, #00C9A7);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -677,12 +819,12 @@ export function MultiTerminal({
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb {
-          background-color: #3b4261;
+          background-color: var(--border-strong, #3D4163);
           border-radius: 4px;
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb:hover {
-          background-color: #565f89;
+          background-color: var(--text-tertiary, #5C6080);
         }
       `}</style>
     </div>

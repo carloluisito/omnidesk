@@ -126,14 +126,14 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
         .step-title {
           font-size: 24px;
           font-weight: 600;
-          color: #e9e9ea;
+          color: var(--text-primary, #E2E4F0);
           margin: 0 0 12px 0;
           letter-spacing: -0.3px;
         }
 
         .step-subtitle {
           font-size: 14px;
-          color: #a9b1d6;
+          color: var(--text-secondary, #9DA3BE);
           margin: 0 0 32px 0;
           text-align: center;
           max-width: 600px;
@@ -151,8 +151,8 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
 
         .feature-card {
           padding: 24px;
-          background: #1f2335;
-          border: 2px solid #3d4458;
+          background: var(--surface-overlay, #1A1B26);
+          border: 2px solid var(--border-default, #292E44);
           border-radius: 12px;
           display: flex;
           flex-direction: column;
@@ -174,8 +174,8 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
 
         .feature-card:hover {
           transform: translateY(-4px);
-          border-color: #7aa2f7;
-          box-shadow: 0 12px 32px rgba(122, 162, 247, 0.2);
+          border-color: var(--accent-primary, #00C9A7);
+          box-shadow: 0 12px 32px rgba(0, 201, 167, 0.2);
         }
 
         .feature-icon {
@@ -184,22 +184,22 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(122, 162, 247, 0.1);
+          background: rgba(0, 201, 167, 0.1);
           border-radius: 14px;
-          color: #7aa2f7;
+          color: var(--accent-primary, #00C9A7);
           margin-bottom: 16px;
         }
 
         .feature-title {
           font-size: 16px;
           font-weight: 600;
-          color: #e9e9ea;
+          color: var(--text-primary, #E2E4F0);
           margin: 0 0 8px 0;
         }
 
         .feature-description {
           font-size: 12px;
-          color: #a9b1d6;
+          color: var(--text-secondary, #9DA3BE);
           margin: 0 0 16px 0;
           line-height: 1.6;
           flex: 1;
@@ -207,20 +207,20 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
 
         .feature-try-btn {
           padding: 8px 16px;
-          background: #24283b;
-          border: 1px solid #7aa2f7;
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--accent-primary, #00C9A7);
           border-radius: 6px;
-          color: #7aa2f7;
+          color: var(--accent-primary, #00C9A7);
           font-size: 12px;
           font-weight: 500;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .feature-try-btn:hover {
-          background: #7aa2f7;
-          color: #1a1b26;
+          background: var(--accent-primary, #00C9A7);
+          color: var(--surface-overlay, #1A1B26);
         }
 
         .wizard-actions {
@@ -234,21 +234,21 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
           align-items: center;
           gap: 8px;
           padding: 10px 20px;
-          background: #24283b;
-          border: 1px solid #3d4458;
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
           border-radius: 8px;
-          color: #a9b1d6;
+          color: var(--text-secondary, #9DA3BE);
           font-size: 13px;
           font-weight: 500;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .wizard-back-btn:hover {
-          background: #292e42;
-          border-color: #7aa2f7;
-          color: #7aa2f7;
+          background: var(--border-default, #292E44);
+          border-color: var(--accent-primary, #00C9A7);
+          color: var(--accent-primary, #00C9A7);
         }
 
         .wizard-next-btn {
@@ -256,21 +256,21 @@ export function Step3Features({ onNext, onBack, onTryFeature }: Step3FeaturesPro
           align-items: center;
           gap: 8px;
           padding: 10px 24px;
-          background: linear-gradient(135deg, #7aa2f7, #7dcfff);
+          background: linear-gradient(135deg, var(--accent-primary, #00C9A7), var(--accent-primary, #00C9A7));
           border: none;
           border-radius: 8px;
-          color: #1a1b26;
+          color: var(--surface-overlay, #1A1B26);
           font-size: 13px;
           font-weight: 600;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          box-shadow: 0 4px 16px rgba(122, 162, 247, 0.3);
+          box-shadow: 0 4px 16px rgba(0, 201, 167, 0.3);
         }
 
         .wizard-next-btn:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(122, 162, 247, 0.4);
+          box-shadow: 0 8px 24px rgba(0, 201, 167, 0.4);
         }
       `}</style>
     </div>

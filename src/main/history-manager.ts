@@ -515,7 +515,7 @@ ${content}
 
 ---
 
-*Exported from ClaudeDesk on ${new Date().toISOString()}*
+*Exported from OmniDesk on ${new Date().toISOString()}*
 `;
 
       await fs.writeFile(outputPath, markdown, 'utf-8');

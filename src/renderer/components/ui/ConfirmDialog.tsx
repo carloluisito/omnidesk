@@ -1,3 +1,12 @@
+/**
+ * ConfirmDialog — Redesigned to match Obsidian spec §6.12.
+ *
+ * Width: 360px. Focus starts on Cancel (safe default).
+ * Destructive variant: semantic-error bg on confirm button.
+ * Cancel: ghost button (left). Confirm: right.
+ * All existing props preserved.
+ */
+
 import { useEffect, useRef } from 'react';
 
 interface ConfirmDialogProps {
@@ -30,50 +39,160 @@ export function ConfirmDialog({
   }, [isOpen]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handler = (e: KeyboardEvent) => {
       if (!isOpen) return;
-      if (e.key === 'Escape') {
-        onCancel();
-      }
+      if (e.key === 'Escape') onCancel();
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="confirm-overlay" onClick={onCancel}>
+    <div
+      onClick={onCancel}
+      role="presentation"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 'var(--z-modal)' as any,
+        animation: 'dialog-backdrop-in var(--duration-fast) var(--ease-out)',
+      }}
+    >
       <div
-        className="confirm-dialog"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
+        style={{
+          width: 'var(--dialog-width-sm)',
+          maxWidth: 'calc(100vw - 48px)',
+          background: 'var(--surface-overlay)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xl)',
+          overflow: 'hidden',
+          animation: 'dialog-enter var(--duration-fast) var(--ease-out)',
+        }}
       >
-        <div className="confirm-header">
-          <div className={`confirm-icon ${isDangerous ? 'danger' : ''}`}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+        {/* Content area */}
+        <div style={{ padding: 'var(--space-5)' }}>
+          {/* Icon + Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-md)',
+                background: isDangerous ? 'var(--semantic-error-muted)' : 'var(--accent-primary-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {isDangerous ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-error)" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-accent)" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              )}
+            </div>
+            <h3
+              id="confirm-title"
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-md)',
+                fontWeight: 'var(--weight-semibold)',
+                color: 'var(--text-primary)',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              {title}
+            </h3>
           </div>
-          <h3 id="confirm-title" className="confirm-title">{title}</h3>
+
+          <p
+            id="confirm-message"
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-secondary)',
+              lineHeight: 'var(--leading-relaxed)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            {message}
+          </p>
         </div>
 
-        <p id="confirm-message" className="confirm-message">{message}</p>
-
-        <div className="confirm-actions">
+        {/* Footer */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-3) var(--space-5)',
+            borderTop: '1px solid var(--border-subtle)',
+            background: 'var(--surface-raised)',
+          }}
+        >
           <button
             ref={cancelRef}
-            className="btn btn-secondary"
             onClick={onCancel}
+            style={{
+              padding: '7px var(--space-4)',
+              background: 'none',
+              border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-secondary)',
+              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-ui)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-fast)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--state-hover)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.borderColor = 'var(--border-default)';
+            }}
           >
             {cancelLabel}
           </button>
+
           <button
-            className={`btn ${isDangerous ? 'btn-danger' : 'btn-primary'}`}
             onClick={onConfirm}
+            style={{
+              padding: '7px var(--space-4)',
+              background: isDangerous ? 'var(--semantic-error)' : 'var(--accent-primary)',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              color: 'white',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--weight-semibold)',
+              fontFamily: 'var(--font-ui)',
+              cursor: 'pointer',
+              transition: 'opacity var(--duration-fast)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
           >
             {confirmLabel}
           </button>
@@ -81,137 +200,13 @@ export function ConfirmDialog({
       </div>
 
       <style>{`
-        .confirm-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1100;
-          font-family: 'JetBrains Mono', monospace;
-          animation: fade-in 0.15s ease;
-        }
-
-        @keyframes fade-in {
+        @keyframes dialog-backdrop-in {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-
-        .confirm-dialog {
-          width: 400px;
-          max-width: calc(100vw - 48px);
-          background: #1a1b26;
-          border: 1px solid #292e42;
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-          animation: dialog-enter 0.15s ease;
-        }
-
         @keyframes dialog-enter {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        .confirm-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .confirm-icon {
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(122, 162, 247, 0.1);
-          border-radius: 10px;
-          color: #7aa2f7;
-        }
-
-        .confirm-icon.danger {
-          background: rgba(247, 118, 142, 0.1);
-          color: #f7768e;
-        }
-
-        .confirm-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #c0caf5;
-          margin: 0;
-        }
-
-        .confirm-message {
-          font-size: 13px;
-          color: #a9b1d6;
-          line-height: 1.5;
-          margin: 0 0 24px 0;
-        }
-
-        .confirm-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-
-        .btn {
-          height: 38px;
-          padding: 0 20px;
-          font-size: 13px;
-          font-weight: 500;
-          font-family: inherit;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .btn-secondary {
-          background: transparent;
-          border: 1px solid #292e42;
-          color: #a9b1d6;
-        }
-
-        .btn-secondary:hover {
-          background: #1f2335;
-          border-color: #3b4261;
-        }
-
-        .btn-primary {
-          background: #7aa2f7;
-          border: none;
-          color: #1a1b26;
-        }
-
-        .btn-primary:hover {
-          background: #89b4fa;
-        }
-
-        .btn-danger {
-          background: #f7768e;
-          border: none;
-          color: #1a1b26;
-        }
-
-        .btn-danger:hover {
-          background: #ff7a93;
-        }
-
-        .btn:active {
-          transform: scale(0.98);
-        }
-
-        .btn:focus {
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.3);
+          from { opacity: 0; transform: scale(0.96) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>

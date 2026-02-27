@@ -44,22 +44,23 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
         .wizard-stepper {
           width: 100%;
           margin-bottom: 48px;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .stepper-progress {
           width: 100%;
-          height: 4px;
-          background: #24283b;
-          border-radius: 2px;
+          height: 3px;
+          background: var(--surface-float, #222435);
+          border-radius: var(--radius-full, 9999px);
           overflow: hidden;
           margin-bottom: 24px;
         }
 
         .stepper-progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #7aa2f7, #7dcfff);
+          background: var(--accent-primary, #00C9A7);
           transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 0 8px rgba(122, 162, 247, 0.5);
+          box-shadow: 0 0 8px rgba(0, 201, 167, 0.4);
         }
 
         .stepper-steps {
@@ -80,54 +81,50 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #24283b;
-          border: 2px solid #3d4458;
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #565f89;
-          font-size: 13px;
-          font-weight: 600;
+          color: var(--text-tertiary, #5C6080);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-semibold, 600);
           transition: all 0.3s ease;
         }
 
         .stepper-step.active .step-indicator {
-          background: #7aa2f7;
-          border-color: #7aa2f7;
-          color: #1a1b26;
-          box-shadow: 0 0 16px rgba(122, 162, 247, 0.5);
+          background: var(--accent-primary, #00C9A7);
+          border-color: var(--accent-primary, #00C9A7);
+          color: var(--text-inverse, #0D0E14);
+          box-shadow: 0 0 16px rgba(0, 201, 167, 0.4);
           animation: pulse-indicator 2s ease-in-out infinite;
         }
 
         .stepper-step.completed .step-indicator {
-          background: #9ece6a;
-          border-color: #9ece6a;
-          color: #1a1b26;
+          background: var(--semantic-success, #3DD68C);
+          border-color: var(--semantic-success, #3DD68C);
+          color: var(--text-inverse, #0D0E14);
         }
 
         @keyframes pulse-indicator {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.1);
-          }
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
         }
 
         .step-label {
-          font-size: 11px;
-          color: #565f89;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
           text-align: center;
           transition: color 0.3s ease;
         }
 
         .stepper-step.active .step-label {
-          color: #a9b1d6;
-          font-weight: 500;
+          color: var(--text-primary, #E2E4F0);
+          font-weight: var(--weight-medium, 500);
         }
 
         .stepper-step.completed .step-label {
-          color: #9ece6a;
+          color: var(--semantic-success, #3DD68C);
         }
       `}</style>
     </div>

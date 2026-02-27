@@ -61,16 +61,16 @@ function getSeverity(utilization: number): 'normal' | 'elevated' | 'critical' {
 }
 
 const severityColors: Record<string, string> = {
-  normal: '#9ece6a',
-  elevated: '#e0af68',
-  critical: '#f7768e',
+  normal: 'var(--semantic-success, #3DD68C)',
+  elevated: 'var(--semantic-warning, #F7A84A)',
+  critical: 'var(--semantic-error, #F7678E)',
 };
 
 const burnRateLabels: Record<string, { text: string; color: string }> = {
-  'on-track': { text: 'On Track', color: '#9ece6a' },
-  'elevated': { text: 'Elevated', color: '#e0af68' },
-  'critical': { text: 'Critical', color: '#f7768e' },
-  'unknown': { text: 'Unknown', color: '#565f89' },
+  'on-track': { text: 'On Track', color: 'var(--semantic-success, #3DD68C)' },
+  'elevated': { text: 'Elevated', color: 'var(--semantic-warning, #F7A84A)' },
+  'critical': { text: 'Critical', color: 'var(--semantic-error, #F7678E)' },
+  'unknown': { text: 'Unknown', color: 'var(--text-tertiary, #5C6080)' },
 };
 
 export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipProps) {
@@ -195,14 +195,14 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
           position: absolute;
           z-index: 10000;
           width: 280px;
-          background: #16161e;
-          border: 1px solid #292e42;
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 11px;
-          color: #a9b1d6;
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-md, 6px);
+          padding: var(--space-3, 12px);
+          box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-secondary, #9DA3BE);
           pointer-events: none;
           animation: fadeIn 150ms ease-out;
         }
@@ -220,16 +220,16 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-title {
-          font-size: 12px;
-          font-weight: 700;
-          color: #c0caf5;
-          margin-bottom: 4px;
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-bold, 700);
+          color: var(--text-primary, #E2E4F0);
+          margin-bottom: var(--space-1, 4px);
         }
 
         .fuel-tooltip-divider {
           height: 1px;
-          background: #292e42;
-          margin: 8px 0;
+          background: var(--border-subtle, #1E2030);
+          margin: var(--space-2, 8px) 0;
         }
 
         .fuel-tooltip-row {
@@ -245,12 +245,12 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-label {
-          color: #565f89;
+          color: var(--text-tertiary, #5C6080);
         }
 
         .fuel-tooltip-value {
-          color: #a9b1d6;
-          font-weight: 600;
+          color: var(--text-secondary, #9DA3BE);
+          font-weight: var(--weight-semibold, 600);
         }
 
         .fuel-tooltip-spacer {
@@ -258,15 +258,15 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-stale-icon {
-          color: #e0af68;
-          font-weight: 700;
+          color: var(--semantic-warning, #F7A84A);
+          font-weight: var(--weight-bold, 700);
         }
 
         .fuel-tooltip-stale-warning {
           font-size: 10px;
-          color: #e0af68;
+          color: var(--semantic-warning, #F7A84A);
           text-align: center;
-          margin-top: 4px;
+          margin-top: var(--space-1, 4px);
           opacity: 0.8;
         }
 

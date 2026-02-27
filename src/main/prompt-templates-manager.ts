@@ -1,4 +1,3 @@
-import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,16 +8,10 @@ import {
   TemplateUpdateRequest,
 } from '../shared/types/prompt-templates';
 import { BUILT_IN_ACTIONS } from './built-in-actions';
+import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
-const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const TEMPLATES_FILE = path.join(CONFIG_DIR, 'prompt-templates.json');
 const MAX_USER_TEMPLATES = 100;
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
 
 function getDefaultData(): PromptTemplatesData {
   return {

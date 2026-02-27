@@ -4,6 +4,10 @@
  * Fetches quota data from Anthropic OAuth API using
  * credentials stored by Claude Code CLI.
  *
+ * Supports per-account quota tracking based on session working directory.
+ * Different Claude config directories (~/.claude-work, ~/.claude-personal, ~/.claude)
+ * are resolved from the active session's working directory.
+ *
  * Burn rate calculation matches claude-desk's allocator-manager.ts
  */
 
@@ -59,6 +63,16 @@ interface QuotaState {
   utilizationHistory: UtilizationSample[];
 }
 
+interface PerDirCache {
+  quota: ClaudeUsageQuota | null;
+  timestamp: number;
+}
+
+interface PerDirState {
+  state: QuotaState;
+  loaded: boolean;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -66,51 +80,96 @@ interface QuotaState {
 const MAX_HISTORY_SAMPLES = 300; // ~5 hours at 1 sample/min
 const QUOTA_CACHE_TTL_MS = 60_000; // 1 minute cache
 const MIN_DELTA_MS = 60 * 1000; // 1 minute minimum for rate calculation
+const DEFAULT_CONFIG_DIR = path.join(os.homedir(), '.claude');
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STATE
+// STATE (per-configDir)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let cachedQuota: ClaudeUsageQuota | null = null;
-let quotaCacheTimestamp = 0;
-let state: QuotaState = { utilizationHistory: [] };
-let stateLoaded = false;
+const quotaCacheMap = new Map<string, PerDirCache>();
+const stateMap = new Map<string, PerDirState>();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PERSISTENCE
+// CONFIG DIR RESOLVER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function getStatePath(): string {
-  const userDataPath = app.getPath('userData');
-  return path.join(userDataPath, 'quota-state.json');
+/**
+ * Resolve the Claude config directory based on a session's working directory.
+ * - Paths containing `/repositories/work/` → ~/.claude-work
+ * - Paths containing `/repositories/personal/` or `/repositories/ispade/` → ~/.claude-personal
+ * - Otherwise → ~/.claude (default)
+ */
+export function resolveClaudeConfigDir(workingDirectory?: string): string {
+  if (!workingDirectory) return DEFAULT_CONFIG_DIR;
+
+  // Normalize path separators for case-insensitive matching
+  const normalized = workingDirectory.replace(/\\/g, '/').toLowerCase();
+
+  if (normalized.includes('/repositories/work/')) {
+    return path.join(os.homedir(), '.claude-work');
+  }
+  if (normalized.includes('/repositories/personal/') || normalized.includes('/repositories/ispade/')) {
+    return path.join(os.homedir(), '.claude-personal');
+  }
+
+  return DEFAULT_CONFIG_DIR;
 }
 
-function loadState(): void {
-  if (stateLoaded) return;
-  stateLoaded = true;
+// ═══════════════════════════════════════════════════════════════════════════════
+// PERSISTENCE (per-configDir)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Derive a short suffix from the config dir for state file naming */
+function configDirSuffix(configDir: string): string {
+  const base = path.basename(configDir); // e.g. ".claude-work", ".claude-personal", ".claude"
+  if (base === '.claude') return '';
+  // ".claude-work" → "-work", ".claude-personal" → "-personal"
+  return base.replace('.claude', '');
+}
+
+function getStatePath(configDir: string): string {
+  const userDataPath = app.getPath('userData');
+  const suffix = configDirSuffix(configDir);
+  return path.join(userDataPath, `quota-state${suffix}.json`);
+}
+
+function getPerDirState(configDir: string): PerDirState {
+  let entry = stateMap.get(configDir);
+  if (!entry) {
+    entry = { state: { utilizationHistory: [] }, loaded: false };
+    stateMap.set(configDir, entry);
+  }
+  return entry;
+}
+
+function loadState(configDir: string): void {
+  const entry = getPerDirState(configDir);
+  if (entry.loaded) return;
+  entry.loaded = true;
 
   try {
-    const statePath = getStatePath();
+    const statePath = getStatePath(configDir);
     if (fs.existsSync(statePath)) {
       const raw = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
-      state = {
+      entry.state = {
         utilizationHistory: raw.utilizationHistory || [],
       };
-      console.log(`[quota-service] Loaded ${state.utilizationHistory.length} history samples`);
+      console.log(`[quota-service] Loaded ${entry.state.utilizationHistory.length} history samples from ${statePath}`);
     }
   } catch (error) {
     console.log('[quota-service] Error loading state:', error);
   }
 }
 
-function saveState(): void {
+function saveState(configDir: string): void {
   try {
-    const statePath = getStatePath();
+    const statePath = getStatePath(configDir);
     const dir = path.dirname(statePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+    const entry = getPerDirState(configDir);
+    fs.writeFileSync(statePath, JSON.stringify(entry.state, null, 2));
   } catch (error) {
     console.log('[quota-service] Error saving state:', error);
   }
@@ -120,11 +179,11 @@ function saveState(): void {
 // TOKEN RETRIEVAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function getClaudeOAuthToken(): string | null {
+export function getClaudeOAuthToken(configDir: string = DEFAULT_CONFIG_DIR): string | null {
   const credentialPaths = [
-    path.join(os.homedir(), '.claude', '.credentials.json'),
-    path.join(os.homedir(), '.claude', '.credentials'),
-    path.join(os.homedir(), '.claude', 'credentials.json'),
+    path.join(configDir, '.credentials.json'),
+    path.join(configDir, '.credentials'),
+    path.join(configDir, 'credentials.json'),
   ];
 
   for (const credentialsPath of credentialPaths) {
@@ -144,7 +203,7 @@ export function getClaudeOAuthToken(): string | null {
     }
   }
 
-  console.log('[quota-service] No OAuth token found');
+  console.log(`[quota-service] No OAuth token found in ${configDir}`);
   return null;
 }
 
@@ -152,20 +211,23 @@ export function getClaudeOAuthToken(): string | null {
 // QUOTA API
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function queryClaudeQuota(forceRefresh = false): Promise<ClaudeUsageQuota | null> {
-  loadState();
+export async function queryClaudeQuota(forceRefresh = false, configDir: string = DEFAULT_CONFIG_DIR): Promise<ClaudeUsageQuota | null> {
+  loadState(configDir);
   const now = Date.now();
 
+  // Get per-dir cache
+  const cache = quotaCacheMap.get(configDir);
+
   // Return cached data if still valid
-  if (!forceRefresh && cachedQuota && (now - quotaCacheTimestamp) < QUOTA_CACHE_TTL_MS) {
-    return cachedQuota;
+  if (!forceRefresh && cache && cache.quota && (now - cache.timestamp) < QUOTA_CACHE_TTL_MS) {
+    return cache.quota;
   }
 
   try {
-    const token = getClaudeOAuthToken();
+    const token = getClaudeOAuthToken(configDir);
     if (!token) {
-      console.log('[quota-service] No OAuth token available');
-      return cachedQuota;
+      console.log(`[quota-service] No OAuth token available in ${configDir}`);
+      return cache?.quota ?? null;
     }
 
     const response = await fetch('https://api.anthropic.com/api/oauth/usage', {
@@ -180,7 +242,7 @@ export async function queryClaudeQuota(forceRefresh = false): Promise<ClaudeUsag
     if (!response.ok) {
       const errorText = await response.text();
       console.log(`[quota-service] Quota API error (${response.status}):`, errorText);
-      return cachedQuota;
+      return cache?.quota ?? null;
     }
 
     interface ApiQuotaResponse {
@@ -203,17 +265,16 @@ export async function queryClaudeQuota(forceRefresh = false): Promise<ClaudeUsag
       lastUpdated: new Date().toISOString(),
     };
 
-    // Update cache
-    cachedQuota = quota;
-    quotaCacheTimestamp = now;
+    // Update per-dir cache
+    quotaCacheMap.set(configDir, { quota, timestamp: now });
 
     // Record utilization sample for burn rate calculation
-    recordUtilizationSample(quota);
+    recordUtilizationSample(quota, configDir);
 
-    console.log('[quota-service] Quota fetched:', {
+    console.log(`[quota-service] Quota fetched (${configDir}):`, {
       fiveHour: `${(quota.five_hour.utilization * 100).toFixed(1)}%`,
       sevenDay: `${(quota.seven_day.utilization * 100).toFixed(1)}%`,
-      historySize: state.utilizationHistory.length,
+      historySize: getPerDirState(configDir).state.utilizationHistory.length,
     });
 
     return quota;
@@ -221,19 +282,27 @@ export async function queryClaudeQuota(forceRefresh = false): Promise<ClaudeUsag
     if (error instanceof Error) {
       console.log('[quota-service] Error fetching quota:', error.message);
     }
-    return cachedQuota;
+    return cache?.quota ?? null;
   }
 }
 
-export function clearQuotaCache(): void {
-  quotaCacheTimestamp = 0;
+export function clearQuotaCache(configDir?: string): void {
+  if (configDir) {
+    const cache = quotaCacheMap.get(configDir);
+    if (cache) cache.timestamp = 0;
+  } else {
+    // Clear all caches
+    for (const cache of quotaCacheMap.values()) {
+      cache.timestamp = 0;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILIZATION SAMPLING
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function recordUtilizationSample(quota: ClaudeUsageQuota): void {
+function recordUtilizationSample(quota: ClaudeUsageQuota, configDir: string): void {
   const sample: UtilizationSample = {
     timestamp: new Date().toISOString(),
     // Store as percentage with 3 decimal places for precision
@@ -241,14 +310,15 @@ function recordUtilizationSample(quota: ClaudeUsageQuota): void {
     sevenDay: Math.round(quota.seven_day.utilization * 100 * 1000) / 1000,
   };
 
-  state.utilizationHistory.push(sample);
+  const entry = getPerDirState(configDir);
+  entry.state.utilizationHistory.push(sample);
 
   // Trim old samples
-  if (state.utilizationHistory.length > MAX_HISTORY_SAMPLES) {
-    state.utilizationHistory = state.utilizationHistory.slice(-MAX_HISTORY_SAMPLES);
+  if (entry.state.utilizationHistory.length > MAX_HISTORY_SAMPLES) {
+    entry.state.utilizationHistory = entry.state.utilizationHistory.slice(-MAX_HISTORY_SAMPLES);
   }
 
-  saveState();
+  saveState(configDir);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -356,9 +426,9 @@ export function buildBurnRateResult(
   };
 }
 
-export function getBurnRate(): BurnRateData {
-  loadState();
-  const history = state.utilizationHistory;
+export function getBurnRate(configDir: string = DEFAULT_CONFIG_DIR): BurnRateData {
+  loadState(configDir);
+  const history = getPerDirState(configDir).state.utilizationHistory;
 
   const defaultResult: BurnRateData = {
     ratePerHour5h: null,
@@ -412,12 +482,12 @@ export function getBurnRate(): BurnRateData {
 // HISTORY ACCESS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function getUtilizationHistory(): UtilizationSample[] {
-  loadState();
-  return [...state.utilizationHistory];
+export function getUtilizationHistory(configDir: string = DEFAULT_CONFIG_DIR): UtilizationSample[] {
+  loadState(configDir);
+  return [...getPerDirState(configDir).state.utilizationHistory];
 }
 
-export function clearHistory(): void {
-  state.utilizationHistory = [];
-  saveState();
+export function clearHistory(configDir: string = DEFAULT_CONFIG_DIR): void {
+  getPerDirState(configDir).state.utilizationHistory = [];
+  saveState(configDir);
 }

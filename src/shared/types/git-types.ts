@@ -131,7 +131,10 @@ export interface WorktreeInfo {
   mainRepoPath: string;
   worktreePath: string;
   branch: string;
-  managedByClaudeDesk: boolean;
+  /** New field. Backward-compat: read managedByClaudeDesk as fallback. */
+  managedByOmniDesk: boolean;
+  /** @deprecated Use managedByOmniDesk. Kept for backward-compat reads of persisted data. */
+  managedByClaudeDesk?: boolean;
   createdAt: number;
 }
 
@@ -144,7 +147,10 @@ export interface GitWorktreeEntry {
   isLocked: boolean;
   isPrunable: boolean;
   linkedSessionId: string | null;
-  managedByClaudeDesk: boolean;
+  /** New field. Backward-compat: read managedByClaudeDesk as fallback. */
+  managedByOmniDesk: boolean;
+  /** @deprecated Use managedByOmniDesk. Kept for backward-compat reads of persisted data. */
+  managedByClaudeDesk?: boolean;
 }
 
 export interface WorktreeCreateRequest {

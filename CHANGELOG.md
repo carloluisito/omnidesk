@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ClaudeDesk will be documented in this file.
+All notable changes to OmniDesk will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,6 +10,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - Homebrew/Chocolatey packaging for easier installation
 - Development dependency security updates (electron v40+, vite v7+)
+
+---
+
+## [5.0.0] - 2026-02-27
+
+### Added
+- **Multi-provider abstraction** — Pluggable provider layer decoupling CLI specifics from session management
+  - `IProvider` interface (`src/main/providers/provider.ts`) defining command building, env vars, model detection
+  - `ProviderRegistry` with auto-registration of built-in providers
+  - `ClaudeProvider` (default) and `CodexProvider` (OpenAI Codex CLI)
+  - Provider selector dropdown in NewSessionDialog (shown when >1 provider available)
+  - `[CX]` tab badge for Codex sessions
+  - `useProvider` hook with conditional UI (hides Claude-only features for non-Claude providers)
+  - 3 IPC methods (`provider:*`): list, available, capabilities
+  - `src/shared/types/provider-types.ts`: `ProviderId`, `ProviderCapabilities`, `ProviderInfo`
+- **OmniDesk rebrand** — Renamed ClaudeDesk → OmniDesk across all branding, config, UI
+  - Config directory migrated from `~/.claudedesk/` to `~/.omnidesk/` with automatic migration
+  - Centralized `config-dir.ts` with `CONFIG_DIR`, `ensureConfigDir()`, `migrateFromLegacy()`
+  - `managedByClaudeDesk` → `managedByOmniDesk` (backward compat read on existing worktrees)
+- **Real-time session sharing** — Share live terminal sessions with remote teammates via LaunchTunnel relay
+  - `SharingManager` managing host and observer WebSocket lifecycles (`wss://relay.launchtunnel.dev/share/<id>`)
+  - Binary frame protocol with 12 frame types (`0x10`–`0x1B`): TerminalData, TerminalInput, Metadata, ScrollbackBuffer, ControlRequest/Grant/Revoke, ObserverAnnounce/List, ShareClose, Ping/Pong
+  - Share via tab right-click context menu; generates share code + URL
+  - Observers join read-only with scrollback buffer (5000 lines, gzip-compressed)
+  - Control request/grant/revoke flow for observer input
+  - Metadata broadcast (2s interval), keepalive ping/pong, automatic reconnect
+  - Deep link support: `omnidesk://join/<code>` via `app.on('second-instance')` (Windows) and `app.on('open-url')` (macOS)
+  - Sharing gated behind LaunchTunnel Pro subscription
+  - Observer Ctrl+C (`\x03`) stripped from TerminalInput frames (same safety rule as local sessions)
+  - `ShareSessionDialog`, `JoinSessionDialog`, `ObserverToolbar`, `ObserverMetadataSidebar`
+  - `ShareManagementPanel`, `ShareIndicator`, `ControlRequestDialog`
+  - `useSessionSharing` hook
+  - `src/shared/types/sharing-types.ts` with full type definitions
+  - 22 IPC methods (`sharing:*`)
+- **UI redesign** — Tokyo Night design token system and new component library
+  - `ActivityBar` (left sidebar navigation), `StatusBar` (bottom status strip), `SidePanel` (collapsible side panels)
+  - New component library: `Button`, `Toast`, `ToastContainer`, `Tooltip`, `ProgressBar`, `StatusDot`, `BrandMark`, `ProviderBadge`
+  - `tokens.css` (design token definitions), `animations.css` (shared animation keyframes)
+
+### Changed
+- **IPC contract** — Expanded from ~166 to ~191 methods (16 domains)
+- **Project scale** — ~160 source files, ~51,000 LOC, 16 domains, 16 managers, 475+ tests across 24+ test files
 
 ---
 
@@ -280,7 +322,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/carloluisito/claudedesk/compare/v4.6.0...v5.0.0
 [4.6.0]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...v4.5.0
 [4.4.1]: https://github.com/carloluisito/claudedesk/compare/v4.3.1...v4.4.1

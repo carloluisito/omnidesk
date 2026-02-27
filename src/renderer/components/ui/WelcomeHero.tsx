@@ -1,3 +1,5 @@
+import { BrandMark } from './BrandMark';
+
 interface WelcomeHeroProps {
   version: string;
 }
@@ -5,18 +7,19 @@ interface WelcomeHeroProps {
 export function WelcomeHero({ version }: WelcomeHeroProps) {
   return (
     <div className="welcome-hero">
-      <div className="hero-logo">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M9 3v18" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M14 8l-5 5l5 5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      <div className="hero-brandmark">
+        <BrandMark size={64} color="var(--accent-primary)" />
       </div>
 
-      <h1 className="hero-title">ClaudeDesk</h1>
+      <h1 className="hero-title">
+        <span className="hero-title-omni">Omni</span>
+        <span className="hero-title-desk">Desk</span>
+      </h1>
+
       <p className="hero-tagline">
-        Multi-session terminal workspace for Claude Code CLI
+        Multi-provider AI coding terminal
       </p>
+
       <div className="hero-version">v{version}</div>
 
       <style>{`
@@ -24,14 +27,14 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-bottom: 48px;
-          animation: hero-fade-in 0.5s ease;
+          margin-bottom: var(--space-12, 48px);
+          animation: hero-fade-in var(--duration-slow, 300ms) var(--ease-out, ease) both;
         }
 
         @keyframes hero-fade-in {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(-8px);
           }
           to {
             opacity: 1;
@@ -39,45 +42,55 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           }
         }
 
-        .hero-logo {
-          width: 96px;
-          height: 96px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, rgba(122, 162, 247, 0.15), rgba(125, 207, 255, 0.1));
-          border: 2px solid #3d4458;
-          border-radius: 24px;
-          margin-bottom: 24px;
-          color: #7aa2f7;
-          box-shadow: 0 8px 32px rgba(122, 162, 247, 0.15);
+        .hero-brandmark {
+          margin-bottom: var(--space-5, 20px);
+          filter: drop-shadow(0 0 24px #00C9A728);
         }
 
         .hero-title {
-          font-size: 32px;
-          font-weight: 700;
-          color: #e9e9ea;
-          margin: 0 0 8px 0;
-          letter-spacing: -0.5px;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-2xl, 28px);
+          color: var(--text-primary, #E2E4F0);
+          margin: 0 0 var(--space-2, 8px) 0;
+          letter-spacing: var(--tracking-tight, -0.01em);
+          line-height: var(--leading-tight, 1.2);
+        }
+
+        .hero-title-omni {
+          font-weight: var(--weight-medium, 500);
+        }
+
+        .hero-title-desk {
+          font-weight: var(--weight-light, 300);
         }
 
         .hero-tagline {
-          font-size: 14px;
-          color: #a9b1d6;
-          margin: 0 0 12px 0;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-regular, 400);
+          color: var(--text-secondary, #9DA3BE);
+          margin: 0 0 var(--space-3, 12px) 0;
           text-align: center;
-          max-width: 400px;
-          line-height: 1.5;
+          max-width: 360px;
+          line-height: var(--leading-normal, 1.5);
         }
 
         .hero-version {
-          font-size: 11px;
-          color: #565f89;
-          font-weight: 500;
-          padding: 4px 12px;
-          background: #1f2335;
-          border: 1px solid #3d4458;
-          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          padding: 2px var(--space-3, 12px);
+          background: var(--surface-float, #222435);
+          border: 1px solid var(--border-default, #292E44);
+          border-radius: var(--radius-full, 9999px);
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-2xs, 10px);
+          color: var(--text-tertiary, #5C6080);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .welcome-hero {
+            animation: none;
+          }
         }
       `}</style>
     </div>

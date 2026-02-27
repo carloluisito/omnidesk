@@ -15,17 +15,11 @@ import {
 } from '../shared/ipc-types';
 import type { AtlasSettings } from '../shared/types/atlas-types';
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
+import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
-const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const WORKTREE_REGISTRY_FILE = path.join(CONFIG_DIR, 'worktrees.json');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
 const MAX_WORKSPACES = 50;
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
 
 function getDefaultSettings(): AppSettings {
   return {
@@ -563,7 +557,7 @@ export function removeWorktreeFromRegistry(worktreePath: string): void {
   saveWorktreeRegistry(worktrees);
 }
 
-export function isWorktreeManagedByClaudeDesk(worktreePath: string): boolean {
+export function isWorktreeManagedByOmniDesk(worktreePath: string): boolean {
   const worktrees = loadWorktreeRegistry();
-  return worktrees.some(wt => wt.worktreePath === worktreePath && wt.managedByClaudeDesk);
+  return worktrees.some(wt => wt.worktreePath === worktreePath && (wt.managedByOmniDesk ?? wt.managedByClaudeDesk));
 }

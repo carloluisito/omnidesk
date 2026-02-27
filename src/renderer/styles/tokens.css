@@ -1,0 +1,183 @@
+/* ============================================================
+   OmniDesk Design Tokens — Obsidian Palette
+   Single source of truth for all CSS custom properties.
+   ============================================================ */
+
+:root {
+
+  /* === SURFACE TIERS === */
+  --surface-base:       #0D0E14;   /* Deepest: app chrome, title bar, activity bar */
+  --surface-raised:     #13141C;   /* Base content area, panel backgrounds */
+  --surface-overlay:    #1A1B26;   /* Cards, dialogs, panel headers */
+  --surface-float:      #222435;   /* Hover states, selected rows, input backgrounds */
+  --surface-high:       #2A2D42;   /* Tooltips, popovers, elevated dropdowns */
+
+  /* === BORDERS === */
+  --border-subtle:      #1E2030;   /* Between surface tiers, barely visible */
+  --border-default:     #292E44;   /* Component edges, panel dividers */
+  --border-strong:      #3D4163;   /* Focus rings base, active indicators */
+  --border-accent:      #00C9A7;   /* Accent-colored borders (active tab, selected) */
+
+  /* === ACCENT / PRIMARY === */
+  --accent-primary:         #00C9A7;   /* Cyan-teal — primary action, active state, links */
+  --accent-primary-dim:     #009E84;   /* Pressed state for accent */
+  --accent-primary-muted:   #00C9A714; /* 8% opacity — accent backgrounds, chips */
+  --accent-secondary:       #7C8FFF;   /* Periwinkle blue — secondary accent, agent/team */
+  --accent-secondary-muted: #7C8FFF14;
+
+  /* === TEXT HIERARCHY === */
+  --text-primary:   #E2E4F0;   /* Headlines, active labels, important values */
+  --text-secondary: #9DA3BE;   /* Body text, descriptions, metadata */
+  --text-tertiary:  #5C6080;   /* Placeholders, disabled labels, timestamps */
+  --text-accent:    #00C9A7;   /* Accent-colored text (links, active items) */
+  --text-inverse:   #0D0E14;   /* Text on accent backgrounds */
+
+  /* === SEMANTIC === */
+  --semantic-success:       #3DD68C;
+  --semantic-success-muted: #3DD68C14;
+  --semantic-warning:       #F7A84A;
+  --semantic-warning-muted: #F7A84A14;
+  --semantic-error:         #F7678E;
+  --semantic-error-muted:   #F7678E14;
+  --semantic-info:          #7C8FFF;
+  --semantic-info-muted:    #7C8FFF14;
+
+  /* === PROVIDER BADGE COLORS === */
+  --provider-claude:  #CC8533;   /* Amber-orange */
+  --provider-codex:   #10A37F;   /* OpenAI green */
+  --provider-future:  #9DA3BE;   /* Unknown/generic */
+
+  /* === TERMINAL COLORS (xterm.js overrides) === */
+  --term-black:         #1A1B26;
+  --term-red:           #F7678E;
+  --term-green:         #3DD68C;
+  --term-yellow:        #F7A84A;
+  --term-blue:          #7C8FFF;
+  --term-magenta:       #BB9AF7;
+  --term-cyan:          #00C9A7;
+  --term-white:         #C0C4D6;
+  --term-bright-black:  #3D4163;
+  --term-bright-white:  #E2E4F0;
+  --term-background:    #0D0E14;
+  --term-foreground:    #C0C4D6;
+  --term-cursor:        #00C9A7;
+  --term-selection:     #3D416380; /* 50% opacity */
+
+  /* === INTERACTIVE STATES === */
+  --state-hover:    #FFFFFF0A;   /* 4% white overlay */
+  --state-active:   #FFFFFF14;   /* 8% white overlay */
+  --state-focus:    #00C9A740;   /* 25% accent for focus rings */
+  --state-disabled: #FFFFFF0A;
+
+  /* === SPACING (4px base unit) === */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* === COMPONENT SIZING === */
+  --title-bar-height:      36px;
+  --activity-bar-width:    48px;
+  --tab-bar-height:        38px;
+  --pane-header-height:    34px;
+  --status-bar-height:     24px;
+  --panel-width-default:   280px;
+  --panel-width-wide:      360px;
+  --panel-width-narrow:    240px;
+  --panel-width-min:       200px;
+  --panel-width-max:       480px;
+  --resize-handle-width:   4px;
+  --resize-handle-hitbox:  12px;
+  --dialog-width-sm:       360px;
+  --dialog-width-md:       520px;
+  --dialog-width-lg:       680px;
+  --dialog-max-height:     85vh;
+  --command-palette-width: 600px;
+  --command-palette-max-height: 480px;
+
+  /* === BORDER RADIUS === */
+  --radius-none: 0px;
+  --radius-sm:   3px;    /* Badges, tabs */
+  --radius-md:   6px;    /* Buttons, inputs, small cards */
+  --radius-lg:   10px;   /* Dialogs, panels, popovers */
+  --radius-xl:   16px;   /* Welcome wizard */
+  --radius-full: 9999px; /* Pills, status dots */
+
+  /* === SHADOWS === */
+  --shadow-sm:  0 1px 3px #00000040, 0 1px 2px #00000060;
+  --shadow-md:  0 4px 12px #00000060, 0 2px 4px #00000040;
+  --shadow-lg:  0 12px 32px #00000080, 0 4px 12px #00000060;
+  --shadow-xl:  0 24px 64px #000000A0, 0 8px 24px #00000080;
+  --shadow-glow-accent: 0 0 16px #00C9A730;
+  --shadow-glow-error:  0 0 16px #F7678E30;
+
+  /* === Z-INDEX STACK === */
+  --z-base:     0;
+  --z-panel:    10;
+  --z-resize:   20;
+  --z-dropdown: 100;
+  --z-tooltip:  200;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-palette:  500;
+  --z-toast:    600;
+  --z-titlebar: 700;
+
+  /* === TYPOGRAPHY — FONT FAMILIES === */
+  --font-ui:      "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+  --font-mono-ui: "JetBrains Mono", monospace;
+
+  /* === TYPOGRAPHY — SIZE SCALE (minor third 1.2) === */
+  --text-2xs:  10px;   /* Timestamps, badge text, status bar */
+  --text-xs:   11px;   /* Tab labels, panel section headers */
+  --text-sm:   12px;   /* Secondary labels, helper text, menu items */
+  --text-base: 13px;   /* Primary UI text, button labels, form fields */
+  --text-md:   14px;   /* Panel headers, dialog titles (secondary) */
+  --text-lg:   16px;   /* Dialog titles (primary), section headings */
+  --text-xl:   20px;   /* Welcome screen heading */
+  --text-2xl:  28px;   /* App name in welcome/about screen */
+  --text-3xl:  40px;   /* Welcome hero */
+
+  /* === TYPOGRAPHY — WEIGHTS === */
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* === TYPOGRAPHY — LINE HEIGHTS === */
+  --leading-tight:   1.2;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.6;
+
+  /* === TYPOGRAPHY — LETTER SPACING === */
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.04em;
+  --tracking-widest:  0.08em;
+
+  /* === ANIMATION === */
+  --duration-instant: 80ms;
+  --duration-fast:    150ms;
+  --duration-normal:  200ms;
+  --duration-slow:    300ms;
+  --duration-enter:   200ms;
+  --duration-exit:    150ms;
+
+  --ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:     cubic-bezier(0.4, 0.0, 1.0, 1);
+  --ease-inout:  cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* === BREAKPOINTS (as custom properties for JS usage) === */
+  --bp-compact: 900px;
+  --bp-default: 1280px;
+  --bp-wide:    1600px;
+}

@@ -50,10 +50,10 @@ export function PlaybookProgressPanel({ execution, onCancel, onConfirm }: Playbo
   };
 
   const getStatusColor = () => {
-    if (execution.status === 'completed') return '#9ece6a';
-    if (execution.status === 'failed') return '#f7768e';
-    if (execution.status === 'cancelled') return '#e0af68';
-    return '#7aa2f7';
+    if (execution.status === 'completed') return 'var(--semantic-success, #3DD68C)';
+    if (execution.status === 'failed') return 'var(--semantic-error, #F7678E)';
+    if (execution.status === 'cancelled') return 'var(--semantic-warning, #F7A84A)';
+    return 'var(--accent-primary, #00C9A7)';
   };
 
   const getStatusIcon = () => {
@@ -68,12 +68,12 @@ export function PlaybookProgressPanel({ execution, onCancel, onConfirm }: Playbo
     <div className={`pb-progress ${isConfirmGate ? 'expanded' : ''}`}>
       <div className="pb-progress-bar">
         {execution.stepStates.map((step, i) => {
-          let color = '#292e42'; // pending
-          if (step.status === 'completed') color = '#9ece6a';
-          else if (step.status === 'running') color = '#7aa2f7';
-          else if (step.status === 'waiting_confirmation') color = '#e0af68';
-          else if (step.status === 'failed' || step.status === 'timed_out') color = '#f7768e';
-          else if (step.status === 'skipped') color = '#565f89';
+          let color = 'var(--border-default, #292E44)'; // pending
+          if (step.status === 'completed') color = 'var(--semantic-success, #3DD68C)';
+          else if (step.status === 'running') color = 'var(--accent-primary, #00C9A7)';
+          else if (step.status === 'waiting_confirmation') color = 'var(--semantic-warning, #F7A84A)';
+          else if (step.status === 'failed' || step.status === 'timed_out') color = 'var(--semantic-error, #F7678E)';
+          else if (step.status === 'skipped') color = 'var(--text-tertiary, #5C6080)';
 
           return (
             <div
@@ -143,7 +143,7 @@ const progressStyles = `
     height: 56px;
     background: rgba(31, 35, 53, 0.95);
     backdrop-filter: blur(8px);
-    border-top: 1px solid #292e42;
+    border-top: 1px solid var(--border-default, #292E44);
     display: flex;
     flex-direction: column;
     z-index: 100;
@@ -201,18 +201,18 @@ const progressStyles = `
   }
 
   .pb-progress-name {
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     font-size: 12px;
     font-weight: 500;
   }
 
   .pb-progress-step {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 11px;
   }
 
   .pb-progress-elapsed {
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
@@ -224,15 +224,15 @@ const progressStyles = `
   }
 
   .pb-progress-confirm {
-    background: #9ece6a;
+    background: var(--semantic-success, #3DD68C);
     border: none;
     border-radius: 4px;
-    color: #1a1b26;
+    color: var(--surface-overlay, #1A1B26);
     font-size: 11px;
     font-weight: 600;
     padding: 4px 12px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-progress-confirm:hover {
@@ -241,28 +241,28 @@ const progressStyles = `
 
   .pb-progress-cancel {
     background: transparent;
-    border: 1px solid #f7768e;
+    border: 1px solid var(--semantic-error, #F7678E);
     border-radius: 4px;
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
     font-size: 11px;
     padding: 4px 10px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-progress-cancel:hover {
-    background: rgba(247, 118, 142, 0.1);
+    background: rgba(247, 103, 142, 0.1);
   }
 
   .pb-progress-dismiss {
     background: transparent;
-    border: 1px solid #565f89;
+    border: 1px solid var(--text-tertiary, #5C6080);
     border-radius: 4px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-size: 11px;
     padding: 4px 10px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .pb-progress-dismiss:hover {

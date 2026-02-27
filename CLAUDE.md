@@ -1,6 +1,6 @@
-# ClaudeDesk
+# OmniDesk
 
-Electron desktop app wrapping Claude Code CLI with multi-session terminals, split views, and agent team visualization.
+Multi-provider Electron desktop application for AI coding CLIs, with multi-session terminals, split views, and agent team visualization. Supports Claude Code, Codex CLI, and future providers via a pluggable provider abstraction layer.
 
 ## Workflow Rule
 
@@ -15,9 +15,9 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 ```
 ┌─────────────────────────────────────────────┐
 │  Main Process (Node.js)                     │
-│  14 managers + IPC handlers + session pool  │
+│  15 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (~166 methods)
+                   │ IPC (~191 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
@@ -30,7 +30,9 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 
 **3-layer pattern per domain:** Manager (main) → Hook (renderer) → Components (renderer)
 
-**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — ~166 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — ~191 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+
+**Provider abstraction**: `IProvider` interface (`src/main/providers/`) decouples CLI specifics from session management. `CLIManager` delegates to the active provider for command building, environment variables, and model detection. Default provider is Claude.
 
 ## Domain Map
 
@@ -49,6 +51,8 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 | Git | git-manager | useGit, useDiffViewer, GitPanel, DiffViewer, DiffFileNav, DiffViewerHeader, DiffContentArea, CommitDialog, WorktreePanel, WorktreeCleanupDialog, diff-parser | types/git-types.ts | `git:*` |
 | Playbooks | playbook-manager, playbook-executor, built-in-playbooks | usePlaybooks, PlaybookPicker, PlaybookParameterDialog, PlaybookProgressPanel, PlaybookPanel, PlaybookEditor | types/playbook-types.ts | `playbook:*` |
 | Tunnels | tunnel-manager | useTunnel, TunnelPanel, TunnelCreateDialog, TunnelRequestLogs | types/tunnel-types.ts | `tunnel:*` |
+| Providers | provider-registry, claude-provider, codex-provider | useProvider | types/provider-types.ts | `provider:*` |
+| Session Sharing | sharing-manager | useSessionSharing, ShareSessionDialog, JoinSessionDialog, ObserverToolbar, ObserverMetadataSidebar, ShareManagementPanel, ShareIndicator, ControlRequestDialog | types/sharing-types.ts | `sharing:*` |
 | Window | index.ts | ConfirmDialog, SettingsDialog, AboutDialog, TitleBarBranding | ipc-types.ts | `window:*`, `dialog:*` |
 
 ## Adding a New IPC Method
@@ -60,12 +64,14 @@ That's it. The preload bridge and types auto-derive.
 
 ## Adding a New Domain
 
-1. Create `src/main/<domain>-manager.ts`
+1. Create `src/main/<domain>-manager.ts` (or `src/main/<domain>/` directory for multi-file domains like Providers)
 2. Create `src/renderer/hooks/use<Domain>.ts`
 3. Create component(s) in `src/renderer/components/`
 4. Add IPC methods to `ipc-contract.ts` with `<domain>:*` prefix
 5. Wire manager in `src/main/index.ts` (import, instantiate, pass to `setupIPCHandlers`)
 6. Update `docs/repo-index.md`
+
+Example: The **Providers** domain uses `src/main/providers/` with `IProvider` interface, `ClaudeProvider`, `CodexProvider`, and `ProviderRegistry` — all wired into `SessionManager` and exposed via `provider:*` IPC methods.
 
 ## Critical Implementation Patterns
 
@@ -79,6 +85,8 @@ That's it. The preload bridge and types auto-derive.
 - **Agent team detection**: `AgentTeamManager` watches `~/.claude/teams/` and `~/.claude/tasks/` via `fs.watch()`. Auto-links sessions within 30s of team creation.
 - **Git integration**: `GitManager` uses `child_process.execFile` (not `exec` — prevents shell injection). Per-directory mutex serializes operations. `.git` directory watching with 500ms debounce for real-time status. Heuristic-based AI commit message generation (conventional commits format).
 - **Playbook execution**: `PlaybookExecutor` writes prompts to PTY and uses silence-based detection (3s no output = step done) for step completion. Never sends Ctrl+C on cancel (just stops sending further steps). One execution per session, confirmation gates pause between steps.
+- **Provider abstraction**: `IProvider` interface decouples CLI specifics. `CLIManager` delegates to provider for command building, env vars, and model detection. Default provider is Claude. `ProviderRegistry` auto-registers Claude and Codex providers on construction.
+- **Session sharing**: WebSocket relay via LaunchTunnel (`wss://relay.launchtunnel.dev/share/<id>`). Binary frame protocol — 12 frame types (`0x10`–`0x1B`): TerminalData, TerminalInput, Metadata, ScrollbackBuffer, ControlRequest/Grant/Revoke, ObserverAnnounce/List, ShareClose, Ping/Pong. Scrollback buffer on observer join: 5000 lines, gzip-compressed. Observer Ctrl+C (`\x03`) is stripped from TerminalInput frames — same safety rule as local sessions. Metadata broadcast interval: 2s. Sharing gated behind LaunchTunnel Pro subscription (checked via `TunnelManager.getAccount()`). `omnidesk://join/<code>` deep links handled in `app.on('second-instance')` (Windows) and `app.on('open-url')` (macOS), pre-filling `JoinSessionDialog` via `sharing:deepLinkJoin` IPC event.
 
 ## Testing
 

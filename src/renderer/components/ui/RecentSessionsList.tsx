@@ -1,8 +1,12 @@
+import { ProviderBadge } from './ProviderBadge';
+import type { ProviderId } from '../../../shared/types/provider-types';
+
 interface RecentSession {
   id: string;
   name: string;
   timestamp: number;
   directory?: string;
+  providerId?: ProviderId;
 }
 
 interface RecentSessionsListProps {
@@ -32,17 +36,14 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
       <div className="sessions-list">
         {sessions.slice(0, 3).map((session, index) => (
           <button
+            type="button"
             key={session.id}
             className="session-item"
             onClick={() => onSelectSession(session.id)}
+            aria-label={`Open session ${session.name}`}
             style={{ animationDelay: `${0.8 + index * 0.1}s` }}
           >
-            <div className="session-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
-            </div>
+            <ProviderBadge providerId={session.providerId} size="sm" />
             <div className="session-info">
               <div className="session-name">{session.name}</div>
               {session.directory && (
@@ -56,38 +57,42 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
 
       <style>{`
         .recent-sessions {
-          margin-top: 48px;
+          margin-top: var(--space-12, 48px);
           width: 100%;
           max-width: 700px;
         }
 
         .recent-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #a9b1d6;
-          margin: 0 0 16px 0;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-secondary, #9DA3BE);
+          margin: 0 0 var(--space-3, 12px) 0;
         }
 
         .sessions-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: var(--space-2, 8px);
         }
 
         .session-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          background: #1f2335;
-          border: 1px solid #3d4458;
-          border-radius: 10px;
+          gap: var(--space-3, 12px);
+          padding: var(--space-2, 8px) var(--space-3, 12px);
+          background: var(--surface-raised, #13141C);
+          border: 1px solid var(--border-subtle, #1E2030);
+          border-radius: var(--radius-md, 6px);
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          font-family: inherit;
+          transition:
+            border-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+            background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+            transform var(--duration-fast, 150ms) var(--ease-out, ease);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           text-align: left;
           width: 100%;
-          animation: session-fade-in 0.5s ease backwards;
+          animation: session-fade-in 0.5s var(--ease-out, ease) backwards;
         }
 
         @keyframes session-fade-in {
@@ -102,21 +107,14 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
         }
 
         .session-item:hover {
-          border-color: #7aa2f7;
-          background: #24283b;
-          transform: translateX(4px);
+          border-color: var(--border-default, #292E44);
+          background: var(--surface-float, #222435);
+          transform: translateX(2px);
         }
 
-        .session-icon {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(122, 162, 247, 0.1);
-          border-radius: 8px;
-          color: #7aa2f7;
-          flex-shrink: 0;
+        .session-item:focus-visible {
+          outline: 2px solid var(--state-focus, #00C9A740);
+          outline-offset: 2px;
         }
 
         .session-info {
@@ -125,28 +123,37 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
         }
 
         .session-name {
-          font-size: 13px;
-          font-weight: 500;
-          color: #e9e9ea;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          color: var(--text-primary, #E2E4F0);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .session-dir {
-          font-size: 11px;
-          color: #565f89;
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          margin-top: 2px;
+          margin-top: 1px;
         }
 
         .session-time {
-          font-size: 11px;
-          color: #565f89;
-          font-weight: 500;
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
           flex-shrink: 0;
+          margin-left: auto;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .session-item {
+            animation: none;
+          }
         }
       `}</style>
     </div>

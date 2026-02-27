@@ -7,6 +7,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { ClaudeUsageQuota, BurnRateData } from '../../../shared/ipc-types';
+import type { ProviderId } from '../../../shared/types/provider-types';
 import { FuelGaugeBar } from './FuelGaugeBar';
 import { FuelTooltip } from './FuelTooltip';
 
@@ -16,6 +17,7 @@ export interface FuelStatusIndicatorProps {
   onOpenPanel: () => void;
   isLoading?: boolean;
   error?: string | null;
+  activeSessionProviderId?: ProviderId;
 }
 
 type Severity = 'normal' | 'elevated' | 'critical';
@@ -32,20 +34,20 @@ function getMaxUtilization(quota: ClaudeUsageQuota): number {
 
 const severityIcons: Record<Severity, JSX.Element> = {
   normal: (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9ece6a" strokeWidth="1.5">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--semantic-success)" strokeWidth="1.5">
       <polyline points="2 6 5 9 10 3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   elevated: (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#e0af68" strokeWidth="1.5">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--semantic-warning)" strokeWidth="1.5">
       <path d="M6 3v4" strokeLinecap="round" />
-      <circle cx="6" cy="9" r="0.5" fill="#e0af68" />
+      <circle cx="6" cy="9" r="0.5" fill="var(--semantic-warning)" />
     </svg>
   ),
   critical: (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#f7768e" strokeWidth="1.5">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--semantic-error)" strokeWidth="1.5">
       <path d="M6 3v4" strokeLinecap="round" />
-      <circle cx="6" cy="9" r="0.5" fill="#f7768e" />
+      <circle cx="6" cy="9" r="0.5" fill="var(--semantic-error)" />
     </svg>
   ),
 };
@@ -56,7 +58,10 @@ export function FuelStatusIndicator({
   onOpenPanel,
   isLoading = false,
   error = null,
+  activeSessionProviderId,
 }: FuelStatusIndicatorProps) {
+  // Hide quota indicator when active session is not Claude (quota is Claude-specific)
+  if (activeSessionProviderId && activeSessionProviderId !== 'claude') return null;
   const [showTooltip, setShowTooltip] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,7 +118,7 @@ export function FuelStatusIndicator({
   if (isLoading && !quotaData) {
     return (
       <div className="fuel-indicator fuel-indicator-loading" aria-label="Loading fuel status">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#565f89" strokeWidth="1.5" className="fuel-spin-icon">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" className="fuel-spin-icon">
           <path d="M6 1a5 5 0 014.33 2.5" strokeLinecap="round" />
         </svg>
         <span className="fuel-text-loading">---</span>
@@ -133,7 +138,7 @@ export function FuelStatusIndicator({
         aria-haspopup="dialog"
         title="Quota unavailable - click for details"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#f7768e" strokeWidth="1.5">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--semantic-error)" strokeWidth="1.5">
           <circle cx="6" cy="6" r="5" />
           <path d="M4 4l4 4M8 4l-4 4" strokeLinecap="round" />
         </svg>
@@ -154,10 +159,10 @@ export function FuelStatusIndicator({
         aria-haspopup="dialog"
         title="No quota data - click for details"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#565f89" strokeWidth="1.5">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
           <circle cx="6" cy="6" r="5" />
           <path d="M5 5a1.5 1.5 0 011.5-1.5A1.5 1.5 0 018 5c0 1-1.5 1.5-1.5 1.5" strokeLinecap="round" />
-          <circle cx="6" cy="9" r="0.5" fill="#565f89" />
+          <circle cx="6" cy="9" r="0.5" fill="var(--text-tertiary)" />
         </svg>
         <span className="fuel-text-nodata">N/A</span>
         <style>{indicatorStyles}</style>
@@ -211,27 +216,27 @@ const indicatorStyles = `
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 32px;
-    padding: 0 10px;
+    height: 22px;
+    padding: 0 var(--space-2, 8px);
     background: transparent;
-    border: 1px solid #292e42;
-    border-radius: 6px;
+    border: 1px solid var(--border-default, #292E44);
+    border-radius: var(--radius-md, 6px);
     cursor: pointer;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 11px;
-    color: #a9b1d6;
-    transition: all 150ms ease;
+    font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+    font-size: var(--text-xs, 11px);
+    color: var(--text-secondary, #9DA3BE);
+    transition: all var(--duration-fast, 150ms) var(--ease-inout, ease);
     flex-shrink: 0;
     outline: none;
   }
 
   .fuel-indicator:hover {
-    background: #1e2030;
-    border-color: #3b4261;
+    background: var(--state-hover, #FFFFFF0A);
+    border-color: var(--border-strong, #3D4163);
   }
 
   .fuel-indicator:focus-visible {
-    outline: 2px solid #7aa2f7;
+    outline: 2px solid var(--state-focus, #00C9A740);
     outline-offset: 2px;
   }
 
@@ -241,53 +246,53 @@ const indicatorStyles = `
 
   /* Severity states */
   .fuel-indicator-normal {
-    border-color: #292e42;
+    border-color: var(--border-default, #292E44);
   }
 
   .fuel-indicator-normal:hover {
-    border-color: #9ece6a40;
+    border-color: rgba(61, 214, 140, 0.25);
   }
 
   .fuel-indicator-elevated {
-    border-color: #e0af6830;
+    border-color: rgba(247, 168, 74, 0.2);
   }
 
   .fuel-indicator-elevated:hover {
-    border-color: #e0af6860;
+    border-color: rgba(247, 168, 74, 0.4);
   }
 
   .fuel-indicator-critical {
-    border-color: #f7768e40;
+    border-color: rgba(247, 103, 142, 0.25);
     animation: fuel-pulse 2s ease-in-out infinite;
   }
 
   .fuel-indicator-critical:hover {
-    border-color: #f7768e80;
+    border-color: rgba(247, 103, 142, 0.5);
   }
 
   /* Stale data warning */
   .fuel-indicator-stale {
-    border-color: #e0af6850 !important;
+    border-color: rgba(247, 168, 74, 0.3) !important;
   }
 
   /* Percentage text */
   .fuel-pct {
-    font-weight: 700;
-    font-size: 11px;
+    font-weight: var(--weight-bold, 700);
+    font-size: var(--text-xs, 11px);
     min-width: 28px;
     text-align: right;
   }
 
   .fuel-pct-normal {
-    color: #9ece6a;
+    color: var(--semantic-success, #3DD68C);
   }
 
   .fuel-pct-elevated {
-    color: #e0af68;
+    color: var(--semantic-warning, #F7A84A);
   }
 
   .fuel-pct-critical {
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
   }
 
   /* Severity icon */
@@ -306,9 +311,9 @@ const indicatorStyles = `
   }
 
   .fuel-text-loading {
-    color: #565f89;
-    font-weight: 600;
-    background: linear-gradient(90deg, #565f89 0%, #3b4261 50%, #565f89 100%);
+    color: var(--text-tertiary, #5C6080);
+    font-weight: var(--weight-semibold, 600);
+    background: linear-gradient(90deg, var(--text-tertiary, #5C6080) 0%, var(--border-strong, #3D4163) 50%, var(--text-tertiary, #5C6080) 100%);
     background-size: 200px 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -321,13 +326,13 @@ const indicatorStyles = `
 
   /* Error state */
   .fuel-indicator-error {
-    border-color: #f7768e40;
+    border-color: rgba(247, 103, 142, 0.25);
   }
 
   .fuel-text-error {
-    color: #f7768e;
-    font-weight: 700;
-    font-size: 10px;
+    color: var(--semantic-error, #F7678E);
+    font-weight: var(--weight-bold, 700);
+    font-size: var(--text-2xs, 10px);
   }
 
   /* No data state */
@@ -336,37 +341,29 @@ const indicatorStyles = `
   }
 
   .fuel-text-nodata {
-    color: #565f89;
-    font-weight: 600;
-    font-size: 10px;
+    color: var(--text-tertiary, #5C6080);
+    font-weight: var(--weight-semibold, 600);
+    font-size: var(--text-2xs, 10px);
   }
 
   /* Animations */
   @keyframes fuel-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(247, 118, 142, 0.4);
+      box-shadow: 0 0 0 0 rgba(247, 103, 142, 0.3);
     }
     50% {
-      box-shadow: 0 0 8px 2px rgba(247, 118, 142, 0.6);
+      box-shadow: 0 0 8px 2px rgba(247, 103, 142, 0.5);
     }
   }
 
   @keyframes fuel-shimmer {
-    0% {
-      background-position: -200px 0;
-    }
-    100% {
-      background-position: 200px 0;
-    }
+    0%   { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
   }
 
   @keyframes fuel-spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
   }
 
   /* Reduced motion */
@@ -374,11 +371,9 @@ const indicatorStyles = `
     .fuel-indicator-critical {
       animation: none;
     }
-
     .fuel-text-loading {
       animation: none;
     }
-
     .fuel-spin-icon {
       animation: none;
     }

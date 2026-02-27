@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { BrandMark } from './BrandMark';
+import { ProgressBar } from './ProgressBar';
 
 interface ClaudeReadinessProgressProps {
   isVisible: boolean;
+  providerName?: string; /* e.g. "Claude Code", "Codex CLI" — for provider-aware copy */
 }
 
-export function ClaudeReadinessProgress({ isVisible }: ClaudeReadinessProgressProps) {
+export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadinessProgressProps) {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
@@ -13,10 +16,10 @@ export function ClaudeReadinessProgress({ isVisible }: ClaudeReadinessProgressPr
       return;
     }
 
-    // Progress through stages over 5 seconds
+    // Progress through stages over 5 seconds — same timing as before
     const timers = [
-      setTimeout(() => setStage(1), 800),   // "Starting shell..." → "Loading Claude..."
-      setTimeout(() => setStage(2), 2500),  // "Loading Claude..." → "Almost ready..."
+      setTimeout(() => setStage(1), 800),   // "Starting shell..." → "Loading {provider}..."
+      setTimeout(() => setStage(2), 2500),  // "Loading {provider}..." → "Almost ready..."
     ];
 
     return () => {
@@ -26,69 +29,77 @@ export function ClaudeReadinessProgress({ isVisible }: ClaudeReadinessProgressPr
 
   if (!isVisible) return null;
 
-  const stages = [
+  const providerLabel = providerName ?? 'CLI';
+
+  const stageMessages = [
     'Starting shell...',
-    'Loading Claude...',
+    `Loading ${providerLabel}...`,
     'Almost ready...',
   ];
 
+  // stage 0 = 33%, stage 1 = 66%, stage 2 = 99%
+  const progressValue = ((stage + 1) / 3) * 100;
+
+  // Title: "Initializing {providerName}" or "Starting session..." if no provider
+  const title = providerName ? `Initializing ${providerName}` : 'Starting session...';
+
   return (
-    <div className="claude-readiness-overlay">
+    <div
+      className="session-readiness-overlay"
+      aria-label={providerName ? `Initializing ${providerName}` : 'Session initializing'}
+    >
       <div className="readiness-content">
-        <div className="readiness-logo">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M9 3v18" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M14 8l-5 5l5 5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="readiness-brandmark">
+          <BrandMark size={48} color="var(--accent-primary)" />
         </div>
 
-        <h2 className="readiness-title">Initializing Claude Code</h2>
+        <h2 className="readiness-title">{title}</h2>
 
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${((stage + 1) / 3) * 100}%` }} />
+        <div style={{ width: '280px' }}>
+          <ProgressBar
+            value={progressValue}
+            max={100}
+            height={4}
+            label="Session initialization progress"
+            color="var(--accent-primary)"
+          />
         </div>
 
-        <p className="readiness-status">{stages[stage]}</p>
+        <p className="readiness-status" key={stage} role="status" aria-live="polite">
+          {stageMessages[stage]}
+        </p>
       </div>
 
       <style>{`
-        .claude-readiness-overlay {
+        .session-readiness-overlay {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(26, 27, 38, 0.95);
+          inset: 0;
+          background: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
           backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 100;
-          font-family: 'JetBrains Mono', monospace;
-          animation: overlay-fade-in 0.3s ease;
+          animation: overlay-fade-in var(--duration-slow, 300ms) var(--ease-out, ease) both;
         }
 
         @keyframes overlay-fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
 
         .readiness-content {
           display: flex;
           flex-direction: column;
           align-items: center;
-          animation: content-slide-up 0.4s cubic-bezier(0, 0, 0.2, 1);
+          gap: var(--space-5, 20px);
+          animation: content-slide-up var(--duration-slow, 300ms) var(--ease-out, ease) both;
         }
 
         @keyframes content-slide-up {
           from {
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(16px);
           }
           to {
             opacity: 1;
@@ -96,70 +107,49 @@ export function ClaudeReadinessProgress({ isVisible }: ClaudeReadinessProgressPr
           }
         }
 
-        .readiness-logo {
-          width: 96px;
-          height: 96px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, rgba(122, 162, 247, 0.15), rgba(125, 207, 255, 0.1));
-          border: 2px solid #3d4458;
-          border-radius: 24px;
-          margin-bottom: 32px;
-          color: #7aa2f7;
-          box-shadow: 0 8px 32px rgba(122, 162, 247, 0.2);
-          animation: logo-pulse 2s ease-in-out infinite;
+        .readiness-brandmark {
+          filter: drop-shadow(var(--shadow-glow-accent, 0 0 16px #00C9A730));
+          animation: brandmark-pulse 2.4s var(--ease-inout, ease-in-out) infinite;
         }
 
-        @keyframes logo-pulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 8px 32px rgba(122, 162, 247, 0.2);
-          }
-          50% {
-            transform: scale(1.05);
-            box-shadow: 0 12px 48px rgba(122, 162, 247, 0.3);
-          }
+        @keyframes brandmark-pulse {
+          0%, 100% { filter: drop-shadow(0 0 8px var(--accent-primary-muted, #00C9A714)); }
+          50%       { filter: drop-shadow(0 0 20px #00C9A740); }
         }
 
         .readiness-title {
-          font-size: 18px;
-          font-weight: 600;
-          color: #e9e9ea;
-          margin: 0 0 24px 0;
-          letter-spacing: -0.3px;
-        }
-
-        .progress-bar {
-          width: 300px;
-          height: 4px;
-          background: #24283b;
-          border-radius: 2px;
-          overflow: hidden;
-          margin-bottom: 16px;
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #7aa2f7, #7dcfff);
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 0 12px rgba(122, 162, 247, 0.5);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-lg, 16px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
+          margin: 0;
+          letter-spacing: var(--tracking-tight, -0.01em);
+          text-align: center;
         }
 
         .readiness-status {
-          font-size: 13px;
-          color: #a9b1d6;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-regular, 400);
+          color: var(--text-secondary, #9DA3BE);
           margin: 0;
-          min-height: 20px;
-          animation: status-fade-in 0.3s ease;
+          min-height: 18px;
+          animation: status-fade-in var(--duration-fast, 150ms) var(--ease-out, ease) both;
         }
 
         @keyframes status-fade-in {
-          from {
-            opacity: 0;
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .readiness-brandmark {
+            animation: none;
           }
-          to {
-            opacity: 1;
+          .session-readiness-overlay,
+          .readiness-content,
+          .readiness-status {
+            animation: none;
           }
         }
       `}</style>

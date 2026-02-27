@@ -19,12 +19,12 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
 
   const getCategoryIcon = (category: string): string => {
     switch (category) {
-      case 'code': return '📝';
-      case 'markup': return '🔖';
+      case 'code':     return '📝';
+      case 'markup':   return '🔖';
       case 'document': return '📄';
-      case 'image': return '🖼️';
-      case 'binary': return '📦';
-      default: return '📁';
+      case 'image':    return '🖼️';
+      case 'binary':   return '📦';
+      default:         return '📁';
     }
   };
 
@@ -33,23 +33,19 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
   return (
     <div className="dragdrop-overlay">
       <div className="dragdrop-content">
-        <div className="dragdrop-icon">
-          {insertMode === 'content' ? '📋' : '📂'}
+        <div className="dragdrop-mode">
+          {insertMode === 'content' ? 'Insert File Content' : 'Insert File Path'}
         </div>
 
-        <div className="dragdrop-info">
-          <div className="dragdrop-mode">
-            {insertMode === 'content' ? 'Insert File Content' : 'Insert File Path'}
-          </div>
-
+        <div className="dragdrop-file-info">
           {files.length === 1 ? (
             <div className="dragdrop-file-single">
               <div className="dragdrop-file-name">
                 {getCategoryIcon(files[0].category)} {files[0].name}
               </div>
               <div className="dragdrop-file-meta">
-                {formatFileSize(files[0].sizeBytes)} • {files[0].category}
-                {files[0].isBinary && ' • binary'}
+                {formatFileSize(files[0].sizeBytes)} · {files[0].category}
+                {files[0].isBinary && ' · binary'}
               </div>
             </div>
           ) : (
@@ -86,115 +82,114 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(26, 27, 38, 0.95);
-          backdrop-filter: blur(4px);
+          background: rgba(0, 201, 167, 0.08);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
           pointer-events: none;
-          animation: fade-in 0.15s ease;
-          font-family: 'JetBrains Mono', monospace;
+          animation: dragdrop-fade-in var(--duration-fast, 150ms) var(--ease-out, ease) both;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
-        @keyframes fade-in {
+        @keyframes dragdrop-fade-in {
           from { opacity: 0; }
-          to { opacity: 1; }
+          to   { opacity: 1; }
         }
 
         .dragdrop-content {
-          background: #1a1b26;
-          border: 2px dashed #7aa2f7;
-          border-radius: 16px;
-          padding: 32px;
+          background: var(--surface-overlay, #1A1B26);
+          border: 2px dashed rgba(0, 201, 167, 0.4);
+          border-radius: var(--radius-lg, 10px);
+          padding: var(--space-8, 32px);
           min-width: 320px;
           max-width: 480px;
-          box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+          box-shadow: var(--shadow-lg, 0 12px 32px #00000080);
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 20px;
-        }
-
-        .dragdrop-icon {
-          font-size: 48px;
-          animation: bounce 0.6s ease infinite;
-        }
-
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-
-        .dragdrop-info {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          width: 100%;
-          text-align: center;
+          gap: var(--space-4, 16px);
         }
 
         .dragdrop-mode {
-          font-size: 16px;
-          font-weight: 600;
-          color: #7aa2f7;
-          letter-spacing: 0.5px;
+          font-size: var(--text-base, 13px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
+          letter-spacing: var(--tracking-wide, 0.04em);
+        }
+
+        .dragdrop-file-info {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3, 12px);
+          width: 100%;
+          text-align: center;
         }
 
         .dragdrop-file-single,
         .dragdrop-file-multi {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: var(--space-1, 4px);
         }
 
         .dragdrop-file-name {
-          font-size: 14px;
-          color: #c0caf5;
-          font-weight: 500;
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-sm, 12px);
+          color: var(--text-primary, #E2E4F0);
+          font-weight: var(--weight-medium, 500);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .dragdrop-file-meta {
-          font-size: 12px;
-          color: #a9b1d6;
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-secondary, #9DA3BE);
         }
 
         .dragdrop-file-count {
-          font-size: 14px;
-          color: #c0caf5;
-          font-weight: 600;
+          font-size: var(--text-sm, 12px);
+          color: var(--text-primary, #E2E4F0);
+          font-weight: var(--weight-semibold, 600);
         }
 
         .dragdrop-file-list {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
           max-height: 120px;
           overflow: auto;
         }
 
         .dragdrop-file-item {
-          font-size: 12px;
-          color: #a9b1d6;
+          font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-secondary, #9DA3BE);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .dragdrop-file-more {
-          font-size: 12px;
-          color: #7aa2f7;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+          font-size: var(--text-xs, 11px);
+          color: var(--text-accent, #00C9A7);
           font-style: italic;
         }
 
         .dragdrop-hint {
-          font-size: 12px;
-          color: #565f89;
-          padding-top: 8px;
-          border-top: 1px solid #292e42;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-tertiary, #5C6080);
+          padding-top: var(--space-2, 8px);
+          border-top: 1px solid var(--border-default, #292E44);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .dragdrop-overlay {
+            animation: none;
+          }
         }
       `}</style>
     </div>

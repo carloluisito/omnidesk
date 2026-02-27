@@ -13,9 +13,9 @@ interface FuelGaugeBarProps {
 const SEGMENT_COUNT = 5;
 
 const severityColors: Record<FuelGaugeBarProps['severity'], string> = {
-  normal: '#9ece6a',
-  elevated: '#e0af68',
-  critical: '#f7768e',
+  normal:   'var(--semantic-success, #3DD68C)',
+  elevated: 'var(--semantic-warning, #F7A84A)',
+  critical: 'var(--semantic-error, #F7678E)',
 };
 
 export function FuelGaugeBar({ utilization, severity }: FuelGaugeBarProps) {
@@ -31,7 +31,7 @@ export function FuelGaugeBar({ utilization, severity }: FuelGaugeBarProps) {
           className={`fuel-gauge-segment ${i < filledSegments ? 'filled' : 'empty'}`}
           style={{
             background: i < filledSegments ? color : 'transparent',
-            borderColor: i < filledSegments ? color : '#292e42',
+            borderColor: i < filledSegments ? color : 'var(--border-default, #292E44)',
             boxShadow: i < filledSegments && severity === 'critical'
               ? `0 0 4px ${color}60`
               : 'none',
@@ -50,7 +50,7 @@ export function FuelGaugeBar({ utilization, severity }: FuelGaugeBarProps) {
           width: 6px;
           height: 16px;
           border-radius: 1px;
-          border: 1px solid #292e42;
+          border: 1px solid var(--border-default, #292E44);
           transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
         }
       `}</style>

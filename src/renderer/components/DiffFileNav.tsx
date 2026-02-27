@@ -15,10 +15,10 @@ interface SectionConfig {
 }
 
 const SECTIONS: SectionConfig[] = [
-  { area: 'staged', title: 'STAGED', color: '#9ece6a' },
-  { area: 'unstaged', title: 'UNSTAGED', color: '#e0af68' },
-  { area: 'untracked', title: 'UNTRACKED', color: '#565f89' },
-  { area: 'conflicted', title: 'CONFLICTS', color: '#f7768e' },
+  { area: 'staged', title: 'STAGED', color: 'var(--semantic-success, #3DD68C)' },
+  { area: 'unstaged', title: 'UNSTAGED', color: 'var(--semantic-warning, #F7A84A)' },
+  { area: 'untracked', title: 'UNTRACKED', color: 'var(--text-tertiary, #5C6080)' },
+  { area: 'conflicted', title: 'CONFLICTS', color: 'var(--semantic-error, #F7678E)' },
 ];
 
 export function DiffFileNav({ files, activeFile, collapsed, onFileSelect }: DiffFileNavProps) {
@@ -51,11 +51,11 @@ export function DiffFileNav({ files, activeFile, collapsed, onFileSelect }: Diff
   const statusColor = (file: GitFileEntry) => {
     const s = file.area === 'staged' ? file.indexStatus : file.workTreeStatus;
     switch (s) {
-      case 'added': return '#9ece6a';
-      case 'modified': return '#e0af68';
-      case 'deleted': return '#f7768e';
-      case 'renamed': return '#7dcfff';
-      default: return '#565f89';
+      case 'added': return 'var(--semantic-success, #3DD68C)';
+      case 'modified': return 'var(--semantic-warning, #F7A84A)';
+      case 'deleted': return 'var(--semantic-error, #F7678E)';
+      case 'renamed': return 'var(--accent-primary, #00C9A7)';
+      default: return 'var(--text-tertiary, #5C6080)';
     }
   };
 
@@ -75,7 +75,7 @@ export function DiffFileNav({ files, activeFile, collapsed, onFileSelect }: Diff
             >
               <svg
                 width="10" height="10" viewBox="0 0 24 24" fill="none"
-                stroke="#565f89" strokeWidth="2"
+                stroke="var(--text-tertiary, #5C6080)" strokeWidth="2"
                 style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 150ms' }}
               >
                 <polyline points="6 9 12 15 18 9" />

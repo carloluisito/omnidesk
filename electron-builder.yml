@@ -1,5 +1,5 @@
-appId: com.claudedesk.app
-productName: ClaudeDesk
+appId: com.omnidesk.app
+productName: OmniDesk
 directories:
   output: release
   buildResources: resources
@@ -10,6 +10,11 @@ extraMetadata:
   main: dist/main/index.js
 asar: true
 compression: maximum
+
+protocols:
+  - name: OmniDesk
+    schemes:
+      - omnidesk
 
 win:
   target:

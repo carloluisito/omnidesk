@@ -30,14 +30,14 @@ interface AgentNodeData {
 
 function AgentNode({ data }: { data: AgentNodeData }) {
   const isLead = data.role === 'lead';
-  const borderColor = isLead ? '#fbbf24' : '#7aa2f7';
-  const statusColor = data.status === 'running' ? '#9ece6a'
-    : data.status === 'exited' ? '#f7768e'
-    : '#3b4261';
+  const borderColor = isLead ? '#fbbf24' : 'var(--accent-primary, #00C9A7)';
+  const statusColor = data.status === 'running' ? 'var(--semantic-success, #3DD68C)'
+    : data.status === 'exited' ? 'var(--semantic-error, #F7678E)'
+    : 'var(--border-strong, #3D4163)';
 
   return (
     <div style={{
-      background: '#16161e',
+      background: 'var(--surface-raised, #13141C)',
       border: `2px solid ${borderColor}`,
       borderRadius: 10,
       padding: '10px 14px',
@@ -45,12 +45,12 @@ function AgentNode({ data }: { data: AgentNodeData }) {
       textAlign: 'center',
       position: 'relative',
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#565f89', border: 'none', width: 6, height: 6 }} />
+      <Handle type="target" position={Position.Top} style={{ background: 'var(--text-tertiary, #5C6080)', border: 'none', width: 6, height: 6 }} />
       <div style={{
         fontSize: 11,
         fontWeight: 600,
-        color: '#c0caf5',
-        fontFamily: "'JetBrains Mono', monospace",
+        color: 'var(--text-primary, #E2E4F0)',
+        fontFamily: "var(--font-ui, 'Inter', system-ui, sans-serif)",
         marginBottom: 4,
       }}>
         {data.label}
@@ -78,7 +78,7 @@ function AgentNode({ data }: { data: AgentNodeData }) {
           display: 'inline-block',
         }} />
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ background: '#565f89', border: 'none', width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'var(--text-tertiary, #5C6080)', border: 'none', width: 6, height: 6 }} />
     </div>
   );
 }
@@ -135,7 +135,7 @@ export function AgentGraph({ team, sessions, onFocusSession }: AgentGraphProps) 
           source: leadMember.agentId,
           target: member.agentId,
           animated: true,
-          style: { stroke: '#3b4261', strokeWidth: 1.5 },
+          style: { stroke: 'var(--border-strong, #3D4163)', strokeWidth: 1.5 },
         });
       }
     });
@@ -165,13 +165,13 @@ export function AgentGraph({ team, sessions, onFocusSession }: AgentGraphProps) 
         minZoom={0.5}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        style={{ background: '#16161e' }}
+        style={{ background: 'var(--surface-raised, #13141C)' }}
       >
         <Controls
           showInteractive={false}
-          style={{ background: '#1a1b26', border: '1px solid #292e42', borderRadius: 6 }}
+          style={{ background: 'var(--surface-overlay, #1A1B26)', border: '1px solid var(--border-default, #292E44)', borderRadius: 6 }}
         />
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#292e42" />
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--border-default, #292E44)" />
       </ReactFlow>
 
       <div className="graph-legend">
@@ -180,15 +180,15 @@ export function AgentGraph({ team, sessions, onFocusSession }: AgentGraphProps) 
           <span>Lead</span>
         </div>
         <div className="legend-item">
-          <span className="legend-dot" style={{ background: '#7aa2f7' }} />
+          <span className="legend-dot" style={{ background: 'var(--accent-primary, #00C9A7)' }} />
           <span>Teammate</span>
         </div>
         <div className="legend-item">
-          <span className="legend-dot" style={{ background: '#9ece6a' }} />
+          <span className="legend-dot" style={{ background: 'var(--semantic-success, #3DD68C)' }} />
           <span>Running</span>
         </div>
         <div className="legend-item">
-          <span className="legend-dot" style={{ background: '#3b4261' }} />
+          <span className="legend-dot" style={{ background: 'var(--border-strong, #3D4163)' }} />
           <span>Disconnected</span>
         </div>
       </div>
@@ -203,20 +203,20 @@ const agentGraphStyles = `
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
   }
 
   .agent-graph .react-flow__controls button {
-    background: #1a1b26;
-    border: 1px solid #292e42;
-    color: #565f89;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
+    color: var(--text-tertiary, #5C6080);
     width: 24px;
     height: 24px;
   }
 
   .agent-graph .react-flow__controls button:hover {
-    background: #292e42;
-    color: #7aa2f7;
+    background: var(--border-default, #292E44);
+    color: var(--accent-primary, #00C9A7);
   }
 
   .agent-graph .react-flow__controls button svg {
@@ -230,8 +230,8 @@ const agentGraphStyles = `
     display: flex;
     gap: 10px;
     padding: 5px 8px;
-    background: rgba(26, 27, 38, 0.85);
-    border: 1px solid #292e42;
+    background: rgba(13, 14, 20, 0.85);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
     z-index: 5;
   }
@@ -241,7 +241,7 @@ const agentGraphStyles = `
     align-items: center;
     gap: 4px;
     font-size: 9px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
   }
 
   .legend-dot {

@@ -1,3 +1,5 @@
+import type { ProviderId } from './types/provider-types';
+
 // Permission mode for sessions
 export type PermissionMode = 'standard' | 'skip-permissions';
 
@@ -17,6 +19,7 @@ export interface SessionCreateRequest {
   permissionMode: PermissionMode;
   model?: ClaudeModel; // Starting model override (defaults to AppSettings.defaultModel)
   worktree?: import('./types/git-types').WorktreeCreateRequest;
+  providerId?: ProviderId; // Provider to use (defaults to 'claude')
 }
 
 // Session metadata
@@ -34,6 +37,7 @@ export interface SessionMetadata {
   isTeammate?: boolean;
   currentModel?: ClaudeModel | null; // null = not yet detected
   worktreeInfo?: import('./types/git-types').WorktreeInfo;
+  providerId?: ProviderId; // Provider backing this session (defaults to 'claude')
 }
 
 // Session list response

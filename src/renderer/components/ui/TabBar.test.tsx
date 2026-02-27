@@ -30,10 +30,7 @@ vi.mock('./ContextMenu', () => ({
   ContextMenu: () => null,
 }));
 
-vi.mock('./FuelStatusIndicator', () => ({
-  FuelStatusIndicator: () => <div data-testid="fuel-indicator" />,
-}));
-
+// ToolsDropdown is no longer used in new TabBar (moved to ActivityBar)
 vi.mock('./ToolsDropdown', () => ({
   ToolsDropdown: () => <div data-testid="tools-dropdown" />,
 }));
@@ -98,21 +95,6 @@ describe('TabBar', () => {
     expect(screen.getByTestId('new-session-dialog')).toBeInTheDocument();
   });
 
-  it('displays session count', () => {
-    render(<TabBar {...defaultProps} />);
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
-  });
-
-  it('renders settings button when onOpenSettings provided', () => {
-    const onOpenSettings = vi.fn();
-    render(<TabBar {...defaultProps} onOpenSettings={onOpenSettings} />);
-    const settingsBtn = screen.getByLabelText('Settings');
-    expect(settingsBtn).toBeInTheDocument();
-    fireEvent.click(settingsBtn);
-    expect(onOpenSettings).toHaveBeenCalled();
-  });
-
   it('renders help button when onOpenHelp provided', () => {
     const onOpenHelp = vi.fn();
     render(<TabBar {...defaultProps} onOpenHelp={onOpenHelp} />);
@@ -120,5 +102,10 @@ describe('TabBar', () => {
     expect(helpBtn).toBeInTheDocument();
     fireEvent.click(helpBtn);
     expect(onOpenHelp).toHaveBeenCalled();
+  });
+
+  it('shows tab list role', () => {
+    render(<TabBar {...defaultProps} />);
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
   });
 });

@@ -82,7 +82,7 @@ export function PanelHelpOverlay({
           right: 0;
           bottom: 0;
           z-index: 9999;
-          font-family: 'JetBrains Mono', monospace;
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           animation: overlay-fade-in 0.3s ease;
         }
 
@@ -97,7 +97,7 @@ export function PanelHelpOverlay({
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(26, 27, 38, 0.95);
+          background: rgba(13, 14, 20, 0.92);
           backdrop-filter: blur(4px);
         }
 
@@ -106,12 +106,12 @@ export function PanelHelpOverlay({
           height: 100%;
           display: flex;
           flex-direction: column;
-          padding: 32px;
+          padding: var(--space-8, 32px);
         }
 
         .panel-help-header {
           text-align: center;
-          margin-bottom: 32px;
+          margin-bottom: var(--space-8, 32px);
           animation: header-slide-down 0.4s ease;
         }
 
@@ -127,15 +127,15 @@ export function PanelHelpOverlay({
         }
 
         .panel-help-title {
-          font-size: 24px;
-          font-weight: 600;
-          color: #7aa2f7;
-          margin: 0 0 8px 0;
+          font-size: var(--text-xl, 20px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-accent, #00C9A7);
+          margin: 0 0 var(--space-2, 8px) 0;
         }
 
         .panel-help-subtitle {
-          font-size: 14px;
-          color: #a9b1d6;
+          font-size: var(--text-sm, 12px);
+          color: var(--text-secondary, #9DA3BE);
           margin: 0;
         }
 
@@ -169,7 +169,7 @@ export function PanelHelpOverlay({
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: rgba(122, 162, 247, 0.3);
+          background: rgba(0, 201, 167, 0.2);
           animation: pulse 2s ease-in-out infinite;
         }
 
@@ -191,27 +191,27 @@ export function PanelHelpOverlay({
           transform: translate(-50%, -50%);
           display: flex;
           align-items: flex-start;
-          gap: 12px;
-          background: #1f2335;
-          border: 2px solid #7aa2f7;
-          border-radius: 12px;
-          padding: 16px;
+          gap: var(--space-3, 12px);
+          background: var(--surface-overlay, #1A1B26);
+          border: 1px solid var(--border-accent, #00C9A7);
+          border-radius: var(--radius-lg, 10px);
+          padding: var(--space-4, 16px);
           min-width: 250px;
           max-width: 300px;
-          box-shadow: 0 12px 48px rgba(122, 162, 247, 0.4);
+          box-shadow: 0 12px 48px rgba(0, 201, 167, 0.15);
         }
 
         .annotation-number {
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: #7aa2f7;
-          color: #1a1b26;
+          background: var(--accent-primary, #00C9A7);
+          color: var(--text-inverse, #0D0E14);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-bold, 700);
           flex-shrink: 0;
         }
 
@@ -220,32 +220,31 @@ export function PanelHelpOverlay({
         }
 
         .annotation-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: #e9e9ea;
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-semibold, 600);
+          color: var(--text-primary, #E2E4F0);
           margin: 0 0 6px 0;
         }
 
         .annotation-description {
-          font-size: 11px;
-          color: #a9b1d6;
+          font-size: var(--text-xs, 11px);
+          color: var(--text-secondary, #9DA3BE);
           margin: 0;
-          line-height: 1.5;
+          line-height: var(--leading-normal, 1.5);
         }
 
         .panel-help-btn {
           align-self: center;
-          padding: 14px 32px;
-          background: linear-gradient(135deg, #7aa2f7, #7dcfff);
+          padding: var(--space-3, 12px) var(--space-8, 32px);
+          background: var(--accent-primary, #00C9A7);
           border: none;
-          border-radius: 10px;
-          color: #1a1b26;
-          font-size: 14px;
-          font-weight: 600;
-          font-family: inherit;
+          border-radius: var(--radius-lg, 10px);
+          color: var(--text-inverse, #0D0E14);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-semibold, 600);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0, 0, 0.2, 1);
-          box-shadow: 0 4px 16px rgba(122, 162, 247, 0.3);
+          transition: background var(--duration-fast, 150ms) ease;
           animation: button-fade-in 0.6s ease;
         }
 
@@ -261,12 +260,11 @@ export function PanelHelpOverlay({
         }
 
         .panel-help-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(122, 162, 247, 0.4);
+          background: var(--accent-primary-dim, #009E84);
         }
 
         .panel-help-btn:active {
-          transform: translateY(0);
+          transform: scale(0.98);
         }
       `}</style>
     </div>

@@ -1,13 +1,13 @@
-# ClaudeDesk
+# OmniDesk
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-4.4.1-green.svg)
-![Tests](https://img.shields.io/badge/tests-233%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-5.0.0-green.svg)
+![Tests](https://img.shields.io/badge/tests-475%20passing-brightgreen.svg)
 
-> A powerful desktop terminal for Claude Code CLI with multi-session management, split-view layouts, and advanced productivity features.
+> A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
 
-**ClaudeDesk** is an Electron-based desktop application that wraps the Claude Code CLI in a feature-rich terminal interface. Manage multiple Claude sessions simultaneously, organize your workspace with split views, use prompt templates, and monitor your API usage — all in one beautiful desktop app.
+**OmniDesk** is an Electron-based desktop application that wraps AI coding CLIs (Claude Code, Codex CLI, and more) in a feature-rich terminal interface. Manage multiple sessions simultaneously, organize your workspace with split views, share live sessions with teammates, use prompt templates, and monitor your API usage — all in one beautiful desktop app.
 
 ![Main Screen](docs/main-screen.png)
 
@@ -111,6 +111,21 @@
 - **Auto-layout** — automatically arranges panes when teammates join
 
 
+### Multi-Provider Support
+- **Pluggable provider layer** — swap between Claude Code, Codex CLI, and future providers
+- **Provider selector** in session creation dialog (auto-shown when multiple providers available)
+- **Provider-specific features** — UI adapts based on provider capabilities
+- **Tab badges** — visual indicator for non-default providers (e.g., `[CX]` for Codex)
+- **Auto-detection** — providers registered automatically based on installed CLI binaries
+
+### Real-Time Session Sharing
+- **Share live sessions** with remote teammates via LaunchTunnel relay
+- **One-click sharing** — right-click a tab to share; generates a share code and URL
+- **Read-only observers** — teammates see your terminal in real time with scrollback history
+- **Control handoff** — observers can request input control; host grants or revokes
+- **Deep links** — `omnidesk://join/<code>` opens the app directly to the join dialog
+- **Secure** — WebSocket relay with binary frame protocol, gated behind LaunchTunnel Pro
+
 ### Repository Atlas Engine
 - **Automated codebase mapping** — scans files, analyzes imports, infers domain boundaries
 - **CLAUDE.md generation** — creates architectural atlas for AI tools to navigate the repo
@@ -128,7 +143,7 @@
 
 ## Prerequisites
 
-Before installing ClaudeDesk, ensure you have:
+Before installing OmniDesk, ensure you have:
 
 1. **Node.js 20+** — [Download here](https://nodejs.org/)
 2. **Claude Code CLI** — Install via:
@@ -136,7 +151,7 @@ Before installing ClaudeDesk, ensure you have:
    npm install -g @anthropic-ai/claude-code
    ```
    Or follow the [official installation guide](https://claude.ai/claude-code)
-3. **Claude API credentials** — ClaudeDesk reads from `~/.claude/.credentials.json` (set up by Claude CLI)
+3. **Claude API credentials** — OmniDesk reads from `~/.claude/.credentials.json` (set up by Claude CLI)
 
 ---
 
@@ -180,7 +195,7 @@ Built packages will be in the `release/` directory.
 
 ## Quick Start
 
-1. **Launch ClaudeDesk** from your applications menu or run `npm run electron:watch`
+1. **Launch OmniDesk** from your applications menu or run `npm run electron:watch`
 2. **Create your first session** — click "+" or press `Ctrl+T`, pick a workspace and directory
 3. **Start using Claude** — type your prompt in the terminal
 4. **Try the command palette** — press `Ctrl+Shift+P` to browse prompt templates
@@ -213,7 +228,7 @@ Built packages will be in the `release/` directory.
 | Styling | Tailwind CSS (Tokyo Night theme) |
 | Graph | reactflow |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (233 tests) + Playwright |
+| Testing | Vitest 4 (475 tests) + Playwright |
 
 ---
 
@@ -222,7 +237,7 @@ Built packages will be in the `release/` directory.
 ```
 claudedesk/
 ├── src/
-│   ├── main/              # Electron main process (9 managers)
+│   ├── main/              # Electron main process (16 managers)
 │   ├── preload/           # Context bridge (auto-derived from contract)
 │   ├── renderer/          # React app (hooks, components, utils)
 │   └── shared/            # IPC contract, types, shared utilities
@@ -241,7 +256,7 @@ See [docs/repo-index.md](docs/repo-index.md) for a detailed domain-to-file mappi
 ```bash
 npm install              # Install dependencies
 npm run electron:watch   # Dev mode with hot reload
-npm test                 # Run all 233 tests
+npm test                 # Run all 475 tests
 npm run test:watch       # Watch mode
 npm run test:e2e         # E2E tests (local only)
 npm run test:coverage    # Coverage report
@@ -255,7 +270,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 - **Local-first** — all session data stored on your machine
 - **No telemetry** — no usage data collected or transmitted
-- **No third-party services** — only communicates with Anthropic's official API
+- **Minimal external services** — communicates with Anthropic's API for quota, and LaunchTunnel for optional session sharing and tunnels
 - **Credential security** — reads Claude CLI credentials locally, never logs or stores them
 
 For more details, see [SECURITY.md](SECURITY.md).
@@ -292,7 +307,7 @@ Copyright (c) 2026 Carlo Luisito Adap
 
 ## Disclaimer
 
-**ClaudeDesk is an unofficial community project and is not endorsed, affiliated with, or supported by Anthropic.**
+**OmniDesk is an unofficial community project and is not endorsed, affiliated with, or supported by Anthropic.**
 
 This is an independent wrapper around the Claude Code CLI. For official support, refer to [Anthropic's documentation](https://claude.ai/claude-code).
 

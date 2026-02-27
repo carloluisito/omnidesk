@@ -129,8 +129,8 @@ const diffViewerStyles = `
     right: 20px;
     bottom: 20px;
     z-index: 9001;
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -148,8 +148,8 @@ const diffViewerStyles = `
   .diff-viewer-header {
     height: 48px;
     padding: 0 16px;
-    background: #24283b;
-    border-bottom: 1px solid #292e42;
+    background: var(--surface-float, #222435);
+    border-bottom: 1px solid var(--border-default, #292E44);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -166,8 +166,8 @@ const diffViewerStyles = `
 
   .diff-viewer-filepath {
     font-size: 13px;
-    color: #c0caf5;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -177,7 +177,7 @@ const diffViewerStyles = `
 
   .diff-viewer-badge {
     font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 2px 8px;
     border-radius: 3px;
     flex-shrink: 0;
@@ -196,29 +196,29 @@ const diffViewerStyles = `
     border: 1px solid;
     border-radius: 4px;
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     cursor: pointer;
     background: transparent;
     font-weight: 500;
   }
 
   .diff-viewer-stage-btn {
-    color: #9ece6a;
-    border-color: #9ece6a;
+    color: var(--semantic-success, #3DD68C);
+    border-color: var(--semantic-success, #3DD68C);
   }
-  .diff-viewer-stage-btn:hover { background: rgba(158, 206, 106, 0.15); }
+  .diff-viewer-stage-btn:hover { background: rgba(61, 214, 140, 0.15); }
 
   .diff-viewer-unstage-btn {
-    color: #e0af68;
-    border-color: #e0af68;
+    color: var(--semantic-warning, #F7A84A);
+    border-color: var(--semantic-warning, #F7A84A);
   }
-  .diff-viewer-unstage-btn:hover { background: rgba(224, 175, 104, 0.15); }
+  .diff-viewer-unstage-btn:hover { background: rgba(247, 168, 74, 0.15); }
 
   .diff-viewer-discard-btn {
-    color: #f7768e;
-    border-color: #f7768e;
+    color: var(--semantic-error, #F7678E);
+    border-color: var(--semantic-error, #F7678E);
   }
-  .diff-viewer-discard-btn:hover { background: rgba(247, 118, 142, 0.15); }
+  .diff-viewer-discard-btn:hover { background: rgba(247, 103, 142, 0.15); }
 
   .diff-viewer-close-btn {
     width: 32px;
@@ -228,12 +228,12 @@ const diffViewerStyles = `
     justify-content: center;
     background: none;
     border: none;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     border-radius: 4px;
   }
 
-  .diff-viewer-close-btn:hover { background: #292e42; color: #c0caf5; }
+  .diff-viewer-close-btn:hover { background: var(--border-default, #292E44); color: var(--text-primary, #E2E4F0); }
 
   /* ── Body ── */
   .diff-viewer-body {
@@ -247,12 +247,12 @@ const diffViewerStyles = `
   .diff-file-nav {
     width: 240px;
     flex-shrink: 0;
-    background: #1a1b26;
-    border-right: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border-right: 1px solid var(--border-default, #292E44);
     overflow-y: auto;
   }
 
-  .diff-nav-section { border-bottom: 1px solid #292e42; }
+  .diff-nav-section { border-bottom: 1px solid var(--border-default, #292E44); }
 
   .diff-nav-section-header {
     padding: 8px 12px;
@@ -260,7 +260,7 @@ const diffViewerStyles = `
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    background: #24283b;
+    background: var(--surface-float, #222435);
     border-left: 3px solid;
     user-select: none;
   }
@@ -270,15 +270,15 @@ const diffViewerStyles = `
   .diff-nav-section-title {
     font-size: 10px;
     font-weight: 600;
-    color: #c0caf5;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     flex: 1;
   }
 
   .diff-nav-section-count {
     font-size: 10px;
-    color: #565f89;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-tertiary, #5C6080);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .diff-nav-file {
@@ -291,17 +291,17 @@ const diffViewerStyles = `
     transition: background 100ms;
   }
 
-  .diff-nav-file:hover { background: #24283b; }
+  .diff-nav-file:hover { background: var(--surface-float, #222435); }
 
   .diff-nav-file.active {
-    background: rgba(122, 162, 247, 0.1);
-    border-left-color: #7aa2f7;
+    background: rgba(0, 201, 167, 0.1);
+    border-left-color: var(--accent-primary, #00C9A7);
   }
 
   .diff-nav-file-name {
     font-size: 12px;
-    color: #c0caf5;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary, #E2E4F0);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -312,7 +312,7 @@ const diffViewerStyles = `
   .diff-nav-file-status {
     font-size: 11px;
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     flex-shrink: 0;
     margin-left: 6px;
   }
@@ -332,15 +332,15 @@ const diffViewerStyles = `
     justify-content: center;
     gap: 12px;
     font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
-    color: #565f89;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+    color: var(--text-tertiary, #5C6080);
   }
 
   .diff-content-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid #292e42;
-    border-top-color: #7aa2f7;
+    border: 2px solid var(--border-default, #292E44);
+    border-top-color: var(--accent-primary, #00C9A7);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -348,32 +348,32 @@ const diffViewerStyles = `
   .diff-content-banner {
     padding: 8px 16px;
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     position: sticky;
     top: 0;
     z-index: 1;
   }
 
   .diff-content-banner-new {
-    background: rgba(158, 206, 106, 0.1);
-    color: #9ece6a;
-    border-bottom: 1px solid rgba(158, 206, 106, 0.2);
+    background: rgba(61, 214, 140, 0.1);
+    color: var(--semantic-success, #3DD68C);
+    border-bottom: 1px solid rgba(61, 214, 140, 0.2);
   }
 
   .diff-content-banner-deleted {
-    background: rgba(247, 118, 142, 0.1);
-    color: #f7768e;
-    border-bottom: 1px solid rgba(247, 118, 142, 0.2);
+    background: rgba(247, 103, 142, 0.1);
+    color: var(--semantic-error, #F7678E);
+    border-bottom: 1px solid rgba(247, 103, 142, 0.2);
   }
 
   .diff-content-banner-truncated {
-    background: rgba(224, 175, 104, 0.1);
-    color: #e0af68;
-    border-bottom: 1px solid rgba(224, 175, 104, 0.2);
+    background: rgba(247, 168, 74, 0.1);
+    color: var(--semantic-warning, #F7A84A);
+    border-bottom: 1px solid rgba(247, 168, 74, 0.2);
   }
 
   .diff-content-lines {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -381,7 +381,7 @@ const diffViewerStyles = `
   /* ── Chunk header ── */
   .diff-chunk-header {
     display: flex;
-    background: rgba(122, 162, 247, 0.08);
+    background: rgba(0, 201, 167, 0.08);
     padding: 4px 0;
     position: sticky;
     top: 0;
@@ -395,7 +395,7 @@ const diffViewerStyles = `
 
   .diff-chunk-text {
     flex: 1;
-    color: #7aa2f7;
+    color: var(--accent-primary, #00C9A7);
     font-style: italic;
     padding: 0 12px;
   }
@@ -407,11 +407,11 @@ const diffViewerStyles = `
   }
 
   .diff-line-add {
-    background: rgba(158, 206, 106, 0.12);
+    background: rgba(61, 214, 140, 0.12);
   }
 
   .diff-line-remove {
-    background: rgba(247, 118, 142, 0.12);
+    background: rgba(247, 103, 142, 0.12);
   }
 
   .diff-line-context {
@@ -423,13 +423,13 @@ const diffViewerStyles = `
     flex-shrink: 0;
     text-align: right;
     padding-right: 8px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     user-select: none;
     box-sizing: border-box;
   }
 
   .diff-line-gutter-old {
-    border-right: 1px solid #292e42;
+    border-right: 1px solid var(--border-default, #292E44);
   }
 
   .diff-line-prefix {
@@ -439,20 +439,20 @@ const diffViewerStyles = `
     user-select: none;
   }
 
-  .diff-line-add .diff-line-prefix { color: #9ece6a; }
-  .diff-line-remove .diff-line-prefix { color: #f7768e; }
-  .diff-line-context .diff-line-prefix { color: #565f89; }
+  .diff-line-add .diff-line-prefix { color: var(--semantic-success, #3DD68C); }
+  .diff-line-remove .diff-line-prefix { color: var(--semantic-error, #F7678E); }
+  .diff-line-context .diff-line-prefix { color: var(--text-tertiary, #5C6080); }
 
   .diff-line-content {
     flex: 1;
     white-space: pre;
     overflow-x: auto;
     padding-right: 16px;
-    color: #a9b1d6;
+    color: var(--text-secondary, #9DA3BE);
   }
 
-  .diff-line-add .diff-line-content { color: #9ece6a; }
-  .diff-line-remove .diff-line-content { color: #f7768e; }
+  .diff-line-add .diff-line-content { color: var(--semantic-success, #3DD68C); }
+  .diff-line-remove .diff-line-content { color: var(--semantic-error, #F7678E); }
 
   /* Scrollbar styling */
   .diff-content-area::-webkit-scrollbar,
@@ -467,12 +467,12 @@ const diffViewerStyles = `
 
   .diff-content-area::-webkit-scrollbar-thumb,
   .diff-file-nav::-webkit-scrollbar-thumb {
-    background: #292e42;
+    background: var(--border-default, #292E44);
     border-radius: 3px;
   }
 
   .diff-content-area::-webkit-scrollbar-thumb:hover,
   .diff-file-nav::-webkit-scrollbar-thumb:hover {
-    background: #3b4261;
+    background: var(--border-strong, #3D4163);
   }
 `;

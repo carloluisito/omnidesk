@@ -80,14 +80,14 @@ export function TooltipCoach({
             .tooltip-coach {
               position: absolute;
               z-index: 10000;
-              background: #1f2335;
-              border: 2px solid #7aa2f7;
-              border-radius: 10px;
-              padding: 16px;
+              background: var(--surface-overlay, #1A1B26);
+              border: 1px solid var(--border-accent, #00C9A7);
+              border-radius: var(--radius-lg, 10px);
+              padding: var(--space-4, 16px);
               min-width: 280px;
               max-width: 320px;
-              box-shadow: 0 12px 48px rgba(122, 162, 247, 0.3);
-              font-family: 'JetBrains Mono', monospace;
+              box-shadow: 0 12px 48px rgba(0, 201, 167, 0.2);
+              font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
               animation: tooltip-coach-fade-in 0.3s ease;
             }
 
@@ -129,52 +129,51 @@ export function TooltipCoach({
             .tooltip-coach-content {
               display: flex;
               flex-direction: column;
-              gap: 12px;
+              gap: var(--space-3, 12px);
             }
 
             .tooltip-coach-title {
-              font-size: 14px;
-              font-weight: 600;
-              color: #7aa2f7;
+              font-size: var(--text-sm, 12px);
+              font-weight: var(--weight-semibold, 600);
+              color: var(--text-accent, #00C9A7);
               margin: 0;
             }
 
             .tooltip-coach-description {
-              font-size: 12px;
-              color: #a9b1d6;
+              font-size: var(--text-xs, 11px);
+              color: var(--text-secondary, #9DA3BE);
               margin: 0;
-              line-height: 1.5;
+              line-height: var(--leading-normal, 1.5);
             }
 
             .tooltip-coach-btn {
-              padding: 8px 16px;
-              background: linear-gradient(135deg, #7aa2f7, #7dcfff);
+              padding: var(--space-2, 8px) var(--space-4, 16px);
+              background: var(--accent-primary, #00C9A7);
               border: none;
-              border-radius: 6px;
-              color: #1a1b26;
-              font-size: 12px;
-              font-weight: 600;
-              font-family: inherit;
+              border-radius: var(--radius-md, 6px);
+              color: var(--text-inverse, #0D0E14);
+              font-size: var(--text-xs, 11px);
+              font-weight: var(--weight-semibold, 600);
+              font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
               cursor: pointer;
-              transition: all 0.2s ease;
+              transition: background var(--duration-fast, 150ms) ease;
               align-self: flex-start;
             }
 
             .tooltip-coach-btn:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 4px 16px rgba(122, 162, 247, 0.4);
+              background: var(--accent-primary-dim, #009E84);
             }
 
             .tooltip-coach-btn:active {
-              transform: translateY(0);
+              transform: scale(0.98);
             }
 
             .tooltip-coach-arrow {
               position: absolute;
               width: 12px;
               height: 12px;
-              background: #1f2335;
-              border: 2px solid #7aa2f7;
+              background: var(--surface-overlay, #1A1B26);
+              border: 1px solid var(--border-accent, #00C9A7);
               transform: rotate(45deg);
             }
 

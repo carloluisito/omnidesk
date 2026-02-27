@@ -98,7 +98,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
         {/* Header */}
         <div className="wtp-header">
           <div className="wtp-header-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success, #3DD68C)" strokeWidth="2">
               <line x1="6" y1="3" x2="6" y2="15" />
               <circle cx="18" cy="6" r="3" />
               <circle cx="6" cy="18" r="3" />
@@ -131,7 +131,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
             </div>
           ) : linkedWorktrees.length === 0 ? (
             <div className="wtp-empty">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b4261" strokeWidth="1.5">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-strong, #3D4163)" strokeWidth="1.5">
                 <line x1="6" y1="3" x2="6" y2="15" />
                 <circle cx="18" cy="6" r="3" />
                 <circle cx="6" cy="18" r="3" />
@@ -145,7 +145,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
               {linkedWorktrees.map(wt => (
                 <div key={wt.path} className={`wtp-card ${removing === wt.path ? 'removing' : ''}`}>
                   <div className="wtp-card-header">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ece6a" strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success, #3DD68C)" strokeWidth="2">
                       <line x1="6" y1="3" x2="6" y2="15" />
                       <circle cx="18" cy="6" r="3" />
                       <circle cx="6" cy="18" r="3" />
@@ -161,7 +161,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
                   <div className="wtp-card-path">{wt.path}</div>
                   <div className="wtp-card-meta">
                     <span className="wtp-card-head">{wt.head.slice(0, 8)}</span>
-                    {wt.managedByClaudeDesk && (
+                    {(wt.managedByOmniDesk ?? wt.managedByClaudeDesk) && (
                       <span className="wtp-managed-badge">Managed</span>
                     )}
                   </div>
@@ -221,18 +221,18 @@ const styles = `
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .wtp-panel {
     width: 520px;
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 64px);
-    background: #1a1b26;
-    border: 1px solid #292e42;
+    background: var(--surface-overlay, #1A1B26);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 12px;
     box-shadow:
-      0 0 0 1px rgba(158, 206, 106, 0.1),
+      0 0 0 1px rgba(61, 214, 140, 0.1),
       0 20px 50px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -244,8 +244,8 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid #292e42;
-    background: linear-gradient(to bottom, #1e2030, #1a1b26);
+    border-bottom: 1px solid var(--border-default, #292E44);
+    background: linear-gradient(to bottom, var(--surface-float, #222435), var(--surface-overlay, #1A1B26));
   }
 
   .wtp-header-left {
@@ -263,14 +263,14 @@ const styles = `
   .wtp-title {
     font-size: 14px;
     font-weight: 600;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     margin: 0;
   }
 
   .wtp-count {
     font-size: 11px;
-    color: #565f89;
-    background: #292e42;
+    color: var(--text-tertiary, #5C6080);
+    background: var(--border-default, #292E44);
     padding: 2px 8px;
     border-radius: 10px;
   }
@@ -285,15 +285,15 @@ const styles = `
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-refresh-btn:hover,
   .wtp-close-btn:hover {
-    background: #292e42;
-    color: #c0caf5;
+    background: var(--border-default, #292E44);
+    color: var(--text-primary, #E2E4F0);
   }
 
   .wtp-content {
@@ -310,20 +310,20 @@ const styles = `
     justify-content: center;
     padding: 40px 0;
     gap: 12px;
-    color: #3b4261;
+    color: var(--border-strong, #3D4163);
     font-size: 12px;
   }
 
   .wtp-empty-hint {
     font-size: 11px;
-    color: #292e42;
+    color: var(--border-default, #292E44);
   }
 
   .wtp-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid #292e42;
-    border-top-color: #9ece6a;
+    border: 2px solid var(--border-default, #292E44);
+    border-top-color: var(--semantic-success, #3DD68C);
     border-radius: 50%;
     animation: wtp-spin 0.8s linear infinite;
   }
@@ -340,14 +340,14 @@ const styles = `
 
   .wtp-card {
     padding: 12px;
-    background: #16161e;
-    border: 1px solid #292e42;
+    background: var(--surface-raised, #13141C);
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 8px;
     transition: all 0.15s;
   }
 
   .wtp-card:hover {
-    border-color: #3b4261;
+    border-color: var(--border-strong, #3D4163);
   }
 
   .wtp-card.removing {
@@ -364,7 +364,7 @@ const styles = `
   .wtp-branch-name {
     font-size: 13px;
     font-weight: 600;
-    color: #c0caf5;
+    color: var(--text-primary, #E2E4F0);
     flex: 1;
   }
 
@@ -378,30 +378,30 @@ const styles = `
   }
 
   .wtp-status-badge.active {
-    background: rgba(158, 206, 106, 0.15);
-    color: #9ece6a;
+    background: rgba(61, 214, 140, 0.15);
+    color: var(--semantic-success, #3DD68C);
   }
 
   .wtp-status-badge.inactive {
-    background: #292e42;
-    color: #a9b1d6;
+    background: var(--border-default, #292E44);
+    color: var(--text-secondary, #9DA3BE);
   }
 
   .wtp-status-badge.locked {
-    background: rgba(247, 118, 142, 0.15);
-    color: #f7768e;
+    background: rgba(247, 103, 142, 0.15);
+    color: var(--semantic-error, #F7678E);
   }
 
   .wtp-status-badge.stale {
-    background: rgba(224, 175, 104, 0.15);
-    color: #e0af68;
+    background: rgba(247, 168, 74, 0.15);
+    color: var(--semantic-warning, #F7A84A);
   }
 
   .wtp-card-path {
     font-size: 11px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     word-break: break-all;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     margin-bottom: 6px;
   }
 
@@ -414,14 +414,14 @@ const styles = `
 
   .wtp-card-head {
     font-size: 10px;
-    color: #3b4261;
-    font-family: 'JetBrains Mono', monospace;
+    color: var(--border-strong, #3D4163);
+    font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .wtp-managed-badge {
     font-size: 9px;
-    color: #9ece6a;
-    background: rgba(158, 206, 106, 0.1);
+    color: var(--semantic-success, #3DD68C);
+    background: rgba(61, 214, 140, 0.1);
     padding: 1px 6px;
     border-radius: 8px;
     text-transform: uppercase;
@@ -441,16 +441,16 @@ const styles = `
     font-weight: 500;
     font-family: inherit;
     background: transparent;
-    border: 1px solid #292e42;
+    border: 1px solid var(--border-default, #292E44);
     border-radius: 6px;
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-remove-btn:hover {
-    background: rgba(247, 118, 142, 0.1);
-    border-color: #f7768e;
+    background: rgba(247, 103, 142, 0.1);
+    border-color: var(--semantic-error, #F7678E);
   }
 
   .wtp-remove-btn:disabled {
@@ -460,7 +460,7 @@ const styles = `
 
   .wtp-linked-label {
     font-size: 11px;
-    color: #565f89;
+    color: var(--text-tertiary, #5C6080);
     font-style: italic;
   }
 
@@ -470,17 +470,17 @@ const styles = `
     gap: 8px;
     margin-top: 8px;
     padding: 10px 14px;
-    background: rgba(247, 118, 142, 0.1);
-    border: 1px solid rgba(247, 118, 142, 0.2);
+    background: rgba(247, 103, 142, 0.1);
+    border: 1px solid rgba(247, 103, 142, 0.2);
     border-radius: 8px;
     font-size: 12px;
-    color: #f7768e;
+    color: var(--semantic-error, #F7678E);
   }
 
   .wtp-footer {
     padding: 12px 16px;
-    border-top: 1px solid #292e42;
-    background: #16161e;
+    border-top: 1px solid var(--border-default, #292E44);
+    background: var(--surface-raised, #13141C);
     display: flex;
     justify-content: flex-end;
   }
@@ -492,16 +492,16 @@ const styles = `
     font-weight: 600;
     font-family: inherit;
     background: transparent;
-    border: 1px solid rgba(224, 175, 104, 0.3);
+    border: 1px solid rgba(247, 168, 74, 0.3);
     border-radius: 6px;
-    color: #e0af68;
+    color: var(--semantic-warning, #F7A84A);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-prune-btn:hover {
-    background: rgba(224, 175, 104, 0.1);
-    border-color: #e0af68;
+    background: rgba(247, 168, 74, 0.1);
+    border-color: var(--semantic-warning, #F7A84A);
   }
 
   .wtp-content::-webkit-scrollbar {
@@ -513,7 +513,7 @@ const styles = `
   }
 
   .wtp-content::-webkit-scrollbar-thumb {
-    background: #292e42;
+    background: var(--border-default, #292E44);
     border-radius: 3px;
   }
 `;

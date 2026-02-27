@@ -56,12 +56,12 @@ export function StatusPopover({
 
   const getStatusColor = () => {
     switch (status) {
-      case 'ready': return '#9ece6a';
-      case 'initializing': return '#ff9e64';
-      case 'error': return '#f7768e';
-      case 'warning': return '#e0af68';
-      case 'idle': return '#565f89';
-      default: return '#565f89';
+      case 'ready': return 'var(--semantic-success, #3DD68C)';
+      case 'initializing': return 'var(--semantic-warning, #F7A84A)';
+      case 'error': return 'var(--semantic-error, #F7678E)';
+      case 'warning': return 'var(--semantic-warning, #F7A84A)';
+      case 'idle': return 'var(--text-tertiary, #5C6080)';
+      default: return 'var(--text-tertiary, #5C6080)';
     }
   };
 
@@ -181,13 +181,13 @@ export function StatusPopover({
             top: 80px;
             right: 20px;
             width: 320px;
-            background: #1f2335;
-            border: 2px solid #3d4458;
-            border-radius: 12px;
-            padding: 20px;
+            background: var(--surface-overlay, #1A1B26);
+            border: 1px solid var(--border-default, #292E44);
+            border-radius: var(--radius-lg, 10px);
+            padding: var(--space-5, 20px);
             z-index: 999;
-            font-family: 'JetBrains Mono', monospace;
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+            box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
             animation: popover-slide-in 0.2s cubic-bezier(0, 0, 0.2, 1);
           }
 
@@ -206,43 +206,46 @@ export function StatusPopover({
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: var(--space-4, 16px);
           }
 
           .popover-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #e9e9ea;
+            font-size: var(--text-sm, 12px);
+            font-weight: var(--weight-semibold, 600);
+            color: var(--text-primary, #E2E4F0);
             margin: 0;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-widest, 0.1em);
           }
 
           .close-btn {
             background: none;
             border: none;
-            color: #a9b1d6;
+            color: var(--text-tertiary, #5C6080);
             cursor: pointer;
             padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
-            transition: all 0.2s ease;
+            border-radius: var(--radius-sm, 3px);
+            transition: color var(--duration-fast, 150ms) ease,
+                        background var(--duration-fast, 150ms) ease;
           }
 
           .close-btn:hover {
-            background: #24283b;
-            color: #e9e9ea;
+            background: var(--state-hover, #FFFFFF0A);
+            color: var(--text-primary, #E2E4F0);
           }
 
           .status-badge {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            background: #24283b;
+            gap: var(--space-2, 8px);
+            padding: var(--space-2, 8px) var(--space-3, 12px);
+            background: var(--surface-float, #222435);
             border: 1px solid;
-            border-radius: 8px;
-            margin-bottom: 16px;
+            border-radius: var(--radius-md, 6px);
+            margin-bottom: var(--space-4, 16px);
           }
 
           .status-dot {
@@ -252,16 +255,16 @@ export function StatusPopover({
           }
 
           .status-label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #e9e9ea;
+            font-size: var(--text-sm, 12px);
+            font-weight: var(--weight-medium, 500);
+            color: var(--text-primary, #E2E4F0);
           }
 
           .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: var(--space-3, 12px);
+            margin-bottom: var(--space-4, 16px);
           }
 
           .stat-item {
@@ -272,42 +275,45 @@ export function StatusPopover({
 
           .stat-label {
             font-size: 10px;
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
 
           .stat-value {
-            font-size: 13px;
-            color: #e9e9ea;
-            font-weight: 500;
+            font-size: var(--text-sm, 12px);
+            color: var(--text-primary, #E2E4F0);
+            font-weight: var(--weight-medium, 500);
+            font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
 
           .budget-bar {
             width: 100%;
-            height: 6px;
-            background: #24283b;
-            border-radius: 3px;
+            height: 4px;
+            background: var(--surface-float, #222435);
+            border-radius: var(--radius-full, 9999px);
             overflow: hidden;
             margin-bottom: 4px;
           }
 
           .budget-fill {
             height: 100%;
-            background: linear-gradient(90deg, #7aa2f7, #7dcfff);
+            background: var(--accent-primary, #00C9A7);
             transition: width 0.3s ease;
           }
 
           .budget-percent {
-            font-size: 11px;
-            color: #a9b1d6;
+            font-size: var(--text-xs, 11px);
+            color: var(--text-secondary, #9DA3BE);
+            font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
 
           .quick-actions {
             display: flex;
-            gap: 8px;
-            padding-top: 16px;
-            border-top: 1px solid #3d4458;
+            gap: var(--space-2, 8px);
+            padding-top: var(--space-4, 16px);
+            border-top: 1px solid var(--border-subtle, #1E2030);
           }
 
           .action-btn {
@@ -316,22 +322,24 @@ export function StatusPopover({
             align-items: center;
             justify-content: center;
             gap: 6px;
-            padding: 8px 12px;
-            background: #24283b;
-            border: 1px solid #3d4458;
-            border-radius: 6px;
-            color: #a9b1d6;
-            font-size: 11px;
-            font-weight: 500;
-            font-family: inherit;
+            padding: var(--space-2, 8px) var(--space-3, 12px);
+            background: var(--surface-float, #222435);
+            border: 1px solid var(--border-default, #292E44);
+            border-radius: var(--radius-md, 6px);
+            color: var(--text-secondary, #9DA3BE);
+            font-size: var(--text-xs, 11px);
+            font-weight: var(--weight-medium, 500);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: border-color var(--duration-fast, 150ms) ease,
+                        color var(--duration-fast, 150ms) ease,
+                        background var(--duration-fast, 150ms) ease;
           }
 
           .action-btn:hover {
-            background: #292e42;
-            border-color: #7aa2f7;
-            color: #7aa2f7;
+            background: var(--state-hover, #FFFFFF0A);
+            border-color: var(--border-accent, #00C9A7);
+            color: var(--text-accent, #00C9A7);
           }
 
           .action-btn svg {

@@ -32,6 +32,7 @@ npm-debug.log*
 Session_*.md
 
 # Internal development docs
+.omnidesk/
 .claudedesk/
 
 # Test output

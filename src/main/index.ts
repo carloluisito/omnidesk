@@ -2,6 +2,7 @@
 import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { CONFIG_DIR, ensureConfigDir, migrateFromLegacy } from './config-dir';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
@@ -17,6 +18,9 @@ import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
 import { TunnelManager } from './tunnel-manager';
+import { ProviderRegistry } from './providers/provider-registry';
+import { SharingManager } from './sharing-manager';
+import { IPCEmitter } from './ipc-emitter';
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
 import { WindowState } from '../shared/ipc-types';
 
@@ -44,15 +48,10 @@ let gitManager: GitManager | null = null;
 let playbookManager: PlaybookManager | null = null;
 let playbookExecutor: PlaybookExecutor | null = null;
 let tunnelManager: TunnelManager | null = null;
+let providerRegistry: ProviderRegistry | null = null;
+let sharingManager: SharingManager | null = null;
 
-const CONFIG_DIR = path.join(app.getPath('home'), '.claudedesk');
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
 
 function loadWindowState(): WindowState | null {
   try {
@@ -177,6 +176,10 @@ function createWindow(): void {
   tunnelManager = new TunnelManager();
   tunnelManager.setMainWindow(mainWindow);
 
+  // Initialize sharing manager (depends on sessionManager + tunnelManager)
+  sharingManager = new SharingManager(sessionManager, tunnelManager);
+  sharingManager.setEmitter(new IPCEmitter(mainWindow));
+
   // Initialize command registry
   commandRegistry = new CommandRegistry();
 
@@ -193,6 +196,10 @@ function createWindow(): void {
   sessionManager.onSessionEnd((sessionId) => {
     agentTeamManager?.onSessionClosed(sessionId);
   });
+
+  // Initialize provider registry and wire into session manager
+  providerRegistry = new ProviderRegistry();
+  sessionManager.setProviderRegistry(providerRegistry);
 
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
@@ -211,7 +218,9 @@ function createWindow(): void {
     gitManager,
     playbookManager,
     playbookExecutor,
-    tunnelManager
+    tunnelManager,
+    providerRegistry,
+    sharingManager
   );
 
   // Initialize pool (delayed, async)
@@ -263,6 +272,10 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     removeIPCHandlers();
+    if (sharingManager) {
+      sharingManager.destroy();
+      sharingManager = null;
+    }
     if (tunnelManager) {
       tunnelManager.destroy();
       tunnelManager = null;
@@ -301,6 +314,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  migrateFromLegacy();
   createWindow();
 
   app.on('activate', () => {
@@ -316,15 +330,63 @@ app.on('window-all-closed', () => {
   }
 });
 
+// ── Protocol registration (Phase 11): omnidesk:// deep links ─────────────────
+// Must be registered before app.whenReady() for Windows (registry).
+app.setAsDefaultProtocolClient('omnidesk');
+
+/**
+ * Parse an omnidesk://join/<code> URL and return the share code, or null
+ * if the URL does not match the expected pattern.
+ */
+function extractDeepLinkCode(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'omnidesk:') return null;
+    if (parsed.hostname !== 'join') return null;
+    // pathname is "/<code>" — strip the leading "/"
+    const code = parsed.pathname.replace(/^\//, '').trim();
+    if (!code) return null;
+    return code;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Send a deep-link join event to the renderer so it can pre-fill and open
+ * the JoinSessionDialog.  The channel name 'sharing:deepLinkJoin' is used
+ * directly (not via the IPC contract) since it is a fire-and-forget push
+ * from the main process triggered by OS events.
+ */
+function handleDeepLink(url: string): void {
+  const code = extractDeepLinkCode(url);
+  if (!code) return;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+    mainWindow.webContents.send('sharing:deepLinkJoin', { shareCode: code });
+  }
+}
+
 // Handle potential second instance
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
+    // On Windows the protocol URL arrives in argv (last element that starts with 'omnidesk:')
+    const deepLinkUrl = argv.find((arg) => arg.startsWith('omnidesk://'));
+    if (deepLinkUrl) {
+      handleDeepLink(deepLinkUrl);
+    }
   });
 }
+
+// macOS: protocol URL arrives via 'open-url' event
+app.on('open-url', (_event, url) => {
+  handleDeepLink(url);
+});

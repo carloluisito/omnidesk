@@ -17,7 +17,9 @@ import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
 import { TunnelManager } from './tunnel-manager';
-import { queryClaudeQuota, clearQuotaCache, getBurnRate } from './quota-service';
+import { ProviderRegistry } from './providers/provider-registry';
+import { SharingManager } from './sharing-manager';
+import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
 import { IPCEmitter } from './ipc-emitter';
 import { IPCRegistry } from './ipc-registry';
@@ -40,7 +42,9 @@ export function setupIPCHandlers(
   gitManager: GitManager,
   playbookManager: PlaybookManager,
   playbookExecutor: PlaybookExecutor,
-  tunnelManager: TunnelManager
+  tunnelManager: TunnelManager,
+  providerRegistry: ProviderRegistry,
+  sharingManager: SharingManager
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
@@ -256,17 +260,39 @@ export function setupIPCHandlers(
 
   // ── Quota ──
 
+  /** Resolve the Claude config dir for the currently active session */
+  function getActiveConfigDir(): string {
+    const activeId = sessionManager.getActiveSessionId();
+    if (activeId) {
+      const session = sessionManager.getSession(activeId);
+      if (session?.workingDirectory) {
+        return resolveClaudeConfigDir(session.workingDirectory);
+      }
+    }
+    return resolveClaudeConfigDir();
+  }
+
   registry.handle('getQuota', async (_e, forceRefresh) => {
-    try { return await queryClaudeQuota(forceRefresh); }
+    try {
+      const configDir = getActiveConfigDir();
+      return await queryClaudeQuota(forceRefresh, configDir);
+    }
     catch (err) { console.error('Failed to get quota:', err); return null; }
   });
 
   registry.handle('refreshQuota', async () => {
-    try { clearQuotaCache(); return await queryClaudeQuota(true); }
+    try {
+      const configDir = getActiveConfigDir();
+      clearQuotaCache(configDir);
+      return await queryClaudeQuota(true, configDir);
+    }
     catch (err) { console.error('Failed to refresh quota:', err); return null; }
   });
 
-  registry.handle('getBurnRate', async () => getBurnRate());
+  registry.handle('getBurnRate', async () => {
+    const configDir = getActiveConfigDir();
+    return getBurnRate(configDir);
+  });
 
   // ── Templates ──
 
@@ -781,6 +807,20 @@ export function setupIPCHandlers(
     return playbookExecutor.getExecution(sessionId);
   });
 
+  // ── Providers ──
+
+  registry.handle('listProviders', async () => {
+    return providerRegistry.list();
+  });
+
+  registry.handle('getAvailableProviders', async () => {
+    return providerRegistry.getAvailable();
+  });
+
+  registry.handle('getProviderCapabilities', async (_e, id) => {
+    return providerRegistry.get(id).getInfo().capabilities;
+  });
+
   // ── App info ──
 
   registry.handle('getVersionInfo', async () => {
@@ -860,6 +900,70 @@ export function setupIPCHandlers(
   registry.handle('tunnelStopAll', async () => {
     try { return await tunnelManager.stopAll(); }
     catch (err) { console.error('Failed to stop all tunnels:', err); throw err; }
+  });
+
+  // ── Session Sharing ──
+
+  registry.handle('startShare', async (_e, request) => {
+    try { return await sharingManager.startShare(request); }
+    catch (err) { console.error('Failed to start share:', err); throw err; }
+  });
+
+  registry.handle('stopShare', async (_e, sessionId) => {
+    try { return await sharingManager.stopShare(sessionId); }
+    catch (err) { console.error('Failed to stop share:', err); throw err; }
+  });
+
+  registry.handle('getShareInfo', async (_e, sessionId) => {
+    return sharingManager.getShareInfo(sessionId);
+  });
+
+  registry.handle('listActiveShares', async () => {
+    return sharingManager.listActiveShares();
+  });
+
+  registry.handle('kickObserver', async (_e, sessionId, observerId) => {
+    try { return await sharingManager.kickObserver(sessionId, observerId); }
+    catch (err) { console.error('Failed to kick observer:', err); throw err; }
+  });
+
+  registry.handle('grantControl', async (_e, sessionId, observerId) => {
+    try { return await sharingManager.grantControl(sessionId, observerId); }
+    catch (err) { console.error('Failed to grant control:', err); throw err; }
+  });
+
+  registry.handle('revokeControl', async (_e, sessionId, observerId) => {
+    try { return await sharingManager.revokeControl(sessionId, observerId); }
+    catch (err) { console.error('Failed to revoke control:', err); throw err; }
+  });
+
+  registry.handle('joinShare', async (_e, request) => {
+    try { return await sharingManager.joinShare(request); }
+    catch (err) { console.error('Failed to join share:', err); throw err; }
+  });
+
+  registry.handle('leaveShare', async (_e, shareCode) => {
+    return sharingManager.leaveShare(shareCode);
+  });
+
+  registry.handle('requestControl', async (_e, shareCode) => {
+    return sharingManager.requestControl(shareCode);
+  });
+
+  registry.handle('releaseControl', async (_e, shareCode) => {
+    return sharingManager.releaseControl(shareCode);
+  });
+
+  registry.handle('getSharingSettings', async () => {
+    return sharingManager.getSettings();
+  });
+
+  registry.handle('updateSharingSettings', async (_e, updates) => {
+    return sharingManager.updateSettings(updates);
+  });
+
+  registry.handle('checkShareEligibility', async () => {
+    return sharingManager.checkEligibility();
   });
 
   // ── Session I/O (send — fire and forget) ──

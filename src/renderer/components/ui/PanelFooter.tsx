@@ -51,34 +51,35 @@ export function PanelFooter({ learnMoreUrl, docsUrl }: PanelFooterProps) {
           display: flex;
           justify-content: flex-start;
           align-items: center;
-          padding: 16px 24px;
-          border-top: 1px solid #3d4458;
-          background: #1a1b26;
+          padding: var(--space-4, 16px) var(--space-6, 24px);
+          border-top: 1px solid var(--border-subtle, #1E2030);
+          background: var(--surface-raised, #13141C);
           flex-shrink: 0;
         }
 
         .footer-links {
           display: flex;
-          gap: 16px;
+          gap: var(--space-4, 16px);
         }
 
         .footer-link {
           display: flex;
           align-items: center;
           gap: 6px;
-          color: #7aa2f7;
-          font-size: 12px;
-          font-weight: 500;
-          font-family: 'JetBrains Mono', monospace;
+          color: var(--text-accent, #00C9A7);
+          font-size: var(--text-sm, 12px);
+          font-weight: var(--weight-medium, 500);
+          font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           text-decoration: none;
-          padding: 6px 12px;
-          border-radius: 6px;
-          transition: all 0.2s ease;
+          padding: 6px var(--space-3, 12px);
+          border-radius: var(--radius-md, 6px);
+          transition: background var(--duration-fast, 150ms) ease,
+                      color var(--duration-fast, 150ms) ease;
         }
 
         .footer-link:hover {
-          background: #24283b;
-          color: #7dcfff;
+          background: var(--state-hover, #FFFFFF0A);
+          color: var(--text-primary, #E2E4F0);
         }
 
         .footer-link svg {

@@ -25,6 +25,8 @@ import {
 } from './settings-persistence';
 import type { GitManager } from './git-manager';
 import type { WorktreeSettings } from '../shared/types/git-types';
+import type { ProviderRegistry } from './providers/provider-registry';
+import type { IProvider } from './providers/provider';
 
 const MAX_SESSIONS = 10;
 
@@ -45,10 +47,15 @@ export class SessionManager {
   private agentTeamsGetter: (() => boolean) | null = null;
   private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
   private outputSubscribers: Map<string, Set<(data: string) => void>> = new Map();
+  private providerRegistry: ProviderRegistry | null = null;
 
   constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
     this.sessionPool = sessionPool;
+  }
+
+  setProviderRegistry(registry: ProviderRegistry): void {
+    this.providerRegistry = registry;
   }
 
   setGitManager(manager: GitManager): void {
@@ -151,13 +158,23 @@ export class SessionManager {
         mainRepoPath: request.worktree.mainRepoPath,
         worktreePath: result.worktreePath,
         branch: request.worktree.branch,
-        managedByClaudeDesk: true,
+        managedByOmniDesk: true,
         createdAt: Date.now(),
       };
       addWorktreeToRegistry(worktreeInfo);
     }
 
     const model = request.model;
+
+    // Resolve the provider to use: explicit request > default 'claude'
+    const providerId = request.providerId ?? 'claude';
+    let provider: IProvider | undefined;
+    try {
+      provider = this.providerRegistry?.get(providerId);
+    } catch {
+      console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
+      provider = undefined;
+    }
 
     const id = uuidv4();
     const metadata: SessionMetadata = {
@@ -168,6 +185,7 @@ export class SessionManager {
       status: 'starting',
       createdAt: Date.now(),
       worktreeInfo,
+      providerId,
     };
 
     // Register all callbacks on a CLIManager BEFORE any async operations
@@ -239,7 +257,7 @@ export class SessionManager {
       cliManager = pooledSession.cliManager;
       registerCallbacks(cliManager);
       try {
-        await cliManager.initializeSession(workingDir, request.permissionMode, model);
+        await cliManager.initializeSession(workingDir, request.permissionMode, model, provider);
       } catch (err) {
         // Activation failed, fall back to direct creation
         console.error('[SessionManager] Pooled session activation failed, falling back to direct creation:', err);
@@ -249,6 +267,7 @@ export class SessionManager {
           permissionMode: request.permissionMode,
           model,
           enableAgentTeams: this.agentTeamsGetter?.() ?? true,
+          provider,
         });
         registerCallbacks(cliManager);
         await cliManager.spawn();
@@ -261,6 +280,7 @@ export class SessionManager {
         permissionMode: request.permissionMode,
         model,
         enableAgentTeams: this.agentTeamsGetter?.() ?? true,
+        provider,
       });
       registerCallbacks(cliManager);
       cliManager.spawn();
@@ -299,7 +319,7 @@ export class SessionManager {
 
     // Handle worktree cleanup
     const wt = session.metadata.worktreeInfo;
-    if (wt?.managedByClaudeDesk && this.gitManager) {
+    if ((wt?.managedByOmniDesk ?? wt?.managedByClaudeDesk) && this.gitManager) {
       // Check if any other active session uses this worktree
       const otherSessionUsesWorktree = Array.from(this.sessions.entries()).some(
         ([id, s]) => id !== sessionId && s.metadata.worktreeInfo?.worktreePath === wt.worktreePath
@@ -408,11 +428,22 @@ export class SessionManager {
       session.metadata.workingDirectory
     );
 
+    // Resolve provider from stored providerId (backward compat: missing = 'claude')
+    const restartProviderId = session.metadata.providerId ?? 'claude';
+    let restartProvider: IProvider | undefined;
+    try {
+      restartProvider = this.providerRegistry?.get(restartProviderId);
+    } catch {
+      console.warn(`[SessionManager] Provider '${restartProviderId}' not found on restart, using no provider`);
+      restartProvider = undefined;
+    }
+
     // Create new CLI manager with same options
     const cliManager = new CLIManager({
       workingDirectory: session.metadata.workingDirectory,
       permissionMode: session.metadata.permissionMode,
       enableAgentTeams: this.agentTeamsGetter?.() ?? true,
+      provider: restartProvider,
     });
 
     // Set up handlers
@@ -577,6 +608,17 @@ export class SessionManager {
         this.outputSubscribers.delete(sessionId);
       }
     };
+  }
+
+  /** Alternative cleanup path: explicitly unsubscribe a callback from session output. */
+  unsubscribeFromOutput(sessionId: string, callback: (data: string) => void): void {
+    const subs = this.outputSubscribers.get(sessionId);
+    if (subs) {
+      subs.delete(callback);
+      if (subs.size === 0) {
+        this.outputSubscribers.delete(sessionId);
+      }
+    }
   }
 
   /** Dispatch output to subscribers (called from output handlers). */

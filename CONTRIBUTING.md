@@ -1,6 +1,6 @@
-# Contributing to ClaudeDesk
+# Contributing to OmniDesk
 
-Thank you for your interest in contributing to ClaudeDesk! We welcome contributions from the community and appreciate your help in making this project better.
+Thank you for your interest in contributing to OmniDesk! We welcome contributions from the community and appreciate your help in making this project better.
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - **Clear title** - Describe the issue concisely
 - **Detailed description** - What happened vs. what you expected
 - **Steps to reproduce** - Numbered list of steps to trigger the bug
-- **Environment** - OS version, Node.js version, ClaudeDesk version
+- **Environment** - OS version, Node.js version, OmniDesk version
 - **Screenshots** - If applicable, add screenshots to illustrate the problem
 - **Logs** - Include relevant console output or error messages
 
@@ -116,14 +116,16 @@ npm run format
 
 ## Project Architecture
 
-ClaudeDesk is an Electron application with three main processes:
+OmniDesk is an Electron application with three main layers and 16 domain managers:
 
 ### Main Process (`src/main/`)
 - **index.ts** - App lifecycle, window management
-- **cli-manager.ts** - PTY spawning, Claude CLI interaction
+- **cli-manager.ts** - PTY spawning, provider-aware CLI interaction
 - **session-manager.ts** - Session state management
-- **ipc-handlers.ts** - IPC communication handlers
+- **ipc-handlers.ts** - IPC communication handlers (~191 methods)
 - **quota-service.ts** - Anthropic API integration
+- **sharing-manager.ts** - Real-time session sharing via WebSocket relay
+- **providers/** - Pluggable CLI provider abstraction (Claude, Codex, etc.)
 - **\*-persistence.ts** - File-based state persistence
 
 ### Preload (`src/preload/`)
@@ -216,34 +218,36 @@ await window.electronAPI.createSession(name, dir);
 
 ### Current State
 
-ClaudeDesk does not yet have a comprehensive test suite. **This is a priority area for contributions!**
+OmniDesk has **475+ tests across 24+ test files**, using Vitest 4 with 3 workspace projects:
 
-### Planned Testing Stack
+| Project | Environment | Pattern |
+|---------|-------------|---------|
+| `shared` | node | `src/shared/**/*.test.ts` |
+| `main` | node | `src/main/**/*.test.ts` |
+| `renderer` | jsdom | `src/renderer/**/*.test.{ts,tsx}` |
 
-- **Unit tests**: Jest or Vitest
-- **E2E tests**: Playwright or Spectron
-- **Linting**: ESLint with TypeScript rules
+### Running Tests
 
-### Testing Priorities (Help Wanted!)
+```bash
+npm test                    # All unit + integration tests
+npm run test:unit           # shared + main only
+npm run test:integration    # renderer only (jsdom)
+npm run test:e2e            # Playwright E2E (requires built app)
+npm run test:coverage       # With coverage report
+```
 
-1. **Utility functions** - `fuzzy-search.ts`, `variable-resolver.ts`
-2. **Session management** - State transitions, persistence
-3. **IPC contracts** - Request/response validation
-4. **React hooks** - Hook behavior and state management
-5. **Terminal integration** - xterm.js interaction
+### Writing Tests
 
-### Writing Tests (Future)
+- Place test files next to the source file (e.g., `foo.test.ts` alongside `foo.ts`)
+- Use `test/helpers/electron-api-mock.ts` for renderer tests — auto-derives `window.electronAPI` from the IPC contract
+- Main process tests use `test/setup-main.ts` which mocks `electron` and `node-pty`
+- All test scripts use `--config vitest.workspace.ts` explicitly
 
 ```typescript
-// Example unit test structure
+// Example unit test
 describe('fuzzySearch', () => {
   it('should match exact string', () => {
     const result = fuzzySearch('hello', ['hello', 'world']);
-    expect(result).toContain('hello');
-  });
-
-  it('should handle case-insensitive matching', () => {
-    const result = fuzzySearch('HELLO', ['hello', 'world']);
     expect(result).toContain('hello');
   });
 });
@@ -317,7 +321,7 @@ Use conventional commit style:
 Use the bug report template and include:
 - OS and version (Windows 11, macOS 13.5, Ubuntu 22.04, etc.)
 - Node.js version (`node --version`)
-- ClaudeDesk version
+- OmniDesk version
 - Steps to reproduce
 - Expected vs. actual behavior
 - Error messages or logs
@@ -453,4 +457,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for contributing to ClaudeDesk! 🎉
+Thank you for contributing to OmniDesk! 🎉

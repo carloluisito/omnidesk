@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Printer, X } from 'lucide-react';
 
 interface ShortcutsPanelProps {
   isOpen: boolean;
@@ -68,6 +69,47 @@ const shortcuts: ShortcutGroup[] = [
 
 export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Focus search on open
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => searchRef.current?.focus(), 50);
+    } else {
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
+  // Focus trap and Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      // Basic focus trap: keep Tab within panel
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+          'button, input, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -86,39 +128,49 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
 
   return (
     <>
-      <div className="shortcuts-overlay" onClick={onClose} />
-      <div className="shortcuts-panel">
+      <div
+        className="shortcuts-overlay"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={panelRef}
+        className="shortcuts-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-title"
+      >
         <div className="shortcuts-header">
-          <h2 className="shortcuts-title">Keyboard Shortcuts</h2>
+          <h2 id="shortcuts-title" className="shortcuts-title">Keyboard Shortcuts</h2>
           <div className="shortcuts-actions">
-            <button className="print-btn" onClick={handlePrint} title="Print shortcuts">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 6 2 18 2 18 9" />
-                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
-                <rect x="6" y="14" width="12" height="8" />
-              </svg>
+            <button
+              type="button"
+              className="print-btn"
+              onClick={handlePrint}
+              title="Print shortcuts"
+            >
+              <Printer size={14} />
               Print
             </button>
-            <button className="close-btn" onClick={onClose} aria-label="Close">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+            <button
+              type="button"
+              className="close-btn"
+              onClick={onClose}
+              aria-label="Close keyboard shortcuts"
+            >
+              <X size={16} />
             </button>
           </div>
         </div>
 
         <div className="shortcuts-search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
+          <Search size={14} className="search-icon" aria-hidden="true" />
           <input
+            ref={searchRef}
             type="text"
             placeholder="Search shortcuts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
           />
         </div>
 
@@ -130,7 +182,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
           ) : (
             filteredShortcuts.map((group) => (
               <div key={group.category} className="shortcut-group">
-                <h3 className="group-title">{group.category}</h3>
+                <h3 className="group-title">{group.category.toUpperCase()}</h3>
                 <div className="shortcuts-table">
                   {group.shortcuts.map((shortcut, index) => (
                     <div key={index} className="shortcut-row">
@@ -156,14 +208,11 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
         <style>{`
           .shortcuts-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(26, 27, 38, 0.8);
+            inset: 0;
+            background: rgba(13, 14, 20, 0.85);
             backdrop-filter: blur(4px);
-            z-index: 998;
-            animation: overlay-fade-in 0.2s ease;
+            z-index: var(--z-overlay, 300);
+            animation: overlay-fade-in var(--duration-fast, 150ms) var(--ease-out, ease) both;
           }
 
           @keyframes overlay-fade-in {
@@ -176,18 +225,17 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 800px;
-            max-height: 85vh;
-            background: #1a1b26;
-            border: 2px solid #3d4458;
-            border-radius: 12px;
-            z-index: 999;
-            font-family: 'JetBrains Mono', monospace;
+            width: min(var(--dialog-width-lg, 680px), calc(100vw - 48px));
+            max-height: var(--dialog-max-height, 85vh);
+            background: var(--surface-overlay, #1A1B26);
+            border: 1px solid var(--border-default, #292E44);
+            border-radius: var(--radius-lg, 10px);
+            z-index: var(--z-modal, 400);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 24px 96px rgba(0, 0, 0, 0.6);
-            animation: panel-slide-in 0.3s cubic-bezier(0, 0, 0.2, 1);
+            box-shadow: var(--shadow-xl, 0 24px 64px #000000A0, 0 8px 24px #00000080);
+            animation: panel-slide-in var(--duration-slow, 300ms) cubic-bezier(0, 0, 0.2, 1) both;
           }
 
           @keyframes panel-slide-in {
@@ -205,76 +253,91 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 24px;
-            border-bottom: 1px solid #3d4458;
+            padding: var(--space-5, 20px) var(--space-6, 24px);
+            border-bottom: 1px solid var(--border-subtle, #1E2030);
             flex-shrink: 0;
           }
 
           .shortcuts-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #e9e9ea;
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+            font-size: var(--text-lg, 16px);
+            font-weight: var(--weight-semibold, 600);
+            color: var(--text-primary, #E2E4F0);
             margin: 0;
           }
 
           .shortcuts-actions {
             display: flex;
-            gap: 12px;
+            gap: var(--space-2, 8px);
+            align-items: center;
           }
 
           .print-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: #24283b;
-            border: 1px solid #3d4458;
-            border-radius: 6px;
-            color: #a9b1d6;
-            font-size: 12px;
-            font-weight: 500;
-            font-family: inherit;
+            gap: var(--space-1, 4px);
+            padding: var(--space-2, 8px) var(--space-3, 12px);
+            background: transparent;
+            border: 1px solid var(--border-default, #292E44);
+            border-radius: var(--radius-md, 6px);
+            color: var(--text-secondary, #9DA3BE);
+            font-size: var(--text-sm, 12px);
+            font-weight: var(--weight-medium, 500);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: border-color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                        color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                        background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
           }
 
           .print-btn:hover {
-            background: #292e42;
-            border-color: #7aa2f7;
-            color: #7aa2f7;
+            background: var(--state-hover, #FFFFFF0A);
+            border-color: var(--border-strong, #3D4163);
+            color: var(--text-primary, #E2E4F0);
+          }
+
+          .print-btn:focus-visible {
+            outline: 2px solid var(--state-focus, #00C9A740);
+            outline-offset: 2px;
           }
 
           .close-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             background: transparent;
             border: none;
-            color: #a9b1d6;
+            color: var(--text-tertiary, #5C6080);
             cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s ease;
+            border-radius: var(--radius-md, 6px);
+            transition: color var(--duration-fast, 150ms) var(--ease-inout, ease),
+                        background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
           }
 
           .close-btn:hover {
-            background: #24283b;
-            color: #f7768e;
+            background: var(--state-hover, #FFFFFF0A);
+            color: var(--text-primary, #E2E4F0);
+          }
+
+          .close-btn:focus-visible {
+            outline: 2px solid var(--state-focus, #00C9A740);
+            outline-offset: 2px;
           }
 
           .shortcuts-search {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px 24px;
-            border-bottom: 1px solid #3d4458;
-            background: #1f2335;
+            gap: var(--space-3, 12px);
+            padding: var(--space-3, 12px) var(--space-6, 24px);
+            border-bottom: 1px solid var(--border-subtle, #1E2030);
+            background: var(--surface-raised, #13141C);
             flex-shrink: 0;
           }
 
-          .shortcuts-search svg {
-            color: #565f89;
+          .search-icon {
+            color: var(--text-tertiary, #5C6080);
             flex-shrink: 0;
           }
 
@@ -282,41 +345,46 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             flex: 1;
             background: transparent;
             border: none;
-            color: #e9e9ea;
-            font-size: 14px;
-            font-family: inherit;
+            color: var(--text-secondary, #9DA3BE);
+            font-size: var(--text-sm, 12px);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             outline: none;
           }
 
           .shortcuts-search input::placeholder {
-            color: #565f89;
+            color: var(--text-tertiary, #5C6080);
+          }
+
+          .shortcuts-search:focus-within {
+            border-bottom-color: var(--border-accent, #00C9A7);
           }
 
           .shortcuts-content {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
+            padding: var(--space-4, 16px) var(--space-6, 24px);
           }
 
           .shortcuts-content::-webkit-scrollbar {
-            width: 10px;
+            width: 8px;
           }
 
           .shortcuts-content::-webkit-scrollbar-track {
-            background: #1f2335;
+            background: var(--surface-float, #222435);
+            border-radius: var(--radius-full, 9999px);
           }
 
           .shortcuts-content::-webkit-scrollbar-thumb {
-            background: #3d4458;
-            border-radius: 5px;
+            background: var(--border-strong, #3D4163);
+            border-radius: var(--radius-full, 9999px);
           }
 
           .shortcuts-content::-webkit-scrollbar-thumb:hover {
-            background: #565f89;
+            background: var(--text-tertiary, #5C6080);
           }
 
           .shortcut-group {
-            margin-bottom: 32px;
+            margin-bottom: var(--space-8, 32px);
           }
 
           .shortcut-group:last-child {
@@ -324,77 +392,84 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
           }
 
           .group-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #7aa2f7;
-            margin: 0 0 16px 0;
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+            font-size: var(--text-xs, 11px);
+            font-weight: var(--weight-medium, 500);
+            color: var(--text-tertiary, #5C6080);
+            margin: 0 0 var(--space-2, 8px) 0;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: var(--tracking-widest, 0.08em);
           }
 
           .shortcuts-table {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--space-1, 4px);
           }
 
           .shortcut-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
-            background: #1f2335;
-            border: 1px solid #3d4458;
-            border-radius: 8px;
-            transition: all 0.2s ease;
+            padding: var(--space-2, 8px) var(--space-3, 12px);
+            background: transparent;
+            border-radius: var(--radius-sm, 3px);
+            transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease);
           }
 
           .shortcut-row:hover {
-            border-color: #7aa2f7;
-            transform: translateX(4px);
+            background: var(--state-hover, #FFFFFF0A);
           }
 
           .shortcut-keys {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--space-1, 4px);
+            flex-shrink: 0;
+            margin-right: var(--space-4, 16px);
           }
 
           .key {
-            display: inline-block;
-            padding: 4px 10px;
-            background: #24283b;
-            border: 1px solid #3d4458;
-            border-radius: 4px;
-            font-size: 12px;
-            font-family: inherit;
-            color: #e9e9ea;
-            font-weight: 500;
-            box-shadow: 0 2px 0 #3d4458;
-            min-width: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px var(--space-2, 8px);
+            background: var(--surface-high, #2A2D42);
+            border: 1px solid var(--border-default, #292E44);
+            border-radius: var(--radius-sm, 3px);
+            font-size: var(--text-xs, 11px);
+            font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
+            color: var(--text-secondary, #9DA3BE);
+            font-weight: var(--weight-medium, 500);
+            min-width: 28px;
             text-align: center;
+            box-shadow: 0 1px 0 var(--border-strong, #3D4163);
           }
 
           .key-sep {
-            font-size: 12px;
-            color: #565f89;
-            margin: 0 2px;
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+            font-size: var(--text-xs, 11px);
+            color: var(--text-tertiary, #5C6080);
+            margin: 0 1px;
           }
 
           .shortcut-desc {
-            font-size: 13px;
-            color: #a9b1d6;
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
+            font-size: var(--text-sm, 12px);
+            color: var(--text-secondary, #9DA3BE);
+            flex: 1;
           }
 
           .no-results {
             text-align: center;
-            padding: 48px 24px;
-            color: #565f89;
+            padding: var(--space-12, 48px) var(--space-6, 24px);
+            color: var(--text-tertiary, #5C6080);
           }
 
           .no-results p {
             margin: 0;
-            font-size: 14px;
+            font-size: var(--text-sm, 12px);
+            font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           }
 
           @media print {
@@ -425,6 +500,13 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
 
             .shortcut-row {
               page-break-inside: avoid;
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .shortcuts-overlay,
+            .shortcuts-panel {
+              animation: none;
             }
           }
         `}</style>
