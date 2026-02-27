@@ -1,6 +1,6 @@
 {
   "name": "omnidesk",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "A multi-provider Electron desktop application for AI coding CLIs",
   "main": "dist/main/index.js",
   "scripts": {

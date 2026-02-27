@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [5.0.1] - 2026-02-27
+
+### Fixed
+- **Orphaned share rooms** — `cleanupHostShare()` now sends a fire-and-forget `DELETE /v1/shares/{id}` to the server on all cleanup paths (app shutdown, unexpected WebSocket close, keepalive pong timeout), preventing orphaned share rooms that exhausted the concurrent room limit
+- **TIER_LIMIT_EXCEEDED recovery** — `startShare()` now catches `TIER_LIMIT_EXCEEDED` errors, attempts to clean up stale server-side share rooms via `cleanupStaleShares()`, and retries the create if orphans were found
+- **Test mock format** — Fixed all 16 sharing-manager test fetch mocks to match the actual API response wrapper format (`{ share: { id, share_code, ... } }`)
+
+### Added
+- **`cleanupStaleShares()`** — New method that lists server-side share rooms (`GET /v1/shares`) and deletes any not tracked locally (orphan recovery from crashes or unclean shutdowns)
+
+### Changed
+- **Test count** — 483 tests across 33 test files (was 475+)
+
+---
+
 ## [5.0.0] - 2026-02-27
 
 ### Added
@@ -322,7 +337,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/carloluisito/claudedesk/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/carloluisito/claudedesk/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/carloluisito/claudedesk/compare/v4.6.0...v5.0.0
 [4.6.0]: https://github.com/carloluisito/claudedesk/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/carloluisito/claudedesk/compare/v4.4.1...v4.5.0
