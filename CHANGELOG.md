@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-02-27
+
+### Fixed
+- **Linux build failure** — electron-builder derived `.deb` output path from scoped npm name, creating non-existent `release/@carloluisito/` directory. Added `artifactName` template and `linux.executableName` to fix artifact paths and desktop integration naming.
+
+---
+
 ## [1.0.1] - 2026-02-27
 
 ### Fixed
@@ -342,7 +349,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/carloluisito/omnidesk/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/carloluisito/omnidesk/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/carloluisito/omnidesk/compare/v4.6.0...v1.0.0
 [4.6.0]: https://github.com/carloluisito/omnidesk/compare/v4.5.0...v4.6.0

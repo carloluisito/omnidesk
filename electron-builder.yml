@@ -1,5 +1,6 @@
 appId: com.omnidesk.app
 productName: OmniDesk
+artifactName: "${productName}-${version}-${arch}.${ext}"
 directories:
   output: release
   buildResources: resources
@@ -42,6 +43,7 @@ linux:
         - x64
   icon: resources/icon.png
   category: Development
+  executableName: omnidesk
 
 nsis:
   oneClick: false
