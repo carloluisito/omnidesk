@@ -44,7 +44,7 @@ jobs:
       with:
         name: omnidesk-${{ matrix.platform }}
         path: |
-          release/*Setup*.exe
+          release/*.exe
           release/*.dmg
           release/*.AppImage
           release/*.deb
@@ -103,7 +103,7 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          artifacts/**/*Setup*.exe
+          artifacts/**/*.exe
           artifacts/**/*.dmg
           artifacts/**/*.AppImage
           artifacts/**/*.deb
