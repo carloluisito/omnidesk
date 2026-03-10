@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.5] - 2026-03-11
+
+### Fixed
+- **CI Electron download 403** — Electron's `install.js` downloads binaries from GitHub and was getting rate-limited (403 Forbidden) without authentication. Added `GITHUB_TOKEN` env to `npm ci` steps in the release workflow.
+
+---
+
 ## [1.0.4] - 2026-03-11
 
 ### Fixed
@@ -369,7 +376,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/carloluisito/omnidesk/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/carloluisito/omnidesk/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/carloluisito/omnidesk/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/carloluisito/omnidesk/compare/v1.0.1...v1.0.2
