@@ -1375,7 +1375,7 @@ const settingsStyles = `
     justify-content: center;
     width: 16px;
     height: 16px;
-    background: rgba(224, 175, 104, 0.15);
+    background: var(--semantic-warning-muted);
     border-radius: 4px;
     color: var(--semantic-warning, #F7A84A);
   }
@@ -1416,7 +1416,7 @@ const settingsStyles = `
   }
 
   .workspace-action-btn.danger:hover {
-    background: rgba(247, 118, 142, 0.1);
+    background: var(--semantic-error-muted);
     color: var(--semantic-error, #F7678E);
   }
 
@@ -1469,7 +1469,7 @@ const settingsStyles = `
   }
 
   .edit-browse-btn:hover {
-    background: #343b58;
+    background: var(--border-strong);
   }
 
   .permission-row {
@@ -1642,7 +1642,7 @@ const settingsStyles = `
   .add-workspace-btn:hover {
     border-color: var(--accent-primary, #00C9A7);
     color: var(--accent-primary, #00C9A7);
-    background: rgba(122, 162, 247, 0.05);
+    background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
   }
 
   .add-workspace-btn:disabled {
@@ -1721,7 +1721,7 @@ const settingsStyles = `
   }
 
   .add-browse-btn:hover {
-    background: #343b58;
+    background: var(--border-strong);
     border-color: var(--text-tertiary, #5C6080);
   }
 
@@ -1785,8 +1785,8 @@ const settingsStyles = `
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(247, 118, 142, 0.1);
-    border: 1px solid rgba(247, 118, 142, 0.2);
+    background: var(--semantic-error-muted);
+    border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     border-radius: 6px;
     font-size: 11px;
     color: var(--semantic-error, #F7678E);
@@ -1893,7 +1893,7 @@ const settingsStyles = `
   }
 
   .setting-checkbox:hover {
-    background: rgba(122, 162, 247, 0.04);
+    background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
   }
 
   .setting-checkbox input {
@@ -1990,7 +1990,7 @@ const settingsStyles = `
   .setting-select:focus {
     outline: none;
     border-color: var(--accent-primary, #00C9A7);
-    box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.12);
+    box-shadow: 0 0 0 2px var(--state-focus);
   }
 
   .setting-select option {
@@ -2025,8 +2025,8 @@ const settingsStyles = `
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(122, 162, 247, 0.06);
-    border: 1px solid rgba(122, 162, 247, 0.1);
+    background: color-mix(in srgb, var(--accent-primary) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 10%, transparent);
     border-radius: 6px;
   }
 
@@ -2036,7 +2036,7 @@ const settingsStyles = `
     background: var(--semantic-success, #3DD68C);
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 6px rgba(158, 206, 106, 0.4);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--semantic-success) 40%, transparent);
     animation: pool-pulse 2s ease-in-out infinite;
   }
 
