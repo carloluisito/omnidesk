@@ -266,6 +266,6 @@ const progressStyles = `
   }
 
   .pb-progress-dismiss:hover {
-    background: rgba(86, 95, 137, 0.1);
+    background: color-mix(in srgb, var(--border-strong) 10%, transparent);
   }
 `;

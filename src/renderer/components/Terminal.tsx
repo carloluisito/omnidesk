@@ -784,15 +784,15 @@ export function MultiTerminal({
           justify-content: center;
           height: 100%;
           gap: 16px;
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .loading-spinner {
           width: 32px;
           height: 32px;
-          border: 3px solid var(--border-default, #292E44);
-          border-top-color: var(--accent-primary, #00C9A7);
+          border: 3px solid var(--border-default);
+          border-top-color: var(--accent-primary);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -819,12 +819,12 @@ export function MultiTerminal({
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb {
-          background-color: var(--border-strong, #3D4163);
+          background-color: var(--border-strong);
           border-radius: 4px;
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb:hover {
-          background-color: var(--text-tertiary, #5C6080);
+          background-color: var(--text-tertiary);
         }
       `}</style>
     </div>
