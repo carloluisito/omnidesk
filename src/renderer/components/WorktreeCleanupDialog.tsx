@@ -189,7 +189,7 @@ const styles = `
 
   .wtc-option.active {
     border-color: var(--semantic-success);
-    background: rgba(61, 214, 140, 0.05);
+    background: color-mix(in srgb, var(--semantic-success) 5%, transparent);
   }
 
   .wtc-option.active.danger {

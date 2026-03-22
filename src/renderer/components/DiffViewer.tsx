@@ -206,7 +206,7 @@ const diffViewerStyles = `
     color: var(--semantic-success);
     border-color: var(--semantic-success);
   }
-  .diff-viewer-stage-btn:hover { background: rgba(61, 214, 140, 0.15); }
+  .diff-viewer-stage-btn:hover { background: color-mix(in srgb, var(--semantic-success) 15%, transparent); }
 
   .diff-viewer-unstage-btn {
     color: var(--semantic-warning);
@@ -355,9 +355,9 @@ const diffViewerStyles = `
   }
 
   .diff-content-banner-new {
-    background: rgba(61, 214, 140, 0.1);
+    background: color-mix(in srgb, var(--semantic-success) 10%, transparent);
     color: var(--semantic-success);
-    border-bottom: 1px solid rgba(61, 214, 140, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--semantic-success) 20%, transparent);
   }
 
   .diff-content-banner-deleted {
@@ -407,7 +407,7 @@ const diffViewerStyles = `
   }
 
   .diff-line-add {
-    background: rgba(61, 214, 140, 0.12);
+    background: color-mix(in srgb, var(--semantic-success) 12%, transparent);
   }
 
   .diff-line-remove {

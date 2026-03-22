@@ -418,7 +418,7 @@ const commitDialogStyles = `
 
   .commit-dialog-confidence.confidence-high {
     color: var(--semantic-success);
-    background: rgba(61, 214, 140, 0.08);
+    background: color-mix(in srgb, var(--semantic-success) 8%, transparent);
   }
 
   .commit-dialog-confidence.confidence-medium {

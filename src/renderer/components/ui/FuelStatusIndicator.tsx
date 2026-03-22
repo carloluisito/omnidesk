@@ -250,7 +250,7 @@ const indicatorStyles = `
   }
 
   .fuel-indicator-normal:hover {
-    border-color: rgba(61, 214, 140, 0.25);
+    border-color: color-mix(in srgb, var(--semantic-success) 25%, transparent);
   }
 
   .fuel-indicator-elevated {

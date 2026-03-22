@@ -30,7 +30,7 @@ export function Step4Ready({ onFinish, onBack }: Step4ReadyProps) {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundImage:
-          'radial-gradient(ellipse 600px 400px at center, rgba(61, 214, 140, 0.03) 0%, transparent 70%)',
+          'radial-gradient(ellipse 600px 400px at center, color-mix(in srgb, var(--semantic-success) 3%, transparent) 0%, transparent 70%)',
         animation: 'step-fade-in var(--duration-normal) var(--ease-out)',
       }}
     >
@@ -56,7 +56,7 @@ export function Step4Ready({ onFinish, onBack }: Step4ReadyProps) {
             height: 64,
             borderRadius: 'var(--radius-lg)',
             background: 'var(--semantic-success-muted)',
-            border: '1px solid rgba(61, 214, 140, 0.3)',
+            border: '1px solid color-mix(in srgb, var(--semantic-success) 30%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

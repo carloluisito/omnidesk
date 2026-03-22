@@ -173,7 +173,7 @@ export function PaneSessionPicker({
 
         .picker-session-status.status-running {
           color: var(--semantic-success);
-          background: rgba(61, 214, 140, 0.08);
+          background: color-mix(in srgb, var(--semantic-success) 8%, transparent);
         }
 
         .picker-session-status.status-exited {

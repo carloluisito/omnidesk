@@ -309,8 +309,8 @@ const tunnelRequestLogsStyles = `
     gap: 5px;
     padding: 4px 8px;
     border-radius: 4px;
-    background: rgba(61, 214, 140, 0.12);
-    border: 1px solid rgba(61, 214, 140, 0.25);
+    background: color-mix(in srgb, var(--semantic-success) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--semantic-success) 25%, transparent);
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -321,8 +321,8 @@ const tunnelRequestLogsStyles = `
   }
 
   .trl-live-badge.paused {
-    background: rgba(86, 95, 137, 0.12);
-    border-color: rgba(86, 95, 137, 0.25);
+    background: color-mix(in srgb, var(--border-strong) 12%, transparent);
+    border-color: color-mix(in srgb, var(--border-strong) 25%, transparent);
     color: var(--text-tertiary);
   }
 
@@ -541,7 +541,7 @@ const tunnelRequestLogsStyles = `
   }
 
   .trl-refresh-toggle.active {
-    border-color: rgba(61, 214, 140, 0.3);
+    border-color: color-mix(in srgb, var(--semantic-success) 30%, transparent);
     color: var(--semantic-success);
   }
 
@@ -560,7 +560,7 @@ const tunnelRequestLogsStyles = `
 
   .trl-refresh-toggle.active .trl-toggle-pill {
     background: var(--semantic-success);
-    box-shadow: 0 0 6px rgba(61, 214, 140, 0.5);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--semantic-success) 50%, transparent);
     animation: trl-pulse 2s ease-in-out infinite;
   }
 `;

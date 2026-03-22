@@ -1170,7 +1170,7 @@ const styles = `
   }
 
   .nsd-perm-toggle.danger {
-    border-color: rgba(247, 167, 74, 0.3);
+    border-color: color-mix(in srgb, var(--semantic-warning) 30%, transparent);
   }
 
   .nsd-perm-option {

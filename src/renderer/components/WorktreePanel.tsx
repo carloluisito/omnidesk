@@ -232,7 +232,7 @@ const styles = `
     border: 1px solid var(--border-default);
     border-radius: 12px;
     box-shadow:
-      0 0 0 1px rgba(61, 214, 140, 0.1),
+      0 0 0 1px color-mix(in srgb, var(--semantic-success) 10%, transparent),
       0 20px 50px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -378,7 +378,7 @@ const styles = `
   }
 
   .wtp-status-badge.active {
-    background: rgba(61, 214, 140, 0.15);
+    background: color-mix(in srgb, var(--semantic-success) 15%, transparent);
     color: var(--semantic-success);
   }
 
@@ -421,7 +421,7 @@ const styles = `
   .wtp-managed-badge {
     font-size: 9px;
     color: var(--semantic-success);
-    background: rgba(61, 214, 140, 0.1);
+    background: color-mix(in srgb, var(--semantic-success) 10%, transparent);
     padding: 1px 6px;
     border-radius: 8px;
     text-transform: uppercase;

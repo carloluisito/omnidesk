@@ -710,7 +710,7 @@ const templateEditorStyles = `
     gap: 6px;
     height: 22px;
     padding: 0 var(--space-2, 8px);
-    background: rgba(61, 214, 140, 0.12);
+    background: color-mix(in srgb, var(--semantic-success) 12%, transparent);
     border-radius: var(--radius-sm, 3px);
     font-size: var(--text-xs, 11px);
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
@@ -734,7 +734,7 @@ const templateEditorStyles = `
   }
 
   .template-editor-keyword-remove:hover {
-    background: rgba(61, 214, 140, 0.2);
+    background: color-mix(in srgb, var(--semantic-success) 20%, transparent);
   }
 
   .template-editor-keyword-input {

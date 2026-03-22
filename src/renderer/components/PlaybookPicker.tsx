@@ -247,7 +247,7 @@ const pickerStyles = `
   }
 
   .playbook-picker-badge.user {
-    background: rgba(61, 214, 140, 0.1);
+    background: color-mix(in srgb, var(--semantic-success) 10%, transparent);
     color: var(--semantic-success);
   }
 
