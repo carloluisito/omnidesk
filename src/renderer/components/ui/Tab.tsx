@@ -128,7 +128,7 @@ export function Tab({
   // Observer tabs use blue top border; shared host tabs use green; default uses accent
   const topBorder   = isActive
     ? isObserver
-      ? '1px solid #7aa2f7'
+      ? '1px solid var(--accent-secondary)'
       : '1px solid var(--border-accent)'
     : '1px solid transparent';
 
@@ -177,7 +177,7 @@ export function Tab({
           viewBox="0 0 15 15"
           fill="none"
           aria-hidden="true"
-          style={{ flexShrink: 0, color: isActive ? '#7aa2f7' : 'var(--text-tertiary)' }}
+          style={{ flexShrink: 0, color: isActive ? 'var(--accent-secondary)' : 'var(--text-tertiary)' }}
         >
           <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -243,7 +243,7 @@ export function Tab({
           }}
         >
           {isObserver && (
-            <span style={{ color: '#7aa2f7', marginRight: '3px', fontWeight: 600 as any }}>[SHARED]</span>
+            <span style={{ color: 'var(--accent-secondary)', marginRight: '3px', fontWeight: 600 as any }}>[SHARED]</span>
           )}
           {data.name}
         </span>

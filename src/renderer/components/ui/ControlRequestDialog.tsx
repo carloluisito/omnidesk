@@ -73,7 +73,7 @@ export function ControlRequestDialog({
       style={{
         position:        'fixed',
         inset:           0,
-        background:      'rgba(13, 14, 20, 0.72)',
+        background:      'color-mix(in srgb, var(--surface-base) 72%, transparent)',
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
@@ -94,7 +94,7 @@ export function ControlRequestDialog({
           background:      'var(--surface-overlay)',
           border:          '1px solid var(--border-default)',
           borderRadius:    'var(--radius-lg)',
-          boxShadow:       '0 0 0 1px rgba(0,201,167,0.12), var(--shadow-xl)',
+          boxShadow:       '0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent), var(--shadow-xl)',
           overflow:        'hidden',
           animation:       'dialog-enter var(--duration-fast) var(--ease-out)',
         }}
@@ -112,7 +112,7 @@ export function ControlRequestDialog({
             style={{
               position:        'absolute',
               inset:           0,
-              background:      '#00C9A7',
+              background:      'var(--accent-primary)',
               width:           `${progressPct}%`,
               transition:      'width 1s linear',
               transformOrigin: 'left',
@@ -129,7 +129,7 @@ export function ControlRequestDialog({
                 width:           32,
                 height:          32,
                 borderRadius:    'var(--radius-md)',
-                background:      'rgba(0,201,167,0.12)',
+                background:      'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
                 display:         'flex',
                 alignItems:      'center',
                 justifyContent:  'center',
@@ -138,11 +138,11 @@ export function ControlRequestDialog({
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 {/* Keyboard/control icon */}
-                <rect x="1" y="4" width="14" height="9" rx="1.5" stroke="#00C9A7" strokeWidth="1.5" fill="none" />
-                <rect x="3.5" y="6.5" width="2" height="2" rx="0.5" fill="#00C9A7" />
-                <rect x="7" y="6.5" width="2" height="2" rx="0.5" fill="#00C9A7" />
-                <rect x="10.5" y="6.5" width="2" height="2" rx="0.5" fill="#00C9A7" />
-                <rect x="5" y="9.5" width="6" height="1.5" rx="0.75" fill="#00C9A7" />
+                <rect x="1" y="4" width="14" height="9" rx="1.5" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
+                <rect x="3.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
+                <rect x="7" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
+                <rect x="10.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
+                <rect x="5" y="9.5" width="6" height="1.5" rx="0.75" fill="var(--accent-primary)" />
               </svg>
             </div>
 
@@ -172,7 +172,7 @@ export function ControlRequestDialog({
           >
             <span
               style={{
-                color:      '#00C9A7',
+                color:      'var(--text-accent)',
                 fontFamily: '"JetBrains Mono", monospace',
                 fontWeight: 600,
               }}
@@ -236,10 +236,10 @@ export function ControlRequestDialog({
             onClick={onGrant}
             style={{
               padding:      '7px var(--space-4)',
-              background:   '#00C9A7',
+              background:   'var(--accent-primary)',
               border:       'none',
               borderRadius: 'var(--radius-md)',
-              color:        '#0D0E14',
+              color:        'var(--text-inverse)',
               fontSize:     'var(--text-sm)',
               fontWeight:   'var(--weight-semibold)' as any,
               fontFamily:   'var(--font-ui)',
