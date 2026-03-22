@@ -50,7 +50,7 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
         .hero-title {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-2xl, 28px);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0 0 var(--space-2, 8px) 0;
           letter-spacing: var(--tracking-tight, -0.01em);
           line-height: var(--leading-tight, 1.2);
@@ -68,7 +68,7 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           margin: 0 0 var(--space-3, 12px) 0;
           text-align: center;
           max-width: 360px;
@@ -79,12 +79,12 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           display: inline-flex;
           align-items: center;
           padding: 2px var(--space-3, 12px);
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-full, 9999px);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-2xs, 10px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         @media (prefers-reduced-motion: reduce) {

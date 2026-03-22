@@ -52,8 +52,8 @@ export function PanelFooter({ learnMoreUrl, docsUrl }: PanelFooterProps) {
           justify-content: flex-start;
           align-items: center;
           padding: var(--space-4, 16px) var(--space-6, 24px);
-          border-top: 1px solid var(--border-subtle, #1E2030);
-          background: var(--surface-raised, #13141C);
+          border-top: 1px solid var(--border-subtle);
+          background: var(--surface-raised);
           flex-shrink: 0;
         }
 
@@ -66,7 +66,7 @@ export function PanelFooter({ learnMoreUrl, docsUrl }: PanelFooterProps) {
           display: flex;
           align-items: center;
           gap: 6px;
-          color: var(--text-accent, #00C9A7);
+          color: var(--text-accent);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -78,8 +78,8 @@ export function PanelFooter({ learnMoreUrl, docsUrl }: PanelFooterProps) {
         }
 
         .footer-link:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          color: var(--text-primary, #E2E4F0);
+          background: var(--state-hover);
+          color: var(--text-primary);
         }
 
         .footer-link svg {

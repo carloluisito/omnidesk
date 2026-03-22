@@ -230,13 +230,13 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         .settings-section-title {
           font-size: 14px;
           font-weight: 600;
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0;
         }
 
         .settings-section-desc {
           font-size: 12px;
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           margin: -8px 0 0 0;
         }
 
@@ -249,22 +249,22 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         .settings-label {
           font-size: 12px;
           font-weight: 500;
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
         }
 
         .settings-hint {
           font-size: 11px;
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .settings-select,
         .settings-input {
           height: 36px;
           padding: 0 12px;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: 6px;
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           font-size: 13px;
           font-family: inherit;
         }
@@ -272,13 +272,13 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         .settings-select:focus,
         .settings-input:focus {
           outline: none;
-          border-color: var(--accent-primary, #00C9A7);
+          border-color: var(--accent-primary);
         }
 
         .category-override {
           padding: 12px;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: 8px;
         }
 
@@ -291,7 +291,7 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         .category-name {
           font-size: 13px;
           font-weight: 500;
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           text-transform: capitalize;
         }
 
@@ -300,7 +300,7 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
           align-items: center;
           gap: 6px;
           font-size: 12px;
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           cursor: pointer;
         }
 
@@ -318,10 +318,10 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         .settings-input-sm {
           height: 32px;
           padding: 0 10px;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: 6px;
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           font-size: 12px;
           font-family: inherit;
         }
@@ -339,7 +339,7 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
           justify-content: flex-end;
           gap: 12px;
           padding-top: 16px;
-          border-top: 1px solid var(--border-default, #292E44);
+          border-top: 1px solid var(--border-default);
         }
 
         .btn {
@@ -360,23 +360,23 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
 
         .btn-secondary {
           background: transparent;
-          border: 1px solid var(--border-default, #292E44);
-          color: var(--text-secondary, #9DA3BE);
+          border: 1px solid var(--border-default);
+          color: var(--text-secondary);
         }
 
         .btn-secondary:hover:not(:disabled) {
-          background: var(--surface-overlay, #1A1B26);
-          border-color: var(--border-strong, #3D4163);
+          background: var(--surface-overlay);
+          border-color: var(--border-strong);
         }
 
         .btn-primary {
-          background: var(--accent-primary, #00C9A7);
+          background: var(--accent-primary);
           border: none;
-          color: var(--surface-overlay, #1A1B26);
+          color: var(--surface-overlay);
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: var(--accent-primary-dim, #009E84);
+          background: var(--accent-primary-dim);
         }
 
         .dragdrop-settings::-webkit-scrollbar {
@@ -388,12 +388,12 @@ export function DragDropSettings({ onClose }: DragDropSettingsProps) {
         }
 
         .dragdrop-settings::-webkit-scrollbar-thumb {
-          background-color: var(--border-strong, #3D4163);
+          background-color: var(--border-strong);
           border-radius: 4px;
         }
 
         .dragdrop-settings::-webkit-scrollbar-thumb:hover {
-          background-color: var(--text-tertiary, #5C6080);
+          background-color: var(--text-tertiary);
         }
       `}</style>
     </div>

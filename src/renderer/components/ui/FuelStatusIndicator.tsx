@@ -219,24 +219,24 @@ const indicatorStyles = `
     height: 22px;
     padding: 0 var(--space-2, 8px);
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
     cursor: pointer;
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
     font-size: var(--text-xs, 11px);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     transition: all var(--duration-fast, 150ms) var(--ease-inout, ease);
     flex-shrink: 0;
     outline: none;
   }
 
   .fuel-indicator:hover {
-    background: var(--state-hover, #FFFFFF0A);
-    border-color: var(--border-strong, #3D4163);
+    background: var(--state-hover);
+    border-color: var(--border-strong);
   }
 
   .fuel-indicator:focus-visible {
-    outline: 2px solid var(--state-focus, #00C9A740);
+    outline: 2px solid var(--state-focus);
     outline-offset: 2px;
   }
 
@@ -246,7 +246,7 @@ const indicatorStyles = `
 
   /* Severity states */
   .fuel-indicator-normal {
-    border-color: var(--border-default, #292E44);
+    border-color: var(--border-default);
   }
 
   .fuel-indicator-normal:hover {
@@ -284,15 +284,15 @@ const indicatorStyles = `
   }
 
   .fuel-pct-normal {
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
   }
 
   .fuel-pct-elevated {
-    color: var(--semantic-warning, #F7A84A);
+    color: var(--semantic-warning);
   }
 
   .fuel-pct-critical {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
   }
 
   /* Severity icon */
@@ -311,9 +311,9 @@ const indicatorStyles = `
   }
 
   .fuel-text-loading {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-weight: var(--weight-semibold, 600);
-    background: linear-gradient(90deg, var(--text-tertiary, #5C6080) 0%, var(--border-strong, #3D4163) 50%, var(--text-tertiary, #5C6080) 100%);
+    background: linear-gradient(90deg, var(--text-tertiary) 0%, var(--border-strong) 50%, var(--text-tertiary) 100%);
     background-size: 200px 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -330,7 +330,7 @@ const indicatorStyles = `
   }
 
   .fuel-text-error {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     font-weight: var(--weight-bold, 700);
     font-size: var(--text-2xs, 10px);
   }
@@ -341,7 +341,7 @@ const indicatorStyles = `
   }
 
   .fuel-text-nodata {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-weight: var(--weight-semibold, 600);
     font-size: var(--text-2xs, 10px);
   }

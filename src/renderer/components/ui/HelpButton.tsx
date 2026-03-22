@@ -19,10 +19,10 @@ export function HelpButton({ onClick, title = 'Help & Shortcuts (Ctrl+/)' }: Hel
           justify-content: center;
           width: 28px;
           height: 28px;
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           cursor: pointer;
           transition: border-color var(--duration-fast, 150ms) ease,
                       color var(--duration-fast, 150ms) ease,
@@ -30,9 +30,9 @@ export function HelpButton({ onClick, title = 'Help & Shortcuts (Ctrl+/)' }: Hel
         }
 
         .help-button:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          border-color: var(--border-accent, #00C9A7);
-          color: var(--text-accent, #00C9A7);
+          background: var(--state-hover);
+          border-color: var(--border-accent);
+          color: var(--text-accent);
         }
 
         .help-button:active {

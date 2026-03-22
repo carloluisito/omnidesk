@@ -79,7 +79,7 @@ export function PlaybookPicker({ isOpen, playbooks, onSelect, onClose, onManageP
     <div className="playbook-picker-overlay" onClick={onClose}>
       <div className="playbook-picker" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div className="playbook-picker-search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary, #5C6080)" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -153,8 +153,8 @@ const pickerStyles = `
   .playbook-picker {
     width: 560px;
     max-height: 480px;
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-lg, 10px);
     box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
     display: flex;
@@ -168,7 +168,7 @@ const pickerStyles = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px) var(--space-4, 16px);
-    border-bottom: 1px solid var(--border-subtle, #1E2030);
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .playbook-picker-search input {
@@ -176,13 +176,13 @@ const pickerStyles = `
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: var(--text-sm, 12px);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .playbook-picker-search input::placeholder {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .playbook-picker-list {
@@ -194,7 +194,7 @@ const pickerStyles = `
   .playbook-picker-empty {
     padding: 24px;
     text-align: center;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: var(--text-sm, 12px);
   }
 
@@ -210,7 +210,7 @@ const pickerStyles = `
 
   .playbook-picker-item:hover,
   .playbook-picker-item.selected {
-    background: var(--state-hover, #FFFFFF0A);
+    background: var(--state-hover);
   }
 
   .playbook-picker-icon {
@@ -226,7 +226,7 @@ const pickerStyles = `
   }
 
   .playbook-picker-name {
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: var(--text-sm, 12px);
     font-weight: var(--weight-medium, 500);
     display: flex;
@@ -242,17 +242,17 @@ const pickerStyles = `
   }
 
   .playbook-picker-badge.built-in {
-    background: var(--accent-primary-muted, #00C9A714);
-    color: var(--text-accent, #00C9A7);
+    background: var(--accent-primary-muted);
+    color: var(--text-accent);
   }
 
   .playbook-picker-badge.user {
     background: rgba(61, 214, 140, 0.1);
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
   }
 
   .playbook-picker-desc {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: var(--text-xs, 11px);
     white-space: nowrap;
     overflow: hidden;
@@ -272,13 +272,13 @@ const pickerStyles = `
     font-size: 10px;
     padding: 1px 6px;
     border-radius: var(--radius-sm, 3px);
-    background: var(--surface-high, #2A2C3D);
-    color: var(--text-secondary, #9DA3BE);
+    background: var(--surface-high);
+    color: var(--text-secondary);
   }
 
   .playbook-picker-steps {
     font-size: 10px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .playbook-picker-footer {
@@ -286,13 +286,13 @@ const pickerStyles = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    border-top: 1px solid var(--border-subtle, #1E2030);
+    border-top: 1px solid var(--border-subtle);
   }
 
   .playbook-picker-manage {
     background: transparent;
     border: none;
-    color: var(--text-accent, #00C9A7);
+    color: var(--text-accent);
     font-size: var(--text-xs, 11px);
     cursor: pointer;
     padding: 4px var(--space-2, 8px);
@@ -302,22 +302,22 @@ const pickerStyles = `
   }
 
   .playbook-picker-manage:hover {
-    background: var(--accent-primary-muted, #00C9A714);
+    background: var(--accent-primary-muted);
   }
 
   .playbook-picker-hint {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: var(--text-xs, 11px);
   }
 
   .playbook-picker-hint kbd {
     display: inline-block;
     padding: 1px 4px;
-    background: var(--surface-high, #2A2C3D);
+    background: var(--surface-high);
     border-radius: var(--radius-sm, 3px);
     font-size: 10px;
     margin: 0 2px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
   }
 `;

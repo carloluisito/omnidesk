@@ -64,7 +64,7 @@ export function Step1Welcome({ onNext }: Step1WelcomeProps) {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundImage:
-          'radial-gradient(ellipse 600px 400px at center, rgba(0, 201, 167, 0.03) 0%, transparent 70%)',
+          'radial-gradient(ellipse 600px 400px at center, color-mix(in srgb, var(--accent-primary) 3%, transparent) 0%, transparent 70%)',
         animation: 'step-fade-in var(--duration-normal) var(--ease-out)',
       }}
     >

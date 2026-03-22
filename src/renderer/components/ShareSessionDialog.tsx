@@ -223,7 +223,7 @@ export function ShareSessionDialog({
           background:      'var(--surface-overlay)',
           border:          '1px solid var(--border-default)',
           borderRadius:    'var(--radius-lg)',
-          boxShadow:       '0 0 0 1px rgba(0,201,167,0.10), var(--shadow-xl)',
+          boxShadow:       '0 0 0 1px color-mix(in srgb, var(--accent-primary) 10%, transparent), var(--shadow-xl)',
           overflow:        'hidden',
           animation:       'ssd-enter 180ms var(--ease-out) both',
         }}
@@ -349,7 +349,7 @@ export function ShareSessionDialog({
                 style={{
                   padding:      '7px var(--space-4)',
                   background:   'var(--accent-primary-muted)',
-                  border:       '1px solid rgba(0,201,167,0.3)',
+                  border:       '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)',
                   borderRadius: 'var(--radius-md)',
                   color:        'var(--text-accent)',
                   fontSize:     'var(--text-sm)',
@@ -451,7 +451,7 @@ export function ShareSessionDialog({
                       flex:         1,
                       padding:      'var(--space-3)',
                       background:   'var(--surface-raised)',
-                      border:       '1px solid rgba(0,201,167,0.25)',
+                      border:       '1px solid color-mix(in srgb, var(--accent-primary) 25%, transparent)',
                       borderRadius: 'var(--radius-md)',
                       fontFamily:   '"JetBrains Mono", monospace',
                       fontSize:     '24px',
@@ -472,7 +472,7 @@ export function ShareSessionDialog({
                     style={{
                       padding:      '0 var(--space-3)',
                       height:       '44px',
-                      background:   codeCopied ? 'rgba(0,201,167,0.15)' : 'var(--surface-float)',
+                      background:   codeCopied ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' : 'var(--surface-float)',
                       border:       '1px solid var(--border-default)',
                       borderRadius: 'var(--radius-md)',
                       color:        codeCopied ? 'var(--text-accent)' : 'var(--text-secondary)',
@@ -532,7 +532,7 @@ export function ShareSessionDialog({
                     style={{
                       padding:      '0 var(--space-3)',
                       height:       '34px',
-                      background:   urlCopied ? 'rgba(0,201,167,0.15)' : 'var(--surface-float)',
+                      background:   urlCopied ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' : 'var(--surface-float)',
                       border:       '1px solid var(--border-default)',
                       borderRadius: 'var(--radius-md)',
                       color:        urlCopied ? 'var(--text-accent)' : 'var(--text-secondary)',
@@ -595,7 +595,7 @@ export function ShareSessionDialog({
                       outline:      'none',
                       boxSizing:    'border-box',
                     }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(0,201,167,0.5)'; }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary) 50%, transparent)'; }}
                     onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
                   />
                 )}

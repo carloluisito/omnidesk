@@ -61,16 +61,16 @@ function getSeverity(utilization: number): 'normal' | 'elevated' | 'critical' {
 }
 
 const severityColors: Record<string, string> = {
-  normal: 'var(--semantic-success, #3DD68C)',
-  elevated: 'var(--semantic-warning, #F7A84A)',
-  critical: 'var(--semantic-error, #F7678E)',
+  normal: 'var(--semantic-success)',
+  elevated: 'var(--semantic-warning)',
+  critical: 'var(--semantic-error)',
 };
 
 const burnRateLabels: Record<string, { text: string; color: string }> = {
-  'on-track': { text: 'On Track', color: 'var(--semantic-success, #3DD68C)' },
-  'elevated': { text: 'Elevated', color: 'var(--semantic-warning, #F7A84A)' },
-  'critical': { text: 'Critical', color: 'var(--semantic-error, #F7678E)' },
-  'unknown': { text: 'Unknown', color: 'var(--text-tertiary, #5C6080)' },
+  'on-track': { text: 'On Track', color: 'var(--semantic-success)' },
+  'elevated': { text: 'Elevated', color: 'var(--semantic-warning)' },
+  'critical': { text: 'Critical', color: 'var(--semantic-error)' },
+  'unknown': { text: 'Unknown', color: 'var(--text-tertiary)' },
 };
 
 export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipProps) {
@@ -195,14 +195,14 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
           position: absolute;
           z-index: 10000;
           width: 280px;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
           padding: var(--space-3, 12px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           pointer-events: none;
           animation: fadeIn 150ms ease-out;
         }
@@ -222,13 +222,13 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         .fuel-tooltip-title {
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-bold, 700);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin-bottom: var(--space-1, 4px);
         }
 
         .fuel-tooltip-divider {
           height: 1px;
-          background: var(--border-subtle, #1E2030);
+          background: var(--border-subtle);
           margin: var(--space-2, 8px) 0;
         }
 
@@ -245,11 +245,11 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-label {
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .fuel-tooltip-value {
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           font-weight: var(--weight-semibold, 600);
         }
 
@@ -258,13 +258,13 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-stale-icon {
-          color: var(--semantic-warning, #F7A84A);
+          color: var(--semantic-warning);
           font-weight: var(--weight-bold, 700);
         }
 
         .fuel-tooltip-stale-warning {
           font-size: 10px;
-          color: var(--semantic-warning, #F7A84A);
+          color: var(--semantic-warning);
           text-align: center;
           margin-top: var(--space-1, 4px);
           opacity: 0.8;

@@ -167,15 +167,15 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-[var(--surface-overlay, #1A1B26)] h-full w-[500px] shadow-2xl flex flex-col animate-slide-in-right"
+        className="bg-[var(--surface-overlay)] h-full w-[500px] shadow-2xl flex flex-col animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default, #292E44)]">
-          <h2 className="text-lg font-semibold text-[var(--text-secondary, #9DA3BE)]">Checkpoints</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
+          <h2 className="text-lg font-semibold text-[var(--text-secondary)]">Checkpoints</h2>
           <button
             onClick={onClose}
-            className="text-[var(--text-tertiary, #5C6080)] hover:text-[var(--text-secondary, #9DA3BE)] transition-colors"
+            className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
             aria-label="Close panel"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,13 +185,13 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[var(--border-default, #292E44)]">
+        <div className="flex border-b border-[var(--border-default)]">
           <button
             onClick={() => setActiveTab('timeline')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'timeline'
-                ? 'text-[var(--accent-primary, #00C9A7)] border-b-2 border-[var(--accent-primary, #00C9A7)]'
-                : 'text-[var(--text-tertiary, #5C6080)] hover:text-[var(--text-secondary, #9DA3BE)]'
+                ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
             }`}
           >
             Timeline
@@ -200,8 +200,8 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
             onClick={() => setActiveTab('export')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'export'
-                ? 'text-[var(--accent-primary, #00C9A7)] border-b-2 border-[var(--accent-primary, #00C9A7)]'
-                : 'text-[var(--text-tertiary, #5C6080)] hover:text-[var(--text-secondary, #9DA3BE)]'
+                ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
             }`}
           >
             Export
@@ -212,12 +212,12 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
         <div className="flex-1 overflow-y-auto">
           {isLoading && (
             <div className="flex items-center justify-center h-32">
-              <div className="text-[var(--text-tertiary, #5C6080)]">Loading checkpoints...</div>
+              <div className="text-[var(--text-tertiary)]">Loading checkpoints...</div>
             </div>
           )}
 
           {error && (
-            <div className="m-4 p-4 bg-[var(--semantic-error, #F7678E)]/10 border border-[var(--semantic-error, #F7678E)]/20 rounded text-[var(--semantic-error, #F7678E)] text-sm">
+            <div className="m-4 p-4 bg-[var(--semantic-error)]/10 border border-[var(--semantic-error)]/20 rounded text-[var(--semantic-error)] text-sm">
               {error}
             </div>
           )}
@@ -227,9 +227,9 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
               {checkpointGroups.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">📌</div>
-                  <div className="text-[var(--text-tertiary, #5C6080)] mb-2">No checkpoints yet</div>
-                  <div className="text-sm text-[var(--border-strong, #3D4163)]">
-                    Press <kbd className="px-2 py-1 bg-[var(--border-default, #292E44)] rounded text-xs">Ctrl+Shift+S</kbd> to
+                  <div className="text-[var(--text-tertiary)] mb-2">No checkpoints yet</div>
+                  <div className="text-sm text-[var(--border-strong)]">
+                    Press <kbd className="px-2 py-1 bg-[var(--border-default)] rounded text-xs">Ctrl+Shift+S</kbd> to
                     create a checkpoint
                   </div>
                 </div>
@@ -237,29 +237,29 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                 <div className="space-y-6">
                   {checkpointGroups.map((group) => (
                     <div key={group.sessionId} className="checkpoint-group">
-                      <div className="text-xs font-semibold text-[var(--text-tertiary, #5C6080)] uppercase tracking-wider mb-3">
+                      <div className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">
                         Session: {group.sessionName}
                       </div>
                       <div className="space-y-3">
                         {group.checkpoints.map((checkpoint) => (
                           <div
                             key={checkpoint.id}
-                            className="bg-[var(--border-default, #292E44)]/50 rounded-lg p-4 hover:bg-[var(--border-default, #292E44)] transition-colors"
+                            className="bg-[var(--border-default)]/50 rounded-lg p-4 hover:bg-[var(--border-default)] transition-colors"
                           >
                             <div className="flex items-start gap-3">
                               <div className="text-xl pt-1">📌</div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-[var(--text-secondary, #9DA3BE)] mb-1 truncate">
+                                <div className="font-medium text-[var(--text-secondary)] mb-1 truncate">
                                   {checkpoint.name}
                                 </div>
-                                <div className="text-xs text-[var(--text-tertiary, #5C6080)] mb-2">
+                                <div className="text-xs text-[var(--text-tertiary)] mb-2">
                                   {formatRelativeTime(checkpoint.createdAt)}
                                   {checkpoint.tags && checkpoint.tags.length > 0 && (
                                     <span className="ml-2">
                                       {checkpoint.tags.map((tag) => (
                                         <span
                                           key={tag}
-                                          className="inline-block px-2 py-0.5 bg-[var(--accent-primary, #00C9A7)]/10 text-[var(--accent-primary, #00C9A7)] rounded text-xs mr-1"
+                                          className="inline-block px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded text-xs mr-1"
                                         >
                                           {tag}
                                         </span>
@@ -268,19 +268,19 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                                   )}
                                 </div>
                                 {checkpoint.description && (
-                                  <div className="text-sm text-[var(--text-tertiary, #5C6080)] mb-3">
+                                  <div className="text-sm text-[var(--text-tertiary)] mb-3">
                                     {checkpoint.description}
                                   </div>
                                 )}
                                 {checkpoint.conversationSummary && (
-                                  <div className="text-xs text-[var(--border-strong, #3D4163)] bg-[var(--surface-overlay, #1A1B26)] rounded p-2 mb-3 font-mono overflow-hidden">
+                                  <div className="text-xs text-[var(--border-strong)] bg-[var(--surface-overlay)] rounded p-2 mb-3 font-mono overflow-hidden">
                                     <div className="line-clamp-3">{checkpoint.conversationSummary}</div>
                                   </div>
                                 )}
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => handleCopy(checkpoint.id)}
-                                    className="text-xs px-3 py-1.5 bg-[var(--accent-primary, #00C9A7)]/10 text-[var(--accent-primary, #00C9A7)] rounded hover:bg-[var(--accent-primary, #00C9A7)]/20 transition-colors"
+                                    className="text-xs px-3 py-1.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded hover:bg-[var(--accent-primary)]/20 transition-colors"
                                   >
                                     Copy
                                   </button>
@@ -289,13 +289,13 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                                       setSelectedCheckpoint(checkpoint);
                                       setActiveTab('export');
                                     }}
-                                    className="text-xs px-3 py-1.5 bg-[var(--text-tertiary, #5C6080)]/10 text-[var(--text-secondary, #9DA3BE)] rounded hover:bg-[var(--text-tertiary, #5C6080)]/20 transition-colors"
+                                    className="text-xs px-3 py-1.5 bg-[var(--text-tertiary)]/10 text-[var(--text-secondary)] rounded hover:bg-[var(--text-tertiary)]/20 transition-colors"
                                   >
                                     Export
                                   </button>
                                   <button
                                     onClick={() => handleDelete(checkpoint.id)}
-                                    className="text-xs px-3 py-1.5 bg-[var(--semantic-error, #F7678E)]/10 text-[var(--semantic-error, #F7678E)] rounded hover:bg-[var(--semantic-error, #F7678E)]/20 transition-colors ml-auto"
+                                    className="text-xs px-3 py-1.5 bg-[var(--semantic-error)]/10 text-[var(--semantic-error)] rounded hover:bg-[var(--semantic-error)]/20 transition-colors ml-auto"
                                   >
                                     Delete
                                   </button>
@@ -316,26 +316,26 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
             <div className="p-4">
               {selectedCheckpoint ? (
                 <div className="space-y-4">
-                  <div className="bg-[var(--border-default, #292E44)]/50 rounded-lg p-4">
-                    <div className="text-sm font-medium text-[var(--text-secondary, #9DA3BE)] mb-2">Selected Checkpoint</div>
-                    <div className="text-lg font-semibold text-[var(--text-secondary, #9DA3BE)] mb-1">
+                  <div className="bg-[var(--border-default)]/50 rounded-lg p-4">
+                    <div className="text-sm font-medium text-[var(--text-secondary)] mb-2">Selected Checkpoint</div>
+                    <div className="text-lg font-semibold text-[var(--text-secondary)] mb-1">
                       {selectedCheckpoint.name}
                     </div>
-                    <div className="text-xs text-[var(--text-tertiary, #5C6080)]">
+                    <div className="text-xs text-[var(--text-tertiary)]">
                       {formatRelativeTime(selectedCheckpoint.createdAt)}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="text-sm font-medium text-[var(--text-secondary, #9DA3BE)]">Export Format</div>
+                    <div className="text-sm font-medium text-[var(--text-secondary)]">Export Format</div>
 
                     <button
                       onClick={() => handleExportToFile(selectedCheckpoint.id, 'markdown')}
                       disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-[var(--border-default)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <div className="font-medium text-[var(--text-secondary, #9DA3BE)] mb-1">Markdown (.md)</div>
-                      <div className="text-xs text-[var(--text-tertiary, #5C6080)]">
+                      <div className="font-medium text-[var(--text-secondary)] mb-1">Markdown (.md)</div>
+                      <div className="text-xs text-[var(--text-tertiary)]">
                         Human-readable format with conversation history
                       </div>
                     </button>
@@ -343,15 +343,15 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                     <button
                       onClick={() => handleExportToFile(selectedCheckpoint.id, 'json')}
                       disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-[var(--border-default)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <div className="font-medium text-[var(--text-secondary, #9DA3BE)] mb-1">JSON (.json)</div>
-                      <div className="text-xs text-[var(--text-tertiary, #5C6080)]">Structured data for programmatic access</div>
+                      <div className="font-medium text-[var(--text-secondary)] mb-1">JSON (.json)</div>
+                      <div className="text-xs text-[var(--text-tertiary)]">Structured data for programmatic access</div>
                     </button>
                   </div>
 
                   {isExporting && (
-                    <div className="text-center py-4 text-[var(--text-tertiary, #5C6080)]">
+                    <div className="text-center py-4 text-[var(--text-tertiary)]">
                       Exporting checkpoint...
                     </div>
                   )}
@@ -359,8 +359,8 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
               ) : (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">📦</div>
-                  <div className="text-[var(--text-tertiary, #5C6080)] mb-2">No checkpoint selected</div>
-                  <div className="text-sm text-[var(--border-strong, #3D4163)]">
+                  <div className="text-[var(--text-tertiary)] mb-2">No checkpoint selected</div>
+                  <div className="text-sm text-[var(--border-strong)]">
                     Select a checkpoint from the Timeline tab to export
                   </div>
                 </div>

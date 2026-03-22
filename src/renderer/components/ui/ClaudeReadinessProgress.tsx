@@ -113,7 +113,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
         }
 
         @keyframes brandmark-pulse {
-          0%, 100% { filter: drop-shadow(0 0 8px var(--accent-primary-muted, #00C9A714)); }
+          0%, 100% { filter: drop-shadow(0 0 8px var(--accent-primary-muted)); }
           50%       { filter: drop-shadow(0 0 20px #00C9A740); }
         }
 
@@ -121,7 +121,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-lg, 16px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0;
           letter-spacing: var(--tracking-tight, -0.01em);
           text-align: center;
@@ -131,7 +131,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           margin: 0;
           min-height: 18px;
           animation: status-fade-in var(--duration-fast, 150ms) var(--ease-out, ease) both;

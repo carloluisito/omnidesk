@@ -137,10 +137,10 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
           gap: 5px;
           padding: 3px var(--space-2, 8px);
           height: 22px;
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           font-size: var(--text-xs, 11px);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           cursor: pointer;
@@ -151,9 +151,9 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
         }
 
         .switcher-button:hover:not(:disabled) {
-          background: var(--state-hover, #FFFFFF0A);
-          border-color: var(--border-strong, #3D4163);
-          color: var(--text-primary, #E2E4F0);
+          background: var(--state-hover);
+          border-color: var(--border-strong);
+          color: var(--text-primary);
         }
 
         .switcher-button:disabled {
@@ -162,7 +162,7 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
         }
 
         .switcher-button:focus-visible {
-          outline: 2px solid var(--state-focus, #00C9A740);
+          outline: 2px solid var(--state-focus);
           outline-offset: 2px;
         }
 
@@ -172,8 +172,8 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
 
         .switcher-menu {
           min-width: 180px;
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
           box-shadow: var(--shadow-lg, 0 12px 32px #00000080);
           overflow: hidden;
@@ -191,7 +191,7 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
           border-radius: var(--radius-sm, 3px);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-sm, 12px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           text-align: left;
           cursor: pointer;
           transition: background-color var(--duration-fast, 150ms) var(--ease-inout, ease),
@@ -199,18 +199,18 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
         }
 
         .menu-option:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          color: var(--text-primary, #E2E4F0);
+          background: var(--state-hover);
+          color: var(--text-primary);
         }
 
         .menu-option-active {
-          background: var(--accent-primary-muted, #00C9A714);
-          color: var(--text-accent, #00C9A7);
+          background: var(--accent-primary-muted);
+          color: var(--text-accent);
         }
 
         .menu-option-active:hover {
-          background: var(--accent-primary-muted, #00C9A714);
-          color: var(--text-accent, #00C9A7);
+          background: var(--accent-primary-muted);
+          color: var(--text-accent);
         }
 
         .menu-option-label {
@@ -220,16 +220,16 @@ export function ModelSwitcher({ currentModel, onSwitch, disabled, providerId }: 
 
         .menu-option-tier {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .menu-option-active .menu-option-tier {
-          color: var(--text-accent, #00C9A7);
+          color: var(--text-accent);
           opacity: 0.7;
         }
 
         .menu-option-check {
-          color: var(--text-accent, #00C9A7);
+          color: var(--text-accent);
           flex-shrink: 0;
         }
       `}</style>

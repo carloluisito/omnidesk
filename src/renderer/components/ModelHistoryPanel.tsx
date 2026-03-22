@@ -9,10 +9,10 @@ interface ModelHistoryPanelProps {
 }
 
 const MODEL_COLORS: Record<ClaudeModel, string> = {
-  haiku: 'var(--semantic-success, #3DD68C)',   // green
-  sonnet: 'var(--accent-primary, #00C9A7)',     // teal
-  opus: 'var(--text-secondary, #9DA3BE)',       // muted
-  auto: 'var(--semantic-warning, #F7A84A)',     // yellow
+  haiku: 'var(--semantic-success)',   // green
+  sonnet: 'var(--accent-primary)',     // teal
+  opus: 'var(--text-secondary)',       // muted
+  auto: 'var(--semantic-warning)',     // yellow
 };
 
 const MODEL_LABELS: Record<ClaudeModel, string> = {
@@ -179,8 +179,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             transform: translateY(-50%);
             width: 420px;
             max-height: 85vh;
-            background: var(--surface-overlay, #1A1B26);
-            border: 2px solid var(--border-default, #292E44);
+            background: var(--surface-overlay);
+            border: 2px solid var(--border-default);
             border-radius: 12px;
             z-index: 999;
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -206,20 +206,20 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             justify-content: space-between;
             align-items: flex-start;
             padding: 24px;
-            border-bottom: 1px solid var(--border-default, #292E44);
+            border-bottom: 1px solid var(--border-default);
             flex-shrink: 0;
           }
 
           .model-history-title {
             font-size: 18px;
             font-weight: 600;
-            color: var(--text-primary, #E2E4F0);
+            color: var(--text-primary);
             margin: 0;
           }
 
           .model-history-subtitle {
             font-size: 12px;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
             margin: 4px 0 0 0;
           }
 
@@ -231,7 +231,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             height: 32px;
             background: transparent;
             border: none;
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
             cursor: pointer;
             border-radius: 6px;
             transition: all 0.2s ease;
@@ -239,8 +239,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .close-btn:hover {
-            background: var(--surface-float, #222435);
-            color: var(--semantic-error, #F7678E);
+            background: var(--surface-float);
+            color: var(--semantic-error);
           }
 
           .model-history-stats {
@@ -248,24 +248,24 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             align-items: center;
             gap: 8px;
             padding: 12px 24px;
-            background: var(--surface-overlay, #1A1B26);
-            border-bottom: 1px solid var(--border-default, #292E44);
+            background: var(--surface-overlay);
+            border-bottom: 1px solid var(--border-default);
             font-size: 12px;
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
             flex-shrink: 0;
           }
 
           .stat-separator {
-            color: var(--border-default, #292E44);
+            color: var(--border-default);
           }
 
           .clear-history-btn {
             margin-left: auto;
             padding: 4px 12px;
             background: transparent;
-            border: 1px solid var(--border-default, #292E44);
+            border: 1px solid var(--border-default);
             border-radius: 4px;
-            color: var(--semantic-error, #F7678E);
+            color: var(--semantic-error);
             font-size: 11px;
             font-family: inherit;
             cursor: pointer;
@@ -274,7 +274,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
 
           .clear-history-btn:hover {
             background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
-            border-color: var(--semantic-error, #F7678E);
+            border-color: var(--semantic-error);
           }
 
           .model-history-content {
@@ -288,16 +288,16 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .model-history-content::-webkit-scrollbar-track {
-            background: var(--surface-overlay, #1A1B26);
+            background: var(--surface-overlay);
           }
 
           .model-history-content::-webkit-scrollbar-thumb {
-            background: var(--border-default, #292E44);
+            background: var(--border-default);
             border-radius: 4px;
           }
 
           .model-history-content::-webkit-scrollbar-thumb:hover {
-            background: var(--text-tertiary, #5C6080);
+            background: var(--text-tertiary);
           }
 
           .model-history-loading {
@@ -312,8 +312,8 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           .loading-spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid var(--border-default, #292E44);
-            border-top-color: var(--accent-primary, #00C9A7);
+            border: 3px solid var(--border-default);
+            border-top-color: var(--accent-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
           }
@@ -324,7 +324,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
 
           .model-history-loading p {
             margin: 0;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
             font-size: 13px;
           }
 
@@ -338,20 +338,20 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .model-history-empty svg {
-            color: var(--border-default, #292E44);
+            color: var(--border-default);
             margin-bottom: 16px;
           }
 
           .model-history-empty h3 {
             font-size: 16px;
             font-weight: 600;
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
             margin: 0 0 8px 0;
           }
 
           .model-history-empty p {
             font-size: 13px;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
             margin: 0;
           }
 
@@ -374,14 +374,14 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             top: 24px;
             bottom: -20px;
             width: 2px;
-            background: var(--border-default, #292E44);
+            background: var(--border-default);
           }
 
           .timeline-marker {
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            border: 3px solid var(--surface-overlay, #1A1B26);
+            border: 3px solid var(--surface-overlay);
             flex-shrink: 0;
             margin-top: 4px;
             z-index: 1;
@@ -406,7 +406,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
 
           .arrow {
             font-size: 12px;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
           }
 
           .timeline-meta {
@@ -414,19 +414,19 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
             align-items: center;
             gap: 6px;
             font-size: 11px;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
           }
 
           .meta-separator {
-            color: var(--border-default, #292E44);
+            color: var(--border-default);
           }
 
           .timeline-time {
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
           }
 
           .timeline-duration {
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
           }
         `}</style>
       </div>

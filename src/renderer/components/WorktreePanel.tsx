@@ -98,7 +98,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
         {/* Header */}
         <div className="wtp-header">
           <div className="wtp-header-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success, #3DD68C)" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success)" strokeWidth="2">
               <line x1="6" y1="3" x2="6" y2="15" />
               <circle cx="18" cy="6" r="3" />
               <circle cx="6" cy="18" r="3" />
@@ -131,7 +131,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
             </div>
           ) : linkedWorktrees.length === 0 ? (
             <div className="wtp-empty">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-strong, #3D4163)" strokeWidth="1.5">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--border-strong)" strokeWidth="1.5">
                 <line x1="6" y1="3" x2="6" y2="15" />
                 <circle cx="18" cy="6" r="3" />
                 <circle cx="6" cy="18" r="3" />
@@ -145,7 +145,7 @@ export function WorktreePanel({ isOpen, onClose, projectPath }: WorktreePanelPro
               {linkedWorktrees.map(wt => (
                 <div key={wt.path} className={`wtp-card ${removing === wt.path ? 'removing' : ''}`}>
                   <div className="wtp-card-header">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success, #3DD68C)" strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-success)" strokeWidth="2">
                       <line x1="6" y1="3" x2="6" y2="15" />
                       <circle cx="18" cy="6" r="3" />
                       <circle cx="6" cy="18" r="3" />
@@ -228,8 +228,8 @@ const styles = `
     width: 520px;
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 64px);
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 12px;
     box-shadow:
       0 0 0 1px rgba(61, 214, 140, 0.1),
@@ -244,8 +244,8 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-default, #292E44);
-    background: linear-gradient(to bottom, var(--surface-float, #222435), var(--surface-overlay, #1A1B26));
+    border-bottom: 1px solid var(--border-default);
+    background: linear-gradient(to bottom, var(--surface-float), var(--surface-overlay));
   }
 
   .wtp-header-left {
@@ -263,14 +263,14 @@ const styles = `
   .wtp-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     margin: 0;
   }
 
   .wtp-count {
     font-size: 11px;
-    color: var(--text-tertiary, #5C6080);
-    background: var(--border-default, #292E44);
+    color: var(--text-tertiary);
+    background: var(--border-default);
     padding: 2px 8px;
     border-radius: 10px;
   }
@@ -285,15 +285,15 @@ const styles = `
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-refresh-btn:hover,
   .wtp-close-btn:hover {
-    background: var(--border-default, #292E44);
-    color: var(--text-primary, #E2E4F0);
+    background: var(--border-default);
+    color: var(--text-primary);
   }
 
   .wtp-content {
@@ -310,20 +310,20 @@ const styles = `
     justify-content: center;
     padding: 40px 0;
     gap: 12px;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     font-size: 12px;
   }
 
   .wtp-empty-hint {
     font-size: 11px;
-    color: var(--border-default, #292E44);
+    color: var(--border-default);
   }
 
   .wtp-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid var(--border-default, #292E44);
-    border-top-color: var(--semantic-success, #3DD68C);
+    border: 2px solid var(--border-default);
+    border-top-color: var(--semantic-success);
     border-radius: 50%;
     animation: wtp-spin 0.8s linear infinite;
   }
@@ -340,14 +340,14 @@ const styles = `
 
   .wtp-card {
     padding: 12px;
-    background: var(--surface-raised, #13141C);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
     transition: all 0.15s;
   }
 
   .wtp-card:hover {
-    border-color: var(--border-strong, #3D4163);
+    border-color: var(--border-strong);
   }
 
   .wtp-card.removing {
@@ -364,7 +364,7 @@ const styles = `
   .wtp-branch-name {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     flex: 1;
   }
 
@@ -379,27 +379,27 @@ const styles = `
 
   .wtp-status-badge.active {
     background: rgba(61, 214, 140, 0.15);
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
   }
 
   .wtp-status-badge.inactive {
-    background: var(--border-default, #292E44);
-    color: var(--text-secondary, #9DA3BE);
+    background: var(--border-default);
+    color: var(--text-secondary);
   }
 
   .wtp-status-badge.locked {
     background: color-mix(in srgb, var(--semantic-error) 15%, transparent);
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
   }
 
   .wtp-status-badge.stale {
     background: color-mix(in srgb, var(--semantic-warning) 15%, transparent);
-    color: var(--semantic-warning, #F7A84A);
+    color: var(--semantic-warning);
   }
 
   .wtp-card-path {
     font-size: 11px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     word-break: break-all;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     margin-bottom: 6px;
@@ -414,13 +414,13 @@ const styles = `
 
   .wtp-card-head {
     font-size: 10px;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .wtp-managed-badge {
     font-size: 9px;
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
     background: rgba(61, 214, 140, 0.1);
     padding: 1px 6px;
     border-radius: 8px;
@@ -441,16 +441,16 @@ const styles = `
     font-weight: 500;
     font-family: inherit;
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-remove-btn:hover {
     background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
-    border-color: var(--semantic-error, #F7678E);
+    border-color: var(--semantic-error);
   }
 
   .wtp-remove-btn:disabled {
@@ -460,7 +460,7 @@ const styles = `
 
   .wtp-linked-label {
     font-size: 11px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-style: italic;
   }
 
@@ -474,13 +474,13 @@ const styles = `
     border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     border-radius: 8px;
     font-size: 12px;
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
   }
 
   .wtp-footer {
     padding: 12px 16px;
-    border-top: 1px solid var(--border-default, #292E44);
-    background: var(--surface-raised, #13141C);
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-raised);
     display: flex;
     justify-content: flex-end;
   }
@@ -494,14 +494,14 @@ const styles = `
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--semantic-warning) 30%, transparent);
     border-radius: 6px;
-    color: var(--semantic-warning, #F7A84A);
+    color: var(--semantic-warning);
     cursor: pointer;
     transition: all 0.15s;
   }
 
   .wtp-prune-btn:hover {
     background: color-mix(in srgb, var(--semantic-warning) 10%, transparent);
-    border-color: var(--semantic-warning, #F7A84A);
+    border-color: var(--semantic-warning);
   }
 
   .wtp-content::-webkit-scrollbar {
@@ -513,7 +513,7 @@ const styles = `
   }
 
   .wtp-content::-webkit-scrollbar-thumb {
-    background: var(--border-default, #292E44);
+    background: var(--border-default);
     border-radius: 3px;
   }
 `;

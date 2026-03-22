@@ -50,13 +50,13 @@ export function ObserverToolbar({
                          :                'Request terminal control';
 
   // Control button background
-  const controlBg    = hasControl  ? 'rgba(0,201,167,0.15)'
+  const controlBg    = hasControl  ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)'
                      : isRequesting ? 'color-mix(in srgb, var(--accent-secondary) 12%, transparent)'
                      : 'var(--surface-float)';
   const controlColor = hasControl  ? 'var(--accent-primary)'
                      : isRequesting ? 'var(--accent-secondary)'
                      : 'var(--text-secondary)';
-  const controlBorder = hasControl  ? '1px solid rgba(0,201,167,0.3)'
+  const controlBorder = hasControl  ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)'
                       : isRequesting ? '1px solid color-mix(in srgb, var(--accent-secondary) 25%, transparent)'
                       : '1px solid var(--border-default)';
 
@@ -272,7 +272,7 @@ export function ObserverToolbar({
         onMouseEnter={(e) => {
           if (!isRequesting) {
             e.currentTarget.style.background = hasControl
-              ? 'rgba(0,201,167,0.22)'
+              ? 'color-mix(in srgb, var(--accent-primary) 22%, transparent)'
               : 'var(--state-hover)';
           }
         }}

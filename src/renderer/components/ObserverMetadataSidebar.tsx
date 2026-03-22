@@ -145,7 +145,7 @@ export function ObserverMetadataSidebar({
               fontFamily:      '"JetBrains Mono", monospace',
               fontWeight:      700,
               color:           'var(--text-accent)',
-              backgroundColor: 'rgba(0,201,167,0.12)',
+              backgroundColor: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
               borderRadius:    '3px',
               padding:         '1px 3px',
             }}

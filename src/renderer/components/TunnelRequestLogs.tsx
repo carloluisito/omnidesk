@@ -27,27 +27,27 @@ interface TunnelRequestLogsProps {
 
 function getMethodColor(method: string): string {
   switch (method.toUpperCase()) {
-    case 'GET': return 'var(--semantic-success, #3DD68C)';
-    case 'POST': return 'var(--accent-primary, #00C9A7)';
+    case 'GET': return 'var(--semantic-success)';
+    case 'POST': return 'var(--accent-primary)';
     case 'PUT':
-    case 'PATCH': return 'var(--semantic-warning, #F7A84A)';
-    case 'DELETE': return 'var(--semantic-error, #F7678E)';
-    default: return 'var(--text-tertiary, #5C6080)';
+    case 'PATCH': return 'var(--semantic-warning)';
+    case 'DELETE': return 'var(--semantic-error)';
+    default: return 'var(--text-tertiary)';
   }
 }
 
 function getStatusColor(code: number): string {
-  if (code >= 200 && code < 300) return 'var(--semantic-success, #3DD68C)';
-  if (code >= 300 && code < 400) return 'var(--accent-primary, #00C9A7)';
-  if (code >= 400 && code < 500) return 'var(--semantic-warning, #F7A84A)';
-  if (code >= 500) return 'var(--semantic-error, #F7678E)';
-  return 'var(--text-tertiary, #5C6080)';
+  if (code >= 200 && code < 300) return 'var(--semantic-success)';
+  if (code >= 300 && code < 400) return 'var(--accent-primary)';
+  if (code >= 400 && code < 500) return 'var(--semantic-warning)';
+  if (code >= 500) return 'var(--semantic-error)';
+  return 'var(--text-tertiary)';
 }
 
 function getDurationColor(ms: number): string {
-  if (ms < 100) return 'var(--semantic-success, #3DD68C)';
-  if (ms > 1000) return 'var(--semantic-warning, #F7A84A)';
-  return 'var(--text-tertiary, #5C6080)';
+  if (ms < 100) return 'var(--semantic-success)';
+  if (ms > 1000) return 'var(--semantic-warning)';
+  return 'var(--text-tertiary)';
 }
 
 function formatDuration(ms: number): string {
@@ -131,7 +131,7 @@ export function TunnelRequestLogs({ tunnel, logs, onBack, onRefresh }: TunnelReq
       {/* Log table */}
       {displayLogs.length === 0 ? (
         <div className="trl-empty">
-          <Network size={32} style={{ color: 'var(--border-strong, #3D4163)' }} />
+          <Network size={32} style={{ color: 'var(--border-strong)' }} />
           <span className="trl-empty-title">No requests logged yet</span>
           <span className="trl-empty-sub">Requests to this tunnel will appear here</span>
         </div>
@@ -237,7 +237,7 @@ const tunnelRequestLogsStyles = `
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--border-default, #292E44);
+    border-bottom: 1px solid var(--border-default);
     flex-shrink: 0;
   }
 
@@ -248,18 +248,18 @@ const tunnelRequestLogsStyles = `
     width: 28px;
     height: 28px;
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     cursor: pointer;
     transition: all 0.15s ease;
     flex-shrink: 0;
   }
 
   .trl-back-btn:hover {
-    background: var(--surface-overlay, #1A1B26);
-    color: var(--text-secondary, #9DA3BE);
-    border-color: var(--border-strong, #3D4163);
+    background: var(--surface-overlay);
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
   }
 
   .trl-url-bar {
@@ -267,8 +267,8 @@ const tunnelRequestLogsStyles = `
     display: flex;
     align-items: center;
     gap: 6px;
-    background: var(--surface-base, #0D0E14);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-base);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
     padding: 5px 10px;
     min-width: 0;
@@ -278,7 +278,7 @@ const tunnelRequestLogsStyles = `
     flex: 1;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     font-size: 11px;
-    color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -293,14 +293,14 @@ const tunnelRequestLogsStyles = `
     background: transparent;
     border: none;
     border-radius: 4px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.15s ease;
   }
 
   .trl-copy-btn:hover {
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
   }
 
   .trl-live-badge {
@@ -314,7 +314,7 @@ const tunnelRequestLogsStyles = `
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     flex-shrink: 0;
     transition: all 0.2s ease;
@@ -323,20 +323,20 @@ const tunnelRequestLogsStyles = `
   .trl-live-badge.paused {
     background: rgba(86, 95, 137, 0.12);
     border-color: rgba(86, 95, 137, 0.25);
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .trl-live-dot {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: var(--semantic-success, #3DD68C);
+    background: var(--semantic-success);
     animation: trl-pulse 2s ease-in-out infinite;
   }
 
   .trl-live-badge.paused .trl-live-dot {
     animation: none;
-    background: var(--text-tertiary, #5C6080);
+    background: var(--text-tertiary);
   }
 
   @keyframes trl-pulse {
@@ -352,7 +352,7 @@ const tunnelRequestLogsStyles = `
     align-items: center;
     justify-content: center;
     gap: 10px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     text-align: center;
     padding: 40px 20px;
   }
@@ -360,13 +360,13 @@ const tunnelRequestLogsStyles = `
   .trl-empty-title {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-family: system-ui, -apple-system, sans-serif;
   }
 
   .trl-empty-sub {
     font-size: 11px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-family: system-ui, -apple-system, sans-serif;
   }
 
@@ -375,7 +375,7 @@ const tunnelRequestLogsStyles = `
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: var(--border-default, #292E44) transparent;
+    scrollbar-color: var(--border-default) transparent;
     min-height: 0;
   }
 
@@ -383,10 +383,10 @@ const tunnelRequestLogsStyles = `
     display: flex;
     align-items: center;
     padding: 6px 14px;
-    border-bottom: 1px solid var(--surface-float, #222435);
+    border-bottom: 1px solid var(--surface-float);
     position: sticky;
     top: 0;
-    background: var(--surface-raised, #13141C);
+    background: var(--surface-raised);
     z-index: 2;
   }
 
@@ -400,14 +400,14 @@ const tunnelRequestLogsStyles = `
     width: 60px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
   }
 
   .trl-col-path {
     flex: 1;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     min-width: 0;
   }
 
@@ -415,7 +415,7 @@ const tunnelRequestLogsStyles = `
     width: 52px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     text-align: center;
   }
 
@@ -423,7 +423,7 @@ const tunnelRequestLogsStyles = `
     width: 52px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     text-align: right;
   }
 
@@ -431,7 +431,7 @@ const tunnelRequestLogsStyles = `
     width: 64px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     text-align: right;
   }
 
@@ -450,7 +450,7 @@ const tunnelRequestLogsStyles = `
   }
 
   .trl-row:hover {
-    background: var(--surface-overlay, #1A1B26);
+    background: var(--surface-overlay);
   }
 
   @keyframes trl-row-in {
@@ -478,7 +478,7 @@ const tunnelRequestLogsStyles = `
 
   .trl-path-text {
     font-size: 11px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -492,7 +492,7 @@ const tunnelRequestLogsStyles = `
   }
 
   .trl-muted {
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     font-size: 10px;
   }
 
@@ -500,7 +500,7 @@ const tunnelRequestLogsStyles = `
     text-align: center;
     padding: 6px;
     font-size: 10px;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     background: color-mix(in srgb, var(--semantic-warning) 5%, transparent);
     border-bottom: 1px solid color-mix(in srgb, var(--semantic-warning) 10%, transparent);
@@ -512,14 +512,14 @@ const tunnelRequestLogsStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 8px 14px;
-    border-top: 1px solid var(--border-default, #292E44);
-    background: var(--surface-raised, #13141C);
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-raised);
     flex-shrink: 0;
   }
 
   .trl-log-count {
     font-size: 10px;
-    color: var(--border-strong, #3D4163);
+    color: var(--border-strong);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
@@ -528,38 +528,38 @@ const tunnelRequestLogsStyles = `
     align-items: center;
     gap: 6px;
     background: none;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 20px;
     padding: 4px 10px;
     cursor: pointer;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     transition: all 0.15s ease;
   }
 
   .trl-refresh-toggle.active {
     border-color: rgba(61, 214, 140, 0.3);
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
   }
 
   .trl-refresh-toggle:hover {
-    background: var(--surface-overlay, #1A1B26);
+    background: var(--surface-overlay);
   }
 
   .trl-toggle-pill {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--text-tertiary, #5C6080);
+    background: var(--text-tertiary);
     transition: background 0.15s ease;
     flex-shrink: 0;
   }
 
   .trl-refresh-toggle.active .trl-toggle-pill {
-    background: var(--semantic-success, #3DD68C);
+    background: var(--semantic-success);
     box-shadow: 0 0 6px rgba(61, 214, 140, 0.5);
     animation: trl-pulse 2s ease-in-out infinite;
   }

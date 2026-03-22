@@ -56,12 +56,12 @@ export function StatusPopover({
 
   const getStatusColor = () => {
     switch (status) {
-      case 'ready': return 'var(--semantic-success, #3DD68C)';
-      case 'initializing': return 'var(--semantic-warning, #F7A84A)';
-      case 'error': return 'var(--semantic-error, #F7678E)';
-      case 'warning': return 'var(--semantic-warning, #F7A84A)';
-      case 'idle': return 'var(--text-tertiary, #5C6080)';
-      default: return 'var(--text-tertiary, #5C6080)';
+      case 'ready': return 'var(--semantic-success)';
+      case 'initializing': return 'var(--semantic-warning)';
+      case 'error': return 'var(--semantic-error)';
+      case 'warning': return 'var(--semantic-warning)';
+      case 'idle': return 'var(--text-tertiary)';
+      default: return 'var(--text-tertiary)';
     }
   };
 
@@ -181,8 +181,8 @@ export function StatusPopover({
             top: 80px;
             right: 20px;
             width: 320px;
-            background: var(--surface-overlay, #1A1B26);
-            border: 1px solid var(--border-default, #292E44);
+            background: var(--surface-overlay);
+            border: 1px solid var(--border-default);
             border-radius: var(--radius-lg, 10px);
             padding: var(--space-5, 20px);
             z-index: 999;
@@ -212,7 +212,7 @@ export function StatusPopover({
           .popover-title {
             font-size: var(--text-sm, 12px);
             font-weight: var(--weight-semibold, 600);
-            color: var(--text-primary, #E2E4F0);
+            color: var(--text-primary);
             margin: 0;
             text-transform: uppercase;
             letter-spacing: var(--tracking-widest, 0.1em);
@@ -221,7 +221,7 @@ export function StatusPopover({
           .close-btn {
             background: none;
             border: none;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
             cursor: pointer;
             padding: 4px;
             display: flex;
@@ -233,8 +233,8 @@ export function StatusPopover({
           }
 
           .close-btn:hover {
-            background: var(--state-hover, #FFFFFF0A);
-            color: var(--text-primary, #E2E4F0);
+            background: var(--state-hover);
+            color: var(--text-primary);
           }
 
           .status-badge {
@@ -242,7 +242,7 @@ export function StatusPopover({
             align-items: center;
             gap: var(--space-2, 8px);
             padding: var(--space-2, 8px) var(--space-3, 12px);
-            background: var(--surface-float, #222435);
+            background: var(--surface-float);
             border: 1px solid;
             border-radius: var(--radius-md, 6px);
             margin-bottom: var(--space-4, 16px);
@@ -257,7 +257,7 @@ export function StatusPopover({
           .status-label {
             font-size: var(--text-sm, 12px);
             font-weight: var(--weight-medium, 500);
-            color: var(--text-primary, #E2E4F0);
+            color: var(--text-primary);
           }
 
           .stats-grid {
@@ -275,7 +275,7 @@ export function StatusPopover({
 
           .stat-label {
             font-size: 10px;
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
@@ -283,7 +283,7 @@ export function StatusPopover({
 
           .stat-value {
             font-size: var(--text-sm, 12px);
-            color: var(--text-primary, #E2E4F0);
+            color: var(--text-primary);
             font-weight: var(--weight-medium, 500);
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
@@ -291,7 +291,7 @@ export function StatusPopover({
           .budget-bar {
             width: 100%;
             height: 4px;
-            background: var(--surface-float, #222435);
+            background: var(--surface-float);
             border-radius: var(--radius-full, 9999px);
             overflow: hidden;
             margin-bottom: 4px;
@@ -299,13 +299,13 @@ export function StatusPopover({
 
           .budget-fill {
             height: 100%;
-            background: var(--accent-primary, #00C9A7);
+            background: var(--accent-primary);
             transition: width 0.3s ease;
           }
 
           .budget-percent {
             font-size: var(--text-xs, 11px);
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
 
@@ -313,7 +313,7 @@ export function StatusPopover({
             display: flex;
             gap: var(--space-2, 8px);
             padding-top: var(--space-4, 16px);
-            border-top: 1px solid var(--border-subtle, #1E2030);
+            border-top: 1px solid var(--border-subtle);
           }
 
           .action-btn {
@@ -323,10 +323,10 @@ export function StatusPopover({
             justify-content: center;
             gap: 6px;
             padding: var(--space-2, 8px) var(--space-3, 12px);
-            background: var(--surface-float, #222435);
-            border: 1px solid var(--border-default, #292E44);
+            background: var(--surface-float);
+            border: 1px solid var(--border-default);
             border-radius: var(--radius-md, 6px);
-            color: var(--text-secondary, #9DA3BE);
+            color: var(--text-secondary);
             font-size: var(--text-xs, 11px);
             font-weight: var(--weight-medium, 500);
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -337,9 +337,9 @@ export function StatusPopover({
           }
 
           .action-btn:hover {
-            background: var(--state-hover, #FFFFFF0A);
-            border-color: var(--border-accent, #00C9A7);
-            color: var(--text-accent, #00C9A7);
+            background: var(--state-hover);
+            border-color: var(--border-accent);
+            color: var(--text-accent);
           }
 
           .action-btn svg {

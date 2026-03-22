@@ -232,8 +232,8 @@ export function PaneHeader({
             gap:             '4px',
             height:          '22px',
             padding:         '0 7px',
-            background:      isShared ? 'rgba(0,201,167,0.12)' : 'transparent',
-            border:          isShared ? '1px solid rgba(0,201,167,0.3)' : '1px solid transparent',
+            background:      isShared ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'transparent',
+            border:          isShared ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)' : '1px solid transparent',
             borderRadius:    'var(--radius-sm)',
             cursor:          'pointer',
             color:           isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)',
@@ -245,8 +245,8 @@ export function PaneHeader({
           onMouseEnter={(e) => {
             if (!isShared) {
               e.currentTarget.style.color = 'var(--accent-primary)';
-              e.currentTarget.style.border = '1px solid rgba(0,201,167,0.25)';
-              e.currentTarget.style.background = 'rgba(0,201,167,0.08)';
+              e.currentTarget.style.border = '1px solid color-mix(in srgb, var(--accent-primary) 25%, transparent)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary) 8%, transparent)';
             } else {
               e.currentTarget.style.background = 'color-mix(in srgb, var(--semantic-error) 10%, transparent)';
               e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--semantic-error) 35%, transparent)';
@@ -254,8 +254,8 @@ export function PaneHeader({
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = isShared ? 'rgba(0,201,167,0.12)' : 'transparent';
-            e.currentTarget.style.border     = isShared ? '1px solid rgba(0,201,167,0.3)' : '1px solid transparent';
+            e.currentTarget.style.background = isShared ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'transparent';
+            e.currentTarget.style.border     = isShared ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)' : '1px solid transparent';
             e.currentTarget.style.color      = isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)';
           }}
         >

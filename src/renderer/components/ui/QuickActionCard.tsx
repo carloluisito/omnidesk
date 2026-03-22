@@ -28,8 +28,8 @@ export function QuickActionCard({
           flex-direction: column;
           align-items: flex-start;
           padding: var(--space-5, 20px);
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-lg, 10px);
           cursor: pointer;
           transition:
@@ -67,7 +67,7 @@ export function QuickActionCard({
 
         .quick-action-card:hover {
           transform: translateY(-3px);
-          border-color: var(--border-accent, #00C9A7);
+          border-color: var(--border-accent);
           box-shadow: var(--shadow-glow-accent, 0 0 16px #00C9A730);
         }
 
@@ -76,7 +76,7 @@ export function QuickActionCard({
         }
 
         .quick-action-card:focus-visible {
-          outline: 2px solid var(--state-focus, #00C9A740);
+          outline: 2px solid var(--state-focus);
           outline-offset: 2px;
         }
 
@@ -86,17 +86,17 @@ export function QuickActionCard({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--accent-primary-muted, #00C9A714);
+          background: var(--accent-primary-muted);
           border-radius: var(--radius-md, 6px);
           margin-bottom: var(--space-3, 12px);
-          color: var(--text-accent, #00C9A7);
+          color: var(--text-accent);
         }
 
         .card-title {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-base, 13px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0 0 var(--space-2, 8px) 0;
         }
 
@@ -104,7 +104,7 @@ export function QuickActionCard({
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           margin: 0;
           line-height: var(--leading-normal, 1.5);
         }

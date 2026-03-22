@@ -243,8 +243,8 @@ const dialogStyles = `
   .pb-param-dialog {
     width: 520px;
     max-height: 80vh;
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 12px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
     display: flex;
@@ -257,7 +257,7 @@ const dialogStyles = `
     align-items: center;
     gap: 12px;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-default, #292E44);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .pb-param-icon {
@@ -265,13 +265,13 @@ const dialogStyles = `
   }
 
   .pb-param-title {
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 600;
   }
 
   .pb-param-subtitle {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: 12px;
     margin-top: 2px;
   }
@@ -291,23 +291,23 @@ const dialogStyles = `
   }
 
   .pb-param-label {
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 500;
   }
 
   .pb-param-required {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     margin-left: 2px;
   }
 
   .pb-param-input,
   .pb-param-textarea,
   .pb-param-select {
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: 13px;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 8px 10px;
@@ -318,13 +318,13 @@ const dialogStyles = `
   .pb-param-input:focus,
   .pb-param-textarea:focus,
   .pb-param-select:focus {
-    border-color: var(--accent-primary, #00C9A7);
+    border-color: var(--accent-primary);
   }
 
   .pb-param-input.error,
   .pb-param-textarea.error,
   .pb-param-select.error {
-    border-color: var(--semantic-error, #F7678E);
+    border-color: var(--semantic-error);
   }
 
   .pb-param-textarea {
@@ -333,8 +333,8 @@ const dialogStyles = `
   }
 
   .pb-param-select option {
-    background: var(--surface-overlay, #1A1B26);
-    color: var(--text-primary, #E2E4F0);
+    background: var(--surface-overlay);
+    color: var(--text-primary);
   }
 
   .pb-param-filepath {
@@ -347,10 +347,10 @@ const dialogStyles = `
   }
 
   .pb-param-browse {
-    background: var(--border-default, #292E44);
-    border: 1px solid var(--border-strong, #3D4163);
+    background: var(--border-default);
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 12px;
     padding: 0 12px;
     cursor: pointer;
@@ -358,11 +358,11 @@ const dialogStyles = `
   }
 
   .pb-param-browse:hover {
-    background: var(--border-strong, #3D4163);
+    background: var(--border-strong);
   }
 
   .pb-param-error {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     font-size: 11px;
   }
 
@@ -373,7 +373,7 @@ const dialogStyles = `
   .pb-param-preview-btn {
     background: transparent;
     border: none;
-    color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 0;
@@ -388,14 +388,14 @@ const dialogStyles = `
     max-height: 200px;
     overflow-y: auto;
     margin: 0 20px 12px;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
-    background: var(--surface-overlay, #1A1B26);
+    background: var(--surface-overlay);
   }
 
   .pb-param-preview-step {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--border-default, #292E44);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .pb-param-preview-step:last-child {
@@ -413,8 +413,8 @@ const dialogStyles = `
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: var(--border-default, #292E44);
-    color: var(--accent-primary, #00C9A7);
+    background: var(--border-default);
+    color: var(--accent-primary);
     font-size: 11px;
     display: flex;
     align-items: center;
@@ -422,7 +422,7 @@ const dialogStyles = `
   }
 
   .pb-param-preview-step-name {
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 500;
   }
@@ -432,11 +432,11 @@ const dialogStyles = `
     padding: 1px 6px;
     border-radius: 4px;
     background: color-mix(in srgb, var(--semantic-warning) 15%, transparent);
-    color: var(--semantic-warning, #F7A84A);
+    color: var(--semantic-warning);
   }
 
   .pb-param-preview-prompt {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-word;
@@ -451,14 +451,14 @@ const dialogStyles = `
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
-    border-top: 1px solid var(--border-default, #292E44);
+    border-top: 1px solid var(--border-default);
   }
 
   .pb-param-cancel {
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 12px;
     padding: 6px 14px;
     cursor: pointer;
@@ -466,14 +466,14 @@ const dialogStyles = `
   }
 
   .pb-param-cancel:hover {
-    background: var(--border-default, #292E44);
+    background: var(--border-default);
   }
 
   .pb-param-run {
-    background: var(--accent-primary, #00C9A7);
+    background: var(--accent-primary);
     border: none;
     border-radius: 6px;
-    color: var(--surface-overlay, #1A1B26);
+    color: var(--surface-overlay);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 14px;
@@ -485,7 +485,7 @@ const dialogStyles = `
   }
 
   .pb-param-run:hover {
-    background: var(--accent-primary-dim, #009E84);
+    background: var(--accent-primary-dim);
   }
 
   .pb-param-run kbd {

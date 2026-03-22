@@ -62,13 +62,13 @@ export function PaneSessionPicker({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--surface-base, #0D0E14);
+          background: var(--surface-base);
           padding: var(--space-6, 24px);
         }
 
         .picker-card {
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-lg, 10px);
           padding: var(--space-6, 24px);
           max-width: 500px;
@@ -81,14 +81,14 @@ export function PaneSessionPicker({
           margin: 0 0 var(--space-4, 16px);
           font-size: var(--text-base, 13px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
         }
 
         .picker-new-session-btn {
           width: 100%;
           padding: var(--space-3, 12px);
-          background: var(--accent-primary, #00C9A7);
-          color: var(--text-inverse, #0D0E14);
+          background: var(--accent-primary);
+          color: var(--text-inverse);
           border: none;
           border-radius: var(--radius-md, 6px);
           font-size: var(--text-sm, 12px);
@@ -99,7 +99,7 @@ export function PaneSessionPicker({
         }
 
         .picker-new-session-btn:hover {
-          background: var(--accent-primary-dim, #009E84);
+          background: var(--accent-primary-dim);
         }
 
         .picker-divider {
@@ -114,11 +114,11 @@ export function PaneSessionPicker({
           content: '';
           flex: 1;
           height: 1px;
-          background: var(--border-subtle, #1E2030);
+          background: var(--border-subtle);
         }
 
         .picker-divider span {
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           font-size: var(--text-xs, 11px);
           text-transform: uppercase;
           letter-spacing: var(--tracking-widest, 0.1em);
@@ -135,8 +135,8 @@ export function PaneSessionPicker({
 
         .picker-session-item {
           padding: var(--space-3, 12px);
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
           cursor: pointer;
           transition: border-color var(--duration-fast, 150ms) ease,
@@ -144,20 +144,20 @@ export function PaneSessionPicker({
         }
 
         .picker-session-item:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          border-color: var(--border-accent, #00C9A7);
+          background: var(--state-hover);
+          border-color: var(--border-accent);
         }
 
         .picker-session-name {
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin-bottom: 4px;
         }
 
         .picker-session-dir {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           margin-bottom: 6px;
         }
@@ -172,13 +172,13 @@ export function PaneSessionPicker({
         }
 
         .picker-session-status.status-running {
-          color: var(--semantic-success, #3DD68C);
+          color: var(--semantic-success);
           background: rgba(61, 214, 140, 0.08);
         }
 
         .picker-session-status.status-exited {
-          color: var(--text-tertiary, #5C6080);
-          background: var(--surface-raised, #13141C);
+          color: var(--text-tertiary);
+          background: var(--surface-raised);
         }
 
         .picker-footer {
@@ -189,7 +189,7 @@ export function PaneSessionPicker({
         .picker-cancel-link {
           background: transparent;
           border: none;
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           font-size: var(--text-xs, 11px);
           cursor: pointer;
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -197,7 +197,7 @@ export function PaneSessionPicker({
         }
 
         .picker-cancel-link:hover {
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
         }
       `}</style>
     </div>

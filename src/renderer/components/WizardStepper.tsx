@@ -50,7 +50,7 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
         .stepper-progress {
           width: 100%;
           height: 3px;
-          background: var(--surface-float, #222435);
+          background: var(--surface-float);
           border-radius: var(--radius-full, 9999px);
           overflow: hidden;
           margin-bottom: 24px;
@@ -58,9 +58,9 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
 
         .stepper-progress-fill {
           height: 100%;
-          background: var(--accent-primary, #00C9A7);
+          background: var(--accent-primary);
           transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 0 8px rgba(0, 201, 167, 0.4);
+          box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 40%, transparent);
         }
 
         .stepper-steps {
@@ -81,29 +81,29 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-semibold, 600);
           transition: all 0.3s ease;
         }
 
         .stepper-step.active .step-indicator {
-          background: var(--accent-primary, #00C9A7);
-          border-color: var(--accent-primary, #00C9A7);
-          color: var(--text-inverse, #0D0E14);
-          box-shadow: 0 0 16px rgba(0, 201, 167, 0.4);
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
+          color: var(--text-inverse);
+          box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary) 40%, transparent);
           animation: pulse-indicator 2s ease-in-out infinite;
         }
 
         .stepper-step.completed .step-indicator {
-          background: var(--semantic-success, #3DD68C);
-          border-color: var(--semantic-success, #3DD68C);
-          color: var(--text-inverse, #0D0E14);
+          background: var(--semantic-success);
+          border-color: var(--semantic-success);
+          color: var(--text-inverse);
         }
 
         @keyframes pulse-indicator {
@@ -113,18 +113,18 @@ export function WizardStepper({ currentStep, totalSteps, stepLabels }: WizardSte
 
         .step-label {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           text-align: center;
           transition: color 0.3s ease;
         }
 
         .stepper-step.active .step-label {
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           font-weight: var(--weight-medium, 500);
         }
 
         .stepper-step.completed .step-label {
-          color: var(--semantic-success, #3DD68C);
+          color: var(--semantic-success);
         }
       `}</style>
     </div>

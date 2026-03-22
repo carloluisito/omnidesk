@@ -35,15 +35,15 @@ export function PanelHeader({ title, onClose, actions = [] }: PanelHeaderProps) 
           justify-content: space-between;
           align-items: center;
           padding: var(--space-5, 20px) var(--space-6, 24px);
-          border-bottom: 1px solid var(--border-default, #292E44);
-          background: var(--surface-raised, #13141C);
+          border-bottom: 1px solid var(--border-default);
+          background: var(--surface-raised);
           flex-shrink: 0;
         }
 
         .panel-title {
           font-size: var(--text-lg, 16px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0;
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
@@ -66,7 +66,7 @@ export function PanelHeader({ title, onClose, actions = [] }: PanelHeaderProps) 
           height: 28px;
           background: transparent;
           border: none;
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           cursor: pointer;
           border-radius: var(--radius-md, 6px);
           transition: background var(--duration-fast, 150ms) ease,
@@ -75,8 +75,8 @@ export function PanelHeader({ title, onClose, actions = [] }: PanelHeaderProps) 
         }
 
         .panel-close-btn:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          color: var(--text-primary, #E2E4F0);
+          background: var(--state-hover);
+          color: var(--text-primary);
         }
 
         .panel-close-btn:active {

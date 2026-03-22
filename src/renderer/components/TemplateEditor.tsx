@@ -409,8 +409,8 @@ const templateEditorStyles = `
     width: 600px;
     max-width: calc(100vw - 48px);
     max-height: calc(100vh - 48px);
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-lg, 10px);
     box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
     overflow: hidden;
@@ -431,13 +431,13 @@ const templateEditorStyles = `
     align-items: center;
     justify-content: space-between;
     padding: var(--space-5, 20px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--border-subtle, #1E2030);
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .template-editor-title {
     font-size: var(--text-base, 13px);
     font-weight: var(--weight-semibold, 600);
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     margin: 0;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
@@ -451,14 +451,14 @@ const templateEditorStyles = `
     background: transparent;
     border: none;
     border-radius: var(--radius-md, 6px);
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     cursor: pointer;
     transition: all var(--duration-fast, 150ms) var(--ease-inout, ease);
   }
 
   .template-editor-close:hover {
-    background: var(--state-hover, #FFFFFF0A);
-    color: var(--text-primary, #E2E4F0);
+    background: var(--state-hover);
+    color: var(--text-primary);
   }
 
   .template-editor-body {
@@ -479,7 +479,7 @@ const templateEditorStyles = `
   }
 
   .template-editor-body::-webkit-scrollbar-thumb {
-    background-color: var(--border-strong, #3D4163);
+    background-color: var(--border-strong);
     border-radius: var(--radius-full, 9999px);
   }
 
@@ -495,23 +495,23 @@ const templateEditorStyles = `
     justify-content: space-between;
     font-size: var(--text-sm, 12px);
     font-weight: var(--weight-medium, 500);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .template-editor-label-hint {
     font-size: var(--text-xs, 11px);
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-weight: var(--weight-regular, 400);
   }
 
   .template-editor-input {
     height: 36px;
     padding: 0 var(--space-3, 12px);
-    background: var(--surface-float, #222435);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-float);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: var(--text-sm, 12px);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     transition: border-color var(--duration-fast, 150ms) var(--ease-inout, ease);
@@ -519,21 +519,21 @@ const templateEditorStyles = `
 
   .template-editor-input:focus {
     outline: none;
-    border-color: var(--border-accent, #00C9A7);
-    color: var(--text-primary, #E2E4F0);
+    border-color: var(--border-accent);
+    color: var(--text-primary);
   }
 
   .template-editor-input::placeholder {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .template-editor-textarea {
     min-height: 180px;
     padding: var(--space-3, 12px);
-    background: var(--surface-float, #222435);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-float);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: var(--text-sm, 12px);
     font-family: var(--font-mono, 'JetBrains Mono', monospace);
     line-height: 1.6;
@@ -543,12 +543,12 @@ const templateEditorStyles = `
 
   .template-editor-textarea:focus {
     outline: none;
-    border-color: var(--border-accent, #00C9A7);
-    color: var(--text-primary, #E2E4F0);
+    border-color: var(--border-accent);
+    color: var(--text-primary);
   }
 
   .template-editor-textarea::placeholder {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .template-editor-icon-selector {
@@ -562,10 +562,10 @@ const templateEditorStyles = `
     width: 100%;
     height: 36px;
     padding: 0 var(--space-3, 12px);
-    background: var(--surface-float, #222435);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-float);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: var(--text-sm, 12px);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     cursor: pointer;
@@ -573,12 +573,12 @@ const templateEditorStyles = `
   }
 
   .template-editor-icon-button:hover {
-    border-color: var(--border-strong, #3D4163);
-    color: var(--text-primary, #E2E4F0);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
   }
 
   .template-editor-icon-button svg:first-child {
-    color: var(--text-accent, #00C9A7);
+    color: var(--text-accent);
   }
 
   .template-editor-icon-button span {
@@ -587,7 +587,7 @@ const templateEditorStyles = `
   }
 
   .template-editor-icon-button svg:last-child {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     margin-left: auto;
   }
 
@@ -598,8 +598,8 @@ const templateEditorStyles = `
     right: 0;
     margin-top: 4px;
     padding: var(--space-2, 8px);
-    background: var(--surface-float, #222435);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-float);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
     box-shadow: var(--shadow-lg, 0 12px 32px #00000080);
     display: grid;
@@ -619,19 +619,19 @@ const templateEditorStyles = `
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-md, 6px);
-    color: var(--text-accent, #00C9A7);
+    color: var(--text-accent);
     cursor: pointer;
     transition: all var(--duration-fast, 150ms) var(--ease-inout, ease);
   }
 
   .template-editor-icon-option:hover {
-    background: var(--state-hover, #FFFFFF0A);
-    border-color: var(--border-strong, #3D4163);
+    background: var(--state-hover);
+    border-color: var(--border-strong);
   }
 
   .template-editor-icon-option.selected {
-    background: var(--accent-primary-muted, #00C9A714);
-    border-color: var(--border-accent, #00C9A7);
+    background: var(--accent-primary-muted);
+    border-color: var(--border-accent);
   }
 
   .template-editor-variables {
@@ -641,14 +641,14 @@ const templateEditorStyles = `
     gap: 6px;
     margin-top: 4px;
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    background: var(--accent-primary-muted, #00C9A714);
-    border: 1px solid rgba(0, 201, 167, 0.15);
+    background: var(--accent-primary-muted);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 15%, transparent);
     border-radius: var(--radius-md, 6px);
   }
 
   .template-editor-variables-label {
     font-size: var(--text-xs, 11px);
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     margin-right: 4px;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
@@ -659,11 +659,11 @@ const templateEditorStyles = `
     align-items: center;
     height: 20px;
     padding: 0 var(--space-2, 8px);
-    background: var(--accent-primary-muted, #00C9A714);
+    background: var(--accent-primary-muted);
     border-radius: var(--radius-sm, 3px);
     font-size: var(--text-xs, 11px);
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
-    color: var(--text-accent, #00C9A7);
+    color: var(--text-accent);
     cursor: help;
   }
 
@@ -679,12 +679,12 @@ const templateEditorStyles = `
     transform: translateX(-50%);
     margin-bottom: 6px;
     padding: 5px var(--space-2, 8px);
-    background: var(--surface-high, #2A2D42);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-high);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-sm, 3px);
     font-size: var(--text-xs, 11px);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
@@ -698,8 +698,8 @@ const templateEditorStyles = `
     flex-wrap: wrap;
     gap: 6px;
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    background: var(--surface-float, #222435);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-float);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md, 6px);
     min-height: 44px;
   }
@@ -714,7 +714,7 @@ const templateEditorStyles = `
     border-radius: var(--radius-sm, 3px);
     font-size: var(--text-xs, 11px);
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
   }
 
   .template-editor-keyword-remove {
@@ -726,7 +726,7 @@ const templateEditorStyles = `
     background: transparent;
     border: none;
     border-radius: var(--radius-sm, 3px);
-    color: var(--semantic-success, #3DD68C);
+    color: var(--semantic-success);
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
@@ -745,13 +745,13 @@ const templateEditorStyles = `
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: var(--text-xs, 11px);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
   .template-editor-keyword-input::placeholder {
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
   }
 
   .template-editor-error {
@@ -763,7 +763,7 @@ const templateEditorStyles = `
     border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     border-radius: var(--radius-md, 6px);
     font-size: var(--text-sm, 12px);
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
   }
 
@@ -772,7 +772,7 @@ const templateEditorStyles = `
     justify-content: flex-end;
     gap: var(--space-3, 12px);
     padding-top: var(--space-2, 8px);
-    border-top: 1px solid var(--border-subtle, #1E2030);
+    border-top: 1px solid var(--border-subtle);
   }
 
   .template-editor-btn-cancel,
@@ -789,24 +789,24 @@ const templateEditorStyles = `
 
   .template-editor-btn-cancel {
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
-    color: var(--text-secondary, #9DA3BE);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
   }
 
   .template-editor-btn-cancel:hover {
-    background: var(--state-hover, #FFFFFF0A);
-    border-color: var(--border-strong, #3D4163);
-    color: var(--text-primary, #E2E4F0);
+    background: var(--state-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
   }
 
   .template-editor-btn-save {
-    background: var(--accent-primary, #00C9A7);
+    background: var(--accent-primary);
     border: none;
-    color: var(--text-inverse, #0D0E14);
+    color: var(--text-inverse);
   }
 
   .template-editor-btn-save:hover {
-    background: var(--accent-primary-dim, #009E84);
+    background: var(--accent-primary-dim);
   }
 
   .template-editor-btn-save:disabled {

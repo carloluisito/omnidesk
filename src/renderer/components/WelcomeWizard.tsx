@@ -91,8 +91,8 @@ export function WelcomeWizard({ isOpen, onComplete, onTryFeature }: WelcomeWizar
           width: 90%;
           max-width: 1000px;
           max-height: 90vh;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-xl, 16px);
           padding: 48px;
           overflow-y: auto;
@@ -125,12 +125,12 @@ export function WelcomeWizard({ isOpen, onComplete, onTryFeature }: WelcomeWizar
         }
 
         .wizard-dialog::-webkit-scrollbar-thumb {
-          background: var(--border-default, #292E44);
+          background: var(--border-default);
           border-radius: 3px;
         }
 
         .wizard-dialog::-webkit-scrollbar-thumb:hover {
-          background: var(--border-strong, #3D4163);
+          background: var(--border-strong);
         }
       `}</style>
     </div>

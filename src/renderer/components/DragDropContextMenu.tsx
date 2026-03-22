@@ -139,8 +139,8 @@ export function DragDropContextMenu({
 
         .dragdrop-menu {
           position: fixed;
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           min-width: 240px;
@@ -163,13 +163,13 @@ export function DragDropContextMenu({
 
         .dragdrop-menu-header {
           padding: var(--space-2, 8px) var(--space-3, 12px);
-          border-bottom: 1px solid var(--border-subtle, #1E2030);
+          border-bottom: 1px solid var(--border-subtle);
         }
 
         .dragdrop-menu-title {
           font-size: var(--text-xs, 11px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           text-transform: uppercase;
           letter-spacing: var(--tracking-widest, 0.08em);
         }
@@ -192,11 +192,11 @@ export function DragDropContextMenu({
         }
 
         .dragdrop-menu-item:hover:not(:disabled) {
-          background: var(--state-hover, #FFFFFF0A);
+          background: var(--state-hover);
         }
 
         .dragdrop-menu-item:focus-visible {
-          outline: 2px solid var(--state-focus, #00C9A740);
+          outline: 2px solid var(--state-focus);
           outline-offset: -2px;
         }
 
@@ -216,21 +216,21 @@ export function DragDropContextMenu({
         .dragdrop-menu-item-label {
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
         }
 
         .dragdrop-menu-item:hover:not(:disabled) .dragdrop-menu-item-label {
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
         }
 
         .dragdrop-menu-item-hint {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .dragdrop-menu-divider {
           height: 1px;
-          background: var(--border-subtle, #1E2030);
+          background: var(--border-subtle);
           margin: var(--space-1, 4px) 0;
         }
 

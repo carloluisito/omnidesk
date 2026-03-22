@@ -259,8 +259,8 @@ export function CheckpointDialog({
         }
 
         .ckpt-dialog {
-          background: var(--surface-overlay, #1A1B26);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-overlay);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-lg, 10px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           width: 100%;
@@ -276,19 +276,19 @@ export function CheckpointDialog({
 
         .ckpt-header {
           padding: var(--space-4, 16px) var(--space-6, 24px);
-          border-bottom: 1px solid var(--border-subtle, #1E2030);
+          border-bottom: 1px solid var(--border-subtle);
         }
 
         .ckpt-title {
           font-size: var(--text-lg, 16px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           margin: 0;
         }
 
         .ckpt-session-name {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           margin-top: var(--space-1, 4px);
         }
 
@@ -314,16 +314,16 @@ export function CheckpointDialog({
         .ckpt-label {
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
         }
 
         .ckpt-required {
-          color: var(--semantic-error, #F7678E);
+          color: var(--semantic-error);
         }
 
         .ckpt-optional {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .ckpt-char-count {
@@ -333,16 +333,16 @@ export function CheckpointDialog({
 
         .ckpt-hint {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .ckpt-input, .ckpt-textarea {
           width: 100%;
           padding: var(--space-2, 8px) var(--space-3, 12px);
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           font-size: var(--text-sm, 12px);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           outline: none;
@@ -351,11 +351,11 @@ export function CheckpointDialog({
         }
 
         .ckpt-input::placeholder, .ckpt-textarea::placeholder {
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
         }
 
         .ckpt-input:focus, .ckpt-textarea:focus {
-          border-color: var(--border-accent, #00C9A7);
+          border-color: var(--border-accent);
         }
 
         .ckpt-textarea {
@@ -372,16 +372,16 @@ export function CheckpointDialog({
         .ckpt-tag {
           display: inline-block;
           padding: 2px var(--space-2, 8px);
-          background: var(--accent-primary-muted, #00C9A714);
-          color: var(--text-accent, #00C9A7);
+          background: var(--accent-primary-muted);
+          color: var(--text-accent);
           border-radius: var(--radius-sm, 3px);
           font-size: var(--text-xs, 11px);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .ckpt-preview {
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
           padding: var(--space-3, 12px);
           max-height: 128px;
@@ -390,14 +390,14 @@ export function CheckpointDialog({
 
         .ckpt-preview-loading, .ckpt-preview-empty {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           text-align: center;
           padding: var(--space-2, 8px) 0;
         }
 
         .ckpt-preview-text {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           font-family: var(--font-mono, 'JetBrains Mono', monospace);
           white-space: pre-wrap;
           word-break: break-words;
@@ -413,10 +413,10 @@ export function CheckpointDialog({
         .ckpt-btn-cancel {
           flex: 1;
           padding: var(--space-2, 8px) var(--space-4, 16px);
-          background: var(--surface-float, #222435);
-          border: 1px solid var(--border-default, #292E44);
+          background: var(--surface-float);
+          border: 1px solid var(--border-default);
           border-radius: var(--radius-md, 6px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           font-size: var(--text-sm, 12px);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
@@ -425,18 +425,18 @@ export function CheckpointDialog({
         }
 
         .ckpt-btn-cancel:hover {
-          background: var(--state-hover, #FFFFFF0A);
-          border-color: var(--border-strong, #3D4163);
-          color: var(--text-primary, #E2E4F0);
+          background: var(--state-hover);
+          border-color: var(--border-strong);
+          color: var(--text-primary);
         }
 
         .ckpt-btn-confirm {
           flex: 1;
           padding: var(--space-2, 8px) var(--space-4, 16px);
-          background: var(--accent-primary, #00C9A7);
+          background: var(--accent-primary);
           border: none;
           border-radius: var(--radius-md, 6px);
-          color: var(--text-inverse, #0D0E14);
+          color: var(--text-inverse);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-semibold, 600);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -445,7 +445,7 @@ export function CheckpointDialog({
         }
 
         .ckpt-btn-confirm:hover:not(:disabled) {
-          background: var(--accent-primary-dim, #009E84);
+          background: var(--accent-primary-dim);
         }
 
         .ckpt-btn-confirm:disabled {
@@ -455,7 +455,7 @@ export function CheckpointDialog({
 
         .ckpt-btn-confirm:focus-visible,
         .ckpt-btn-cancel:focus-visible {
-          outline: 2px solid var(--state-focus, #00C9A740);
+          outline: 2px solid var(--state-focus);
           outline-offset: 2px;
         }
 

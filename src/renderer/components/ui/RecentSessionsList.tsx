@@ -66,7 +66,7 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           margin: 0 0 var(--space-3, 12px) 0;
         }
 
@@ -81,8 +81,8 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
           align-items: center;
           gap: var(--space-3, 12px);
           padding: var(--space-2, 8px) var(--space-3, 12px);
-          background: var(--surface-raised, #13141C);
-          border: 1px solid var(--border-subtle, #1E2030);
+          background: var(--surface-raised);
+          border: 1px solid var(--border-subtle);
           border-radius: var(--radius-md, 6px);
           cursor: pointer;
           transition:
@@ -107,13 +107,13 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
         }
 
         .session-item:hover {
-          border-color: var(--border-default, #292E44);
-          background: var(--surface-float, #222435);
+          border-color: var(--border-default);
+          background: var(--surface-float);
           transform: translateX(2px);
         }
 
         .session-item:focus-visible {
-          outline: 2px solid var(--state-focus, #00C9A740);
+          outline: 2px solid var(--state-focus);
           outline-offset: 2px;
         }
 
@@ -126,7 +126,7 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -135,7 +135,7 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
         .session-dir {
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -145,7 +145,7 @@ export function RecentSessionsList({ sessions, onSelectSession }: RecentSessions
         .session-time {
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           flex-shrink: 0;
           margin-left: auto;
         }

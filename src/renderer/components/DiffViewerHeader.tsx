@@ -24,10 +24,10 @@ export function DiffViewerHeader({
   const isRenamed = status === 'renamed';
 
   const statusBadge = () => {
-    if (isStaged) return { label: 'Staged', color: 'var(--semantic-success, #3DD68C)', bg: 'color-mix(in srgb, var(--semantic-success) 15%, transparent)' };
-    if (isUntracked) return { label: 'Untracked', color: 'var(--accent-primary, #00C9A7)', bg: 'color-mix(in srgb, var(--term-bright-cyan) 15%, transparent)' };
-    if (isDeleted) return { label: 'Deleted', color: 'var(--semantic-error, #F7678E)', bg: 'color-mix(in srgb, var(--semantic-error) 15%, transparent)' };
-    return { label: 'Modified', color: 'var(--semantic-warning, #F7A84A)', bg: 'color-mix(in srgb, var(--semantic-warning) 15%, transparent)' };
+    if (isStaged) return { label: 'Staged', color: 'var(--semantic-success)', bg: 'color-mix(in srgb, var(--semantic-success) 15%, transparent)' };
+    if (isUntracked) return { label: 'Untracked', color: 'var(--accent-primary)', bg: 'color-mix(in srgb, var(--term-bright-cyan) 15%, transparent)' };
+    if (isDeleted) return { label: 'Deleted', color: 'var(--semantic-error)', bg: 'color-mix(in srgb, var(--semantic-error) 15%, transparent)' };
+    return { label: 'Modified', color: 'var(--semantic-warning)', bg: 'color-mix(in srgb, var(--semantic-warning) 15%, transparent)' };
   };
 
   const badge = statusBadge();
@@ -37,7 +37,7 @@ export function DiffViewerHeader({
       <div className="diff-viewer-header-left">
         <span className="diff-viewer-filepath" title={file.path}>
           {isRenamed && file.originalPath
-            ? <>{file.originalPath} <span style={{ color: 'var(--text-tertiary, #5C6080)' }}>&rarr;</span> {file.path}</>
+            ? <>{file.originalPath} <span style={{ color: 'var(--text-tertiary)' }}>&rarr;</span> {file.path}</>
             : file.path
           }
         </span>

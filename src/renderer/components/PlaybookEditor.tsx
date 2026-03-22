@@ -417,8 +417,8 @@ const editorStyles = `
     right: 0;
     bottom: 0;
     width: 560px;
-    background: var(--surface-overlay, #1A1B26);
-    border-left: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border-left: 1px solid var(--border-default);
     display: flex;
     flex-direction: column;
     z-index: 951;
@@ -430,11 +430,11 @@ const editorStyles = `
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-default, #292E44);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .pb-editor-header h2 {
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: 16px;
     font-weight: 600;
     margin: 0;
@@ -443,7 +443,7 @@ const editorStyles = `
   .pb-editor-close {
     background: none;
     border: none;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: 20px;
     cursor: pointer;
     line-height: 1;
@@ -451,7 +451,7 @@ const editorStyles = `
 
   .pb-editor-tabs {
     display: flex;
-    border-bottom: 1px solid var(--border-default, #292E44);
+    border-bottom: 1px solid var(--border-default);
     padding: 0 20px;
   }
 
@@ -459,7 +459,7 @@ const editorStyles = `
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     font-size: 12px;
     padding: 10px 16px;
     cursor: pointer;
@@ -467,12 +467,12 @@ const editorStyles = `
   }
 
   .pb-editor-tab.active {
-    color: var(--accent-primary, #00C9A7);
-    border-bottom-color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
   }
 
   .pb-editor-tab:hover:not(.active) {
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
   }
 
   .pb-editor-body {
@@ -495,7 +495,7 @@ const editorStyles = `
   }
 
   .pb-editor-field label {
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 500;
   }
@@ -503,10 +503,10 @@ const editorStyles = `
   .pb-editor-field input,
   .pb-editor-field textarea,
   .pb-editor-field select {
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: 12px;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     padding: 6px 10px;
@@ -516,7 +516,7 @@ const editorStyles = `
   .pb-editor-field input:focus,
   .pb-editor-field textarea:focus,
   .pb-editor-field select:focus {
-    border-color: var(--accent-primary, #00C9A7);
+    border-color: var(--accent-primary);
   }
 
   .pb-editor-field textarea {
@@ -538,8 +538,8 @@ const editorStyles = `
   .pb-editor-icon-btn {
     width: 32px;
     height: 32px;
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
@@ -549,13 +549,13 @@ const editorStyles = `
   }
 
   .pb-editor-icon-btn.selected {
-    border-color: var(--accent-primary, #00C9A7);
-    background: rgba(0, 201, 167, 0.1);
+    border-color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
   }
 
   .pb-editor-card {
-    background: var(--surface-overlay, #1A1B26);
-    border: 1px solid var(--border-default, #292E44);
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -565,16 +565,16 @@ const editorStyles = `
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: var(--surface-raised, #13141C);
-    border-bottom: 1px solid var(--border-default, #292E44);
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .pb-editor-card-num {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: var(--border-default, #292E44);
-    color: var(--accent-primary, #00C9A7);
+    background: var(--border-default);
+    color: var(--accent-primary);
     font-size: 11px;
     display: flex;
     align-items: center;
@@ -584,7 +584,7 @@ const editorStyles = `
 
   .pb-editor-card-tag {
     font-size: 11px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     flex: 1;
   }
 
@@ -592,7 +592,7 @@ const editorStyles = `
     flex: 1;
     background: transparent;
     border: none;
-    color: var(--text-primary, #E2E4F0);
+    color: var(--text-primary);
     font-size: 12px;
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
     outline: none;
@@ -607,7 +607,7 @@ const editorStyles = `
   .pb-editor-card-controls button {
     background: transparent;
     border: none;
-    color: var(--text-tertiary, #5C6080);
+    color: var(--text-tertiary);
     cursor: pointer;
     font-size: 14px;
     padding: 2px 6px;
@@ -615,8 +615,8 @@ const editorStyles = `
   }
 
   .pb-editor-card-controls button:hover:not(:disabled) {
-    color: var(--text-primary, #E2E4F0);
-    background: var(--border-default, #292E44);
+    color: var(--text-primary);
+    background: var(--border-default);
   }
 
   .pb-editor-card-controls button:disabled {
@@ -625,7 +625,7 @@ const editorStyles = `
   }
 
   .pb-editor-card-controls button.danger:hover:not(:disabled) {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
   }
 
   .pb-editor-card-body {
@@ -639,13 +639,13 @@ const editorStyles = `
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 11px;
     cursor: pointer;
   }
 
   .pb-editor-checkbox input {
-    accent-color: var(--accent-primary, #00C9A7);
+    accent-color: var(--accent-primary);
   }
 
   .pb-editor-prompt-header {
@@ -661,10 +661,10 @@ const editorStyles = `
   }
 
   .pb-editor-var-chip {
-    background: rgba(0, 201, 167, 0.1);
-    border: 1px solid rgba(0, 201, 167, 0.3);
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent);
     border-radius: 4px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 10px;
     padding: 1px 6px;
     cursor: pointer;
@@ -672,14 +672,14 @@ const editorStyles = `
   }
 
   .pb-editor-var-chip:hover {
-    background: rgba(0, 201, 167, 0.2);
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
   }
 
   .pb-editor-add-btn {
     background: transparent;
-    border: 1px dashed var(--border-strong, #3D4163);
+    border: 1px dashed var(--border-strong);
     border-radius: 6px;
-    color: var(--accent-primary, #00C9A7);
+    color: var(--accent-primary);
     font-size: 12px;
     padding: 8px;
     cursor: pointer;
@@ -688,8 +688,8 @@ const editorStyles = `
   }
 
   .pb-editor-add-btn:hover {
-    background: rgba(0, 201, 167, 0.05);
-    border-color: var(--accent-primary, #00C9A7);
+    background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
+    border-color: var(--accent-primary);
   }
 
   .pb-editor-errors {
@@ -701,7 +701,7 @@ const editorStyles = `
   }
 
   .pb-editor-errors div {
-    color: var(--semantic-error, #F7678E);
+    color: var(--semantic-error);
     font-size: 11px;
     padding: 2px 0;
   }
@@ -712,14 +712,14 @@ const editorStyles = `
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
-    border-top: 1px solid var(--border-default, #292E44);
+    border-top: 1px solid var(--border-default);
   }
 
   .pb-editor-cancel {
     background: transparent;
-    border: 1px solid var(--border-default, #292E44);
+    border: 1px solid var(--border-default);
     border-radius: 6px;
-    color: var(--text-secondary, #9DA3BE);
+    color: var(--text-secondary);
     font-size: 12px;
     padding: 6px 14px;
     cursor: pointer;
@@ -727,10 +727,10 @@ const editorStyles = `
   }
 
   .pb-editor-save {
-    background: var(--accent-primary, #00C9A7);
+    background: var(--accent-primary);
     border: none;
     border-radius: 6px;
-    color: var(--surface-overlay, #1A1B26);
+    color: var(--surface-overlay);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 14px;
@@ -739,7 +739,7 @@ const editorStyles = `
   }
 
   .pb-editor-save:hover:not(:disabled) {
-    background: var(--accent-primary-dim, #009E84);
+    background: var(--accent-primary-dim);
   }
 
   .pb-editor-save:disabled {

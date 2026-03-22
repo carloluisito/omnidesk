@@ -99,7 +99,7 @@ export function EmptyState({ onCreateSession, onQuickStart }: EmptyStateProps) {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           text-align: center;
           background: radial-gradient(ellipse 600px 400px at center, #00C9A708 0%, transparent 70%),
-                      var(--surface-base, #0D0E14);
+                      var(--surface-base);
           animation: empty-fade-in var(--duration-slow, 300ms) var(--ease-out, ease) both;
         }
 

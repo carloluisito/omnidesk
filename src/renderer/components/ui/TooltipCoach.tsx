@@ -80,13 +80,13 @@ export function TooltipCoach({
             .tooltip-coach {
               position: absolute;
               z-index: 10000;
-              background: var(--surface-overlay, #1A1B26);
-              border: 1px solid var(--border-accent, #00C9A7);
+              background: var(--surface-overlay);
+              border: 1px solid var(--border-accent);
               border-radius: var(--radius-lg, 10px);
               padding: var(--space-4, 16px);
               min-width: 280px;
               max-width: 320px;
-              box-shadow: 0 12px 48px rgba(0, 201, 167, 0.2);
+              box-shadow: 0 12px 48px color-mix(in srgb, var(--accent-primary) 20%, transparent);
               font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
               animation: tooltip-coach-fade-in 0.3s ease;
             }
@@ -135,23 +135,23 @@ export function TooltipCoach({
             .tooltip-coach-title {
               font-size: var(--text-sm, 12px);
               font-weight: var(--weight-semibold, 600);
-              color: var(--text-accent, #00C9A7);
+              color: var(--text-accent);
               margin: 0;
             }
 
             .tooltip-coach-description {
               font-size: var(--text-xs, 11px);
-              color: var(--text-secondary, #9DA3BE);
+              color: var(--text-secondary);
               margin: 0;
               line-height: var(--leading-normal, 1.5);
             }
 
             .tooltip-coach-btn {
               padding: var(--space-2, 8px) var(--space-4, 16px);
-              background: var(--accent-primary, #00C9A7);
+              background: var(--accent-primary);
               border: none;
               border-radius: var(--radius-md, 6px);
-              color: var(--text-inverse, #0D0E14);
+              color: var(--text-inverse);
               font-size: var(--text-xs, 11px);
               font-weight: var(--weight-semibold, 600);
               font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -161,7 +161,7 @@ export function TooltipCoach({
             }
 
             .tooltip-coach-btn:hover {
-              background: var(--accent-primary-dim, #009E84);
+              background: var(--accent-primary-dim);
             }
 
             .tooltip-coach-btn:active {
@@ -172,8 +172,8 @@ export function TooltipCoach({
               position: absolute;
               width: 12px;
               height: 12px;
-              background: var(--surface-overlay, #1A1B26);
-              border: 1px solid var(--border-accent, #00C9A7);
+              background: var(--surface-overlay);
+              border: 1px solid var(--border-accent);
               transform: rotate(45deg);
             }
 

@@ -82,7 +82,7 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(0, 201, 167, 0.08);
+          background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -98,8 +98,8 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         }
 
         .dragdrop-content {
-          background: var(--surface-overlay, #1A1B26);
-          border: 2px dashed rgba(0, 201, 167, 0.4);
+          background: var(--surface-overlay);
+          border: 2px dashed color-mix(in srgb, var(--accent-primary) 40%, transparent);
           border-radius: var(--radius-lg, 10px);
           padding: var(--space-8, 32px);
           min-width: 320px;
@@ -114,7 +114,7 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-mode {
           font-size: var(--text-base, 13px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           letter-spacing: var(--tracking-wide, 0.04em);
         }
 
@@ -136,7 +136,7 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-file-name {
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-sm, 12px);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           font-weight: var(--weight-medium, 500);
           white-space: nowrap;
           overflow: hidden;
@@ -146,12 +146,12 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-file-meta {
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
         }
 
         .dragdrop-file-count {
           font-size: var(--text-sm, 12px);
-          color: var(--text-primary, #E2E4F0);
+          color: var(--text-primary);
           font-weight: var(--weight-semibold, 600);
         }
 
@@ -166,7 +166,7 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-file-item {
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-secondary, #9DA3BE);
+          color: var(--text-secondary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -175,15 +175,15 @@ export function DragDropOverlay({ isVisible, files, isShiftPressed }: DragDropOv
         .dragdrop-file-more {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-xs, 11px);
-          color: var(--text-accent, #00C9A7);
+          color: var(--text-accent);
           font-style: italic;
         }
 
         .dragdrop-hint {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary, #5C6080);
+          color: var(--text-tertiary);
           padding-top: var(--space-2, 8px);
-          border-top: 1px solid var(--border-default, #292E44);
+          border-top: 1px solid var(--border-default);
         }
 
         @media (prefers-reduced-motion: reduce) {
