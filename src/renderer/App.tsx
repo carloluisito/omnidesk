@@ -1387,26 +1387,7 @@ const appStyles = `
     overflow: hidden;
   }
 
-  .loading-container {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    color: var(--text-tertiary);
-    font-family: var(--font-ui, "Inter", sans-serif);
-    font-size: var(--text-sm, 12px);
-  }
-
-  .loading-spinner {
-    width: 28px;
-    height: 28px;
-    border: 2px solid var(--border-default);
-    border-top-color: var(--accent-primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
 `;
+
 
 export default App;
