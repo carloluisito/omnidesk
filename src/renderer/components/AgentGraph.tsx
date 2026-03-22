@@ -30,7 +30,7 @@ interface AgentNodeData {
 
 function AgentNode({ data }: { data: AgentNodeData }) {
   const isLead = data.role === 'lead';
-  const borderColor = isLead ? '#fbbf24' : 'var(--accent-primary, #00C9A7)';
+  const borderColor = isLead ? 'var(--agent-lead)' : 'var(--accent-primary, #00C9A7)';
   const statusColor = data.status === 'running' ? 'var(--semantic-success, #3DD68C)'
     : data.status === 'exited' ? 'var(--semantic-error, #F7678E)'
     : 'var(--border-strong, #3D4163)';
@@ -176,7 +176,7 @@ export function AgentGraph({ team, sessions, onFocusSession }: AgentGraphProps) 
 
       <div className="graph-legend">
         <div className="legend-item">
-          <span className="legend-dot" style={{ background: '#fbbf24' }} />
+          <span className="legend-dot" style={{ background: 'var(--agent-lead)' }} />
           <span>Lead</span>
         </div>
         <div className="legend-item">

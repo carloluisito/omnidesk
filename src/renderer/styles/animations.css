@@ -94,7 +94,10 @@
   }
 }
 
-/* Accent glow pulse — for active accent elements */
+/* Accent glow pulse — for active accent elements
+   NOTE: #00C9A720 and #00C9A740 are intentional hardcoded exceptions.
+   CSS custom properties may not resolve reliably inside @keyframes in all
+   Chromium contexts. These ARE the correct Obsidian accent values with alpha. */
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 8px #00C9A720; }
   50%       { box-shadow: 0 0 16px #00C9A740; }

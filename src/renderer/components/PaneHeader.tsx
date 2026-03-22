@@ -180,7 +180,7 @@ export function PaneHeader({
           flex:         1,
           fontSize:     'var(--text-xs)',
           fontFamily:   'var(--font-mono-ui)',
-          color:        isFocused ? 'var(--text-tertiary)' : '#3D4163',
+          color:        isFocused ? 'var(--text-tertiary)' : 'var(--border-strong)',
           whiteSpace:   'nowrap',
           overflow:     'hidden',
           textOverflow: 'ellipsis',
@@ -236,7 +236,7 @@ export function PaneHeader({
             border:          isShared ? '1px solid rgba(0,201,167,0.3)' : '1px solid transparent',
             borderRadius:    'var(--radius-sm)',
             cursor:          'pointer',
-            color:           isShared ? '#00C9A7' : 'var(--text-tertiary)',
+            color:           isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)',
             fontSize:        'var(--text-xs)',
             fontFamily:      'var(--font-ui)',
             flexShrink:      0,
@@ -244,19 +244,19 @@ export function PaneHeader({
           }}
           onMouseEnter={(e) => {
             if (!isShared) {
-              e.currentTarget.style.color = '#00C9A7';
+              e.currentTarget.style.color = 'var(--accent-primary)';
               e.currentTarget.style.border = '1px solid rgba(0,201,167,0.25)';
               e.currentTarget.style.background = 'rgba(0,201,167,0.08)';
             } else {
-              e.currentTarget.style.background = 'rgba(247,103,142,0.10)';
-              e.currentTarget.style.borderColor = 'rgba(247,103,142,0.35)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--semantic-error) 10%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--semantic-error) 35%, transparent)';
               e.currentTarget.style.color = 'var(--semantic-error)';
             }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = isShared ? 'rgba(0,201,167,0.12)' : 'transparent';
             e.currentTarget.style.border     = isShared ? '1px solid rgba(0,201,167,0.3)' : '1px solid transparent';
-            e.currentTarget.style.color      = isShared ? '#00C9A7' : 'var(--text-tertiary)';
+            e.currentTarget.style.color      = isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)';
           }}
         >
           {/* Share icon */}

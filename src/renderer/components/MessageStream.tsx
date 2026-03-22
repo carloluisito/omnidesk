@@ -10,7 +10,7 @@ interface MessageStreamProps {
 
 // Generate consistent color from agent name
 function agentColor(name: string): string {
-  const colors = ['var(--text-accent, #00C9A7)', 'var(--accent-secondary, #7C3AED)', 'var(--semantic-success, #3DD68C)', 'var(--semantic-warning, #F7A84A)', 'var(--semantic-error, #F7678E)', 'var(--accent-primary, #00C9A7)', 'var(--accent-primary-dim, #009E84)', 'var(--semantic-warning, #F7A84A)'];
+  const colors = ['var(--text-accent, #00C9A7)', 'var(--accent-secondary, #7C8FFF)', 'var(--semantic-success, #3DD68C)', 'var(--semantic-warning, #F7A84A)', 'var(--semantic-error, #F7678E)', 'var(--accent-primary, #00C9A7)', 'var(--accent-primary-dim, #009E84)', 'var(--semantic-warning, #F7A84A)'];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = ((hash << 5) - hash) + name.charCodeAt(i);
