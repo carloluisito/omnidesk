@@ -395,7 +395,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             font-size: var(--text-xs, 11px);
             font-weight: var(--weight-medium, 500);
-            color: var(--text-tertiary, #5C6080);
+            color: var(--text-secondary, #9DA3BE);
             margin: 0 0 var(--space-2, 8px) 0;
             text-transform: uppercase;
             letter-spacing: var(--tracking-widest, 0.08em);
