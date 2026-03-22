@@ -990,6 +990,19 @@ export function setupIPCHandlers(
   });
 
   registry.on('closeWindow', () => { mainWindow.close(); });
+
+  // ── Shell ──
+
+  registry.handle('openExternal', async (_e, url) => {
+    // Validate scheme before opening: only allow http, https, file
+    const allowed = /^(https?|file):\/\//i.test(url);
+    if (!allowed) {
+      console.warn('openExternal: blocked non-http/https/file URL:', url);
+      return false;
+    }
+    await shell.openExternal(url);
+    return true;
+  });
 }
 
 export function removeIPCHandlers(): void {

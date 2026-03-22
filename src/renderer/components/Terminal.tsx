@@ -386,8 +386,13 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     fitAddonRef.current = fitAddon;
     xterm.loadAddon(fitAddon);
 
-    // Add web links addon
-    const webLinksAddon = new WebLinksAddon();
+    // Add web links addon with a custom handler so URLs open in the system
+    // browser via shell.openExternal rather than navigating the Electron window.
+    const webLinksAddon = new WebLinksAddon((_event, url) => {
+      window.electronAPI.openExternal(url).catch((err: unknown) => {
+        console.error('Failed to open external URL:', err);
+      });
+    });
     xterm.loadAddon(webLinksAddon);
 
     // Open terminal in container

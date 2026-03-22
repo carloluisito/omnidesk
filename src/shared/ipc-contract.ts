@@ -193,6 +193,9 @@ export interface IPCContractMap {
   maximizeWindow:      SendContract<'window:maximize', []>;
   closeWindow:         SendContract<'window:close',    []>;
 
+  // ── Shell (invoke) ──
+  openExternal:        InvokeContract<'shell:openExternal', [string], boolean>;
+
   // ── Session events (main→renderer) ──
   onSessionCreated:    EventContract<'session:created',  SessionMetadata>;
   onSessionClosed:     EventContract<'session:closed',   string>;
@@ -459,6 +462,9 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   maximizeWindow:      'window:maximize',
   closeWindow:         'window:close',
 
+  // Shell
+  openExternal:        'shell:openExternal',
+
   // Session events
   onSessionCreated:    'session:created',
   onSessionClosed:     'session:closed',
@@ -715,6 +721,8 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   minimizeWindow:      'send',
   maximizeWindow:      'send',
   closeWindow:         'send',
+
+  openExternal:        'invoke',
 
   onSessionCreated:    'event',
   onSessionClosed:     'event',

@@ -87,7 +87,9 @@ body {
 .split-vertical   { flex-direction: column; }
 
 .split-child {
-  overflow: hidden;
+  /* overflow: hidden removed — it was clipping the PaneHeader kebab dropdown.
+     Terminal overflow is contained by .pane-terminal-area which keeps overflow: hidden. */
+  overflow: visible;
   position: relative;
 }
 
