@@ -19,23 +19,33 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: bun install
+
+    - name: Type check (renderer + shared)
+      run: bun run tsc --noEmit
+
+    - name: Type check (main process)
+      run: bun run tsc -p tsconfig.main.json --noEmit
 
     - name: Build TypeScript (main process)
-      run: npm run build:electron
+      run: bun run build:electron
 
     - name: Build React app (renderer)
-      run: npm run build
+      run: bun run build
 
     - name: Run tests
-      run: npm run test:ci
+      run: bun run test:ci
 
     - name: Upload coverage
       if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20.x'
@@ -46,11 +56,12 @@ jobs:
         if-no-files-found: warn
 
   # E2E tests require Electron + node-pty native module which can't launch in CI.
-  # Run locally with: npm run test:e2e
+  # Run locally with: bun run test:e2e
 
   package:
     name: Package Electron App
     runs-on: ${{ matrix.os }}
+    needs: [build]
 
     strategy:
       matrix:
@@ -59,22 +70,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
-        cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: bun install
 
     - name: Package app
-      run: npm run package -- --publish never
+      run: bun run package -- --publish never
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: claudedesk-${{ matrix.os }}
+        name: omnidesk-${{ matrix.os }}
         path: |
           release/**/*.exe
           release/**/*.dmg
