@@ -197,9 +197,9 @@ export function JoinSessionDialog({
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {/* Chain link icon */}
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-              <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <h2
               id="jsd-title"
@@ -295,7 +295,7 @@ export function JoinSessionDialog({
                 transition:   'border-color var(--duration-fast)',
                 opacity:      isConnecting ? 0.6 : 1,
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(122,162,247,0.5)'; }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary) 50%, transparent)'; }}
               onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
             />
           </div>
@@ -343,7 +343,7 @@ export function JoinSessionDialog({
                   transition:   'border-color var(--duration-fast)',
                   opacity:      isConnecting ? 0.6 : 1,
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(122,162,247,0.5)'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent-primary) 50%, transparent)'; }}
                 onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
               />
             </div>
@@ -358,7 +358,7 @@ export function JoinSessionDialog({
                 marginTop:    'var(--space-3)',
                 padding:      'var(--space-2) var(--space-3)',
                 background:   'var(--semantic-error-muted)',
-                border:       '1px solid rgba(247,103,142,0.25)',
+                border:       '1px solid color-mix(in srgb, var(--semantic-error) 25%, transparent)',
                 borderRadius: 'var(--radius-md)',
                 fontSize:     'var(--text-xs)',
                 fontFamily:   'var(--font-ui)',
@@ -420,10 +420,10 @@ export function JoinSessionDialog({
               alignItems:   'center',
               gap:          'var(--space-2)',
               padding:      '7px var(--space-4)',
-              background:   '#7aa2f7',
+              background:   'var(--accent-primary)',
               border:       'none',
               borderRadius: 'var(--radius-md)',
-              color:        '#0D0E14',
+              color:        'var(--text-inverse)',
               fontSize:     'var(--text-sm)',
               fontWeight:   600 as any,
               fontFamily:   'var(--font-ui)',
@@ -439,7 +439,7 @@ export function JoinSessionDialog({
                 width:  12,
                 height: 12,
                 border: '1.5px solid rgba(13,14,20,0.4)',
-                borderTopColor: '#0D0E14',
+                borderTopColor: 'var(--surface-base)',
                 borderRadius: '50%',
                 animation: 'jsd-spin 0.8s linear infinite',
                 display: 'block',

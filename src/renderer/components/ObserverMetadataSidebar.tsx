@@ -47,8 +47,8 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  thinking: '#7aa2f7',
-  writing:  '#00C9A7',
+  thinking: 'var(--accent-secondary)',
+  writing:  'var(--accent-primary)',
   reading:  'var(--semantic-warning)',
   idle:     'var(--text-tertiary)',
 };
@@ -144,7 +144,7 @@ export function ObserverMetadataSidebar({
               fontSize:        '8px',
               fontFamily:      '"JetBrains Mono", monospace',
               fontWeight:      700,
-              color:           '#00C9A7',
+              color:           'var(--text-accent)',
               backgroundColor: 'rgba(0,201,167,0.12)',
               borderRadius:    '3px',
               padding:         '1px 3px',
@@ -248,7 +248,7 @@ export function ObserverMetadataSidebar({
             icon={toolIcon}
             label="Active Tool"
             value={tool}
-            valueColor="#00C9A7"
+            valueColor="var(--text-accent)"
           />
         )}
 

@@ -242,11 +242,11 @@ export function ShareSessionDialog({
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {/* Share / broadcast icon */}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="13" cy="3"  r="1.75" stroke="#00C9A7" strokeWidth="1.5" fill="none" />
-              <circle cx="13" cy="13" r="1.75" stroke="#00C9A7" strokeWidth="1.5" fill="none" />
-              <circle cx="3"  cy="8"  r="1.75" stroke="#00C9A7" strokeWidth="1.5" fill="none" />
-              <line x1="4.6"  y1="7.1"  x2="11.3" y2="3.9"  stroke="#00C9A7" strokeWidth="1.2" />
-              <line x1="4.6"  y1="8.9"  x2="11.3" y2="12.1" stroke="#00C9A7" strokeWidth="1.2" />
+              <circle cx="13" cy="3"  r="1.75" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
+              <circle cx="13" cy="13" r="1.75" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
+              <circle cx="3"  cy="8"  r="1.75" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
+              <line x1="4.6"  y1="7.1"  x2="11.3" y2="3.9"  stroke="var(--accent-primary)" strokeWidth="1.2" />
+              <line x1="4.6"  y1="8.9"  x2="11.3" y2="12.1" stroke="var(--accent-primary)" strokeWidth="1.2" />
             </svg>
             <h2
               id="ssd-title"
@@ -311,7 +311,7 @@ export function ShareSessionDialog({
                 width:  28,
                 height: 28,
                 border: '2.5px solid var(--border-default)',
-                borderTopColor: '#00C9A7',
+                borderTopColor: 'var(--accent-primary)',
                 borderRadius:   '50%',
                 animation:      'ssd-spin 0.8s linear infinite',
               }} />
@@ -351,7 +351,7 @@ export function ShareSessionDialog({
                   background:   'var(--accent-primary-muted)',
                   border:       '1px solid rgba(0,201,167,0.3)',
                   borderRadius: 'var(--radius-md)',
-                  color:        '#00C9A7',
+                  color:        'var(--text-accent)',
                   fontSize:     'var(--text-sm)',
                   fontFamily:   'var(--font-ui)',
                   cursor:       'pointer',
@@ -396,10 +396,10 @@ export function ShareSessionDialog({
                   alignItems:   'center',
                   gap:          '6px',
                   padding:      '7px var(--space-4)',
-                  background:   '#00C9A7',
+                  background:   'var(--accent-primary)',
                   border:       'none',
                   borderRadius: 'var(--radius-md)',
-                  color:        '#0D0E14',
+                  color:        'var(--text-inverse)',
                   fontSize:     'var(--text-sm)',
                   fontWeight:   600 as any,
                   fontFamily:   'var(--font-ui)',
@@ -456,7 +456,7 @@ export function ShareSessionDialog({
                       fontFamily:   '"JetBrains Mono", monospace',
                       fontSize:     '24px',
                       fontWeight:   700,
-                      color:        '#00C9A7',
+                      color:        'var(--text-accent)',
                       letterSpacing: '0.18em',
                       textAlign:    'center',
                       userSelect:   'all',
@@ -475,7 +475,7 @@ export function ShareSessionDialog({
                       background:   codeCopied ? 'rgba(0,201,167,0.15)' : 'var(--surface-float)',
                       border:       '1px solid var(--border-default)',
                       borderRadius: 'var(--radius-md)',
-                      color:        codeCopied ? '#00C9A7' : 'var(--text-secondary)',
+                      color:        codeCopied ? 'var(--text-accent)' : 'var(--text-secondary)',
                       fontSize:     'var(--text-xs)',
                       fontFamily:   'var(--font-ui)',
                       cursor:       'pointer',
@@ -535,7 +535,7 @@ export function ShareSessionDialog({
                       background:   urlCopied ? 'rgba(0,201,167,0.15)' : 'var(--surface-float)',
                       border:       '1px solid var(--border-default)',
                       borderRadius: 'var(--radius-md)',
-                      color:        urlCopied ? '#00C9A7' : 'var(--text-secondary)',
+                      color:        urlCopied ? 'var(--text-accent)' : 'var(--text-secondary)',
                       fontSize:     'var(--text-xs)',
                       fontFamily:   'var(--font-ui)',
                       cursor:       'pointer',
@@ -567,7 +567,7 @@ export function ShareSessionDialog({
                     type="checkbox"
                     checked={usePassword}
                     onChange={(e) => setUsePassword(e.target.checked)}
-                    style={{ accentColor: '#00C9A7', width: 14, height: 14 }}
+                    style={{ accentColor: 'var(--accent-primary)', width: 14, height: 14 }}
                   />
                   <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}>
                     Password protect
@@ -616,7 +616,7 @@ export function ShareSessionDialog({
                     type="checkbox"
                     checked={useExpire}
                     onChange={(e) => setUseExpire(e.target.checked)}
-                    style={{ accentColor: '#00C9A7', width: 14, height: 14 }}
+                    style={{ accentColor: 'var(--accent-primary)', width: 14, height: 14 }}
                   />
                   <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}>
                     Auto-expire
@@ -672,7 +672,7 @@ export function ShareSessionDialog({
                 style={{
                   padding:      '7px var(--space-3)',
                   background:   'transparent',
-                  border:       '1px solid rgba(247,103,142,0.35)',
+                  border:       '1px solid color-mix(in srgb, var(--semantic-error) 35%, transparent)',
                   borderRadius: 'var(--radius-md)',
                   color:        'var(--semantic-error)',
                   fontSize:     'var(--text-xs)',
@@ -692,10 +692,10 @@ export function ShareSessionDialog({
               onClick={handleClose}
               style={{
                 padding:      '7px var(--space-4)',
-                background:   '#00C9A7',
+                background:   'var(--accent-primary)',
                 border:       'none',
                 borderRadius: 'var(--radius-md)',
-                color:        '#0D0E14',
+                color:        'var(--text-inverse)',
                 fontSize:     'var(--text-sm)',
                 fontWeight:   600 as any,
                 fontFamily:   'var(--font-ui)',

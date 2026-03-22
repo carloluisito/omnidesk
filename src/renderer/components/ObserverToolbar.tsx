@@ -51,13 +51,13 @@ export function ObserverToolbar({
 
   // Control button background
   const controlBg    = hasControl  ? 'rgba(0,201,167,0.15)'
-                     : isRequesting ? 'rgba(122,162,247,0.12)'
+                     : isRequesting ? 'color-mix(in srgb, var(--accent-secondary) 12%, transparent)'
                      : 'var(--surface-float)';
-  const controlColor = hasControl  ? '#00C9A7'
-                     : isRequesting ? '#7aa2f7'
+  const controlColor = hasControl  ? 'var(--accent-primary)'
+                     : isRequesting ? 'var(--accent-secondary)'
                      : 'var(--text-secondary)';
   const controlBorder = hasControl  ? '1px solid rgba(0,201,167,0.3)'
-                      : isRequesting ? '1px solid rgba(122,162,247,0.25)'
+                      : isRequesting ? '1px solid color-mix(in srgb, var(--accent-secondary) 25%, transparent)'
                       : '1px solid var(--border-default)';
 
   const btnBase: React.CSSProperties = {
@@ -90,14 +90,14 @@ export function ObserverToolbar({
           padding:         '0 var(--space-2)',
           gap:             'var(--space-2)',
           flexShrink:      0,
-          borderLeft:      '2px solid #7aa2f7',
+          borderLeft:      '2px solid var(--accent-secondary)',
         }}
       >
         {/* Session label */}
         <svg width="11" height="11" viewBox="0 0 15 15" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-          <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
         <span style={{
           flex:         1,
@@ -160,7 +160,7 @@ export function ObserverToolbar({
                   textAlign:  'left',
                   fontSize:   'var(--text-sm)',
                   fontFamily: 'var(--font-ui)',
-                  color:      hasControl ? '#00C9A7' : 'var(--text-secondary)',
+                  color:      hasControl ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   opacity:    isRequesting ? 0.6 : 1,
                 }}
               >
@@ -204,14 +204,14 @@ export function ObserverToolbar({
         padding:         '0 var(--space-2)',
         gap:             'var(--space-2)',
         flexShrink:      0,
-        borderLeft:      '2px solid #7aa2f7',
+        borderLeft:      '2px solid var(--accent-secondary)',
       }}
     >
       {/* Chain-link icon */}
       <svg width="11" height="11" viewBox="0 0 15 15" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-        <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="#7aa2f7" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="5.5" y1="9.5" x2="9.5" y2="5.5" stroke="var(--accent-secondary)" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
 
       {/* Session name */}
@@ -237,7 +237,7 @@ export function ObserverToolbar({
             gap:        '4px',
             fontSize:   'var(--text-xs)',
             fontFamily: 'var(--font-ui)',
-            color:      '#00C9A7',
+            color:      'var(--accent-primary)',
             flexShrink: 0,
           }}
         >
@@ -245,7 +245,7 @@ export function ObserverToolbar({
             width:           '6px',
             height:          '6px',
             borderRadius:    '50%',
-            backgroundColor: '#00C9A7',
+            backgroundColor: 'var(--accent-primary)',
             display:         'block',
             animation:       'ctrl-pulse 1.6s ease-in-out infinite',
           }} />
@@ -282,8 +282,8 @@ export function ObserverToolbar({
           <span style={{
             width:       9,
             height:      9,
-            border:      '1.5px solid rgba(122,162,247,0.35)',
-            borderTopColor: '#7aa2f7',
+            border:      '1.5px solid color-mix(in srgb, var(--accent-secondary) 35%, transparent)',
+            borderTopColor: 'var(--accent-secondary)',
             borderRadius: '50%',
             display:     'block',
             animation:   'ctrl-spin 0.8s linear infinite',
@@ -300,7 +300,7 @@ export function ObserverToolbar({
         onClick={onLeave}
         style={{
           ...btnBase,
-          border:     '1px solid rgba(247,103,142,0.3)',
+          border:     '1px solid color-mix(in srgb, var(--semantic-error) 30%, transparent)',
           color:      'var(--semantic-error)',
           background: 'transparent',
         }}

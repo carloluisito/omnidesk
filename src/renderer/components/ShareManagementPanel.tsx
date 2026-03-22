@@ -129,7 +129,7 @@ function ObserverRow({ observer, sessionId, onKick, onGrantControl, onRevokeCont
         disabled={isActing}
         title={hasControl ? 'Revoke control' : 'Grant control'}
         aria-label={hasControl ? `Revoke control from ${observer.displayName}` : `Grant control to ${observer.displayName}`}
-        style={iconBtnStyle(hasControl ? '#00C9A7' : undefined)}
+        style={iconBtnStyle(hasControl ? 'var(--accent-primary)' : undefined)}
       >
         {hasControl ? <MousePointer2 size={11} /> : <MousePointer size={11} />}
       </button>
@@ -227,7 +227,7 @@ function ShareCard({ share, sessionName, onStopSharing, onKick, onGrantControl, 
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: '#00C9A7',
+            background: 'var(--accent-primary)',
             flexShrink: 0,
             animation: 'share-pulse 2s ease-in-out infinite',
           }}
@@ -259,8 +259,8 @@ function ShareCard({ share, sessionName, onStopSharing, onKick, onGrantControl, 
               gap: 3,
               fontSize: 'var(--text-2xs)',
               fontFamily: 'var(--font-mono-ui)',
-              background: 'color-mix(in srgb, #00C9A7 20%, transparent)',
-              color: '#00C9A7',
+              background: 'color-mix(in srgb, var(--accent-primary) 20%, transparent)',
+              color: 'var(--text-accent)',
               padding: '1px 6px',
               borderRadius: 'var(--radius-full)',
             }}
