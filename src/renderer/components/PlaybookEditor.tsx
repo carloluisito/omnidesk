@@ -694,8 +694,8 @@ const editorStyles = `
 
   .pb-editor-errors {
     padding: 8px 20px;
-    background: rgba(247, 103, 142, 0.1);
-    border-top: 1px solid rgba(247, 103, 142, 0.2);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     max-height: 100px;
     overflow-y: auto;
   }

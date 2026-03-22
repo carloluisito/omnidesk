@@ -254,25 +254,25 @@ const indicatorStyles = `
   }
 
   .fuel-indicator-elevated {
-    border-color: rgba(247, 168, 74, 0.2);
+    border-color: color-mix(in srgb, var(--semantic-warning) 20%, transparent);
   }
 
   .fuel-indicator-elevated:hover {
-    border-color: rgba(247, 168, 74, 0.4);
+    border-color: color-mix(in srgb, var(--semantic-warning) 40%, transparent);
   }
 
   .fuel-indicator-critical {
-    border-color: rgba(247, 103, 142, 0.25);
+    border-color: color-mix(in srgb, var(--semantic-error) 25%, transparent);
     animation: fuel-pulse 2s ease-in-out infinite;
   }
 
   .fuel-indicator-critical:hover {
-    border-color: rgba(247, 103, 142, 0.5);
+    border-color: color-mix(in srgb, var(--semantic-error) 50%, transparent);
   }
 
   /* Stale data warning */
   .fuel-indicator-stale {
-    border-color: rgba(247, 168, 74, 0.3) !important;
+    border-color: color-mix(in srgb, var(--semantic-warning) 30%, transparent) !important;
   }
 
   /* Percentage text */
@@ -326,7 +326,7 @@ const indicatorStyles = `
 
   /* Error state */
   .fuel-indicator-error {
-    border-color: rgba(247, 103, 142, 0.25);
+    border-color: color-mix(in srgb, var(--semantic-error) 25%, transparent);
   }
 
   .fuel-text-error {
@@ -348,11 +348,12 @@ const indicatorStyles = `
 
   /* Animations */
   @keyframes fuel-pulse {
+    /* CSS vars unreliable in @keyframes — hardcoded from --semantic-error #F7678E */
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(247, 103, 142, 0.3);
+      box-shadow: 0 0 0 0 #F7678E4D;
     }
     50% {
-      box-shadow: 0 0 8px 2px rgba(247, 103, 142, 0.5);
+      box-shadow: 0 0 8px 2px #F7678E80;
     }
   }
 

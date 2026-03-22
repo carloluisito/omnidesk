@@ -927,14 +927,14 @@ const budgetSettingsStyles = `
 
   .enforcement-option.active {
     border-color: var(--semantic-warning, #F7A84A);
-    background: rgba(247, 168, 74, 0.05);
-    box-shadow: 0 0 12px rgba(247, 168, 74, 0.15);
+    background: color-mix(in srgb, var(--semantic-warning) 5%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--semantic-warning) 15%, transparent);
   }
 
   .enforcement-option.hard.active {
     border-color: var(--semantic-error, #F7678E);
-    background: rgba(247, 103, 142, 0.05);
-    box-shadow: 0 0 12px rgba(247, 103, 142, 0.15);
+    background: color-mix(in srgb, var(--semantic-error) 5%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--semantic-error) 15%, transparent);
   }
 
   .enforcement-label {
@@ -1036,7 +1036,7 @@ const budgetSettingsStyles = `
   }
 
   .degradation-remove:hover:not(:disabled) {
-    background: rgba(247, 103, 142, 0.1);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
     color: var(--semantic-error, #F7678E);
   }
 
@@ -1160,8 +1160,8 @@ const budgetSettingsStyles = `
     align-items: flex-start;
     gap: 8px;
     padding: 12px;
-    background: rgba(247, 168, 74, 0.05);
-    border: 1px solid rgba(247, 168, 74, 0.2);
+    background: color-mix(in srgb, var(--semantic-warning) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--semantic-warning) 20%, transparent);
     border-radius: 8px;
   }
 

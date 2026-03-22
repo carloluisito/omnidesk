@@ -332,7 +332,7 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                     <button
                       onClick={() => handleExportToFile(selectedCheckpoint.id, 'markdown')}
                       disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[#343b58] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="font-medium text-[var(--text-secondary, #9DA3BE)] mb-1">Markdown (.md)</div>
                       <div className="text-xs text-[var(--text-tertiary, #5C6080)]">
@@ -343,7 +343,7 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
                     <button
                       onClick={() => handleExportToFile(selectedCheckpoint.id, 'json')}
                       disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[#343b58] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-3 bg-[var(--border-default, #292E44)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="font-medium text-[var(--text-secondary, #9DA3BE)] mb-1">JSON (.json)</div>
                       <div className="text-xs text-[var(--text-tertiary, #5C6080)]">Structured data for programmatic access</div>

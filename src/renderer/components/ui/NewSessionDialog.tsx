@@ -1307,7 +1307,7 @@ const styles = `
     margin: 12px 16px 16px;
     padding: 10px 14px;
     background: var(--semantic-error-muted);
-    border: 1px solid rgba(247, 103, 142, 0.3);
+    border: 1px solid color-mix(in srgb, var(--semantic-error) 30%, transparent);
     border-radius: var(--radius-md);
     font-size: var(--text-xs);
     color: var(--semantic-error);

@@ -431,7 +431,7 @@ const dialogStyles = `
     font-size: 10px;
     padding: 1px 6px;
     border-radius: 4px;
-    background: rgba(247, 168, 74, 0.15);
+    background: color-mix(in srgb, var(--semantic-warning) 15%, transparent);
     color: var(--semantic-warning, #F7A84A);
   }
 

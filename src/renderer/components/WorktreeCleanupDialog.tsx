@@ -194,7 +194,7 @@ const styles = `
 
   .wtc-option.active.danger {
     border-color: var(--semantic-error, #F7678E);
-    background: rgba(247, 103, 142, 0.05);
+    background: color-mix(in srgb, var(--semantic-error) 5%, transparent);
   }
 
   .wtc-option input {
@@ -226,8 +226,8 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    background: rgba(247, 103, 142, 0.08);
-    border: 1px solid rgba(247, 103, 142, 0.2);
+    background: color-mix(in srgb, var(--semantic-error) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     border-radius: var(--radius-md, 6px);
     font-size: var(--text-xs, 11px);
     color: var(--semantic-error, #F7678E);
@@ -322,7 +322,7 @@ const styles = `
   }
 
   .wtc-btn-submit.danger:hover {
-    background: #e8567d;
+    background: color-mix(in srgb, var(--semantic-error) 85%, white);
   }
 
   @media (prefers-reduced-motion: reduce) {

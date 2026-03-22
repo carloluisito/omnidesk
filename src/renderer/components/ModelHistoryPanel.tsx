@@ -273,7 +273,7 @@ export function ModelHistoryPanel({ isOpen, onClose, sessionId, sessionName }: M
           }
 
           .clear-history-btn:hover {
-            background: rgba(247, 103, 142, 0.1);
+            background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
             border-color: var(--semantic-error, #F7678E);
           }
 

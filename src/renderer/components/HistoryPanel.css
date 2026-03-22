@@ -271,7 +271,7 @@
 }
 
 .match-highlight {
-  background: rgba(247, 168, 74, 0.2);
+  background: color-mix(in srgb, var(--semantic-warning) 20%, transparent);
   color: var(--semantic-warning, #F7A84A);
   padding: 2px 4px;
   border-radius: 2px;
@@ -433,7 +433,7 @@
 }
 
 .btn-danger-large:hover {
-  background: #e8567d;
+  background: color-mix(in srgb, var(--semantic-error) 85%, white);
 }
 
 .danger-warning {
@@ -476,7 +476,7 @@
 }
 
 .btn-danger:hover {
-  background: rgba(247, 103, 142, 0.08);
+  background: color-mix(in srgb, var(--semantic-error) 8%, transparent);
 }
 
 /* Session Viewer Modal */

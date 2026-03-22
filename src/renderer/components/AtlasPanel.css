@@ -463,8 +463,8 @@
   align-items: center;
   gap: 10px;
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  background: rgba(247, 103, 142, 0.08);
-  border: 1px solid rgba(247, 103, 142, 0.2);
+  background: color-mix(in srgb, var(--semantic-error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
   border-radius: var(--radius-md, 6px);
   margin-bottom: var(--space-4, 16px);
 }

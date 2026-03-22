@@ -298,7 +298,7 @@ const taskBoardStyles = `
   }
 
   .task-dep-tag.blocked {
-    background: rgba(247, 103, 142, 0.1);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
     color: var(--semantic-error, #F7678E);
   }
 

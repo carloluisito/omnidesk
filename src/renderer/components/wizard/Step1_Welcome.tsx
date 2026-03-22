@@ -212,7 +212,7 @@ export function Step1Welcome({ onNext }: Step1WelcomeProps) {
               width: '100%',
               padding: '10px 14px',
               background: 'var(--semantic-warning-muted)',
-              border: '1px solid rgba(247, 168, 74, 0.3)',
+              border: '1px solid color-mix(in srgb, var(--semantic-warning) 30%, transparent)',
               borderRadius: 'var(--radius-md)',
               fontSize: 'var(--text-xs)',
               color: 'var(--semantic-warning)',

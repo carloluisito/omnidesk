@@ -388,12 +388,12 @@ const styles = `
   }
 
   .wtp-status-badge.locked {
-    background: rgba(247, 103, 142, 0.15);
+    background: color-mix(in srgb, var(--semantic-error) 15%, transparent);
     color: var(--semantic-error, #F7678E);
   }
 
   .wtp-status-badge.stale {
-    background: rgba(247, 168, 74, 0.15);
+    background: color-mix(in srgb, var(--semantic-warning) 15%, transparent);
     color: var(--semantic-warning, #F7A84A);
   }
 
@@ -449,7 +449,7 @@ const styles = `
   }
 
   .wtp-remove-btn:hover {
-    background: rgba(247, 103, 142, 0.1);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
     border-color: var(--semantic-error, #F7678E);
   }
 
@@ -470,8 +470,8 @@ const styles = `
     gap: 8px;
     margin-top: 8px;
     padding: 10px 14px;
-    background: rgba(247, 103, 142, 0.1);
-    border: 1px solid rgba(247, 103, 142, 0.2);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--semantic-error) 20%, transparent);
     border-radius: 8px;
     font-size: 12px;
     color: var(--semantic-error, #F7678E);
@@ -492,7 +492,7 @@ const styles = `
     font-weight: 600;
     font-family: inherit;
     background: transparent;
-    border: 1px solid rgba(247, 168, 74, 0.3);
+    border: 1px solid color-mix(in srgb, var(--semantic-warning) 30%, transparent);
     border-radius: 6px;
     color: var(--semantic-warning, #F7A84A);
     cursor: pointer;
@@ -500,7 +500,7 @@ const styles = `
   }
 
   .wtp-prune-btn:hover {
-    background: rgba(247, 168, 74, 0.1);
+    background: color-mix(in srgb, var(--semantic-warning) 10%, transparent);
     border-color: var(--semantic-warning, #F7A84A);
   }
 

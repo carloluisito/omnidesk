@@ -430,9 +430,9 @@ const tunnelCreateDialogStyles = `
     font-weight: 700;
     padding: 2px 5px;
     border-radius: 3px;
-    background: rgba(247, 168, 74, 0.15);
+    background: color-mix(in srgb, var(--semantic-warning) 15%, transparent);
     color: var(--semantic-warning, #F7A84A);
-    border: 1px solid rgba(247, 168, 74, 0.3);
+    border: 1px solid color-mix(in srgb, var(--semantic-warning) 30%, transparent);
     letter-spacing: 0.05em;
   }
 

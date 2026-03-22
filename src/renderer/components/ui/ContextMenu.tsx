@@ -180,7 +180,7 @@ export function ContextMenu({
         }
 
         .menu-item.danger:hover:not(.disabled) {
-          background: rgba(247, 103, 142, 0.08);
+          background: color-mix(in srgb, var(--semantic-error) 8%, transparent);
         }
 
         .menu-item.disabled {

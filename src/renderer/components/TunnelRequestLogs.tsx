@@ -502,8 +502,8 @@ const tunnelRequestLogsStyles = `
     font-size: 10px;
     color: var(--text-tertiary, #5C6080);
     font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
-    background: rgba(247, 168, 74, 0.05);
-    border-bottom: 1px solid rgba(247, 168, 74, 0.1);
+    background: color-mix(in srgb, var(--semantic-warning) 5%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--semantic-warning) 10%, transparent);
   }
 
   /* Footer */

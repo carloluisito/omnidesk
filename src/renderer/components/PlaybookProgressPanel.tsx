@@ -236,7 +236,7 @@ const progressStyles = `
   }
 
   .pb-progress-confirm:hover {
-    background: #a9d682;
+    background: color-mix(in srgb, var(--semantic-success) 85%, white);
   }
 
   .pb-progress-cancel {
@@ -251,7 +251,7 @@ const progressStyles = `
   }
 
   .pb-progress-cancel:hover {
-    background: rgba(247, 103, 142, 0.1);
+    background: color-mix(in srgb, var(--semantic-error) 10%, transparent);
   }
 
   .pb-progress-dismiss {

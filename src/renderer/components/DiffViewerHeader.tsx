@@ -24,10 +24,10 @@ export function DiffViewerHeader({
   const isRenamed = status === 'renamed';
 
   const statusBadge = () => {
-    if (isStaged) return { label: 'Staged', color: 'var(--semantic-success, #3DD68C)', bg: 'rgba(158,206,106,0.15)' };
-    if (isUntracked) return { label: 'Untracked', color: 'var(--accent-primary, #00C9A7)', bg: 'rgba(125,207,255,0.15)' };
-    if (isDeleted) return { label: 'Deleted', color: 'var(--semantic-error, #F7678E)', bg: 'rgba(247,118,142,0.15)' };
-    return { label: 'Modified', color: 'var(--semantic-warning, #F7A84A)', bg: 'rgba(224,175,104,0.15)' };
+    if (isStaged) return { label: 'Staged', color: 'var(--semantic-success, #3DD68C)', bg: 'color-mix(in srgb, var(--semantic-success) 15%, transparent)' };
+    if (isUntracked) return { label: 'Untracked', color: 'var(--accent-primary, #00C9A7)', bg: 'color-mix(in srgb, var(--term-bright-cyan) 15%, transparent)' };
+    if (isDeleted) return { label: 'Deleted', color: 'var(--semantic-error, #F7678E)', bg: 'color-mix(in srgb, var(--semantic-error) 15%, transparent)' };
+    return { label: 'Modified', color: 'var(--semantic-warning, #F7A84A)', bg: 'color-mix(in srgb, var(--semantic-warning) 15%, transparent)' };
   };
 
   const badge = statusBadge();
