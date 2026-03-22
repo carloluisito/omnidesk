@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, shell } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SubdirectoryEntry } from '../shared/ipc-types';
@@ -191,19 +191,31 @@ export function setupIPCHandlers(
   });
 
   registry.handle('writeFile', async (_e, filePath, content) => {
+    const resolved = path.resolve(filePath);
+    const homeDir = app.getPath('home');
+    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
+      console.warn('[writeFile] Blocked path outside home directory:', resolved);
+      return false;
+    }
     try {
-      await fs.promises.writeFile(filePath, content, 'utf-8');
+      await fs.promises.writeFile(resolved, content, 'utf-8');
       return true;
     } catch (err) { console.error('Failed to write file:', err); return false; }
   });
 
   registry.handle('listSubdirectories', async (_e, parentPath): Promise<SubdirectoryEntry[]> => {
+    const resolved = path.resolve(parentPath);
+    const homeDir = app.getPath('home');
+    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
+      console.warn('[listSubdirectories] Blocked path outside home directory:', resolved);
+      return [];
+    }
     try {
-      const entries = fs.readdirSync(parentPath, { withFileTypes: true });
+      const entries = fs.readdirSync(resolved, { withFileTypes: true });
       const subdirs: SubdirectoryEntry[] = [];
       for (const entry of entries) {
         if (entry.isDirectory() && !entry.name.startsWith('.')) {
-          subdirs.push({ name: entry.name, path: path.join(parentPath, entry.name) });
+          subdirs.push({ name: entry.name, path: path.join(resolved, entry.name) });
         }
       }
       subdirs.sort((a, b) => a.name.localeCompare(b.name));
@@ -212,8 +224,14 @@ export function setupIPCHandlers(
   });
 
   registry.handle('createDirectory', async (_e, dirPath) => {
+    const resolved = path.resolve(dirPath);
+    const homeDir = app.getPath('home');
+    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
+      console.warn('[createDirectory] Blocked path outside home directory:', resolved);
+      return false;
+    }
     try {
-      await fs.promises.mkdir(dirPath);
+      await fs.promises.mkdir(resolved);
       return true;
     } catch (err) { console.error('Failed to create directory:', err); return false; }
   });
