@@ -345,28 +345,28 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
 
     const xterm = new XTerm({
       theme: {
-        background: '#1a1b26',
-        foreground: '#a9b1d6',
-        cursor: '#c0caf5',
-        cursorAccent: '#1a1b26',
-        selectionBackground: '#33467c',
-        selectionForeground: '#c0caf5',
-        black: '#32344a',
-        red: '#f7768e',
-        green: '#9ece6a',
-        yellow: '#e0af68',
-        blue: '#7aa2f7',
-        magenta: '#ad8ee6',
-        cyan: '#449dab',
-        white: '#787c99',
-        brightBlack: '#444b6a',
-        brightRed: '#ff7a93',
-        brightGreen: '#b9f27c',
-        brightYellow: '#ff9e64',
-        brightBlue: '#7da6ff',
-        brightMagenta: '#bb9af7',
-        brightCyan: '#0db9d7',
-        brightWhite: '#acb0d0',
+        background:          '#0D0E14',  // --term-background
+        foreground:          '#C0C4D6',  // --term-foreground
+        cursor:              '#00C9A7',  // --term-cursor
+        cursorAccent:        '#0D0E14',  // --term-background
+        selectionBackground: '#3D416380', // --term-selection
+        selectionForeground: '#E2E4F0',  // --term-bright-white
+        black:               '#1A1B26',  // --term-black
+        red:                 '#F7678E',  // --term-red
+        green:               '#3DD68C',  // --term-green
+        yellow:              '#F7A84A',  // --term-yellow
+        blue:                '#7C8FFF',  // --term-blue
+        magenta:             '#BB9AF7',  // --term-magenta
+        cyan:                '#00C9A7',  // --term-cyan
+        white:               '#C0C4D6',  // --term-white
+        brightBlack:         '#3D4163',  // --term-bright-black
+        brightRed:           '#FF9EAE',  // --term-bright-red
+        brightGreen:         '#6AEAAB',  // --term-bright-green
+        brightYellow:        '#FFCB8A',  // --term-bright-yellow
+        brightBlue:          '#A3B4FF',  // --term-bright-blue
+        brightMagenta:       '#BB9AF7',  // --term-magenta (no separate bright variant)
+        brightCyan:          '#4DE8D0',  // --term-bright-cyan
+        brightWhite:         '#E2E4F0',  // --term-bright-white
       },
       fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, monospace',
       fontSize: 14,
@@ -506,8 +506,8 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
               left:            0,
               right:           0,
               zIndex:          10,
-              backgroundColor: 'rgba(26, 27, 38, 0.88)',
-              borderBottom:    '1px solid rgba(122,162,247,0.2)',
+              backgroundColor: 'color-mix(in srgb, var(--surface-overlay) 88%, transparent)',
+              borderBottom:    '1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent)',
               padding:         '4px var(--space-3)',
               display:         'flex',
               alignItems:      'center',
@@ -518,13 +518,13 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
             aria-live="polite"
           >
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="#7aa2f7" strokeWidth="1.3" fill="none" />
-              <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="#7aa2f7" strokeWidth="1.3" strokeLinecap="round" />
+              <rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="var(--accent-primary)" strokeWidth="1.3" fill="none" />
+              <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="var(--accent-primary)" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
             <span style={{
               fontSize:   'var(--text-xs)',
               fontFamily: '"JetBrains Mono", monospace',
-              color:      '#7aa2f7',
+              color:      'var(--accent-primary)',
             }}>
               Read-only — Request control to interact
             </span>
