@@ -42,6 +42,9 @@
   --semantic-info:          #7C8FFF;
   --semantic-info-muted:    #7C8FFF14;
 
+  /* === DOMAIN-SPECIFIC === */
+  --agent-lead:       #fbbf24;   /* Lead agent border & legend dot (AgentGraph) */
+
   /* === PROVIDER BADGE COLORS === */
   --provider-claude:  #CC8533;   /* Amber-orange */
   --provider-codex:   #10A37F;   /* OpenAI green */
@@ -57,6 +60,11 @@
   --term-cyan:          #00C9A7;
   --term-white:         #C0C4D6;
   --term-bright-black:  #3D4163;
+  --term-bright-red:    #FF9EAE;
+  --term-bright-green:  #6AEAAB;
+  --term-bright-yellow: #FFCB8A;
+  --term-bright-blue:   #A3B4FF;
+  --term-bright-cyan:   #4DE8D0;
   --term-bright-white:  #E2E4F0;
   --term-background:    #0D0E14;
   --term-foreground:    #C0C4D6;
