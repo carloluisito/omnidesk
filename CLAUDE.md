@@ -131,8 +131,9 @@ npm run test:ci             # CI mode (coverage + JUnit XML)
 
 ## Design Language
 
-Dark theme (Tokyo Night): bg `#1a1b26`, accent `#7aa2f7`, danger `#f7768e`, border `#292e42`
+Dark theme (Obsidian): bg `#0D0E14`, accent `#00C9A7`, danger `#F7678E`, border `#292E44`
 Font: JetBrains Mono. Monospace everywhere.
+Design tokens defined in `src/renderer/styles/tokens.css`.
 
 ## Docs
 

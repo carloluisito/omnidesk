@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 ![Tests](https://img.shields.io/badge/tests-483%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
@@ -136,7 +136,7 @@
 - **Full xterm.js terminal** with rich text formatting
 - **Clickable links** — URLs automatically detected
 - **Copy/paste support** with keyboard shortcuts
-- **Tokyo Night dark theme** with JetBrains Mono font
+- **Obsidian dark theme** with JetBrains Mono font
 - **Drag-and-drop** file insertion into terminal
 
 ---
@@ -225,7 +225,7 @@ Built packages will be in the `release/` directory.
 | Framework | Electron 28 |
 | Frontend | React 18 + TypeScript |
 | Terminal | xterm.js + node-pty |
-| Styling | Tailwind CSS (Tokyo Night theme) |
+| Styling | Tailwind CSS (Obsidian theme) |
 | Graph | reactflow |
 | Build | Vite + electron-builder |
 | Testing | Vitest 4 (483 tests) + Playwright |
