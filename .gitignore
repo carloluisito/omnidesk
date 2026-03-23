@@ -28,6 +28,9 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Proof screenshots (QA artifacts, not source)
+proof-*.png
+
 # Session exports (contain personal info)
 Session_*.md
 
