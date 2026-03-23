@@ -39,10 +39,11 @@ jobs:
       run: npm run package:${{ matrix.platform }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # macOS code signing (optional — unsigned builds work for personal use)
+        # macOS code signing (set CSC_LINK secret to enable; otherwise skip)
         CSC_LINK: ${{ secrets.CSC_LINK }}
         CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        # Windows code signing (optional — unsigned builds trigger SmartScreen warning)
+        CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+        # Windows code signing (set WIN_CSC_LINK secret to enable)
         WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
         WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
 
