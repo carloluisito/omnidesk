@@ -25,23 +25,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: latest
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
 
     - name: Install dependencies
-      run: bun install
+      run: npm ci
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and package Electron app
-      run: bun run package:${{ matrix.platform }}
+      run: npm run package:${{ matrix.platform }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # macOS code signing (optional — unsigned builds work for personal use)
@@ -71,11 +66,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: latest
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -83,14 +73,14 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
 
     - name: Install dependencies
-      run: bun install
+      run: npm ci
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build
       run: |
-        bun run build:electron
-        bun run build
+        npm run build:electron
+        npm run build
 
     - name: Publish to npm
       run: npm publish --access public || echo "Version already published, skipping"
