@@ -924,6 +924,26 @@ export function setupIPCHandlers(
     await shell.openExternal(url);
     return true;
   });
+
+  // ── Updates ──
+
+  registry.handle('checkForUpdates', async () => {
+    try {
+      const { autoUpdater } = await import('electron-updater');
+      autoUpdater.autoDownload = false;
+      autoUpdater.autoInstallOnAppQuit = true;
+      const result = await autoUpdater.checkForUpdates();
+      if (result && result.updateInfo && result.updateInfo.version !== app.getVersion()) {
+        // Newer version found — start downloading
+        await autoUpdater.downloadUpdate();
+        return { updateAvailable: true, version: result.updateInfo.version };
+      }
+      return { updateAvailable: false };
+    } catch (err: any) {
+      console.error('Update check failed:', err);
+      return { updateAvailable: false, error: err.message || 'Update check failed' };
+    }
+  });
 }
 
 export function removeIPCHandlers(): void {

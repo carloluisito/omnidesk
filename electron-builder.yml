@@ -45,6 +45,11 @@ linux:
   category: Development
   executableName: omnidesk
 
+publish:
+  provider: github
+  owner: carloluisito
+  repo: omnidesk
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
