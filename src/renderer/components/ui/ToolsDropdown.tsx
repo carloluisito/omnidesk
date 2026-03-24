@@ -8,10 +8,10 @@ interface ToolsDropdownProps {
   onOpenWorktrees?: () => void;
   onOpenHistory?: () => void;
   onOpenPlaybooks?: () => void;
-  onOpenTunnels?: () => void;
+  // onOpenTunnels?: () => void; // LaunchTunnel disabled
   teamCount?: number;
   gitStagedCount?: number;
-  activeTunnelCount?: number;
+  // activeTunnelCount?: number; // LaunchTunnel disabled
 }
 
 export function ToolsDropdown({
@@ -22,10 +22,10 @@ export function ToolsDropdown({
   onOpenWorktrees,
   onOpenHistory,
   onOpenPlaybooks,
-  onOpenTunnels,
+  // onOpenTunnels, // LaunchTunnel disabled
   teamCount = 0,
   gitStagedCount = 0,
-  activeTunnelCount = 0,
+  // activeTunnelCount = 0, // LaunchTunnel disabled
 }: ToolsDropdownProps) {
   const items: DropdownItem[] = [];
 
@@ -79,22 +79,17 @@ export function ToolsDropdown({
     });
   }
 
-  if (onOpenTunnels) {
-    items.push({
-      id: 'tunnels',
-      label: 'LaunchTunnel',
-      shortcut: 'Ctrl+Shift+U',
-      badge: activeTunnelCount > 0 ? activeTunnelCount : undefined,
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-        </svg>
-      ),
-      onClick: onOpenTunnels,
-    });
-  }
+  // NOTE: LaunchTunnel item disabled
+  // if (onOpenTunnels) {
+  //   items.push({
+  //     id: 'tunnels',
+  //     label: 'LaunchTunnel',
+  //     shortcut: 'Ctrl+Shift+U',
+  //     badge: activeTunnelCount > 0 ? activeTunnelCount : undefined,
+  //     icon: ( ... ),
+  //     onClick: onOpenTunnels,
+  //   });
+  // }
 
   if (onOpenGit) {
     items.push({

@@ -36,19 +36,19 @@ interface TabBarProps {
   onOpenGit?:                  () => void;
   onOpenWorktrees?:            () => void;
   onOpenPlaybooks?:            () => void;
-  onOpenTunnels?:              () => void;
+  // onOpenTunnels?:              () => void; // LaunchTunnel disabled
   teamCount?:                  number;
   gitStagedCount?:             number;
-  activeTunnelCount?:          number;
+  // activeTunnelCount?:          number; // LaunchTunnel disabled
   visibleSessionIds?:          string[];
   focusedSessionId?:           string | null;
   onFocusPaneWithSession?:     (sessionId: string) => void;
   onAssignSessionToFocusedPane?: (sessionId: string) => void;
   paneCount?:                  number;
   onSplitSession?:             (sessionId: string, direction: 'horizontal' | 'vertical') => void;
-  onShareSession?:             (sessionId: string) => void;
-  onStopSharing?:              (sessionId: string) => void;
-  sharedSessionIds?:           string[];
+  // onShareSession?:             (sessionId: string) => void; // LaunchTunnel disabled
+  // onStopSharing?:              (sessionId: string) => void;
+  // sharedSessionIds?:           string[];
 }
 
 export function TabBar({
@@ -74,9 +74,9 @@ export function TabBar({
   onAssignSessionToFocusedPane,
   paneCount = 1,
   onSplitSession,
-  onShareSession,
-  onStopSharing,
-  sharedSessionIds = [],
+  // onShareSession, // LaunchTunnel disabled
+  // onStopSharing,
+  // sharedSessionIds = [],
 }: TabBarProps) {
   const [internalDialogOpen, setInternalDialogOpen] = useState(false);
   const [checkpointCounts, setCheckpointCounts]     = useState<Record<string, number>>({});
@@ -175,8 +175,8 @@ export function TabBar({
       case 'restart':    onRestartSession(sessionId); break;
       case 'splitRight':    onSplitSession?.(sessionId, 'horizontal'); break;
       case 'splitDown':     onSplitSession?.(sessionId, 'vertical'); break;
-      case 'shareSession':  onShareSession?.(sessionId); break;
-      case 'stopSharing':   onStopSharing?.(sessionId); break;
+      // case 'shareSession':  onShareSession?.(sessionId); break; // LaunchTunnel disabled
+      // case 'stopSharing':   onStopSharing?.(sessionId); break;
       case 'close':         onCloseSession(sessionId); break;
       case 'closeOthers':
         sessions.forEach(s => { if (s.id !== sessionId) onCloseSession(s.id); });
@@ -524,8 +524,8 @@ export function TabBar({
           isOnlyTab={sessions.length === 1}
           isRightmost={contextSessionIndex === sessions.length - 1}
           canSplit={paneCount < 4}
-          isShared={sharedSessionIds.includes(contextMenu.sessionId)}
-          canShare={!!onShareSession && contextSession.status !== 'exited'}
+          isShared={false /* sharedSessionIds.includes(contextMenu.sessionId) */}
+          canShare={false /* !!onShareSession && contextSession.status !== 'exited' */}
         />
       )}
 

@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { ProviderId } from '../../../shared/types/provider-types';
 import { ProviderBadge } from './ProviderBadge';
 import { StatusDot, StatusDotState } from './StatusDot';
-import { ShareIndicator } from './ShareIndicator';
+// import { ShareIndicator } from './ShareIndicator'; // LaunchTunnel disabled
 
 export interface TabData {
   id:               string;
@@ -19,10 +19,10 @@ export interface TabData {
   status:           'running' | 'exited' | 'error';
   worktreeBranch?:  string | null;
   providerId?:      ProviderId;
-  // Sharing
-  isShared?:        boolean;
-  isObserverTab?:   boolean;
-  observerCount?:   number;
+  // NOTE: Sharing disabled — LaunchTunnel integration needs fixing
+  // isShared?:        boolean;
+  // isObserverTab?:   boolean;
+  // observerCount?:   number;
 }
 
 export interface ContextMenuPosition {
@@ -118,9 +118,8 @@ export function Tab({
   const isDangerous   = data.permissionMode === 'skip-permissions';
   const showClose     = isActive || isHovered;
   const dotState      = statusToState(data.status);
-  const isShared      = data.isShared ?? false;
-  const isObserver    = data.isObserverTab ?? false;
-  const observerCount = data.observerCount ?? 0;
+  // const isShared   = data.isShared ?? false;   // LaunchTunnel disabled
+  const isObserver    = false; // data.isObserverTab ?? false;
 
   // Styles
   const tabBg       = isActive ? 'var(--surface-raised)' : 'transparent';
@@ -191,16 +190,7 @@ export function Tab({
             size="sm"
             muted={!isActive && !isHovered}
           />
-          {isShared && (
-            <div style={{
-              position:  'absolute',
-              top:       '-5px',
-              right:     '-5px',
-              zIndex:    1,
-            }}>
-              <ShareIndicator count={observerCount} />
-            </div>
-          )}
+          {/* NOTE: ShareIndicator disabled — LaunchTunnel integration needs fixing */}
         </div>
       )}
 

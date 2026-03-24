@@ -13,8 +13,8 @@ interface ContextMenuProps {
   isOnlyTab: boolean;
   isRightmost: boolean;
   canSplit?: boolean;
-  isShared?: boolean;
-  canShare?: boolean;
+  isShared?: boolean;   // LaunchTunnel disabled — always false
+  canShare?: boolean;   // LaunchTunnel disabled — always false
 }
 
 interface MenuItem {
@@ -34,8 +34,8 @@ export function ContextMenu({
   isOnlyTab,
   isRightmost,
   canSplit = false,
-  isShared = false,
-  canShare = true,
+  isShared: _isShared = false,
+  canShare: _canShare = true,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -96,9 +96,10 @@ export function ContextMenu({
     { id: 'dividerSplit', label: '', hidden: !canSplit },
     { id: 'splitRight', label: 'Split Right', shortcut: '^\\', hidden: !canSplit },
     { id: 'splitDown', label: 'Split Down', shortcut: '^⇧\\', hidden: !canSplit },
-    { id: 'dividerShare', label: '', hidden: !canShare && !isShared },
-    { id: 'shareSession', label: 'Share Session...', hidden: !canShare || isShared || isExited },
-    { id: 'stopSharing', label: 'Stop Sharing', danger: true, hidden: !isShared },
+    // NOTE: LaunchTunnel/sharing disabled
+    { id: 'dividerShare', label: '', hidden: true /* !canShare && !isShared */ },
+    { id: 'shareSession', label: 'Share Session...', hidden: true /* !canShare || isShared || isExited */ },
+    { id: 'stopSharing', label: 'Stop Sharing', danger: true, hidden: true /* !isShared */ },
     { id: 'divider2', label: '' },
     { id: 'close', label: 'Close', shortcut: '^W', danger: true },
     { id: 'closeOthers', label: 'Close Others', disabled: isOnlyTab, danger: true },

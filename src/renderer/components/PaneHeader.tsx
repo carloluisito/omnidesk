@@ -1,11 +1,11 @@
 /**
  * PaneHeader — 34px per-terminal-pane session info bar.
  *
- * Layout: [ProviderBadge] [session name] [working dir] [StatusDot + label] [share btn] [kebab menu]
+ * Layout: [ProviderBadge] [session name] [working dir] [StatusDot + label]
  * Focused pane: surface-overlay bg.
  * Unfocused: surface-raised bg (dimmer).
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { TabData } from './ui/Tab';
 import { ProviderBadge } from './ui/ProviderBadge';
 import { StatusDot, StatusDotState } from './ui/StatusDot';
@@ -29,11 +29,11 @@ interface PaneHeaderProps {
   onOpenBudget?:      () => void;
   onOpenHistory?:     () => void;
   onCreateCheckpoint?: () => void;
-  // Sharing
-  isShared?:          boolean;
-  observerCount?:     number;
-  onShareSession?:    () => void;
-  onStopSharing?:     () => void;
+  // NOTE: Sharing/LaunchTunnel props — commented out until LaunchTunnel integration is fixed
+  // isShared?:          boolean;
+  // observerCount?:     number;
+  // onShareSession?:    () => void;
+  // onStopSharing?:     () => void;
 }
 
 function sessionStatusToDot(status: SessionStatus): StatusDotState {
@@ -65,57 +65,20 @@ export function PaneHeader({
   sessionName,
   workingDirectory,
   isFocused,
-  availableSessions,
-  canSplit,
+  availableSessions: _availableSessions,
+  canSplit: _canSplit,
   sessionStatus = 'ready',
   worktreeBranch,
   providerId,
-  onChangeSession,
-  onClosePane,
-  onSplitHorizontal,
-  onSplitVertical,
+  onChangeSession: _onChangeSession,
+  onClosePane: _onClosePane,
+  onSplitHorizontal: _onSplitHorizontal,
+  onSplitVertical: _onSplitVertical,
   onOpenBudget,
   onOpenHistory,
   onCreateCheckpoint,
-  isShared = false,
-  observerCount = 0,
-  onShareSession,
-  onStopSharing,
 }: PaneHeaderProps) {
-  const [showDropdown, setShowDropdown]       = useState(false);
-  const [showKebab, setShowKebab]             = useState(false);
   const [showStatusPopover, setShowStatusPopover] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const kebabRef    = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showDropdown && !showKebab) return;
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-      if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) {
-        setShowKebab(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowDropdown(false);
-        setShowKebab(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showDropdown, showKebab]);
-
-  const handleSessionSelect = useCallback((id: string) => {
-    setShowDropdown(false);
-    onChangeSession(id);
-  }, [onChangeSession]);
 
   const dotState    = sessionStatusToDot(sessionStatus);
   const label       = sessionStatusLabel(sessionStatus);
@@ -230,265 +193,7 @@ export function PaneHeader({
         </span>
       </button>
 
-      {/* Share button — visible when session is running */}
-      {(onShareSession || onStopSharing) && sessionStatus === 'ready' && (
-        <button
-          onClick={isShared ? onStopSharing : onShareSession}
-          aria-label={isShared ? `Stop sharing (${observerCount} observer${observerCount !== 1 ? 's' : ''})` : 'Share session'}
-          title={isShared ? 'Stop sharing' : 'Share this session'}
-          style={{
-            display:         'inline-flex',
-            alignItems:      'center',
-            gap:             '4px',
-            height:          '22px',
-            padding:         '0 7px',
-            background:      isShared ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'transparent',
-            border:          isShared ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)' : '1px solid transparent',
-            borderRadius:    'var(--radius-sm)',
-            cursor:          'pointer',
-            color:           isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-            fontSize:        'var(--text-xs)',
-            fontFamily:      'var(--font-ui)',
-            flexShrink:      0,
-            transition:      'all var(--duration-fast) var(--ease-inout)',
-          }}
-          onMouseEnter={(e) => {
-            if (!isShared) {
-              e.currentTarget.style.color = 'var(--accent-primary)';
-              e.currentTarget.style.border = '1px solid color-mix(in srgb, var(--accent-primary) 25%, transparent)';
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-primary) 8%, transparent)';
-            } else {
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--semantic-error) 10%, transparent)';
-              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--semantic-error) 35%, transparent)';
-              e.currentTarget.style.color = 'var(--semantic-error)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = isShared ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'transparent';
-            e.currentTarget.style.border     = isShared ? '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)' : '1px solid transparent';
-            e.currentTarget.style.color      = isShared ? 'var(--accent-primary)' : 'var(--text-tertiary)';
-          }}
-        >
-          {/* Share icon */}
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <circle cx="9.5"  cy="2"   r="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <circle cx="9.5"  cy="10"  r="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <circle cx="2.5"  cy="6"   r="1.5" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <line x1="3.85" y1="5.3"  x2="8.2"  y2="2.7"  stroke="currentColor" strokeWidth="1.1" />
-            <line x1="3.85" y1="6.7"  x2="8.2"  y2="9.3"  stroke="currentColor" strokeWidth="1.1" />
-          </svg>
-          {isShared && (
-            <span>{observerCount}</span>
-          )}
-        </button>
-      )}
-
-      {/* Kebab menu / pane actions */}
-      <div ref={kebabRef} style={{ position: 'relative', flexShrink: 0 }}>
-        <button
-          onClick={() => setShowKebab(!showKebab)}
-          aria-label="Pane options"
-          aria-haspopup="menu"
-          aria-expanded={showKebab}
-          style={{
-            width:           '26px',
-            height:          '26px',
-            display:         'flex',
-            alignItems:      'center',
-            justifyContent:  'center',
-            background:      showKebab ? 'var(--state-active)' : 'transparent',
-            border:          'none',
-            borderRadius:    'var(--radius-sm)',
-            cursor:          'pointer',
-            color:           'var(--text-tertiary)',
-            transition:      'color var(--duration-fast) var(--ease-inout), background-color var(--duration-fast) var(--ease-inout)',
-            outline:         'none',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
-          }}
-          onMouseLeave={(e) => {
-            if (!showKebab) {
-              (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-            }
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-            <circle cx="7" cy="2.5" r="1.2" />
-            <circle cx="7" cy="7"   r="1.2" />
-            <circle cx="7" cy="11.5" r="1.2" />
-          </svg>
-        </button>
-
-        {showKebab && (
-          <div
-            role="menu"
-            aria-label="Pane options"
-            style={{
-              position:        'absolute',
-              top:             'calc(100% + 4px)',
-              right:           0,
-              backgroundColor: 'var(--surface-high)',
-              border:          '1px solid var(--border-default)',
-              borderRadius:    'var(--radius-md)',
-              boxShadow:       'var(--shadow-md)',
-              zIndex:          'var(--z-dropdown)' as any,
-              minWidth:        '180px',
-              paddingTop:      'var(--space-1)',
-              paddingBottom:   'var(--space-1)',
-              animation:       'slide-up var(--duration-fast) var(--ease-out) both',
-            }}
-          >
-            {/* Session picker */}
-            <div style={{ position: 'relative' }}>
-              <button
-                role="menuitem"
-                onClick={() => { setShowKebab(false); setShowDropdown(!showDropdown); }}
-                style={menuItemStyle}
-                onMouseEnter={menuItemHover}
-                onMouseLeave={menuItemLeave}
-              >
-                Change session
-              </button>
-            </div>
-
-            {/* Split actions */}
-            {canSplit && (
-              <>
-                <button
-                  role="menuitem"
-                  onClick={() => { setShowKebab(false); onSplitHorizontal(); }}
-                  style={menuItemStyle}
-                  onMouseEnter={menuItemHover}
-                  onMouseLeave={menuItemLeave}
-                >
-                  Split left / right
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => { setShowKebab(false); onSplitVertical(); }}
-                  style={menuItemStyle}
-                  onMouseEnter={menuItemHover}
-                  onMouseLeave={menuItemLeave}
-                >
-                  Split top / bottom
-                </button>
-              </>
-            )}
-
-            {/* Create checkpoint */}
-            {onCreateCheckpoint && (
-              <button
-                role="menuitem"
-                onClick={() => { setShowKebab(false); onCreateCheckpoint(); }}
-                style={menuItemStyle}
-                onMouseEnter={menuItemHover}
-                onMouseLeave={menuItemLeave}
-              >
-                New checkpoint
-              </button>
-            )}
-
-            {/* Share session */}
-            {sessionStatus === 'ready' && onShareSession && !isShared && (
-              <button
-                role="menuitem"
-                onClick={() => { setShowKebab(false); onShareSession(); }}
-                style={menuItemStyle}
-                onMouseEnter={menuItemHover}
-                onMouseLeave={menuItemLeave}
-              >
-                Share session...
-              </button>
-            )}
-            {sessionStatus === 'ready' && onStopSharing && isShared && (
-              <button
-                role="menuitem"
-                onClick={() => { setShowKebab(false); onStopSharing(); }}
-                style={{ ...menuItemStyle, color: 'var(--semantic-error)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--semantic-error-muted)'; }}
-                onMouseLeave={menuItemLeave}
-              >
-                Stop sharing
-              </button>
-            )}
-
-            {/* Divider */}
-            <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', margin: '4px 0' }} />
-
-            {/* Close pane */}
-            <button
-              role="menuitem"
-              onClick={() => { setShowKebab(false); onClosePane(); }}
-              style={{ ...menuItemStyle, color: 'var(--semantic-error)' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--semantic-error-muted)'; }}
-              onMouseLeave={menuItemLeave}
-            >
-              Close pane
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Session picker dropdown */}
-      {showDropdown && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position:        'absolute',
-            top:             'calc(100% + 2px)',
-            right:           'var(--space-2)',
-            backgroundColor: 'var(--surface-high)',
-            border:          '1px solid var(--border-default)',
-            borderRadius:    'var(--radius-md)',
-            minWidth:        '260px',
-            maxWidth:        '400px',
-            maxHeight:       '300px',
-            overflowY:       'auto',
-            boxShadow:       'var(--shadow-md)',
-            zIndex:          'var(--z-dropdown)' as any,
-            paddingTop:      'var(--space-1)',
-            paddingBottom:   'var(--space-1)',
-          }}
-        >
-          {availableSessions.length === 0 ? (
-            <div style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--text-tertiary)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
-              No other sessions
-            </div>
-          ) : (
-            availableSessions.map(session => (
-              <button
-                key={session.id}
-                onClick={() => handleSessionSelect(session.id)}
-                style={{
-                  display:        'flex',
-                  flexDirection:  'column',
-                  gap:            '2px',
-                  width:          '100%',
-                  padding:        '6px var(--space-3)',
-                  background:     'transparent',
-                  border:         'none',
-                  cursor:         'pointer',
-                  textAlign:      'left',
-                  borderBottom:   '1px solid var(--border-subtle)',
-                  transition:     'background-color var(--duration-fast) var(--ease-inout)',
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
-              >
-                <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-ui)', color: 'var(--text-primary)', fontWeight: 'var(--weight-medium)' as any }}>
-                  {session.name}
-                </span>
-                <span style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono-ui)', color: 'var(--text-tertiary)' }}>
-                  {session.workingDirectory}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
+      {/* NOTE: Share button and kebab menu removed — LaunchTunnel integration needs fixing first */}
 
       <StatusPopover
         sessionId={sessionId}
@@ -504,27 +209,3 @@ export function PaneHeader({
   );
 }
 
-const menuItemStyle: React.CSSProperties = {
-  display:         'block',
-  width:           '100%',
-  padding:         '6px var(--space-3)',
-  background:      'transparent',
-  border:          'none',
-  cursor:          'pointer',
-  textAlign:       'left',
-  fontSize:        'var(--text-sm)',
-  fontFamily:      'var(--font-ui)',
-  color:           'var(--text-secondary)',
-  transition:      'background-color var(--duration-fast) var(--ease-inout), color var(--duration-fast) var(--ease-inout)',
-  outline:         'none',
-};
-
-const menuItemHover = (e: React.MouseEvent) => {
-  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
-  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
-};
-
-const menuItemLeave = (e: React.MouseEvent) => {
-  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-  (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
-};
