@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2026-03-25
+
+### Added
+- Auto-update support via electron-updater with GitHub Releases integration
+- "Check for Updates" button in About dialog now functional with status feedback
+
+### Changed
+- App icon updated from old "C" letter to new BrandMark hexagon (installer, taskbar, all platforms)
+- "View on GitHub" in About dialog now opens in system browser instead of Electron window
+- Icon generation script updated to use BrandMark SVG with built-in ICO builder (no external deps)
+
+---
+
 ## [1.1.1] - 2026-03-25
 
 ### Added
