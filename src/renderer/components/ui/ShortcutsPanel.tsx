@@ -60,6 +60,7 @@ const shortcuts: ShortcutGroup[] = [
   {
     category: 'Terminal',
     shortcuts: [
+      { keys: ['Ctrl/Shift/Alt', 'Enter'], description: 'Insert Newline' },
       { keys: ['Ctrl', 'C'], description: 'Interrupt (Shows Confirmation)' },
       { keys: ['Ctrl', 'V'], description: 'Paste' },
       { keys: ['Ctrl', 'Shift', 'C'], description: 'Copy' },
