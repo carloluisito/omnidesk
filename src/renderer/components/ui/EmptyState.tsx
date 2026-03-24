@@ -10,7 +10,7 @@ interface EmptyStateProps {
   onQuickStart?: {
     startCoding: () => void;
     analyzeCodebase: () => void;
-    joinSession: () => void;
+    joinSession?: () => void; // Optional — LaunchTunnel sharing may be disabled
   };
 }
 
@@ -71,12 +71,14 @@ export function EmptyState({ onCreateSession, onQuickStart }: EmptyStateProps) {
           onClick={onQuickStart?.analyzeCodebase || onCreateSession}
         />
 
-        <QuickActionCard
-          icon={<Link size={20} />}
-          title="Join Session"
-          description="Join a teammate's shared session"
-          onClick={onQuickStart?.joinSession || onCreateSession}
-        />
+        {onQuickStart?.joinSession && (
+          <QuickActionCard
+            icon={<Link size={20} />}
+            title="Join Session"
+            description="Join a teammate's shared session"
+            onClick={onQuickStart.joinSession}
+          />
+        )}
       </div>
 
       <FeatureShowcase />

@@ -16,9 +16,10 @@ import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
-import { TunnelManager } from './tunnel-manager';
+// NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
+// import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
-import { SharingManager } from './sharing-manager';
+// import { SharingManager } from './sharing-manager';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
 import { IPCEmitter } from './ipc-emitter';
@@ -42,9 +43,9 @@ export function setupIPCHandlers(
   gitManager: GitManager,
   playbookManager: PlaybookManager,
   playbookExecutor: PlaybookExecutor,
-  tunnelManager: TunnelManager,
+  // tunnelManager: TunnelManager, // LaunchTunnel disabled
   providerRegistry: ProviderRegistry,
-  sharingManager: SharingManager
+  // sharingManager: SharingManager // LaunchTunnel disabled
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
@@ -855,134 +856,36 @@ export function setupIPCHandlers(
     };
   });
 
-  // ── LaunchTunnel ──
+  // NOTE: LaunchTunnel and Session Sharing IPC handlers disabled — uncomment when integration is fixed
+  // All tunnel:* and sharing:* handlers are commented out below.
 
-  registry.handle('tunnelList', async () => {
-    try { return await tunnelManager.list(); }
-    catch (err) { console.error('Failed to list tunnels:', err); throw err; }
-  });
-
-  registry.handle('tunnelCreate', async (_e, request) => {
-    try { return await tunnelManager.create(request); }
-    catch (err) { console.error('Failed to create tunnel:', err); throw err; }
-  });
-
-  registry.handle('tunnelStop', async (_e, tunnelId) => {
-    try { return await tunnelManager.stop(tunnelId); }
-    catch (err) { console.error('Failed to stop tunnel:', err); throw err; }
-  });
-
-  registry.handle('tunnelGetInfo', async (_e, tunnelId) => {
-    try { return await tunnelManager.getInfo(tunnelId); }
-    catch (err) { console.error('Failed to get tunnel info:', err); throw err; }
-  });
-
-  registry.handle('tunnelGetLogs', async (_e, tunnelId, limit) => {
-    try { return await tunnelManager.getLogs(tunnelId, limit); }
-    catch (err) { console.error('Failed to get tunnel logs:', err); throw err; }
-  });
-
-  registry.handle('tunnelGetSettings', async () => {
-    return tunnelManager.getSettings();
-  });
-
-  registry.handle('tunnelUpdateSettings', async (_e, settings) => {
-    try { return tunnelManager.updateSettings(settings); }
-    catch (err) { console.error('Failed to update tunnel settings:', err); throw err; }
-  });
-
-  registry.handle('tunnelGetAccount', async () => {
-    try { return await tunnelManager.getAccount(); }
-    catch (err) { console.error('Failed to get tunnel account:', err); throw err; }
-  });
-
-  registry.handle('tunnelGetUsage', async (_e, tunnelId) => {
-    try { return await tunnelManager.getUsage(tunnelId); }
-    catch (err) { console.error('Failed to get tunnel usage:', err); throw err; }
-  });
-
-  registry.handle('tunnelRefresh', async () => {
-    try { return await tunnelManager.refresh(); }
-    catch (err) { console.error('Failed to refresh tunnels:', err); throw err; }
-  });
-
-  registry.handle('tunnelDetectBinary', async () => {
-    return tunnelManager.detectBinary();
-  });
-
-  registry.handle('tunnelValidateKey', async (_e, apiKey) => {
-    try { return await tunnelManager.validateKey(apiKey); }
-    catch (err) { console.error('Failed to validate tunnel API key:', err); throw err; }
-  });
-
-  registry.handle('tunnelStopAll', async () => {
-    try { return await tunnelManager.stopAll(); }
-    catch (err) { console.error('Failed to stop all tunnels:', err); throw err; }
-  });
-
-  // ── Session Sharing ──
-
-  registry.handle('startShare', async (_e, request) => {
-    try { return await sharingManager.startShare(request); }
-    catch (err) { console.error('Failed to start share:', err); throw err; }
-  });
-
-  registry.handle('stopShare', async (_e, sessionId) => {
-    try { return await sharingManager.stopShare(sessionId); }
-    catch (err) { console.error('Failed to stop share:', err); throw err; }
-  });
-
-  registry.handle('getShareInfo', async (_e, sessionId) => {
-    return sharingManager.getShareInfo(sessionId);
-  });
-
-  registry.handle('listActiveShares', async () => {
-    return sharingManager.listActiveShares();
-  });
-
-  registry.handle('kickObserver', async (_e, sessionId, observerId) => {
-    try { return await sharingManager.kickObserver(sessionId, observerId); }
-    catch (err) { console.error('Failed to kick observer:', err); throw err; }
-  });
-
-  registry.handle('grantControl', async (_e, sessionId, observerId) => {
-    try { return await sharingManager.grantControl(sessionId, observerId); }
-    catch (err) { console.error('Failed to grant control:', err); throw err; }
-  });
-
-  registry.handle('revokeControl', async (_e, sessionId, observerId) => {
-    try { return await sharingManager.revokeControl(sessionId, observerId); }
-    catch (err) { console.error('Failed to revoke control:', err); throw err; }
-  });
-
-  registry.handle('joinShare', async (_e, request) => {
-    try { return await sharingManager.joinShare(request); }
-    catch (err) { console.error('Failed to join share:', err); throw err; }
-  });
-
-  registry.handle('leaveShare', async (_e, shareCode) => {
-    return sharingManager.leaveShare(shareCode);
-  });
-
-  registry.handle('requestControl', async (_e, shareCode) => {
-    return sharingManager.requestControl(shareCode);
-  });
-
-  registry.handle('releaseControl', async (_e, shareCode) => {
-    return sharingManager.releaseControl(shareCode);
-  });
-
-  registry.handle('getSharingSettings', async () => {
-    return sharingManager.getSettings();
-  });
-
-  registry.handle('updateSharingSettings', async (_e, updates) => {
-    return sharingManager.updateSettings(updates);
-  });
-
-  registry.handle('checkShareEligibility', async () => {
-    return sharingManager.checkEligibility();
-  });
+  // registry.handle('tunnelList', async () => { ... });
+  // registry.handle('tunnelCreate', async (_e, request) => { ... });
+  // registry.handle('tunnelStop', async (_e, tunnelId) => { ... });
+  // registry.handle('tunnelGetInfo', async (_e, tunnelId) => { ... });
+  // registry.handle('tunnelGetLogs', async (_e, tunnelId, limit) => { ... });
+  // registry.handle('tunnelGetSettings', async () => { ... });
+  // registry.handle('tunnelUpdateSettings', async (_e, settings) => { ... });
+  // registry.handle('tunnelGetAccount', async () => { ... });
+  // registry.handle('tunnelGetUsage', async (_e, tunnelId) => { ... });
+  // registry.handle('tunnelRefresh', async () => { ... });
+  // registry.handle('tunnelDetectBinary', async () => { ... });
+  // registry.handle('tunnelValidateKey', async (_e, apiKey) => { ... });
+  // registry.handle('tunnelStopAll', async () => { ... });
+  // registry.handle('startShare', async (_e, request) => { ... });
+  // registry.handle('stopShare', async (_e, sessionId) => { ... });
+  // registry.handle('getShareInfo', async (_e, sessionId) => { ... });
+  // registry.handle('listActiveShares', async () => { ... });
+  // registry.handle('kickObserver', async (_e, sessionId, observerId) => { ... });
+  // registry.handle('grantControl', async (_e, sessionId, observerId) => { ... });
+  // registry.handle('revokeControl', async (_e, sessionId, observerId) => { ... });
+  // registry.handle('joinShare', async (_e, request) => { ... });
+  // registry.handle('leaveShare', async (_e, shareCode) => { ... });
+  // registry.handle('requestControl', async (_e, shareCode) => { ... });
+  // registry.handle('releaseControl', async (_e, shareCode) => { ... });
+  // registry.handle('getSharingSettings', async () => { ... });
+  // registry.handle('updateSharingSettings', async (_e, updates) => { ... });
+  // registry.handle('checkShareEligibility', async () => { ... });
 
   // ── Session I/O (send — fire and forget) ──
 

@@ -52,7 +52,8 @@ describe('EmptyState', () => {
     render(<EmptyState onCreateSession={vi.fn()} />);
     expect(screen.getByTestId('action-start-coding')).toBeInTheDocument();
     expect(screen.getByTestId('action-analyze-codebase')).toBeInTheDocument();
-    expect(screen.getByTestId('action-join-session')).toBeInTheDocument();
+    // Join Session card hidden when joinSession not provided (LaunchTunnel disabled)
+    expect(screen.queryByTestId('action-join-session')).not.toBeInTheDocument();
   });
 
   it('calls onCreateSession when quick action is clicked (no onQuickStart)', () => {
@@ -76,6 +77,7 @@ describe('EmptyState', () => {
     fireEvent.click(screen.getByTestId('action-analyze-codebase'));
     expect(onQuickStart.analyzeCodebase).toHaveBeenCalled();
 
+    // Join Session card visible when joinSession handler is provided
     fireEvent.click(screen.getByTestId('action-join-session'));
     expect(onQuickStart.joinSession).toHaveBeenCalled();
   });

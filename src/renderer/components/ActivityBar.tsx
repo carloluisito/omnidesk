@@ -15,8 +15,8 @@ import {
   Users,
   BookOpen,
   Radio,
-  Network,
-  Share2,
+  // Network, // LaunchTunnel disabled
+  // Share2,  // LaunchTunnel disabled
   DollarSign,
   Settings,
   Info,
@@ -24,7 +24,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export type ActivityPanelId = 'git' | 'history' | 'teams' | 'atlas' | 'playbooks' | 'tunnels' | 'sharing' | null;
+// NOTE: 'tunnels' and 'sharing' disabled until LaunchTunnel integration is fixed
+export type ActivityPanelId = 'git' | 'history' | 'teams' | 'atlas' | 'playbooks' | /* 'tunnels' | 'sharing' | */ null;
 
 interface ActivityBarProps {
   activePanel:         ActivityPanelId;
@@ -33,10 +34,9 @@ interface ActivityBarProps {
   onOpenAbout:         () => void;
   onOpenBudget:        () => void;
   onOpenLayoutPicker?: () => void;
-  tunnelActive?:       boolean;
+  // tunnelActive?:       boolean;
   teamsEnabled?:       boolean;
-  /** Number of active shares — shows badge dot when > 0 */
-  activeShareCount?:   number;
+  // activeShareCount?:   number;
 }
 
 interface NavItem {
@@ -246,9 +246,9 @@ export function ActivityBar({
   onOpenAbout,
   onOpenBudget,
   onOpenLayoutPicker,
-  tunnelActive = false,
+  // tunnelActive = false,
   teamsEnabled = true,
-  activeShareCount = 0,
+  // activeShareCount = 0,
 }: ActivityBarProps) {
   const topItems: NavItem[] = [
     { id: 'git',       label: 'Git',         Icon: GitBranch },
@@ -256,8 +256,9 @@ export function ActivityBar({
     ...(teamsEnabled ? [{ id: 'teams' as const, label: 'Agent Teams', Icon: Users }] : []),
     { id: 'atlas',     label: 'Atlas',       Icon: BookOpen  },
     { id: 'playbooks', label: 'Playbooks',   Icon: Radio     },
-    { id: 'tunnels',   label: 'Tunnels',     Icon: Network, badge: tunnelActive },
-    { id: 'sharing',   label: 'Sharing',     Icon: Share2,  badge: activeShareCount > 0 },
+    // NOTE: LaunchTunnel/sharing disabled
+    // { id: 'tunnels',   label: 'Tunnels',     Icon: Network, badge: tunnelActive },
+    // { id: 'sharing',   label: 'Sharing',     Icon: Share2,  badge: activeShareCount > 0 },
   ];
 
   const handleToggle = useCallback((panelId: Exclude<ActivityPanelId, null>) => {

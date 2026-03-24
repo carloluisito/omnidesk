@@ -17,10 +17,11 @@ import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
-import { TunnelManager } from './tunnel-manager';
+// NOTE: LaunchTunnel/sharing disabled — uncomment when LaunchTunnel integration is fixed
+// import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
-import { SharingManager } from './sharing-manager';
-import { IPCEmitter } from './ipc-emitter';
+// import { SharingManager } from './sharing-manager';
+// import { IPCEmitter } from './ipc-emitter'; // LaunchTunnel disabled
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
 import { WindowState } from '../shared/ipc-types';
 
@@ -47,9 +48,9 @@ let modelHistoryManager: ModelHistoryManager | null = null;
 let gitManager: GitManager | null = null;
 let playbookManager: PlaybookManager | null = null;
 let playbookExecutor: PlaybookExecutor | null = null;
-let tunnelManager: TunnelManager | null = null;
+// let tunnelManager: TunnelManager | null = null; // LaunchTunnel disabled
 let providerRegistry: ProviderRegistry | null = null;
-let sharingManager: SharingManager | null = null;
+// let sharingManager: SharingManager | null = null; // LaunchTunnel disabled
 
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
 
@@ -172,13 +173,11 @@ function createWindow(): void {
   playbookManager = new PlaybookManager();
   playbookExecutor = new PlaybookExecutor(sessionManager, checkpointManager, playbookManager);
 
-  // Initialize tunnel manager
-  tunnelManager = new TunnelManager();
-  tunnelManager.setMainWindow(mainWindow);
-
-  // Initialize sharing manager (depends on sessionManager + tunnelManager)
-  sharingManager = new SharingManager(sessionManager, tunnelManager);
-  sharingManager.setEmitter(new IPCEmitter(mainWindow));
+  // NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
+  // tunnelManager = new TunnelManager();
+  // tunnelManager.setMainWindow(mainWindow);
+  // sharingManager = new SharingManager(sessionManager, tunnelManager);
+  // sharingManager.setEmitter(new IPCEmitter(mainWindow));
 
   // Initialize command registry
   commandRegistry = new CommandRegistry();
@@ -218,9 +217,9 @@ function createWindow(): void {
     gitManager,
     playbookManager,
     playbookExecutor,
-    tunnelManager,
+    // tunnelManager, // LaunchTunnel disabled
     providerRegistry,
-    sharingManager
+    // sharingManager // LaunchTunnel disabled
   );
 
   // Initialize pool (delayed, async)
@@ -272,14 +271,15 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     removeIPCHandlers();
-    if (sharingManager) {
-      sharingManager.destroy();
-      sharingManager = null;
-    }
-    if (tunnelManager) {
-      tunnelManager.destroy();
-      tunnelManager = null;
-    }
+    // NOTE: LaunchTunnel/sharing disabled
+    // if (sharingManager) {
+    //   sharingManager.destroy();
+    //   sharingManager = null;
+    // }
+    // if (tunnelManager) {
+    //   tunnelManager.destroy();
+    //   tunnelManager = null;
+    // }
     if (modelHistoryManager) {
       modelHistoryManager.shutdown();
       modelHistoryManager = null;
@@ -334,38 +334,32 @@ app.on('window-all-closed', () => {
 // Must be registered before app.whenReady() for Windows (registry).
 app.setAsDefaultProtocolClient('omnidesk');
 
-/**
- * Parse an omnidesk://join/<code> URL and return the share code, or null
- * if the URL does not match the expected pattern.
- */
-function extractDeepLinkCode(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'omnidesk:') return null;
-    if (parsed.hostname !== 'join') return null;
-    // pathname is "/<code>" — strip the leading "/"
-    const code = parsed.pathname.replace(/^\//, '').trim();
-    if (!code) return null;
-    return code;
-  } catch {
-    return null;
-  }
-}
+// NOTE: LaunchTunnel disabled — extractDeepLinkCode commented out
+// function extractDeepLinkCode(url: string): string | null {
+//   try {
+//     const parsed = new URL(url);
+//     if (parsed.protocol !== 'omnidesk:') return null;
+//     if (parsed.hostname !== 'join') return null;
+//     const code = parsed.pathname.replace(/^\//, '').trim();
+//     if (!code) return null;
+//     return code;
+//   } catch {
+//     return null;
+//   }
+// }
 
-/**
- * Send a deep-link join event to the renderer so it can pre-fill and open
- * the JoinSessionDialog.  The channel name 'sharing:deepLinkJoin' is used
- * directly (not via the IPC contract) since it is a fire-and-forget push
- * from the main process triggered by OS events.
- */
-function handleDeepLink(url: string): void {
-  const code = extractDeepLinkCode(url);
-  if (!code) return;
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-    mainWindow.webContents.send('sharing:deepLinkJoin', { shareCode: code });
-  }
+// NOTE: LaunchTunnel/sharing deep link disabled
+// function handleDeepLink(url: string): void {
+//   const code = extractDeepLinkCode(url);
+//   if (!code) return;
+//   if (mainWindow && !mainWindow.isDestroyed()) {
+//     if (mainWindow.isMinimized()) mainWindow.restore();
+//     mainWindow.focus();
+//     mainWindow.webContents.send('sharing:deepLinkJoin', { shareCode: code });
+//   }
+// }
+function handleDeepLink(_url: string): void {
+  // LaunchTunnel sharing disabled — deep links are no-ops for now
 }
 
 // Handle potential second instance

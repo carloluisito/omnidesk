@@ -26,8 +26,9 @@ import { AboutDialog } from './components/AboutDialog';
 import { TeamPanel } from './components/TeamPanel';
 import { AtlasPanel } from './components/AtlasPanel';
 import { GitPanel } from './components/GitPanel';
-import { TunnelPanel } from './components/TunnelPanel';
-import { ShareManagementPanel } from './components/ShareManagementPanel';
+// NOTE: LaunchTunnel/sharing disabled — uncomment when LaunchTunnel integration is fixed
+// import { TunnelPanel } from './components/TunnelPanel';
+// import { ShareManagementPanel } from './components/ShareManagementPanel';
 import { WorktreePanel } from './components/WorktreePanel';
 import { BrandMark } from './components/ui/BrandMark';
 import { ProgressBar } from './components/ui/ProgressBar';
@@ -50,15 +51,15 @@ import { useGit } from './hooks/useGit';
 import { usePlaybooks } from './hooks/usePlaybooks';
 import { useAutoTeamLayout } from './hooks/useAutoTeamLayout';
 import { useLayoutPicker } from './hooks/useLayoutPicker';
-import { useSessionSharing } from './hooks/useSessionSharing';
+// import { useSessionSharing } from './hooks/useSessionSharing';
 import { Workspace, PermissionMode, WorkspaceValidationResult } from '../shared/ipc-types';
 import { PromptTemplate } from '../shared/types/prompt-templates';
 import { resolveVariables, readClipboard, getMissingVariables } from './utils/variable-resolver';
 import { showToast } from './utils/toast';
-import { dispatchToast } from './components/ui/ToastContainer';
-import { ShareSessionDialog } from './components/ShareSessionDialog';
-import { JoinSessionDialog } from './components/JoinSessionDialog';
-import { ControlRequestDialog } from './components/ui/ControlRequestDialog';
+// import { dispatchToast } from './components/ui/ToastContainer'; // LaunchTunnel disabled (was used for sharing toasts)
+// import { ShareSessionDialog } from './components/ShareSessionDialog';
+// import { JoinSessionDialog } from './components/JoinSessionDialog';
+// import { ControlRequestDialog } from './components/ui/ControlRequestDialog';
 
 function App() {
   const {
@@ -127,11 +128,9 @@ function App() {
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showWorktreePanel, setShowWorktreePanel] = useState(false);
 
-  // Tunnel panel
-  const [showTunnelPanel, setShowTunnelPanel] = useState(false);
-
-  // Share management panel
-  const [showSharePanel, setShowSharePanel] = useState(false);
+  // NOTE: LaunchTunnel/sharing disabled
+  // const [showTunnelPanel, setShowTunnelPanel] = useState(false);
+  // const [showSharePanel, setShowSharePanel] = useState(false);
 
   // Session Playbooks
   const pb = usePlaybooks(activeSessionId);
@@ -146,70 +145,60 @@ function App() {
   const [showCheckpointPanel, setShowCheckpointPanel] = useState(false);
   const [showCheckpointDialog, setShowCheckpointDialog] = useState(false);
   const [showAboutDialog, setShowAboutDialog] = useState(false);
-  const [showJoinSessionDialog, setShowJoinSessionDialog] = useState(false);
-  const [joinSessionInitialCode, setJoinSessionInitialCode] = useState('');
+  // const [showJoinSessionDialog, setShowJoinSessionDialog] = useState(false);
+  // const [joinSessionInitialCode, setJoinSessionInitialCode] = useState('');
   const [confirmClose, setConfirmClose] = useState<{ sessionId: string; name: string } | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
 
-  // Session Sharing
-  const sharing = useSessionSharing();
-  const [shareDialogSessionId, setShareDialogSessionId]   = useState<string | null>(null);
-  const [controlRequestPending, setControlRequestPending] = useState<{
-    observerId:   string;
-    observerName: string;
-    sessionId:    string;
-  } | null>(null);
-
-  // Wire observer-joined / observer-left / control-requested → toasts + control dialog
-  // Also wire sharing:deepLinkJoin (Phase 11) to pre-fill JoinSessionDialog
-  useEffect(() => {
-    const unsubJoined = window.electronAPI.onObserverJoined((event) => {
-      dispatchToast(`${event.observer.displayName} joined your session`, 'success', 4000);
-    });
-    const unsubLeft = window.electronAPI.onObserverLeft((_event) => {
-      dispatchToast('An observer left your session', 'info', 3000);
-    });
-    const unsubControlRequested = window.electronAPI.onControlRequested((event) => {
-      setControlRequestPending({
-        observerId:   event.observerId,
-        observerName: event.observerName,
-        sessionId:    event.sessionId,
-      });
-    });
-
-    // Deep link: omnidesk://join/<code> → pre-fill and open JoinSessionDialog
-    const unsubDeepLink = window.electronAPI.onDeepLinkJoin((data) => {
-      if (data?.shareCode) {
-        setJoinSessionInitialCode(data.shareCode);
-        setShowJoinSessionDialog(true);
-      }
-    });
-
-    return () => {
-      unsubJoined();
-      unsubLeft();
-      unsubControlRequested();
-      unsubDeepLink();
-    };
-  }, []);
-
-  const handleGrantControl = useCallback(async () => {
-    if (!controlRequestPending) return;
-    await sharing.grantControl(controlRequestPending.sessionId, controlRequestPending.observerId);
-    setControlRequestPending(null);
-  }, [controlRequestPending, sharing]);
-
-  const handleDenyControl = useCallback(() => {
-    setControlRequestPending(null);
-  }, []);
-
-  const handleShareSession = useCallback((sessionId: string) => {
-    setShareDialogSessionId(sessionId);
-  }, []);
-
-  const handleStopSharing = useCallback(async (sessionId: string) => {
-    await sharing.stopSharing(sessionId);
-  }, [sharing]);
+  // NOTE: Session Sharing / LaunchTunnel — disabled until LaunchTunnel integration is fixed
+  // const sharing = useSessionSharing();
+  // const [shareDialogSessionId, setShareDialogSessionId]   = useState<string | null>(null);
+  // const [controlRequestPending, setControlRequestPending] = useState<{
+  //   observerId:   string;
+  //   observerName: string;
+  //   sessionId:    string;
+  // } | null>(null);
+  // useEffect(() => {
+  //   const unsubJoined = window.electronAPI.onObserverJoined((event) => {
+  //     dispatchToast(`${event.observer.displayName} joined your session`, 'success', 4000);
+  //   });
+  //   const unsubLeft = window.electronAPI.onObserverLeft((_event) => {
+  //     dispatchToast('An observer left your session', 'info', 3000);
+  //   });
+  //   const unsubControlRequested = window.electronAPI.onControlRequested((event) => {
+  //     setControlRequestPending({
+  //       observerId:   event.observerId,
+  //       observerName: event.observerName,
+  //       sessionId:    event.sessionId,
+  //     });
+  //   });
+  //   const unsubDeepLink = window.electronAPI.onDeepLinkJoin((data) => {
+  //     if (data?.shareCode) {
+  //       setJoinSessionInitialCode(data.shareCode);
+  //       setShowJoinSessionDialog(true);
+  //     }
+  //   });
+  //   return () => {
+  //     unsubJoined();
+  //     unsubLeft();
+  //     unsubControlRequested();
+  //     unsubDeepLink();
+  //   };
+  // }, []);
+  // const handleGrantControl = useCallback(async () => {
+  //   if (!controlRequestPending) return;
+  //   await sharing.grantControl(controlRequestPending.sessionId, controlRequestPending.observerId);
+  //   setControlRequestPending(null);
+  // }, [controlRequestPending, sharing]);
+  // const handleDenyControl = useCallback(() => {
+  //   setControlRequestPending(null);
+  // }, []);
+  // const handleShareSession = useCallback((sessionId: string) => {
+  //   setShareDialogSessionId(sessionId);
+  // }, []);
+  // const handleStopSharing = useCallback(async (sessionId: string) => {
+  //   await sharing.stopSharing(sessionId);
+  // }, [sharing]);
 
   // Command palette for prompt templates
   const commandPalette = useCommandPalette({
@@ -480,12 +469,12 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + U: Tunnel panel
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'U') {
-        e.preventDefault();
-        setShowTunnelPanel(prev => !prev);
-        return;
-      }
+      // NOTE: LaunchTunnel shortcut disabled
+      // if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'U') {
+      //   e.preventDefault();
+      //   setShowTunnelPanel(prev => !prev);
+      //   return;
+      // }
 
       // Ctrl/Cmd + Shift + H: History panel
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
@@ -737,9 +726,9 @@ function App() {
     openPanel('atlas', setShowAtlasPanel);
   }, [createSession, openPanel]);
 
-  const handleQuickJoinSession = useCallback(() => {
-    setShowJoinSessionDialog(true);
-  }, []);
+  // const handleQuickJoinSession = useCallback(() => {
+  //   setShowJoinSessionDialog(true);
+  // }, []);
 
   // Welcome wizard handlers
   const handleWizardComplete = useCallback(async () => {
@@ -785,8 +774,8 @@ function App() {
     // For playbooks, open the playbook picker
     if (panel === 'playbooks') pb.setIsPanelOpen(true);
     else pb.setIsPanelOpen(false);
-    setShowTunnelPanel(panel === 'tunnels');
-    setShowSharePanel(panel === 'sharing');
+    // setShowTunnelPanel(panel === 'tunnels');
+    // setShowSharePanel(panel === 'sharing');
   }, [pb]);
 
   const handleSplitSession = useCallback((sessionId: string, direction: 'horizontal' | 'vertical') => {
@@ -825,11 +814,11 @@ function App() {
     }
   }, [layout, splitPane, assignSession, focusedPaneId]);
 
-  // Convert sessions to TabData format, injecting sharing state
+  // Convert sessions to TabData format (sharing state disabled)
   const tabData: TabData[] = sessions.map((s) => ({
     ...s,
-    isShared:      sharing.activeShares.has(s.id),
-    observerCount: sharing.activeShares.get(s.id)?.observers.length ?? 0,
+    // isShared:      sharing.activeShares.has(s.id),
+    // observerCount: sharing.activeShares.get(s.id)?.observers.length ?? 0,
   }));
 
   // Active session's provider (for conditional UI rendering)
@@ -879,9 +868,9 @@ function App() {
           onOpenAbout={() => setShowAboutDialog(true)}
           onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
           onOpenLayoutPicker={() => layoutPicker.openPicker()}
-          tunnelActive={false}
+          // tunnelActive={false}
           teamsEnabled={agentTeamsEnabled === true}
-          activeShareCount={sharing.activeShares.size}
+          // activeShareCount={sharing.activeShares.size}
         />
 
         {/* Right column: tab bar + content + status bar */}
@@ -905,10 +894,10 @@ function App() {
         onOpenGit={() => openPanel('git', setShowGitPanel)}
         onOpenWorktrees={() => openPanel('worktrees', setShowWorktreePanel)}
         onOpenPlaybooks={() => pb.openPicker()}
-        onOpenTunnels={() => setShowTunnelPanel(prev => !prev)}
+        // onOpenTunnels={() => setShowTunnelPanel(prev => !prev)}
         teamCount={agentTeamsEnabled ? teams.length : 0}
         gitStagedCount={git.status?.stagedCount ?? 0}
-        activeTunnelCount={0}
+        // activeTunnelCount={0}
         onOpenSettings={() => openPanel('settings', setShowSettingsDialog)}
         onOpenHistory={() => openPanel('history', setShowHistoryPanel)}
         onOpenCheckpoints={() => openPanel('checkpoints', setShowCheckpointPanel)}
@@ -920,9 +909,9 @@ function App() {
         onAssignSessionToFocusedPane={handleAssignSessionToFocusedPane}
         paneCount={paneCount}
         onSplitSession={handleSplitSession}
-        onShareSession={handleShareSession}
-        onStopSharing={handleStopSharing}
-        sharedSessionIds={[...sharing.activeShares.keys()]}
+        // onShareSession={handleShareSession}
+        // onStopSharing={handleStopSharing}
+        // sharedSessionIds={[...sharing.activeShares.keys()]}
       />
 
       {/* Terminal area */}
@@ -933,7 +922,7 @@ function App() {
             onQuickStart={{
               startCoding: handleQuickStartCoding,
               analyzeCodebase: handleQuickAnalyzeCodebase,
-              joinSession: handleQuickJoinSession,
+              // joinSession: handleQuickJoinSession,
             }}
           />
         ) : isSplitActive ? (
@@ -969,10 +958,11 @@ function App() {
                         onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
                         onOpenHistory={() => openPanel('history', setShowHistoryPanel)}
                         onCreateCheckpoint={() => setShowCheckpointDialog(true)}
-                        isShared={sharing.activeShares.has(session.id)}
-                        observerCount={sharing.activeShares.get(session.id)?.observers.length ?? 0}
-                        onShareSession={() => handleShareSession(session.id)}
-                        onStopSharing={() => handleStopSharing(session.id)}
+                        // NOTE: Sharing/LaunchTunnel props — commented out until LaunchTunnel integration is fixed
+                        // isShared={sharing.activeShares.has(session.id)}
+                        // observerCount={sharing.activeShares.get(session.id)?.observers.length ?? 0}
+                        // onShareSession={() => handleShareSession(session.id)}
+                        // onStopSharing={() => handleStopSharing(session.id)}
                       />
                     )}
                     <div className="pane-terminal-area">
@@ -1081,21 +1071,19 @@ function App() {
         projectPath={atlasProjectPath}
       />
 
-      {/* Tunnel panel */}
-      <TunnelPanel
+      {/* NOTE: Tunnel panel and Share Management panel disabled — LaunchTunnel integration needs fixing */}
+      {/* <TunnelPanel
         isOpen={showTunnelPanel}
         onClose={() => setShowTunnelPanel(false)}
-      />
-
-      {/* Share Management panel */}
-      <ShareManagementPanel
+      /> */}
+      {/* <ShareManagementPanel
         isOpen={showSharePanel}
         onClose={() => {
           setShowSharePanel(false);
           setActiveActivityPanel(null);
         }}
         sessionNames={Object.fromEntries(sessions.map(s => [s.id, s.name]))}
-      />
+      /> */}
 
       {/* Playbook Picker */}
       <PlaybookPicker
@@ -1278,36 +1266,10 @@ function App() {
         }}
       />
 
-      {/* Share Session Dialog */}
-      {shareDialogSessionId && (
-        <ShareSessionDialog
-          isOpen={shareDialogSessionId !== null}
-          onClose={() => setShareDialogSessionId(null)}
-          sessionId={shareDialogSessionId}
-          sessionName={sessions.find(s => s.id === shareDialogSessionId)?.name ?? ''}
-        />
-      )}
-
-      {/* Join Session Dialog */}
-      <JoinSessionDialog
-        isOpen={showJoinSessionDialog}
-        initialCode={joinSessionInitialCode}
-        onClose={() => {
-          setShowJoinSessionDialog(false);
-          setJoinSessionInitialCode('');
-        }}
-        onJoined={(_shareCode) => {
-          dispatchToast('Joined shared session', 'success', 3000);
-        }}
-      />
-
-      {/* Control Request Dialog (shown to host) */}
-      <ControlRequestDialog
-        isOpen={controlRequestPending !== null}
-        observerName={controlRequestPending?.observerName ?? ''}
-        onGrant={handleGrantControl}
-        onDeny={handleDenyControl}
-      />
+      {/* NOTE: Share/Join/Control dialogs disabled — LaunchTunnel integration needs fixing */}
+      {/* <ShareSessionDialog ... /> */}
+      {/* <JoinSessionDialog ... /> */}
+      {/* <ControlRequestDialog ... /> */}
 
       <style>{appStyles}</style>
     </div>
