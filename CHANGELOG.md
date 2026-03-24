@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-03-25
+
+### Added
+- Newline insertion in terminal via Ctrl+Enter, Shift+Enter, Alt+Enter, or Cmd+Enter
+- `/preflight` command — runs CI-equivalent checks locally before pushing
+- `/ship` command — full workflow: branch, preflight, commit, push
+
+### Changed
+- Disabled LaunchTunnel and session sharing features (commented out, pending LaunchTunnel service fixes)
+- Removed non-functional kebab menu (3 dots) from PaneHeader in split view
+- Hidden "Join Session" card from empty state when sharing is unavailable
+- `/release` command now auto-checkouts to `main` and pulls latest instead of blocking
+- Removed proof PNGs from repository and gitignored them
+
+### Fixed
+- Unused `IPCEmitter` and `extractDeepLinkCode` imports causing CI type check failures
+
+---
+
 ## [1.1.0] - 2026-03-23
 
 ### Added
