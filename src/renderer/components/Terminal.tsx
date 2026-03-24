@@ -408,6 +408,15 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
         // Allow Ctrl+Shift+M (model cycling) to pass through to app
         const isModelCycle = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M';
 
+        // Newline insertion: Ctrl+Enter, Shift+Enter, Alt+Enter, Cmd+Enter
+        if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)) {
+          e.preventDefault();
+          if (!readOnly) {
+            onInput(sessionId, '\n');
+          }
+          return false;
+        }
+
         if (isPaste || isShiftInsert || isModelCycle) {
           return false; // Let browser/app handle → our window event listener picks it up
         }
