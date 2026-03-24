@@ -4,9 +4,10 @@ Follow these steps exactly:
 
 ## 1. Verify branch state
 
-- Confirm you are on the `main` branch. If not, stop and tell the user to switch to `main` first.
-- Run `git fetch origin` then check if local `main` is up to date with `origin/main`. If behind, stop and tell the user to `git pull` first.
 - Run `git status` to check for uncommitted changes. If any exist, stop and tell the user to commit or stash them first.
+- If not on the `main` branch, automatically switch: run `git checkout main`.
+- Run `git fetch origin` then `git pull origin main` to ensure local `main` is up to date with remote.
+- If the pull fails due to conflicts, stop and tell the user to resolve them.
 
 ## 2. Determine the new version
 
