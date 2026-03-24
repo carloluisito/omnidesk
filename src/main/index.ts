@@ -21,7 +21,7 @@ import { PlaybookExecutor } from './playbook-executor';
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
 // import { SharingManager } from './sharing-manager';
-import { IPCEmitter } from './ipc-emitter';
+// import { IPCEmitter } from './ipc-emitter'; // LaunchTunnel disabled
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
 import { WindowState } from '../shared/ipc-types';
 
@@ -334,23 +334,19 @@ app.on('window-all-closed', () => {
 // Must be registered before app.whenReady() for Windows (registry).
 app.setAsDefaultProtocolClient('omnidesk');
 
-/**
- * Parse an omnidesk://join/<code> URL and return the share code, or null
- * if the URL does not match the expected pattern.
- */
-function extractDeepLinkCode(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'omnidesk:') return null;
-    if (parsed.hostname !== 'join') return null;
-    // pathname is "/<code>" — strip the leading "/"
-    const code = parsed.pathname.replace(/^\//, '').trim();
-    if (!code) return null;
-    return code;
-  } catch {
-    return null;
-  }
-}
+// NOTE: LaunchTunnel disabled — extractDeepLinkCode commented out
+// function extractDeepLinkCode(url: string): string | null {
+//   try {
+//     const parsed = new URL(url);
+//     if (parsed.protocol !== 'omnidesk:') return null;
+//     if (parsed.hostname !== 'join') return null;
+//     const code = parsed.pathname.replace(/^\//, '').trim();
+//     if (!code) return null;
+//     return code;
+//   } catch {
+//     return null;
+//   }
+// }
 
 // NOTE: LaunchTunnel/sharing deep link disabled
 // function handleDeepLink(url: string): void {
