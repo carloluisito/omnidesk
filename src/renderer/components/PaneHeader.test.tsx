@@ -65,50 +65,11 @@ describe('PaneHeader', () => {
     expect(screen.getByTestId('status-dot')).toBeInTheDocument();
   });
 
-  it('renders the pane options kebab button', () => {
-    render(<PaneHeader {...defaultProps} />);
-    expect(screen.getByLabelText('Pane options')).toBeInTheDocument();
-  });
+  // NOTE: Kebab menu and sharing features removed — tests below disabled
+  // See chore/disable-launchtunnel for context
 
-  it('shows split buttons in kebab menu when canSplit is true', () => {
+  it('does not render kebab menu (removed)', () => {
     render(<PaneHeader {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    expect(screen.getByText('Split left / right')).toBeInTheDocument();
-    expect(screen.getByText('Split top / bottom')).toBeInTheDocument();
-  });
-
-  it('hides split buttons in kebab menu when canSplit is false', () => {
-    render(<PaneHeader {...defaultProps} canSplit={false} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    expect(screen.queryByText('Split left / right')).not.toBeInTheDocument();
-    expect(screen.queryByText('Split top / bottom')).not.toBeInTheDocument();
-  });
-
-  it('calls onSplitHorizontal when horizontal split button clicked', () => {
-    render(<PaneHeader {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    fireEvent.click(screen.getByText('Split left / right'));
-    expect(defaultProps.onSplitHorizontal).toHaveBeenCalled();
-  });
-
-  it('calls onSplitVertical when vertical split button clicked', () => {
-    render(<PaneHeader {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    fireEvent.click(screen.getByText('Split top / bottom'));
-    expect(defaultProps.onSplitVertical).toHaveBeenCalled();
-  });
-
-  it('calls onClosePane when close pane menu item clicked', () => {
-    render(<PaneHeader {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    fireEvent.click(screen.getByText('Close pane'));
-    expect(defaultProps.onClosePane).toHaveBeenCalled();
-  });
-
-  it('shows session picker when Change session clicked', () => {
-    render(<PaneHeader {...defaultProps} />);
-    fireEvent.click(screen.getByLabelText('Pane options'));
-    fireEvent.click(screen.getByText('Change session'));
-    expect(screen.getByText('Other Session')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Pane options')).not.toBeInTheDocument();
   });
 });
