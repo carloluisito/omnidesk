@@ -196,6 +196,9 @@ export interface IPCContractMap {
   // ── Shell (invoke) ──
   openExternal:        InvokeContract<'shell:openExternal', [string], boolean>;
 
+  // ── Updates (invoke) ──
+  checkForUpdates:     InvokeContract<'updates:checkForUpdates', [], { updateAvailable: boolean; version?: string; error?: string }>;
+
   // ── Session events (main→renderer) ──
   onSessionCreated:    EventContract<'session:created',  SessionMetadata>;
   onSessionClosed:     EventContract<'session:closed',   string>;
@@ -465,6 +468,9 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   // Shell
   openExternal:        'shell:openExternal',
 
+  // Updates
+  checkForUpdates:     'updates:checkForUpdates',
+
   // Session events
   onSessionCreated:    'session:created',
   onSessionClosed:     'session:closed',
@@ -723,6 +729,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   closeWindow:         'send',
 
   openExternal:        'invoke',
+  checkForUpdates:     'invoke',
 
   onSessionCreated:    'event',
   onSessionClosed:     'event',

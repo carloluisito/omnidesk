@@ -21,6 +21,8 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [versionInfo, setVersionInfo] = useState<AppVersionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'uptodate' | 'error'>('idle');
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -187,7 +189,23 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
           }}
         >
           <button
-            onClick={() => (window.electronAPI as any).checkForUpdates?.()}
+            disabled={updateStatus === 'checking'}
+            onClick={async () => {
+              setUpdateStatus('checking');
+              try {
+                const result = await window.electronAPI.checkForUpdates();
+                if (result.error) {
+                  setUpdateStatus('error');
+                } else if (result.updateAvailable) {
+                  setUpdateStatus('available');
+                  setUpdateVersion(result.version || null);
+                } else {
+                  setUpdateStatus('uptodate');
+                }
+              } catch {
+                setUpdateStatus('error');
+              }
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -197,22 +215,25 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               background: 'var(--surface-float)',
               border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--text-secondary)',
+              color: updateStatus === 'available' ? 'var(--text-accent)' : 'var(--text-secondary)',
               fontSize: 'var(--text-sm)',
               fontFamily: 'var(--font-ui)',
-              cursor: 'pointer',
+              cursor: updateStatus === 'checking' ? 'wait' : 'pointer',
+              opacity: updateStatus === 'checking' ? 0.6 : 1,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--border-accent)'; e.currentTarget.style.color = 'var(--text-accent)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            onMouseEnter={(e) => { if (updateStatus !== 'checking') { e.currentTarget.style.borderColor = 'var(--border-accent)'; e.currentTarget.style.color = 'var(--text-accent)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = updateStatus === 'available' ? 'var(--text-accent)' : 'var(--text-secondary)'; }}
           >
-            <RefreshCw size={13} />
-            Check for Updates
+            <RefreshCw size={13} style={updateStatus === 'checking' ? { animation: 'spin 1s linear infinite' } : undefined} />
+            {updateStatus === 'checking' ? 'Checking...' :
+             updateStatus === 'available' ? `Update available: v${updateVersion}` :
+             updateStatus === 'uptodate' ? 'Up to date' :
+             updateStatus === 'error' ? 'Update check failed' :
+             'Check for Updates'}
           </button>
 
-          <a
-            href="https://github.com/omnidesk/omnidesk"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => window.electronAPI.openExternal('https://github.com/carloluisito/omnidesk')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -226,14 +247,13 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               fontSize: 'var(--text-sm)',
               fontFamily: 'var(--font-ui)',
               cursor: 'pointer',
-              textDecoration: 'none',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}
           >
             <Github size={13} />
             View on GitHub
-          </a>
+          </button>
         </div>
 
         {/* Close footer */}
@@ -272,6 +292,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
           from { opacity: 0; transform: scale(0.96) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
