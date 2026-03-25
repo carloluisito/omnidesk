@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2026-03-26
+
+### Fixed
+- Ctrl+Shift+C now copies selected text from the terminal (was incorrectly opening the Checkpoint panel)
+- Checkpoint panel shortcut reassigned to Ctrl+Shift+K
+- Added Checkpoints entry to keyboard shortcuts panel under Panels section
+
+---
+
 ## [1.1.2] - 2026-03-25
 
 ### Added

@@ -2,8 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
-![Tests](https://img.shields.io/badge/tests-483%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.1.3-green.svg)
+![Tests](https://img.shields.io/badge/tests-481%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
 
@@ -228,7 +228,7 @@ Built packages will be in the `release/` directory.
 | Styling | Tailwind CSS (Obsidian theme) |
 | Graph | reactflow |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (483 tests) + Playwright |
+| Testing | Vitest 4 (481 tests) + Playwright |
 
 ---
 
