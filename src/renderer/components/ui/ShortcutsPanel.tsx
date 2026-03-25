@@ -48,6 +48,7 @@ const shortcuts: ShortcutGroup[] = [
       { keys: ['Ctrl', 'Shift', 'A'], description: 'Repository Atlas' },
       { keys: ['Ctrl', 'Shift', 'T'], description: 'Agent Teams' },
       { keys: ['Ctrl', 'Shift', 'E'], description: 'Reveal in File Explorer' },
+      { keys: ['Ctrl', 'Shift', 'K'], description: 'Checkpoints' },
     ],
   },
   {
@@ -63,7 +64,7 @@ const shortcuts: ShortcutGroup[] = [
       { keys: ['Ctrl/Shift/Alt', 'Enter'], description: 'Insert Newline' },
       { keys: ['Ctrl', 'C'], description: 'Interrupt (Shows Confirmation)' },
       { keys: ['Ctrl', 'V'], description: 'Paste' },
-      { keys: ['Ctrl', 'Shift', 'C'], description: 'Copy' },
+      { keys: ['Ctrl', 'Shift', 'C'], description: 'Copy from Terminal' },
     ],
   },
 ];
