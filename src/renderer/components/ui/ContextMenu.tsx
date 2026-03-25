@@ -89,7 +89,7 @@ export function ContextMenu({
     { id: 'duplicate', label: 'Duplicate', shortcut: '^D' },
     { id: 'dividerCheckpoint', label: '' },
     { id: 'createCheckpoint', label: 'Create Checkpoint', shortcut: '^⇧S' },
-    { id: 'viewCheckpoints', label: 'View Checkpoints', shortcut: '^⇧C' },
+    { id: 'viewCheckpoints', label: 'View Checkpoints', shortcut: '^⇧K' },
     { id: 'revealInExplorer', label: 'Reveal in File Explorer' },
     { id: 'divider1', label: '', hidden: !isExited },
     { id: 'restart', label: 'Restart', shortcut: '^R', hidden: !isExited },

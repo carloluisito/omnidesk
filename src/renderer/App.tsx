@@ -483,8 +483,8 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + C: Checkpoint panel
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+      // Ctrl/Cmd + Shift + K: Checkpoint panel
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
         e.preventDefault();
         setShowCheckpointPanel(prev => !prev);
         return;
