@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2026-03-26
+
+### Fixed
+- Auto-update check now works — release workflow includes electron-updater manifest files (`latest.yml`) in GitHub Release assets
+
+---
+
 ## [1.1.3] - 2026-03-26
 
 ### Fixed
