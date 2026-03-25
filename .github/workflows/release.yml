@@ -53,6 +53,8 @@ jobs:
           release/*.AppImage
           release/*.deb
           release/*.rpm
+          release/*.yml
+          release/*.yaml
         if-no-files-found: warn
 
   publish-npm:
@@ -114,5 +116,7 @@ jobs:
           artifacts/**/*.AppImage
           artifacts/**/*.deb
           artifacts/**/*.rpm
+          artifacts/**/*.yml
+          artifacts/**/*.yaml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
