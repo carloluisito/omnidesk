@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.5] - 2026-03-26
+
+### Fixed
+- Release workflow no longer fails on duplicate `builder-debug.yml` uploads — only `latest*.yml` manifests are included
+
+---
+
 ## [1.1.4] - 2026-03-26
 
 ### Fixed
