@@ -2,8 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-1.1.3-green.svg)
-![Tests](https://img.shields.io/badge/tests-481%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-green.svg)
+![Tests](https://img.shields.io/badge/tests-683%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
 
@@ -95,6 +95,13 @@
 - **Variable substitution** — `{{clipboard}}`, `{{currentDir}}`, `{{selection}}`, etc.
 - **Custom templates** — create and edit your own
 - **Fuzzy search** for quick template access
+
+### Custom Commands
+- **User and project-scoped commands** — define reusable commands with parameters
+- **Parameter system** — string, number, boolean, select, and multiline parameter types with defaults and validation
+- **Management UI** — create, edit, delete, import/export commands from the Settings panel
+- **Command palette integration** — custom commands appear alongside prompt templates in `Ctrl+Shift+P`
+- **Secure execution** — input sanitization, path traversal protection, and size limits
 
 ### API Quota Monitoring
 - **Real-time quota display** — see your Claude API usage at a glance
@@ -228,7 +235,7 @@ Built packages will be in the `release/` directory.
 | Styling | Tailwind CSS (Obsidian theme) |
 | Graph | reactflow |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (481 tests) + Playwright |
+| Testing | Vitest 4 (683 tests) + Playwright |
 
 ---
 

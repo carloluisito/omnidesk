@@ -42,6 +42,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 | Split View | settings-persistence | useSplitView, SplitLayout, PaneHeader, PaneSessionPicker | ipc-types.ts | `settings:*` |
 | Agent Teams | agent-team-manager | useAgentTeams, useAutoTeamLayout, useMessageStream, TeamPanel, TaskBoard, MessageStream, AgentGraph | ipc-types.ts, message-parser.ts | `teams:*` |
 | Templates | prompt-templates-manager, built-in-actions | useCommandPalette, CommandPalette, TemplateEditor | types/prompt-templates.ts | `template:*` |
+| Custom Commands | custom-command-manager | useCustomCommands, CustomCommandDialog, CustomCommandPanel, CustomCommandParameterDialog | types/custom-command-types.ts | `customCommands:*` |
 | History | history-manager | useHistory, HistoryPanel | types/history-types.ts | `history:*` |
 | Checkpoints | checkpoint-manager, checkpoint-persistence | useCheckpoints, CheckpointPanel, CheckpointDialog | types/checkpoint-types.ts | `checkpoint:*` |
 | Quota | quota-service | useQuota, BudgetPanel, BudgetSettings | ipc-types.ts | `quota:*`, `burnRate:*` |

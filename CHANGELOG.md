@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-03-28
+
+### Added
+- **Custom Commands** — user-defined and project-scoped commands with a full parameter system (string, number, boolean, select, multiline) including defaults and validation
+- Custom command management UI in Settings panel — create, edit, delete, import/export commands
+- Custom commands integrated into the command palette (`Ctrl+Shift+P`) alongside prompt templates
+- Security hardening for custom commands — input sanitization, path traversal protection, and size limits
+- Comprehensive test suite for custom commands (unit + security tests)
+
+### Fixed
+- `Ctrl+Shift+C` now correctly copies selected text from the terminal (was relying on browser-native copy which doesn't see xterm.js selections)
+
+---
+
 ## [1.1.5] - 2026-03-26
 
 ### Fixed
