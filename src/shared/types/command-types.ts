@@ -2,7 +2,7 @@
  * Command types for enhanced command palette
  */
 
-export type CommandCategory = 'sessions' | 'view' | 'templates' | 'panels' | 'settings' | 'help';
+export type CommandCategory = 'sessions' | 'view' | 'templates' | 'panels' | 'settings' | 'help' | 'custom-commands';
 
 export interface Command {
   id: string;

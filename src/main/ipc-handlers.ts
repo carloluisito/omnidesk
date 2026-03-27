@@ -16,6 +16,7 @@ import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
+import { CustomCommandManager } from './custom-command-manager';
 // NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
@@ -46,11 +47,13 @@ export function setupIPCHandlers(
   // tunnelManager: TunnelManager, // LaunchTunnel disabled
   providerRegistry: ProviderRegistry,
   // sharingManager: SharingManager // LaunchTunnel disabled
+  customCommandManager: CustomCommandManager,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
   checkpointManager.setMainWindow(mainWindow);
   playbookExecutor.setEmitter(new IPCEmitter(mainWindow));
+  customCommandManager.setEmitter(new IPCEmitter(mainWindow));
 
   registry = new IPCRegistry();
 
@@ -65,6 +68,8 @@ export function setupIPCHandlers(
   });
 
   registry.handle('closeSession', async (_e, sessionId) => {
+    // Clean up session-only commands before closing
+    customCommandManager.cleanupSession(sessionId);
     return sessionManager.closeSession(sessionId);
   });
 
@@ -886,6 +891,35 @@ export function setupIPCHandlers(
   // registry.handle('getSharingSettings', async () => { ... });
   // registry.handle('updateSharingSettings', async (_e, updates) => { ... });
   // registry.handle('checkShareEligibility', async () => { ... });
+
+  // ── Custom Commands ──
+
+  registry.handle('listCustomCommands', async (_e, request) => {
+    return customCommandManager.listCommands(request);
+  });
+
+  registry.handle('getCustomCommand', async (_e, slug, scope, projectDir) => {
+    return customCommandManager.getCommand(slug, scope, projectDir);
+  });
+
+  registry.handle('createCustomCommand', async (_e, request) => {
+    try { return customCommandManager.createCommand(request); }
+    catch (err) { console.error('[cmd:create] Failed:', err); throw err; }
+  });
+
+  registry.handle('updateCustomCommand', async (_e, request) => {
+    try { return customCommandManager.updateCommand(request); }
+    catch (err) { console.error('[cmd:update] Failed:', err); throw err; }
+  });
+
+  registry.handle('deleteCustomCommand', async (_e, request) => {
+    try { return customCommandManager.deleteCommand(request); }
+    catch (err) { console.error('[cmd:delete] Failed:', err); throw err; }
+  });
+
+  registry.handle('validateCommandName', async (_e, name, scope, projectDir) => {
+    return customCommandManager.validateName(name, scope, projectDir);
+  });
 
   // ── Session I/O (send — fire and forget) ──
 

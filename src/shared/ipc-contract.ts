@@ -121,6 +121,16 @@ import type {
 } from './types/provider-types';
 
 import type {
+  CustomCommand,
+  CommandListRequest,
+  CommandCreateRequest,
+  CommandUpdateRequest,
+  CommandDeleteRequest,
+  CommandValidation,
+  CommandScope,
+} from './types/custom-command-types';
+
+import type {
   ShareInfo,
   ShareOperationResult,
   SharingSettings,
@@ -428,6 +438,17 @@ export interface IPCContractMap {
   onShareMetadata:         EventContract<'sharing:metadata',         ShareMetadataEvent>;
   onDeepLinkJoin:          EventContract<'sharing:deepLinkJoin',     { shareCode: string }>;
 
+  // ── Custom Commands (invoke) ──
+  listCustomCommands:  InvokeContract<'command:list',     [CommandListRequest],                  CustomCommand[]>;
+  getCustomCommand:    InvokeContract<'command:get',      [string, CommandScope, string?],       CustomCommand | null>;
+  createCustomCommand: InvokeContract<'command:create',   [CommandCreateRequest],                CustomCommand>;
+  updateCustomCommand: InvokeContract<'command:update',   [CommandUpdateRequest],                CustomCommand>;
+  deleteCustomCommand: InvokeContract<'command:delete',   [CommandDeleteRequest],                boolean>;
+  validateCommandName: InvokeContract<'command:validate', [string, CommandScope, string?],       CommandValidation>;
+
+  // ── Custom Command events (main→renderer) ──
+  onCommandsChanged:   EventContract<'command:changed',   { scope: CommandScope; commands: CustomCommand[] }>;
+
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
 }
@@ -696,6 +717,15 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onShareMetadata:         'sharing:metadata',
   onDeepLinkJoin:          'sharing:deepLinkJoin',
 
+  // Custom Commands
+  listCustomCommands:  'command:list',
+  getCustomCommand:    'command:get',
+  createCustomCommand: 'command:create',
+  updateCustomCommand: 'command:update',
+  deleteCustomCommand: 'command:delete',
+  validateCommandName: 'command:validate',
+  onCommandsChanged:   'command:changed',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 };
@@ -934,6 +964,15 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onShareOutput:           'event',
   onShareMetadata:         'event',
   onDeepLinkJoin:          'event',
+
+  // Custom Commands
+  listCustomCommands:  'invoke',
+  getCustomCommand:    'invoke',
+  createCustomCommand: 'invoke',
+  updateCustomCommand: 'invoke',
+  deleteCustomCommand: 'invoke',
+  validateCommandName: 'invoke',
+  onCommandsChanged:   'event',
 
   getVersionInfo:      'invoke',
 };

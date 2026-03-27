@@ -208,6 +208,7 @@ export class CommandRegistry {
         panels: { label: 'Panels', icon: 'sidebar' },
         settings: { label: 'Settings', icon: 'settings' },
         help: { label: 'Help', icon: 'help-circle' },
+        'custom-commands': { label: 'Custom Commands', icon: 'terminal' },
       },
     };
   }
