@@ -17,6 +17,7 @@ import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
+import { CustomCommandManager } from './custom-command-manager';
 // NOTE: LaunchTunnel/sharing disabled — uncomment when LaunchTunnel integration is fixed
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
@@ -48,6 +49,7 @@ let modelHistoryManager: ModelHistoryManager | null = null;
 let gitManager: GitManager | null = null;
 let playbookManager: PlaybookManager | null = null;
 let playbookExecutor: PlaybookExecutor | null = null;
+let customCommandManager: CustomCommandManager | null = null;
 // let tunnelManager: TunnelManager | null = null; // LaunchTunnel disabled
 let providerRegistry: ProviderRegistry | null = null;
 // let sharingManager: SharingManager | null = null; // LaunchTunnel disabled
@@ -173,6 +175,9 @@ function createWindow(): void {
   playbookManager = new PlaybookManager();
   playbookExecutor = new PlaybookExecutor(sessionManager, checkpointManager, playbookManager);
 
+  // Initialize custom command manager (discovers .claude/commands/ files)
+  customCommandManager = new CustomCommandManager();
+
   // NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
   // tunnelManager = new TunnelManager();
   // tunnelManager.setMainWindow(mainWindow);
@@ -220,6 +225,7 @@ function createWindow(): void {
     // tunnelManager, // LaunchTunnel disabled
     providerRegistry,
     // sharingManager // LaunchTunnel disabled
+    customCommandManager,
   );
 
   // Initialize pool (delayed, async)
@@ -289,6 +295,10 @@ function createWindow(): void {
       playbookExecutor = null;
     }
     playbookManager = null;
+    if (customCommandManager) {
+      customCommandManager.destroy();
+      customCommandManager = null;
+    }
     if (gitManager) {
       gitManager.destroy();
       gitManager = null;

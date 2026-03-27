@@ -408,8 +408,15 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
         // Allow Ctrl+Shift+M (model cycling) to pass through to app
         const isModelCycle = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M';
 
-        // Allow Ctrl+Shift+C for terminal copy (browser-native)
+        // Ctrl+Shift+C: copy selected text from terminal
         const isCopy = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C';
+        if (isCopy) {
+          const selection = xterm.getSelection();
+          if (selection) {
+            navigator.clipboard.writeText(selection);
+          }
+          return false;
+        }
 
         // Newline insertion: Ctrl+Enter, Shift+Enter, Alt+Enter, Cmd+Enter
         if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)) {
@@ -420,7 +427,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
           return false;
         }
 
-        if (isPaste || isShiftInsert || isModelCycle || isCopy) {
+        if (isPaste || isShiftInsert || isModelCycle) {
           return false; // Let browser/app handle → our window event listener picks it up
         }
       }

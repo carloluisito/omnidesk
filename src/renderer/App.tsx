@@ -38,6 +38,8 @@ import { PlaybookProgressPanel } from './components/PlaybookProgressPanel';
 import { PlaybookPanel } from './components/PlaybookPanel';
 import { PlaybookEditor } from './components/PlaybookEditor';
 import { LayoutPicker } from './components/LayoutPicker';
+import { SidePanel } from './components/SidePanel';
+import { CustomCommandPanel } from './components/CustomCommandPanel';
 import { WelcomeWizard } from './components/WelcomeWizard';
 import { ShortcutsPanel } from './components/ui/ShortcutsPanel';
 import { ModelHistoryPanel } from './components/ModelHistoryPanel';
@@ -127,6 +129,9 @@ function App() {
   const git = useGit(atlasProjectPath);
   const [showGitPanel, setShowGitPanel] = useState(false);
   const [showWorktreePanel, setShowWorktreePanel] = useState(false);
+
+  // Commands panel
+  const [showCommandsPanel, setShowCommandsPanel] = useState(false);
 
   // NOTE: LaunchTunnel/sharing disabled
   // const [showTunnelPanel, setShowTunnelPanel] = useState(false);
@@ -771,6 +776,7 @@ function App() {
     setShowHistoryPanel(panel === 'history');
     setShowTeamPanel(panel === 'teams');
     setShowAtlasPanel(panel === 'atlas');
+    setShowCommandsPanel(panel === 'commands');
     // For playbooks, open the playbook picker
     if (panel === 'playbooks') pb.setIsPanelOpen(true);
     else pb.setIsPanelOpen(false);
@@ -1071,6 +1077,22 @@ function App() {
         projectPath={atlasProjectPath}
       />
 
+      {/* Commands panel */}
+      <SidePanel
+        isOpen={showCommandsPanel}
+        onClose={() => {
+          setShowCommandsPanel(false);
+          setActiveActivityPanel(null);
+        }}
+        title="Commands"
+        defaultWidth={320}
+      >
+        <CustomCommandPanel
+          projectDir={atlasProjectPath ?? undefined}
+          sessionId={activeSessionId}
+        />
+      </SidePanel>
+
       {/* NOTE: Tunnel panel and Share Management panel disabled — LaunchTunnel integration needs fixing */}
       {/* <TunnelPanel
         isOpen={showTunnelPanel}
@@ -1171,6 +1193,8 @@ function App() {
         onUpdateWorkspace={handleUpdateWorkspace}
         onDeleteWorkspace={handleDeleteWorkspace}
         onValidatePath={handleValidatePath}
+        projectDir={atlasProjectPath}
+        sessionId={activeSessionId}
       />
 
       {/* Budget panel */}

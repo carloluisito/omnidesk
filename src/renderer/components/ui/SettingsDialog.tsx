@@ -4,6 +4,7 @@ import type { AtlasSettings, DomainSensitivity } from '../../../shared/types/atl
 import { PromptTemplate } from '../../../shared/types/prompt-templates';
 import { TemplateEditor } from '../TemplateEditor';
 import { DragDropSettings } from '../DragDropSettings';
+import { CustomCommandPanel } from '../CustomCommandPanel';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -13,6 +14,10 @@ interface SettingsDialogProps {
   onUpdateWorkspace: (id: string, name?: string, path?: string, permissionMode?: PermissionMode) => Promise<void>;
   onDeleteWorkspace: (id: string) => Promise<void>;
   onValidatePath: (path: string, excludeId?: string) => Promise<WorkspaceValidationResult>;
+  /** Active workspace/project directory — needed to load project-scoped commands. */
+  projectDir?: string | null;
+  /** Active session ID — needed to load session-scoped commands. */
+  sessionId?: string | null;
 }
 
 type EditingState = {
@@ -30,9 +35,11 @@ export function SettingsDialog({
   onUpdateWorkspace,
   onDeleteWorkspace,
   onValidatePath,
+  projectDir,
+  sessionId,
 }: SettingsDialogProps) {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'workspaces' | 'templates' | 'dragdrop' | 'atlas'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'workspaces' | 'templates' | 'dragdrop' | 'atlas' | 'commands'>('general');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editing, setEditing] = useState<EditingState>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -444,6 +451,16 @@ export function SettingsDialog({
               <line x1="16" y1="6" x2="16" y2="22" />
             </svg>
             Atlas
+          </button>
+          <button
+            className={`settings-tab ${activeTab === 'commands' ? 'active' : ''}`}
+            onClick={() => setActiveTab('commands')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+            Commands
           </button>
         </div>
 
@@ -1099,6 +1116,15 @@ export function SettingsDialog({
               </div>
             </div>
           </div>
+          )}
+
+          {activeTab === 'commands' && (
+            <div className="settings-section">
+              <CustomCommandPanel
+                projectDir={projectDir ?? undefined}
+                sessionId={sessionId}
+              />
+            </div>
           )}
         </div>
         </div>{/* end flex wrapper */}

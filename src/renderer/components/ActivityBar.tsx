@@ -15,6 +15,7 @@ import {
   Users,
   BookOpen,
   Radio,
+  Terminal,
   // Network, // LaunchTunnel disabled
   // Share2,  // LaunchTunnel disabled
   DollarSign,
@@ -25,7 +26,7 @@ import {
 } from 'lucide-react';
 
 // NOTE: 'tunnels' and 'sharing' disabled until LaunchTunnel integration is fixed
-export type ActivityPanelId = 'git' | 'history' | 'teams' | 'atlas' | 'playbooks' | /* 'tunnels' | 'sharing' | */ null;
+export type ActivityPanelId = 'git' | 'history' | 'teams' | 'atlas' | 'playbooks' | 'commands' | /* 'tunnels' | 'sharing' | */ null;
 
 interface ActivityBarProps {
   activePanel:         ActivityPanelId;
@@ -256,6 +257,7 @@ export function ActivityBar({
     ...(teamsEnabled ? [{ id: 'teams' as const, label: 'Agent Teams', Icon: Users }] : []),
     { id: 'atlas',     label: 'Atlas',       Icon: BookOpen  },
     { id: 'playbooks', label: 'Playbooks',   Icon: Radio     },
+    { id: 'commands',  label: 'Commands',    Icon: Terminal  },
     // NOTE: LaunchTunnel/sharing disabled
     // { id: 'tunnels',   label: 'Tunnels',     Icon: Network, badge: tunnelActive },
     // { id: 'sharing',   label: 'Sharing',     Icon: Share2,  badge: activeShareCount > 0 },
