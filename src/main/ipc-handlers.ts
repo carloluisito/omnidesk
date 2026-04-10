@@ -196,11 +196,33 @@ export function setupIPCHandlers(
     return result.filePath;
   });
 
+  const normalizeForCompare = (p: string): string => {
+    const normalized = path.normalize(p);
+    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+  };
+
+  const isPathWithin = (child: string, parent: string): boolean => {
+    const c = normalizeForCompare(child);
+    const p = normalizeForCompare(parent);
+    if (c === p) return true;
+    const parentWithSep = p.endsWith(path.sep) ? p : p + path.sep;
+    return c.startsWith(parentWithSep);
+  };
+
+  const isPathAllowed = (resolved: string): boolean => {
+    const homeDir = app.getPath('home');
+    if (isPathWithin(resolved, homeDir)) return true;
+    const workspaces = settingsManager.getWorkspaces();
+    for (const ws of workspaces) {
+      if (isPathWithin(resolved, path.resolve(ws.path))) return true;
+    }
+    return false;
+  };
+
   registry.handle('writeFile', async (_e, filePath, content) => {
     const resolved = path.resolve(filePath);
-    const homeDir = app.getPath('home');
-    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
-      console.warn('[writeFile] Blocked path outside home directory:', resolved);
+    if (!isPathAllowed(resolved)) {
+      console.warn('[writeFile] Blocked path outside home/workspaces:', resolved);
       return false;
     }
     try {
@@ -211,9 +233,8 @@ export function setupIPCHandlers(
 
   registry.handle('listSubdirectories', async (_e, parentPath): Promise<SubdirectoryEntry[]> => {
     const resolved = path.resolve(parentPath);
-    const homeDir = app.getPath('home');
-    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
-      console.warn('[listSubdirectories] Blocked path outside home directory:', resolved);
+    if (!isPathAllowed(resolved)) {
+      console.warn('[listSubdirectories] Blocked path outside home/workspaces:', resolved);
       return [];
     }
     try {
@@ -231,9 +252,8 @@ export function setupIPCHandlers(
 
   registry.handle('createDirectory', async (_e, dirPath) => {
     const resolved = path.resolve(dirPath);
-    const homeDir = app.getPath('home');
-    if (!resolved.startsWith(homeDir + path.sep) && resolved !== homeDir) {
-      console.warn('[createDirectory] Blocked path outside home directory:', resolved);
+    if (!isPathAllowed(resolved)) {
+      console.warn('[createDirectory] Blocked path outside home/workspaces:', resolved);
       return false;
     }
     try {
