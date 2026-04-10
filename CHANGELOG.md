@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-04-11
+
+### Fixed
+- **Directory listing and folder creation for workspaces outside the user's home directory** — recent security hardening restricted filesystem IPC operations to `$HOME`, which broke workspaces on other drives (e.g. `F:\projects`). Users saw empty directory lists and "Failed to create folder" errors when creating sessions. Paths under any configured workspace are now also allowed, with case-insensitive comparison and separator normalization on Windows.
+
+---
+
 ## [1.2.0] - 2026-03-28
 
 ### Added
