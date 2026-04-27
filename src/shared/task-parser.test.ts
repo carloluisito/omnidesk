@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTasksMarkdown, serializeTasksMarkdown } from './task-parser';
+import { parseTasksMarkdown, serializeTasksMarkdown, addTask, editTask } from './task-parser';
 
 const SAMPLE = `# Tasks
 
@@ -53,7 +53,7 @@ describe('task-parser', () => {
   });
 
   it('mutating helpers add/toggle/edit/delete', async () => {
-    const { addTask, toggleTask, editTask, deleteTask } = await import('./task-parser');
+    const { toggleTask, deleteTask } = await import('./task-parser');
     let md = '';
     md = addTask(md, 'first');
     md = addTask(md, 'second');
@@ -70,5 +70,25 @@ describe('task-parser', () => {
 
     md = deleteTask(md, parseTasksMarkdown(md).tasks[0].id);
     expect(parseTasksMarkdown(md).tasks).toHaveLength(1);
+  });
+
+  it('parses and round-trips multi-line notes', () => {
+    const input = '- [ ] task\n  line 1\n  line 2\n';
+    const { tasks } = parseTasksMarkdown(input);
+    expect(tasks[0].notes).toBe('line 1\nline 2');
+    const out = serializeTasksMarkdown(parseTasksMarkdown(input));
+    expect(out).toBe(input);
+  });
+
+  it('editTask replaces existing notes correctly across mutations', () => {
+    let md = '';
+    md = addTask(md, 'a');
+    let id = parseTasksMarkdown(md).tasks[0].id;
+    md = editTask(md, id, { notes: 'note 1\nnote 2' });
+    // id may be the same since (index, title) didn't change
+    id = parseTasksMarkdown(md).tasks[0].id;
+    md = editTask(md, id, { notes: 'updated' });
+    const final = parseTasksMarkdown(md);
+    expect(final.tasks[0].notes).toBe('updated');
   });
 });
