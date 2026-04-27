@@ -137,12 +137,12 @@ IPC: `task:*`
 
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
-| `src/main/task-manager.ts` | Main | Per-repo todo list manager, fs.watch monitoring, persistence (tasks.md + tasks.meta.json) | ~400 |
-| `src/renderer/hooks/useTasks.ts` | Renderer | Task state management and IPC calls | ~150 |
-| `src/renderer/components/TaskPanel.tsx` | Renderer | Task list UI: CRUD, status filtering, prioritization | ~500 |
-| `src/renderer/components/TaskQuickCapture.tsx` | Renderer | Quick task creation overlay | ~200 |
-| `src/shared/types/task-types.ts` | Shared | Task type definitions | ~80 |
-| `src/shared/task-parser.ts` | Shared | Parse/stringify task entries to/from markdown | ~120 |
+| `src/main/task-manager.ts` | Main | Per-repo todo list manager, fs.watch monitoring, persistence (tasks.md + tasks.meta.json) | ~305 |
+| `src/renderer/hooks/useTasks.ts` | Renderer | Task state management and IPC calls | ~62 |
+| `src/renderer/components/TaskPanel.tsx` | Renderer | Task list UI: CRUD, status filtering, prioritization | ~140 |
+| `src/renderer/components/TaskQuickCapture.tsx` | Renderer | Quick task creation overlay | ~84 |
+| `src/shared/types/task-types.ts` | Shared | Task type definitions | ~55 |
+| `src/shared/task-parser.ts` | Shared | Parse/stringify task entries to/from markdown | ~122 |
 
 ### Tasks Tests
 

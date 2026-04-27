@@ -46,6 +46,7 @@ export class TaskManager {
     for (const t of this.debounceTimers.values()) clearTimeout(t);
     this.debounceTimers.clear();
     this.listeners.clear();
+    this.mutexes.clear();
   }
 
   async list(repoPath: string): Promise<Task[]> {
@@ -183,10 +184,16 @@ export class TaskManager {
   private withMutex<T>(repoPath: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.mutexes.get(repoPath) ?? Promise.resolve();
     const next = prev.then(fn, fn);
-    this.mutexes.set(
-      repoPath,
-      next.catch((e) => console.error('TaskManager: mutex operation failed', e)),
+    const cleanup: Promise<void> = next.then(
+      () => {
+        if (this.mutexes.get(repoPath) === cleanup) this.mutexes.delete(repoPath);
+      },
+      (e) => {
+        console.error('TaskManager: mutex operation failed', e);
+        if (this.mutexes.get(repoPath) === cleanup) this.mutexes.delete(repoPath);
+      },
     );
+    this.mutexes.set(repoPath, cleanup);
     return next;
   }
 
@@ -296,9 +303,7 @@ export class TaskManager {
       for (const fn of set) fn(tasks);
     }
     if (this.emitter) {
-      // task:changed will be added to the IPC contract in Task 4.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (this.emitter as any).emit('task:changed', { repoPath, tasks });
+      this.emitter.emit('onTasksChanged', { repoPath, tasks });
     }
   }
 }

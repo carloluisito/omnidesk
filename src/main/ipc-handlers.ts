@@ -944,8 +944,6 @@ export function setupIPCHandlers(
   });
 
   // ── Tasks ──
-  taskManager.setMainWindow(mainWindow);
-
   registry.handle('listTasks', async (_e, repoPath) => {
     return taskManager.list(repoPath);
   });
