@@ -131,6 +131,29 @@
 | `src/renderer/components/AboutDialog.tsx` | Renderer | Version info and credits | 322 |
 | `src/renderer/components/TitleBarBranding.tsx` | Renderer | Title bar logo + name | 124 |
 
+## Tasks
+
+IPC: `task:*`
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/main/task-manager.ts` | Main | Per-repo todo list manager, fs.watch monitoring, persistence (tasks.md + tasks.meta.json) | ~400 |
+| `src/renderer/hooks/useTasks.ts` | Renderer | Task state management and IPC calls | ~150 |
+| `src/renderer/components/TaskPanel.tsx` | Renderer | Task list UI: CRUD, status filtering, prioritization | ~500 |
+| `src/renderer/components/TaskQuickCapture.tsx` | Renderer | Quick task creation overlay | ~200 |
+| `src/shared/types/task-types.ts` | Shared | Task type definitions | ~80 |
+| `src/shared/task-parser.ts` | Shared | Parse/stringify task entries to/from markdown | ~120 |
+
+### Tasks Tests
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `src/shared/task-parser.test.ts` | 18 | Parse/stringify tasks, metadata sidecar format |
+| `src/main/task-manager.test.ts` | 25 | CRUD, fs.watch debounce, mutex serialization, persistence |
+| `src/renderer/hooks/useTasks.test.ts` | 12 | State management, IPC event listeners |
+| `src/renderer/components/TaskPanel.test.tsx` | 15 | List render, status filter, create/edit/delete, prioritize |
+| `src/renderer/components/TaskQuickCapture.test.tsx` | 10 | Input, quick capture flow, cancel |
+
 ## Atlas
 
 IPC: `atlas:*`
