@@ -5,6 +5,7 @@ import { BrowserWindow } from 'electron';
 import { IPCEmitter } from './ipc-emitter';
 import {
   parseTasksMarkdown,
+  makeId,
   addTask as mdAdd,
   toggleTask as mdToggle,
   editTask as mdEdit,
@@ -57,8 +58,8 @@ export class TaskManager {
       const next = mdAdd(md, title);
       this.writeFile(repoPath, next);
       const tasks = await this.readTasks(repoPath);
-      const created = tasks.find(t => t.title === title.trim());
-      if (!created) throw new Error('Task add failed');
+      const created = tasks.at(-1);
+      if (!created || created.title !== title.trim()) throw new Error('Task add failed');
       this.startWatching(repoPath);
       return created;
     });
@@ -70,7 +71,9 @@ export class TaskManager {
       const md = this.readFileOrEmpty(repoPath);
       this.writeFile(repoPath, mdToggle(md, parserTaskId));
       const tasks = await this.readTasks(repoPath);
-      return tasks.find(x => x.id === stableId) ?? tasks[tasks.length - 1];
+      const t = tasks.find(x => x.id === stableId);
+      if (!t) throw new Error(`Task ${stableId} not found after mutation`);
+      return t;
     });
   }
 
@@ -88,7 +91,9 @@ export class TaskManager {
         this.updateParserTaskIdAfterTitleEdit(repoPath, stableId, changes.title.trim());
       }
       const tasks = await this.readTasks(repoPath);
-      return tasks.find(x => x.id === stableId) ?? tasks[tasks.length - 1];
+      const t = tasks.find(x => x.id === stableId);
+      if (!t) throw new Error(`Task ${stableId} not found after mutation`);
+      return t;
     });
   }
 
@@ -112,6 +117,11 @@ export class TaskManager {
   }
 
   unwatch(repoPath: string): void {
+    const timer = this.debounceTimers.get(repoPath);
+    if (timer) {
+      clearTimeout(timer);
+      this.debounceTimers.delete(repoPath);
+    }
     const w = this.watchers.get(repoPath);
     if (w) {
       w.close();
@@ -141,17 +151,33 @@ export class TaskManager {
     stableId: string,
     newTitle: string,
   ): void {
-    // Re-read the file (already written) to get the new parserTaskId.
+    const sidecar = this.readSidecar(repoPath);
+    if (!sidecar[stableId]) return;
+
+    // The task's position (index) is unchanged by a title edit. After the write,
+    // the file has the task at the same index with newTitle. The parser assigns ids
+    // as makeId(index, title), so we can find the correct index by scanning the
+    // post-edit parsed tasks and locating the one with newTitle that isn't already
+    // claimed by a different sidecar entry (handles duplicate-title edge case).
     const md = this.readFileOrEmpty(repoPath);
     const { tasks } = parseTasksMarkdown(md);
-    const newParserTask = tasks.find(t => t.title === newTitle);
-    if (!newParserTask) return;
-
-    const sidecar = this.readSidecar(repoPath);
-    if (sidecar[stableId]) {
-      sidecar[stableId] = { ...sidecar[stableId], parserTaskId: newParserTask.id };
-      this.writeSidecar(repoPath, sidecar);
+    const claimedParserIds = new Set(
+      Object.values(sidecar)
+        .filter(e => e.stableId !== stableId)
+        .map(e => e.parserTaskId),
+    );
+    let targetIndex = -1;
+    for (let i = 0; i < tasks.length; i++) {
+      if (tasks[i].title === newTitle && !claimedParserIds.has(tasks[i].id)) {
+        targetIndex = i;
+        break;
+      }
     }
+    if (targetIndex === -1) return;
+
+    const newParserTaskId = makeId(targetIndex, newTitle);
+    sidecar[stableId] = { ...sidecar[stableId], parserTaskId: newParserTaskId };
+    this.writeSidecar(repoPath, sidecar);
   }
 
   private withMutex<T>(repoPath: string, fn: () => Promise<T>): Promise<T> {
@@ -159,7 +185,7 @@ export class TaskManager {
     const next = prev.then(fn, fn);
     this.mutexes.set(
       repoPath,
-      next.catch(() => {}),
+      next.catch((e) => console.error('TaskManager: mutex operation failed', e)),
     );
     return next;
   }
@@ -264,7 +290,7 @@ export class TaskManager {
   }
 
   private async fireChange(repoPath: string): Promise<void> {
-    const tasks = await this.readTasks(repoPath);
+    const tasks = await this.withMutex(repoPath, () => this.readTasks(repoPath));
     const set = this.listeners.get(repoPath);
     if (set) {
       for (const fn of set) fn(tasks);

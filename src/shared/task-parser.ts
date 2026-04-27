@@ -10,7 +10,7 @@ export interface ParsedTasks {
   taskRanges: Record<string, { start: number; end: number }>;
 }
 
-function makeId(index: number, title: string): string {
+export function makeId(index: number, title: string): string {
   // Cheap deterministic hash; no crypto dep.
   let h = 2166136261 >>> 0;
   const s = `${index}:${title}`;

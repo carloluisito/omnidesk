@@ -82,4 +82,15 @@ describe('TaskManager', () => {
     );
     expect(await tm.list(repo)).toHaveLength(10);
   });
+
+  it('stableId survives title edit so subsequent toggle/delete work', async () => {
+    const tm = new TaskManager();
+    const t = await tm.add(repo, 'original');
+    await tm.edit(repo, t.id, { title: 'renamed' });
+    const toggled = await tm.toggle(repo, t.id);
+    expect(toggled.done).toBe(true);
+    expect(toggled.id).toBe(t.id);
+    await tm.delete(repo, t.id);
+    expect(await tm.list(repo)).toHaveLength(0);
+  });
 });
