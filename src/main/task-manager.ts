@@ -290,6 +290,18 @@ export class TaskManager {
         }, DEBOUNCE_MS);
         this.debounceTimers.set(repoPath, t);
       });
+      w.on('error', (err) => {
+        // Watcher errors are expected when the repo directory is removed (tests, repo deleted, etc.).
+        // Log at debug level and stop watching this repo; the next add()/onChange() will restart.
+        console.debug('TaskManager: watcher error for', dir, err);
+        try { w.close(); } catch { /* already closed */ }
+        this.watchers.delete(repoPath);
+        const timer = this.debounceTimers.get(repoPath);
+        if (timer) {
+          clearTimeout(timer);
+          this.debounceTimers.delete(repoPath);
+        }
+      });
       this.watchers.set(repoPath, w);
     } catch (err) {
       console.error('TaskManager: watcher failed for', dir, err);

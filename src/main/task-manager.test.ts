@@ -5,23 +5,24 @@ import * as path from 'path';
 import { TaskManager } from './task-manager';
 
 let repo: string;
+let tm: TaskManager;
 
 beforeEach(() => {
   repo = fs.mkdtempSync(path.join(os.tmpdir(), 'omnidesk-tasks-'));
+  tm = new TaskManager();
 });
 
 afterEach(() => {
+  tm.destroy();
   fs.rmSync(repo, { recursive: true, force: true });
 });
 
 describe('TaskManager', () => {
   it('returns empty list when no file exists', async () => {
-    const tm = new TaskManager();
     expect(await tm.list(repo)).toEqual([]);
   });
 
   it('add creates .omnidesk/tasks.md and the task is listed', async () => {
-    const tm = new TaskManager();
     const t = await tm.add(repo, '  hello  ');
     expect(t.title).toBe('hello');
     const filePath = path.join(repo, '.omnidesk', 'tasks.md');
@@ -32,7 +33,6 @@ describe('TaskManager', () => {
   });
 
   it('toggle / edit / delete work', async () => {
-    const tm = new TaskManager();
     const a = await tm.add(repo, 'one');
     await tm.add(repo, 'two');
     const toggled = await tm.toggle(repo, a.id);
@@ -45,7 +45,6 @@ describe('TaskManager', () => {
   });
 
   it('garbage-collects sidecar entries for tasks no longer in the md', async () => {
-    const tm = new TaskManager();
     await tm.add(repo, 'one');
     const meta = path.join(repo, '.omnidesk', 'tasks.meta.json');
     fs.writeFileSync(
@@ -58,7 +57,6 @@ describe('TaskManager', () => {
   });
 
   it('emits change events when the file is edited externally', async () => {
-    const tm = new TaskManager();
     await tm.add(repo, 'first');
     const events: any[] = [];
     tm.onChange(repo, (tasks) => events.push(tasks));
@@ -76,7 +74,6 @@ describe('TaskManager', () => {
   });
 
   it('serializes concurrent writes via per-repo mutex', async () => {
-    const tm = new TaskManager();
     await Promise.all(
       Array.from({ length: 10 }, (_, i) => tm.add(repo, `task ${i}`)),
     );
@@ -84,7 +81,6 @@ describe('TaskManager', () => {
   });
 
   it('stableId survives title edit so subsequent toggle/delete work', async () => {
-    const tm = new TaskManager();
     const t = await tm.add(repo, 'original');
     await tm.edit(repo, t.id, { title: 'renamed' });
     const toggled = await tm.toggle(repo, t.id);
