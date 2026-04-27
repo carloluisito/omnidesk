@@ -103,6 +103,13 @@
 - **Command palette integration** — custom commands appear alongside prompt templates in `Ctrl+Shift+P`
 - **Secure execution** — input sanitization, path traversal protection, and size limits
 
+### Repo Tasks
+- **Per-repo todo list** backed by a plain `.omnidesk/tasks.md` file — human-readable, AI-editable, diff-friendly
+- **Side panel** with inline add, checkboxes, editable titles, and notes; completed tasks auto-sink to the bottom
+- **Quick capture overlay** — `Ctrl/Cmd+Shift+T` opens a focused input to add a task without leaving flow
+- **Live sync with the active session** — ask Claude/Codex to refine your tasks; OmniDesk watches the file and the panel updates instantly
+- **Stable task ids** — survive title edits via a sidecar `.omnidesk/tasks.meta.json` so the markdown stays clean
+
 ### API Quota Monitoring
 - **Real-time quota display** — see your Claude API usage at a glance
 - **Burn rate tracking** — monitor spending over time

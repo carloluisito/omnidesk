@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-04-27
+
+### Added
+- **Repo Tasks** — per-repo personal todo list backed by `.omnidesk/tasks.md` in the workspace
+- Tasks side panel with inline add, checkboxes, editable titles, optional notes, and auto-sinking completed items
+- Quick capture overlay bound to `Ctrl/Cmd+Shift+T` — add a task from anywhere without leaving the active session
+- File watcher with 200ms debounce so edits the active AI session makes to `.omnidesk/tasks.md` propagate to the UI in real time
+- Stable task ids via `.omnidesk/tasks.meta.json` sidecar — task ids survive title edits while the markdown file stays free of metadata noise
+- Per-repo mutex serializing concurrent writes; markdown round-trip is byte-stable so non-task content (headings, prose) is preserved
+
+---
+
 ## [1.2.1] - 2026-04-11
 
 ### Fixed
