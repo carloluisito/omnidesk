@@ -18,6 +18,7 @@ import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
 import { CustomCommandManager } from './custom-command-manager';
+import { TaskManager } from './task-manager';
 // NOTE: LaunchTunnel/sharing disabled — uncomment when LaunchTunnel integration is fixed
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
@@ -50,6 +51,7 @@ let gitManager: GitManager | null = null;
 let playbookManager: PlaybookManager | null = null;
 let playbookExecutor: PlaybookExecutor | null = null;
 let customCommandManager: CustomCommandManager | null = null;
+let taskManager: TaskManager | null = null;
 // let tunnelManager: TunnelManager | null = null; // LaunchTunnel disabled
 let providerRegistry: ProviderRegistry | null = null;
 // let sharingManager: SharingManager | null = null; // LaunchTunnel disabled
@@ -178,6 +180,10 @@ function createWindow(): void {
   // Initialize custom command manager (discovers .claude/commands/ files)
   customCommandManager = new CustomCommandManager();
 
+  // Initialize task manager (per-repo TASKS.md watcher)
+  taskManager = new TaskManager();
+  taskManager.setMainWindow(mainWindow);
+
   // NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
   // tunnelManager = new TunnelManager();
   // tunnelManager.setMainWindow(mainWindow);
@@ -226,6 +232,7 @@ function createWindow(): void {
     providerRegistry,
     // sharingManager // LaunchTunnel disabled
     customCommandManager,
+    taskManager,
   );
 
   // Initialize pool (delayed, async)
@@ -298,6 +305,10 @@ function createWindow(): void {
     if (customCommandManager) {
       customCommandManager.destroy();
       customCommandManager = null;
+    }
+    if (taskManager) {
+      taskManager.destroy();
+      taskManager = null;
     }
     if (gitManager) {
       gitManager.destroy();
