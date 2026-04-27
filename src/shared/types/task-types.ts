@@ -8,7 +8,7 @@
  * createdAt comes from the sidecar (.omnidesk/tasks.meta.json).
  */
 export interface Task {
-  /** Stable id derived from (file index, title). Recomputed on every parse. */
+  /** Stable UUID minted by TaskManager and persisted in the sidecar. Survives title edits. */
   id: string;
   /** Task title */
   title: string;
