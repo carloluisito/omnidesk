@@ -17,6 +17,7 @@ import { GitManager } from './git-manager';
 import { PlaybookManager } from './playbook-manager';
 import { PlaybookExecutor } from './playbook-executor';
 import { CustomCommandManager } from './custom-command-manager';
+import { TaskManager } from './task-manager';
 // NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
@@ -48,6 +49,7 @@ export function setupIPCHandlers(
   providerRegistry: ProviderRegistry,
   // sharingManager: SharingManager // LaunchTunnel disabled
   customCommandManager: CustomCommandManager,
+  taskManager: TaskManager,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
@@ -939,6 +941,31 @@ export function setupIPCHandlers(
 
   registry.handle('validateCommandName', async (_e, name, scope, projectDir) => {
     return customCommandManager.validateName(name, scope, projectDir);
+  });
+
+  // ── Tasks ──
+  registry.handle('listTasks', async (_e, repoPath) => {
+    return taskManager.list(repoPath);
+  });
+
+  registry.handle('addTask', async (_e, req) => {
+    return taskManager.add(req.repoPath, req.title);
+  });
+
+  registry.handle('toggleTask', async (_e, repoPath, id) => {
+    return taskManager.toggle(repoPath, id);
+  });
+
+  registry.handle('editTask', async (_e, req) => {
+    return taskManager.edit(req.repoPath, req.id, {
+      title: req.title,
+      notes: req.notes,
+    });
+  });
+
+  registry.handle('deleteTask', async (_e, repoPath, id) => {
+    await taskManager.delete(repoPath, id);
+    return true;
   });
 
   // ── Session I/O (send — fire and forget) ──

@@ -147,6 +147,13 @@ import type {
   ShareMetadataEvent,
 } from './types/sharing-types';
 
+import type {
+  Task,
+  TaskAddRequest,
+  TaskEditRequest,
+  TasksChangedEvent,
+} from './types/task-types';
+
 // ─── Contract helper types ──────────────────────────────────────────
 
 /** renderer → main, expects a return value (ipcRenderer.invoke / ipcMain.handle) */
@@ -438,6 +445,16 @@ export interface IPCContractMap {
   onShareMetadata:         EventContract<'sharing:metadata',         ShareMetadataEvent>;
   onDeepLinkJoin:          EventContract<'sharing:deepLinkJoin',     { shareCode: string }>;
 
+  // ── Tasks (invoke) ──
+  listTasks:           InvokeContract<'task:list',        [string],                              Task[]>;
+  addTask:             InvokeContract<'task:add',         [TaskAddRequest],                      Task>;
+  toggleTask:          InvokeContract<'task:toggle',      [string, string],                      Task>;
+  editTask:            InvokeContract<'task:edit',        [TaskEditRequest],                     Task>;
+  deleteTask:          InvokeContract<'task:delete',      [string, string],                      boolean>;
+
+  // ── Tasks events (main→renderer) ──
+  onTasksChanged:      EventContract<'task:changed',      TasksChangedEvent>;
+
   // ── Custom Commands (invoke) ──
   listCustomCommands:  InvokeContract<'command:list',     [CommandListRequest],                  CustomCommand[]>;
   getCustomCommand:    InvokeContract<'command:get',      [string, CommandScope, string?],       CustomCommand | null>;
@@ -717,6 +734,14 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onShareMetadata:         'sharing:metadata',
   onDeepLinkJoin:          'sharing:deepLinkJoin',
 
+  // Tasks
+  listTasks:           'task:list',
+  addTask:             'task:add',
+  toggleTask:          'task:toggle',
+  editTask:            'task:edit',
+  deleteTask:          'task:delete',
+  onTasksChanged:      'task:changed',
+
   // Custom Commands
   listCustomCommands:  'command:list',
   getCustomCommand:    'command:get',
@@ -964,6 +989,14 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onShareOutput:           'event',
   onShareMetadata:         'event',
   onDeepLinkJoin:          'event',
+
+  // Tasks
+  listTasks:           'invoke',
+  addTask:             'invoke',
+  toggleTask:          'invoke',
+  editTask:            'invoke',
+  deleteTask:          'invoke',
+  onTasksChanged:      'event',
 
   // Custom Commands
   listCustomCommands:  'invoke',

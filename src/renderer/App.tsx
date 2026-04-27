@@ -40,6 +40,8 @@ import { PlaybookEditor } from './components/PlaybookEditor';
 import { LayoutPicker } from './components/LayoutPicker';
 import { SidePanel } from './components/SidePanel';
 import { CustomCommandPanel } from './components/CustomCommandPanel';
+import { TaskPanel } from './components/TaskPanel';
+import { TaskQuickCapture } from './components/TaskQuickCapture';
 import { WelcomeWizard } from './components/WelcomeWizard';
 import { ShortcutsPanel } from './components/ui/ShortcutsPanel';
 import { ModelHistoryPanel } from './components/ModelHistoryPanel';
@@ -132,6 +134,10 @@ function App() {
 
   // Commands panel
   const [showCommandsPanel, setShowCommandsPanel] = useState(false);
+
+  // Tasks panel + quick capture overlay
+  const [showTasksPanel, setShowTasksPanel] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   // NOTE: LaunchTunnel/sharing disabled
   // const [showTunnelPanel, setShowTunnelPanel] = useState(false);
@@ -467,6 +473,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + T: Task quick capture
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setQuickCaptureOpen(o => !o);
+        return;
+      }
+
       // Ctrl/Cmd + Shift + G: Git panel
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
         e.preventDefault();
@@ -777,6 +790,7 @@ function App() {
     setShowTeamPanel(panel === 'teams');
     setShowAtlasPanel(panel === 'atlas');
     setShowCommandsPanel(panel === 'commands');
+    setShowTasksPanel(panel === 'tasks');
     // For playbooks, open the playbook picker
     if (panel === 'playbooks') pb.setIsPanelOpen(true);
     else pb.setIsPanelOpen(false);
@@ -1092,6 +1106,26 @@ function App() {
           sessionId={activeSessionId}
         />
       </SidePanel>
+
+      {/* Tasks panel */}
+      <SidePanel
+        isOpen={showTasksPanel}
+        onClose={() => {
+          setShowTasksPanel(false);
+          setActiveActivityPanel(null);
+        }}
+        title="Tasks"
+        defaultWidth={320}
+      >
+        <TaskPanel repoPath={atlasProjectPath} />
+      </SidePanel>
+
+      {/* Task quick capture overlay (Ctrl/Cmd+Shift+T) */}
+      <TaskQuickCapture
+        isOpen={quickCaptureOpen}
+        repoPath={atlasProjectPath}
+        onClose={() => setQuickCaptureOpen(false)}
+      />
 
       {/* NOTE: Tunnel panel and Share Management panel disabled — LaunchTunnel integration needs fixing */}
       {/* <TunnelPanel
