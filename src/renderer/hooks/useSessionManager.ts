@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SessionMetadata, SessionOutput, SessionExitEvent } from '../../shared/ipc-types';
+import { SessionMetadata, SessionOutput, SessionExitEvent, LaunchMode } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { TabData } from '../components/ui/Tab';
 
@@ -7,7 +7,7 @@ export interface UseSessionManagerReturn {
   sessions: TabData[];
   activeSessionId: string | null;
   isLoading: boolean;
-  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId) => Promise<void>;
+  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -104,7 +104,8 @@ export function useSessionManager(): UseSessionManagerReturn {
     workingDirectory: string,
     permissionMode: 'standard' | 'skip-permissions',
     worktree?: import('../../shared/types/git-types').WorktreeCreateRequest,
-    providerId?: ProviderId
+    providerId?: ProviderId,
+    launchMode?: LaunchMode,
   ) => {
     try {
       // Read default model from settings
@@ -118,6 +119,7 @@ export function useSessionManager(): UseSessionManagerReturn {
         model: defaultModel,
         worktree,
         providerId,
+        launchMode,
       });
     } catch (err) {
       console.error('Failed to create session:', err);
