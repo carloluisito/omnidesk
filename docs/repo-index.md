@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~175 source files | ~55,000 LOC | 16 domains | ~192 IPC methods | 487 tests (v1.0.3)
+~180 source files | ~56,000 LOC | 17 domains (Launch Mode + Agent View added) | ~192 IPC methods | 784 tests + 4 e2e specs (post launch-mode-picker)
 
 ## Entrypoints
 
@@ -250,13 +250,30 @@ IPC: `provider:*` (3 methods — all invoke)
 
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
-| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type | ~20 |
+| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type (incl. optional `launchMode`) | ~22 |
 | `src/main/providers/provider-registry.ts` | Main | `ProviderRegistry`: auto-registers Claude + Codex, `get()`, `list()`, `getAvailable()` | ~42 |
-| `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building, readiness patterns, model detection, env vars | ~82 |
+| `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building (switch on `LaunchMode`), readiness patterns, model detection, env vars, defense-in-depth fallback for `'agents'` mode via injected availability getter | ~120 |
 | `src/main/providers/codex-provider.ts` | Main | Codex CLI provider: approval-mode mapping, Codex-specific readiness + model patterns | ~86 |
 | `src/main/config-dir.ts` | Main | Centralized config dir path (`~/.omnidesk/`), migration from `~/.claudedesk/` | ~50 |
 | `src/shared/types/provider-types.ts` | Shared | `ProviderId`, `ProviderCapabilities`, `ProviderInfo` type definitions | ~18 |
 | `src/renderer/hooks/useProvider.ts` | Renderer | Provider state hook: `providers`, `availableProviders`, `getCapabilities()` | ~25 |
+
+## Launch Mode + Agent View
+
+IPC: `agentView:availability` (1 invoke method). Renderer picker lives inside `NewSessionDialog` and writes to `SessionCreateRequest.launchMode`.
+
+| File | Layer | Role | Lines |
+|------|-------|------|-------|
+| `src/shared/types/agent-view-types.ts` | Shared | `AgentViewAvailable` / `AgentViewUnavailable` / `AgentViewAvailability` discriminated union. Reasons: `cli-too-old`, `cli-not-found`, `disabled-by-setting`, `disabled-by-env`, `version-unparseable`, `probing` (transient initial state), `detection-failed` (IPC catch / no-args provider fallback) | ~50 |
+| `src/main/agent-view/availability.ts` | Main | `getAgentViewAvailability(cliVersion, env, settings)` pure precedence resolver | ~140 |
+| `src/main/agent-view/availability-cache.ts` | Main | Module-level cache + `getCachedAgentViewAvailability()` / `setCachedAgentViewAvailability()` | ~40 |
+| `src/main/agent-view/probe-version.ts` | Main | One-shot `claude --version` probe with 5s timeout — manual `new Promise` wrapper around `execFile` (NOT `util.promisify` — see `claude-provider.ts` test learnings) | ~35 |
+| `src/main/index.ts` `agentViewDelayedInit()` | Main | Off-critical-path probe (`setTimeout(..., 2000)`), reads `~/.claude/settings.json` (or `CLAUDE_CONFIG_DIR`), updates cache once per app lifetime | section in `index.ts` |
+| `src/renderer/hooks/useAgentViewAvailability.ts` | Renderer | One-shot fetch on mount + subscribes to `agentView:availabilityChanged` push event; if the initial fetch returns `'probing'`, stays `loading: true` until the push event delivers the final state | ~55 |
+| `src/renderer/components/ui/NewSessionDialog.tsx` `LaunchModePicker` | Renderer | Inline picker subcomponent inside the dialog. State-aware label: `(checking...)` while probing, `(unavailable)` once resolved unavailable, clean while available. Tooltip on the wrapper surfaces `"Agent View unavailable: <detail>"` | inline section ~lines 9–50 |
+| `src/shared/ipc-types.ts` `LaunchMode` | Shared | `'default' \| 'bypass-permissions' \| 'agents'` string-literal union; added as optional `launchMode?: LaunchMode` field on `SessionCreateRequest` | type def |
+
+External reference: https://code.claude.com/docs/en/agent-view (research-preview, requires Claude Code 2.1.139+).
 
 ## Shared Utilities
 
@@ -296,8 +313,11 @@ IPC: `provider:*` (3 methods — all invoke)
 | `src/renderer/utils/fuzzy-search.test.ts` | 14 | Score tiers, sorting, minScore, highlightMatches |
 | `src/main/git-manager.test.ts` | 41 | Status parsing, branches, commit, generateMessage, detectErrorCode |
 | `src/main/providers/provider-registry.test.ts` | 9 | Auto-registration, get/list/getAvailable, error handling |
-| `src/main/providers/claude-provider.test.ts` | 19 | getId, getInfo, buildCommand permutations, patterns, normalizeModel, env vars |
-| `src/main/providers/codex-provider.test.ts` | 13 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel |
+| `src/main/providers/claude-provider.test.ts` | 28 | getId, getInfo, buildCommand permutations (incl. LaunchMode switch + agents-mode defense-in-depth), patterns, normalizeModel, env vars, no-args fallback contract |
+| `src/main/providers/codex-provider.test.ts` | 14 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel, launchMode-inertness for non-Claude provider |
+| `src/main/agent-view/availability.test.ts` | 35 | Precedence rules (env > setting > cli-not-found > version-unparseable > cli-too-old > available), reason variants, edge cases |
+| `src/main/agent-view/probe-version.test.ts` | 6 | Successful version parse, missing binary, non-zero exit, parse-unsafe output, 5s timeout, mock pattern matches existing `execFile` callback style |
+| `src/main/ipc-handlers.availability.test.ts` | 7 | Cached-and-return semantics, no-respawn on N calls, IPC wrapper, initial `'probing'` state |
 | `src/renderer/utils/layout-tree.test.ts` | 33 | countPanes, traverseTree, transformTree, pruneTree, grid nodes |
 
 ### Integration Tests (Phase 2 — mocked dependencies)
@@ -319,6 +339,8 @@ IPC: `provider:*` (3 methods — all invoke)
 | `src/renderer/components/ui/TabBar.test.tsx` | 8 | Tabs render, active state, callbacks |
 | `src/renderer/components/ui/EmptyState.test.tsx` | 5 | Welcome screen, quick actions |
 | `src/renderer/components/ui/CommitDialog.test.tsx` | 11 | Form, validation, commit flow, generate |
+| `src/renderer/components/ui/NewSessionDialog.test.tsx` | 8 | Launch-mode picker: three options render, default seeded from workspace, agents available/unavailable, submit-with-each-mode passes correct `launchMode` to onSubmit (uses `vi.hoisted` for stable mock refs — see comment in file) |
+| `src/renderer/hooks/useAgentViewAvailability.test.tsx` | 6 | Initial null/loading state, stays loading when initial fetch returns `'probing'` (no polling), success path, rejection synthesizes `detection-failed`, subscribes to push event and updates state, unsubscribes on unmount |
 | `src/renderer/components/PaneHeader.test.tsx` | 10 | Name, split/close buttons, dropdown |
 | `src/renderer/components/GitPanel.test.tsx` | 13 | File sections, branch, init, status |
 | `src/renderer/components/SplitLayout.test.tsx` | 8 | Single/split/grid render, depth guard |
@@ -331,3 +353,4 @@ IPC: `provider:*` (3 methods — all invoke)
 | `e2e/session.spec.ts` | 3 | New session button, dialog |
 | `e2e/split-view.spec.ts` | 2 | Single pane default |
 | `e2e/keyboard-shortcuts.spec.ts` | 3 | Ctrl+T, Escape, settings |
+| `e2e/launch-mode-picker.spec.ts` | 2 | Picker shows three options with agents enabled (default env), picker shows agents disabled when `CLAUDE_CODE_DISABLE_AGENT_VIEW=1`. Both expand the `<select>` into a listbox before screenshotting so options are visible. Evidence: `e2e/screenshots/launch-mode-picker/03[ab]-*.png`. |

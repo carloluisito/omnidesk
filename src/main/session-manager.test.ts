@@ -100,6 +100,7 @@ vi.mock('./cli-manager', () => {
 import { SessionManager } from './session-manager';
 import { HistoryManager } from './history-manager';
 import { SessionPool } from './session-pool';
+import { CLIManager } from './cli-manager';
 
 function createSessionManager(): SessionManager {
   const historyManager = new HistoryManager();
@@ -248,5 +249,62 @@ describe('SessionManager.onSessionEnd', () => {
       manager.onSessionEnd(cb1);
       manager.onSessionEnd(cb2);
     }).not.toThrow();
+  });
+});
+
+describe('SessionManager.createSession — launchMode wiring', () => {
+  let manager: SessionManager;
+
+  const baseRequest = {
+    workingDirectory: '/test/dir',
+    permissionMode: 'standard' as const,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  it('direct path: constructs CLIManager with launchMode from request', async () => {
+    // SessionPool.claim returns null (default mock) → direct path
+    await manager.createSession({ ...baseRequest, launchMode: 'agents' });
+
+    expect(CLIManager).toHaveBeenCalledWith(
+      expect.objectContaining({ launchMode: 'agents' }),
+    );
+  });
+
+  it('pool path: calls initializeSession with launchMode as 5th positional arg', async () => {
+    // Override claim to return a pooled session stub
+    const pooledCliManager = {
+      initializeSession: vi.fn().mockResolvedValue(undefined),
+      onModelChange: vi.fn(),
+      onOutput: vi.fn(),
+      onExit: vi.fn(),
+      destroy: vi.fn(),
+    };
+    vi.mocked(SessionPool.prototype.claim).mockReturnValueOnce({
+      id: 'pooled-session-id',
+      cliManager: pooledCliManager as unknown as InstanceType<typeof CLIManager>,
+    });
+
+    await manager.createSession({ ...baseRequest, launchMode: 'agents' });
+
+    expect(pooledCliManager.initializeSession).toHaveBeenCalledWith(
+      '/test/dir',           // workingDir
+      'standard',            // permissionMode
+      undefined,             // model
+      undefined,             // provider
+      'agents',              // launchMode — 5th positional arg
+    );
+  });
+
+  it('back-compat: omitting launchMode passes undefined without breaking existing behavior', async () => {
+    // SessionPool.claim returns null → direct path
+    await manager.createSession({ ...baseRequest });
+
+    expect(CLIManager).toHaveBeenCalledWith(
+      expect.objectContaining({ launchMode: undefined }),
+    );
   });
 });

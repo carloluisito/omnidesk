@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, shell } from 'electron';
+import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SubdirectoryEntry } from '../shared/ipc-types';
@@ -1004,6 +1005,12 @@ export function setupIPCHandlers(
     }
     await shell.openExternal(url);
     return true;
+  });
+
+  // ── Agent View availability ──
+
+  registry.handle('getAgentViewAvailability', async () => {
+    return getCachedAgentViewAvailability();
   });
 
   // ── Updates ──

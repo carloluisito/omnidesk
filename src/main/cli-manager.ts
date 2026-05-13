@@ -2,7 +2,7 @@ import * as pty from 'node-pty';
 import * as os from 'os';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
-import { TerminalSize, PermissionMode, ClaudeModel } from '../shared/ipc-types';
+import { TerminalSize, PermissionMode, ClaudeModel, LaunchMode } from '../shared/ipc-types';
 import { detectModelFromOutput } from '../shared/model-detector';
 import type { IProvider } from './providers/provider';
 
@@ -158,12 +158,23 @@ function getFreshUnixEnvironment(): Record<string, string> | null {
   }
 }
 
+/**
+ * Map the legacy `bypassPermissions` boolean setting to a `LaunchMode` value.
+ * Used at the one boundary where `CLIManager` resolves the mode for callers
+ * (e.g. session-manager) that don't yet supply an explicit `launchMode`.
+ */
+export function defaultLaunchMode(bypassSetting: boolean): LaunchMode {
+  return bypassSetting ? 'bypass-permissions' : 'default';
+}
+
 export interface CLIManagerOptions {
   workingDirectory: string;
   permissionMode: PermissionMode;
   model?: ClaudeModel;
   enableAgentTeams?: boolean;
   provider?: IProvider;
+  /** Per-session launch mode. When omitted, falls back to permissionMode-based inference. */
+  launchMode?: LaunchMode;
 }
 
 export class CLIManager {
@@ -217,7 +228,7 @@ export class CLIManager {
    * Phase 2: Activate session (for pool claim).
    * Updates working directory and permission mode, then launches Claude.
    */
-  async initializeSession(workingDirectory: string, permissionMode: PermissionMode, model?: ClaudeModel, provider?: IProvider): Promise<void> {
+  async initializeSession(workingDirectory: string, permissionMode: PermissionMode, model?: ClaudeModel, provider?: IProvider, launchMode?: LaunchMode): Promise<void> {
     if (!this._isRunning || this._isInitialized) {
       throw new Error('Cannot initialize: session is not in correct state');
     }
@@ -233,6 +244,9 @@ export class CLIManager {
     }
     if (provider !== undefined) {
       this.options.provider = provider;
+    }
+    if (launchMode !== undefined) {
+      this.options.launchMode = launchMode;
     }
 
     // Change to the target directory (shell was spawned at process.cwd())
@@ -341,20 +355,43 @@ export class CLIManager {
     let command: string;
 
     if (this.options.provider) {
-      // Provider-aware path: delegate command building to the provider
+      // Provider-aware path: delegate command building to the provider.
+      // launchMode is forwarded so ClaudeProvider can switch on it; other
+      // providers declare the field optional and ignore it.
       command = this.options.provider.buildCommand({
         workingDirectory: this.options.workingDirectory,
         permissionMode: this.options.permissionMode,
         model: this.options.model,
+        launchMode: this.options.launchMode,
       });
     } else {
-      // Fallback path: existing Claude command building (unchanged behavior)
-      command = this.options.permissionMode === 'skip-permissions'
-        ? 'claude --dangerously-skip-permissions'
-        : 'claude';
+      // Fallback path (no provider): replicate ClaudeProvider's switch so the
+      // behaviour is consistent even without an explicit provider instance.
+      const launchMode: LaunchMode = this.options.launchMode
+        ?? (this.options.permissionMode === 'skip-permissions' ? 'bypass-permissions' : 'default');
 
-      // Add model flag if specified (skip for 'auto' — let CLI decide)
-      if (this.options.model && this.options.model !== 'auto') {
+      switch (launchMode) {
+        case 'default':
+          command = 'claude';
+          break;
+        case 'bypass-permissions':
+          command = 'claude --dangerously-skip-permissions';
+          break;
+        case 'agents':
+          // Defense-in-depth: the no-provider fallback path has no cached
+          // availability; treat as unavailable and fall back to default.
+          console.warn('[CLIManager] launchMode=agents requested in no-provider fallback; falling back to default');
+          command = 'claude';
+          break;
+        default: {
+          const exhaustive: never = launchMode;
+          void exhaustive;
+          command = 'claude';
+        }
+      }
+
+      // Add model flag if specified (skip for 'auto' or 'agents' mode)
+      if (launchMode !== 'agents' && this.options.model && this.options.model !== 'auto') {
         command += ` --model ${this.options.model}`;
       }
     }

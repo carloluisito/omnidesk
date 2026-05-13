@@ -2,13 +2,16 @@ import { IProvider } from './provider';
 import { ClaudeProvider } from './claude-provider';
 import { CodexProvider } from './codex-provider';
 import { ProviderId, ProviderInfo } from '../../shared/types/provider-types';
+import { getCachedAgentViewAvailability } from '../agent-view/availability-cache';
 
 export class ProviderRegistry {
   private providers: Map<ProviderId, IProvider> = new Map();
 
   constructor() {
-    // Auto-register built-in providers
-    this.register(new ClaudeProvider());
+    // Auto-register built-in providers.
+    // ClaudeProvider receives a getter so buildCommand always reads the live
+    // cached availability (including updates from the delayed-init probe).
+    this.register(new ClaudeProvider(() => getCachedAgentViewAvailability()));
     this.register(new CodexProvider());
   }
 

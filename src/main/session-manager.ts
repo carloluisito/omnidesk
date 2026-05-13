@@ -257,7 +257,7 @@ export class SessionManager {
       cliManager = pooledSession.cliManager;
       registerCallbacks(cliManager);
       try {
-        await cliManager.initializeSession(workingDir, request.permissionMode, model, provider);
+        await cliManager.initializeSession(workingDir, request.permissionMode, model, provider, request.launchMode);
       } catch (err) {
         // Activation failed, fall back to direct creation
         console.error('[SessionManager] Pooled session activation failed, falling back to direct creation:', err);
@@ -268,6 +268,7 @@ export class SessionManager {
           model,
           enableAgentTeams: this.agentTeamsGetter?.() ?? true,
           provider,
+          launchMode: request.launchMode,
         });
         registerCallbacks(cliManager);
         await cliManager.spawn();
@@ -281,6 +282,7 @@ export class SessionManager {
         model,
         enableAgentTeams: this.agentTeamsGetter?.() ?? true,
         provider,
+        launchMode: request.launchMode,
       });
       registerCallbacks(cliManager);
       cliManager.spawn();
