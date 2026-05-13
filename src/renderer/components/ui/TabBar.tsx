@@ -18,7 +18,7 @@ interface TabBarProps {
   activeSessionId:             string | null;
   onSelectSession:             (id: string) => void;
   onCloseSession:              (id: string) => void;
-  onCreateSession:             (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../../shared/types/git-types').WorktreeCreateRequest, providerId?: import('../../../shared/types/provider-types').ProviderId) => void;
+  onCreateSession:             (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../../shared/types/git-types').WorktreeCreateRequest, providerId?: import('../../../shared/types/provider-types').ProviderId, launchMode?: import('../../../shared/ipc-types').LaunchMode) => void;
   onRenameSession:             (id: string, name: string) => void;
   onRestartSession:            (id: string) => void;
   onDuplicateSession:          (id: string) => void;

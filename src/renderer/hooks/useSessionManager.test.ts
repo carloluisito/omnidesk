@@ -50,6 +50,33 @@ describe('useSessionManager', () => {
     });
   });
 
+  it('createSession forwards launchMode to electronAPI.createSession', async () => {
+    // Regression test for the renderer wiring of launchMode. The
+    // NewSessionDialog → onSubmit → onCreateSession → handleCreateSession →
+    // useSessionManager.createSession → IPC body chain has historically dropped
+    // `launchMode` at the renderer boundary even after SessionManager (main)
+    // was patched to read it. This test asserts the IPC body actually carries
+    // the field, locking the full chain in place.
+    api.listSessions.mockResolvedValue({ sessions: [], activeSessionId: null });
+    api.createSession.mockResolvedValue({ id: 's-new', name: 'New', workingDirectory: '/test', permissionMode: 'standard', status: 'running', createdAt: Date.now() });
+    api.getSettings.mockResolvedValue({ version: 1, workspaces: [], defaultModel: 'sonnet' });
+
+    const { result } = renderHook(() => useSessionManager());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.createSession('Agents Session', '/test', 'standard', undefined, undefined, 'agents');
+    });
+
+    expect(api.createSession).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Agents Session',
+      workingDirectory: '/test',
+      permissionMode: 'standard',
+      model: 'sonnet',
+      launchMode: 'agents',
+    }));
+  });
+
   it('closeSession calls electronAPI.closeSession', async () => {
     api.listSessions.mockResolvedValue({
       sessions: [{ id: 's1', name: 'S1', workingDirectory: '/', permissionMode: 'standard', status: 'running', createdAt: Date.now() }],

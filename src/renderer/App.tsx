@@ -622,10 +622,11 @@ function App() {
     workingDirectory: string,
     permissionMode: 'standard' | 'skip-permissions',
     worktree?: import('../shared/types/git-types').WorktreeCreateRequest,
-    providerId?: import('../shared/types/provider-types').ProviderId
+    providerId?: import('../shared/types/provider-types').ProviderId,
+    launchMode?: import('../shared/ipc-types').LaunchMode,
   ) => {
     try {
-      await createSession(name, workingDirectory, permissionMode, worktree, providerId);
+      await createSession(name, workingDirectory, permissionMode, worktree, providerId, launchMode);
     } catch (err) {
       console.error('Failed to create session:', err);
     }
