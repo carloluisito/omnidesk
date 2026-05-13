@@ -1,25 +1,76 @@
 import { useState, useEffect } from 'react';
-import { Workspace, PermissionMode, SubdirectoryEntry } from '../../../shared/ipc-types';
+import { Workspace, PermissionMode, SubdirectoryEntry, LaunchMode } from '../../../shared/ipc-types';
 import type { WorktreeCreateRequest, GitBranchInfo } from '../../../shared/types/git-types';
 import type { ProviderId } from '../../../shared/types/provider-types';
+import type { AgentViewAvailability } from '../../../shared/types/agent-view-types';
 import { useProvider } from '../../hooks/useProvider';
+import { useAgentViewAvailability } from '../../hooks/useAgentViewAvailability';
+
+interface LaunchModePickerProps {
+  launchMode: LaunchMode;
+  onChange: (mode: LaunchMode) => void;
+  availability: AgentViewAvailability | null;
+}
+
+function LaunchModePicker({ launchMode, onChange, availability }: LaunchModePickerProps) {
+  // availability === null means the hook is still loading (probe in-flight).
+  // Narrow on the discriminant union — avoids unsafe `as` casts and stays
+  // future-proof if a new AgentViewAvailability variant is added.
+  const agentsDisabled = availability === null || availability.status !== 'available';
+  const agentsTooltip = availability === null
+    ? 'Checking availability...'
+    : availability.status === 'unavailable'
+      ? `Agent View unavailable: ${availability.detail}`
+      : undefined;
+  // Surface state directly in the option label so users who never hover the
+  // wrapper still understand why the option is disabled.
+  const agentsLabel = availability === null
+    ? 'claude agents (checking...)'
+    : availability.status === 'unavailable'
+      ? 'claude agents (unavailable)'
+      : 'claude agents';
+
+  return (
+    <div
+      className="nsd-launch-mode-section"
+      data-testid="launch-mode-container"
+      title={agentsDisabled ? agentsTooltip : undefined}
+    >
+      <label className="nsd-label" htmlFor="launch-mode-select">Launch mode</label>
+      <select
+        id="launch-mode-select"
+        data-testid="launch-mode-select"
+        aria-label="Launch mode"
+        className="nsd-launch-mode-select"
+        value={launchMode}
+        onChange={(e) => onChange(e.target.value as LaunchMode)}
+      >
+        <option value="default">claude</option>
+        <option value="bypass-permissions">claude --dangerously-skip-permissions</option>
+        <option value="agents" disabled={agentsDisabled}>{agentsLabel}</option>
+      </select>
+    </div>
+  );
+}
 
 interface NewSessionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: WorktreeCreateRequest, providerId?: ProviderId) => void;
+  onSubmit: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode) => void;
   sessionCount: number;
   workspaces?: Workspace[];
 }
 
 export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, workspaces = [] }: NewSessionDialogProps) {
   const { providers, availableProviders } = useProvider();
+  const { availability } = useAgentViewAvailability();
   const [name, setName] = useState('');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [selectedSubdirectory, setSelectedSubdirectory] = useState<string | null>(null);
   const [subdirectories, setSubdirectories] = useState<SubdirectoryEntry[]>([]);
   const [isLoadingSubdirs, setIsLoadingSubdirs] = useState(false);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('standard');
+  const [launchMode, setLaunchMode] = useState<LaunchMode>('default');
   const [error, setError] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -57,6 +108,7 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
       setSelectedSubdirectory(null);
       setSubdirectories([]);
       setPermissionMode('standard');
+      setLaunchMode('default');
       setError(null);
       setShowAdvanced(false);
       setSearchQuery('');
@@ -85,6 +137,8 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
   const loadSubdirectories = async (workspace: Workspace): Promise<SubdirectoryEntry[]> => {
     setIsLoadingSubdirs(true);
     setPermissionMode(workspace.defaultPermissionMode);
+    // Seed the launch mode picker default from the workspace's permission mode
+    setLaunchMode(workspace.defaultPermissionMode === 'skip-permissions' ? 'bypass-permissions' : 'default');
     try {
       const subdirs = await window.electronAPI.listSubdirectories(workspace.path);
       setSubdirectories(subdirs);
@@ -215,7 +269,7 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
       };
     }
 
-    onSubmit(sessionName, finalPath, permissionMode, worktreeRequest, selectedProviderId);
+    onSubmit(sessionName, finalPath, permissionMode, worktreeRequest, selectedProviderId, launchMode);
     handleClose();
   };
 
@@ -548,6 +602,15 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
                 })}
               </select>
             </div>
+          )}
+
+          {/* Launch Mode Picker — shown when the Claude provider is selected */}
+          {selectedProviderId === 'claude' && (
+            <LaunchModePicker
+              launchMode={launchMode}
+              onChange={setLaunchMode}
+              availability={availability}
+            />
           )}
 
           {/* Footer Controls */}
@@ -1038,7 +1101,8 @@ const styles = `
     text-overflow: ellipsis;
   }
 
-  /* Provider Section */
+  /* Launch Mode + Provider Sections — same layout, different content */
+  .nsd-launch-mode-section,
   .nsd-provider-section {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-default);
@@ -1047,11 +1111,18 @@ const styles = `
     gap: 12px;
   }
 
+  .nsd-launch-mode-section .nsd-label,
   .nsd-provider-section .nsd-label {
     margin-bottom: 0;
     flex-shrink: 0;
   }
 
+  /* Launch-mode label wraps onto the picker if cramped; keep it on one line. */
+  .nsd-launch-mode-section .nsd-label {
+    white-space: nowrap;
+  }
+
+  .nsd-launch-mode-select,
   .nsd-provider-select {
     flex: 1;
     height: 32px;
@@ -1066,6 +1137,7 @@ const styles = `
     transition: all var(--duration-fast);
   }
 
+  .nsd-launch-mode-select:focus,
   .nsd-provider-select:focus {
     outline: none;
     border-color: var(--border-accent);

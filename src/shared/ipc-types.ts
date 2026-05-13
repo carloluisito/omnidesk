@@ -3,6 +3,18 @@ import type { ProviderId } from './types/provider-types';
 // Permission mode for sessions
 export type PermissionMode = 'standard' | 'skip-permissions';
 
+/**
+ * The launch mode for a new session — drives which `claude` invocation runs in the PTY.
+ *
+ * - `'default'`              — `claude`
+ * - `'bypass-permissions'`   — `claude --dangerously-skip-permissions`
+ * - `'agents'`               — `claude agents` (Claude Code v2.1.139+ background-session TUI)
+ *
+ * Gated on `AgentViewAvailability` for `'agents'`; the spawner falls back to
+ * `'default'` if the agents mode is requested while unavailable.
+ */
+export type LaunchMode = 'default' | 'bypass-permissions' | 'agents';
+
 // Session status
 export type SessionStatus = 'starting' | 'running' | 'exited' | 'error';
 
@@ -20,6 +32,7 @@ export interface SessionCreateRequest {
   model?: ClaudeModel; // Starting model override (defaults to AppSettings.defaultModel)
   worktree?: import('./types/git-types').WorktreeCreateRequest;
   providerId?: ProviderId; // Provider to use (defaults to 'claude')
+  launchMode?: LaunchMode; // Per-session launch mode (Claude-specific; other providers ignore this field)
 }
 
 // Session metadata

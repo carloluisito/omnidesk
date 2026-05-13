@@ -98,4 +98,14 @@ describe('CodexProvider', () => {
       expect(provider.normalizeModel('')).toBeNull();
     });
   });
+
+  describe('launchMode inertness', () => {
+    it('launchMode field on options is ignored — command is unchanged from baseline', () => {
+      const baseOptions = { workingDirectory: '/test', permissionMode: 'standard' };
+      const baseline = provider.buildCommand(baseOptions);
+      // Pass the launchMode field that Claude uses; Codex must not special-case it
+      const withLaunchMode = provider.buildCommand({ ...baseOptions, launchMode: 'agents' } as Parameters<typeof provider.buildCommand>[0]);
+      expect(withLaunchMode).toBe(baseline);
+    });
+  });
 });

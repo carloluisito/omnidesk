@@ -154,6 +154,8 @@ import type {
   TasksChangedEvent,
 } from './types/task-types';
 
+import type { AgentViewAvailability } from './types/agent-view-types';
+
 // ─── Contract helper types ──────────────────────────────────────────
 
 /** renderer → main, expects a return value (ipcRenderer.invoke / ipcMain.handle) */
@@ -468,6 +470,12 @@ export interface IPCContractMap {
 
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
+
+  // ── Agent View availability (invoke) ──
+  getAgentViewAvailability: InvokeContract<'agentView:availability', [], AgentViewAvailability>;
+
+  // ── Agent View availability event (main→renderer) ──
+  onAgentViewAvailabilityChanged: EventContract<'agentView:availabilityChanged', AgentViewAvailability>;
 }
 
 // ─── Runtime channel map ────────────────────────────────────────────
@@ -753,6 +761,10 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
 
   // App info
   getVersionInfo:      'app:getVersionInfo',
+
+  // Agent View availability
+  getAgentViewAvailability: 'agentView:availability',
+  onAgentViewAvailabilityChanged: 'agentView:availabilityChanged',
 };
 
 // ─── Runtime kind map ───────────────────────────────────────────────
@@ -1008,6 +1020,9 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onCommandsChanged:   'event',
 
   getVersionInfo:      'invoke',
+
+  getAgentViewAvailability: 'invoke',
+  onAgentViewAvailabilityChanged: 'event',
 };
 
 // ─── Derived ElectronAPI type ───────────────────────────────────────

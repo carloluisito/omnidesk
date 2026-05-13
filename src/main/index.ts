@@ -2,6 +2,7 @@
 import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { CONFIG_DIR, ensureConfigDir, migrateFromLegacy } from './config-dir';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
@@ -22,6 +23,9 @@ import { TaskManager } from './task-manager';
 // NOTE: LaunchTunnel/sharing disabled — uncomment when LaunchTunnel integration is fixed
 // import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
+import { probeClaudeVersion } from './agent-view/probe-version';
+import { getAgentViewAvailability } from './agent-view/availability';
+import { setCachedAgentViewAvailability } from './agent-view/availability-cache';
 // import { SharingManager } from './sharing-manager';
 // import { IPCEmitter } from './ipc-emitter'; // LaunchTunnel disabled
 import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
@@ -99,6 +103,58 @@ function getDefaultWindowState(): WindowState {
     height: 800,
     isMaximized: false,
   };
+}
+
+/**
+ * One-shot Agent View availability probe.
+ *
+ * Runs off the createWindow synchronous critical path (called from a
+ * setTimeout(..., 2000) block) so a hung or missing `claude` binary cannot
+ * delay window creation. Uses timeout: 5000 on the execFile call.
+ *
+ * Lesson replicated from plans/abandoned/agent-view.plan.md, Learnings item #4.
+ */
+async function agentViewDelayedInit(): Promise<void> {
+  // 1. Probe the CLI version
+  const cliVersion = await probeClaudeVersion();
+
+  // 2. Read ~/.claude/settings.json (or honour CLAUDE_CONFIG_DIR env var).
+  //    Try/catch + default to {} on any failure so a missing/malformed file
+  //    never crashes the probe.
+  const claudeConfigDir = process.env['CLAUDE_CONFIG_DIR']
+    ?? path.join(os.homedir(), '.claude');
+  let settings: Record<string, unknown> = {};
+  try {
+    const settingsPath = path.join(claudeConfigDir, 'settings.json');
+    const raw = fs.readFileSync(settingsPath, 'utf-8');
+    settings = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    // File missing, unreadable, or unparseable — treat as empty settings.
+  }
+
+  // 3. Compute availability
+  const availability = getAgentViewAvailability({
+    cliVersion,
+    env: process.env,
+    settings,
+  });
+
+  // 4. Store in module-level cache (replaces the initial "probing" value)
+  setCachedAgentViewAvailability(availability);
+
+  // 4b. Push the final availability to the renderer so it does not need to poll.
+  //     The window is always present at this point: agentViewDelayedInit runs 2s
+  //     after app.whenReady → createWindow(), which assigns mainWindow synchronously.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('agentView:availabilityChanged', availability);
+  }
+
+  // 5. Log for support diagnostics
+  console.log(
+    '[AgentView] availability:',
+    availability.status,
+    availability.status === 'unavailable' ? availability.reason : availability.cliVersion,
+  );
 }
 
 function createWindow(): void {
@@ -252,6 +308,12 @@ function createWindow(): void {
       });
     }
   }, 1500);
+
+  // Probe claude --version once and cache AgentView availability (delayed to
+  // keep createWindow synchronous — a hung binary cannot block window creation)
+  setTimeout(() => {
+    void agentViewDelayedInit();
+  }, 2000);
 
   // Run history cleanup on startup
   historyManager.runCleanup().catch(err => {
