@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -66,10 +66,17 @@ describe('TaskManager', () => {
     const current = fs.readFileSync(filePath, 'utf8');
     fs.writeFileSync(filePath, `${current}- [ ] from-AI\n`);
 
-    await new Promise(r => setTimeout(r, 400)); // > debounce
-    expect(events.length).toBeGreaterThan(0);
-    const last = events[events.length - 1];
-    expect(last.map((t: any) => t.title)).toContain('from-AI');
+    // Poll for the debounced change event instead of a fixed setTimeout.
+    // macOS FSEvents can take significantly longer than the 200ms debounce
+    // window under CI load, so a hard 400ms wait was flaky.
+    await vi.waitFor(
+      () => {
+        expect(events.length).toBeGreaterThan(0);
+        const last = events[events.length - 1];
+        expect(last.map((t: any) => t.title)).toContain('from-AI');
+      },
+      { timeout: 5000, interval: 50 },
+    );
     tm.unwatch(repo);
   });
 
