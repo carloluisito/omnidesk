@@ -2,8 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-1.2.0-green.svg)
-![Tests](https://img.shields.io/badge/tests-683%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-green.svg)
+![Tests](https://img.shields.io/badge/tests-788%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
 
@@ -72,6 +72,7 @@
 
 ### Multi-Session Management
 - **Multiple Claude sessions** in tabbed interface
+- **Per-session launch mode picker** — choose between `claude`, `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at session creation time, gated by an automatic CLI availability probe
 - **Session persistence** — resume sessions after app restart
 - **Named sessions** for better organization
 - **Session history** — search and export conversation logs

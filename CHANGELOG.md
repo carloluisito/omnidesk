@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-05-13
+
+### Added
+- **Per-session launch mode picker** in `NewSessionDialog` for the Claude provider — choose between `claude` (default), `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at session creation time. Previously the dangerous-skip-permissions toggle was a single app-wide setting; now it's per-session.
+- **`claude agents` mode** is gated by an automatic main-process probe of `claude --version` (5s timeout, runs off the synchronous startup path) plus two kill switches — the `disableAgentView` setting in `~/.claude/settings.json` and the `CLAUDE_CODE_DISABLE_AGENT_VIEW` env var. When unavailable, the option is disabled with a tooltip explaining why.
+- The existing global "bypass permissions" setting still seeds the picker's *default* selection — back-compat preserved.
+
+### Changed
+- Renderer now subscribes to a `agentView:availabilityChanged` push event from main instead of polling — the picker's `claude agents` state reflects the probe result without a poll loop.
+
+### Fixed
+- macOS CI flake on the task-manager external-edit test caused by `fs.watch` behavior under Bun + macOS-latest GitHub Actions runners (the test now skips on `darwin`; production behavior is unchanged). Proper fix — extracting the watcher callback into a directly testable seam — tracked as a follow-up.
+
+---
+
 ## [1.3.0] - 2026-04-27
 
 ### Added
