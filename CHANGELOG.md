@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-05-13
+
+### Fixed
+- **Launch mode picker now actually changes the spawned command.** v1.4.0 shipped the picker UI and the main-process plumbing, but `launchMode` was silently dropped at three renderer function boundaries (`TabBar.onCreateSession`, `App.handleCreateSession`, `useSessionManager.createSession`) before reaching the IPC body — so selecting `claude agents` or the non-bypass default always produced `claude --dangerously-skip-permissions`. Threaded the field through the full renderer chain and added a regression test at the `useSessionManager` boundary asserting the IPC body carries `launchMode` when callers pass it.
+
+---
+
 ## [1.4.0] - 2026-05-13
 
 ### Added
