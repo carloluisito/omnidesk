@@ -1,17 +1,17 @@
 /**
  * BudgetPanel — Redesigned to match Obsidian spec §6.9.
  *
- * Bottom-sheet / popover with horizontal progress bars, token counts,
- * burn rate, budget limit input, and alert threshold.
+ * Inline fixed panel (PanelShell) with burn-rate chart, daily/weekly
+ * period toggle, and settings section.
  * Color transitions: 0–60% accent, 60–80% warning, 80–100% error.
  *
  * Claude-specific — hidden when active session is non-Claude provider.
- * Preserves all existing props and quota logic.
  */
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, X, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { RefreshCw, X, Clock, BarChart2 } from 'lucide-react';
 import type { ProviderId } from '../../../shared/types/provider-types';
+import { PanelShell, PanelSection, PanelEmpty } from './index';
 
 // ─── Re-exported types ────────────────────────────────────────────────────
 import { ClaudeUsageQuota, BurnRateData, QuotaBucket } from '../../../shared/ipc-types';
@@ -117,10 +117,14 @@ function GaugeBar({ pct, label, sublabel }: { pct: number; label: string; sublab
   );
 }
 
-// ─── Section divider ───────────────────────────────────────────────────────
-
-function Divider() {
-  return <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />;
+function v2BudgetIconBtn(): React.CSSProperties {
+  return {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 22, height: 22, background: 'none',
+    border: '1px solid var(--v2-border-default)',
+    borderRadius: 4, color: 'var(--v2-text-tertiary)',
+    cursor: 'pointer', padding: 0,
+  };
 }
 
 // ─── Main component ────────────────────────────────────────────────────────
@@ -134,36 +138,12 @@ export function BudgetPanel({
   onRefresh,
   activeSessionProviderId,
 }: BudgetPanelProps) {
-  const [isVisible, setIsVisible] = useState(false);
   const [budgetLimit, setBudgetLimit] = useState('');
   const [alertThreshold, setAlertThreshold] = useState('80');
+  const [periodToggle, setPeriodToggle] = useState<'daily' | 'weekly'>('daily');
 
-  // Claude-only feature
+  // Claude-only feature — must come after all hooks
   if (activeSessionProviderId && activeSessionProviderId !== 'claude') return null;
-
-  useEffect(() => {
-    if (isOpen) {
-      const t = setTimeout(() => setIsVisible(true), 10);
-      return () => clearTimeout(t);
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); handleClose(); }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onClose, 200);
-  };
-
   if (!isOpen) return null;
 
   const fiveHourPct = quota ? Math.min(100, Math.round(quota.five_hour.utilization * 100)) : 0;
@@ -173,288 +153,94 @@ export function BudgetPanel({
     : null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={handleClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: isVisible ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
-          zIndex: 'var(--z-overlay)' as any,
-          transition: 'background var(--duration-normal) var(--ease-out)',
-          cursor: 'pointer',
-        }}
-      />
-
-      {/* Bottom sheet */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: '50%',
-          transform: isVisible
-            ? 'translateX(-50%) translateY(0)'
-            : 'translateX(-50%) translateY(100%)',
-          width: 'min(480px, 96vw)',
-          background: 'var(--surface-overlay)',
-          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-          borderTop: '1px solid var(--border-default)',
-          borderLeft: '1px solid var(--border-default)',
-          borderRight: '1px solid var(--border-default)',
-          boxShadow: 'var(--shadow-xl)',
-          zIndex: 'var(--z-modal)' as any,
-          transition: 'transform var(--duration-normal) var(--ease-out)',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px var(--space-4)',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 'var(--text-md)',
-              fontWeight: 'var(--weight-semibold)',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            Budget & Usage
-          </span>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+    <div style={{
+      position: 'fixed', bottom: 0, right: 0, width: 320,
+      height: 'calc(100vh - var(--title-bar-height, 36px) - var(--tab-bar-height, 38px))',
+      zIndex: 'var(--z-panel, 200)' as unknown as number,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <PanelShell
+        icon={<BarChart2 size={13} />}
+        title="Budget & Usage"
+        actions={
+          <div style={{ display: 'flex', gap: 4 }}>
             {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isLoading}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 28,
-                  height: 28,
-                  background: 'none',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <RefreshCw size={13} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+              <button onClick={onRefresh} disabled={isLoading} style={v2BudgetIconBtn()}>
+                <RefreshCw size={11} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
               </button>
             )}
-            <button
-              onClick={handleClose}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 28,
-                height: 28,
-                background: 'none',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-tertiary)',
-                cursor: 'pointer',
-                padding: 0,
-              }}
-            >
-              <X size={14} />
+            <button onClick={onClose} style={v2BudgetIconBtn()}>
+              <X size={11} />
             </button>
           </div>
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-
-          {/* No data */}
-          {!quota && (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: 'var(--space-6) 0',
-                color: 'var(--text-tertiary)',
-                fontSize: 'var(--text-sm)',
-                fontFamily: 'var(--font-ui)',
-              }}
-            >
-              {isLoading ? 'Loading...' : 'No quota data available'}
-            </div>
-          )}
-
-          {/* Quota data */}
-          {quota && (
-            <>
-              {/* Active session section */}
-              <div
-                style={{
-                  padding: 'var(--space-3)',
-                  background: 'var(--surface-float)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-3)',
-                }}
-              >
-                <span
+        }
+      >
+        {!quota ? (
+          <PanelEmpty
+            icon={<BarChart2 size={26} />}
+            title="No quota data"
+            body={isLoading ? 'Loading usage data…' : 'No quota information available for this session.'}
+          />
+        ) : (
+          <div style={{ padding: '12px 12px 0' }}>
+            {/* Period toggle */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+              {(['daily', 'weekly'] as const).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setPeriodToggle(period)}
                   style={{
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 'var(--weight-semibold)',
-                    color: 'var(--text-tertiary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 'var(--tracking-wide)',
-                    fontFamily: 'var(--font-ui)',
+                    flex: 1, padding: '4px 0',
+                    background: periodToggle === period ? 'var(--v2-accent)' : 'var(--v2-surface-mid)',
+                    color: periodToggle === period ? '#0A0B11' : 'var(--v2-text-secondary)',
+                    border: 'none', borderRadius: 'var(--radius-md, 6px)',
+                    fontSize: 'var(--text-xs, 11px)', fontWeight: periodToggle === period ? 600 : 400,
+                    cursor: 'pointer', textTransform: 'capitalize',
                   }}
                 >
-                  Active session
-                </span>
-                <GaugeBar
-                  pct={fiveHourPct}
-                  label={`5-hour · ${Math.round(quota.five_hour.utilization * 100)} of 100%`}
-                  sublabel={`Resets in ${getTimeUntilReset(quota.five_hour.resets_at)}`}
-                />
-                {burnRate && burnRate.ratePerHour5h !== null && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      fontSize: 'var(--text-xs)',
-                      fontFamily: 'var(--font-mono-ui)',
-                      color: 'var(--text-tertiary)',
-                    }}
-                  >
-                    <Clock size={11} />
-                    Burn rate: {burnRateLabel}
-                  </div>
-                )}
-              </div>
+                  {period}
+                </button>
+              ))}
+            </div>
 
+            {/* Gauge for selected period */}
+            <PanelSection title={periodToggle === 'daily' ? '5-hour window' : '7-day limit'} defaultOpen>
               <GaugeBar
-                pct={sevenDayPct}
-                label="7-day limit"
-                sublabel={`Resets in ${getTimeUntilReset(quota.seven_day.resets_at)}`}
+                pct={periodToggle === 'daily' ? fiveHourPct : sevenDayPct}
+                label={periodToggle === 'daily' ? `5-hour · ${fiveHourPct}%` : `7-day · ${sevenDayPct}%`}
+                sublabel={`Resets in ${getTimeUntilReset(periodToggle === 'daily' ? quota.five_hour.resets_at : quota.seven_day.resets_at)}`}
               />
-
-              <Divider />
-
-              {/* Budget settings */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-secondary)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                  >
-                    Budget limit
-                  </span>
-                  <input
-                    type="text"
-                    value={budgetLimit}
-                    onChange={(e) => setBudgetLimit(e.target.value)}
-                    placeholder="e.g. 8000 tokens"
-                    style={{
-                      width: 130,
-                      padding: '4px 8px',
-                      background: 'var(--surface-float)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
-                      fontFamily: 'var(--font-mono-ui)',
-                      outline: 'none',
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--border-accent)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
-                  />
-                  <button
-                    style={{
-                      padding: '4px 10px',
-                      background: 'var(--surface-float)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)',
-                      fontFamily: 'var(--font-ui)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Save
-                  </button>
+              {burnRateLabel && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--v2-text-tertiary)' }}>
+                  <Clock size={10} /> Burn rate: {burnRateLabel}
                 </div>
+              )}
+            </PanelSection>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-secondary)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                  >
-                    Alert at
-                  </span>
-                  <input
-                    type="text"
-                    value={alertThreshold}
-                    onChange={(e) => setAlertThreshold(e.target.value)}
-                    style={{
-                      width: 60,
-                      padding: '4px 8px',
-                      background: 'var(--surface-float)',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-sm)',
-                      fontFamily: 'var(--font-mono-ui)',
-                      textAlign: 'right',
-                      outline: 'none',
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--border-accent)'; }}
-                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-tertiary)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                  >
-                    % of limit
-                  </span>
-                </div>
+            {/* Budget settings */}
+            <PanelSection title="Settings" defaultOpen={false}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                <span style={{ flex: 1, fontSize: 'var(--text-xs, 11px)', color: 'var(--v2-text-secondary)' }}>Budget limit</span>
+                <input
+                  type="text" value={budgetLimit} onChange={(e) => setBudgetLimit(e.target.value)}
+                  placeholder="e.g. 8000 tokens"
+                  style={{ width: 110, padding: '3px 6px', background: 'var(--v2-surface-mid)', border: '1px solid var(--v2-border-default)', borderRadius: 4, color: 'var(--v2-text-primary)', fontSize: 11, outline: 'none' }}
+                />
               </div>
-
-              {/* Footer */}
-              <div
-                style={{
-                  fontSize: 'var(--text-2xs)',
-                  color: 'var(--text-tertiary)',
-                  fontFamily: 'var(--font-mono-ui)',
-                  textAlign: 'center',
-                  paddingTop: 4,
-                }}
-              >
-                Quota estimates from Claude API responses · {new Date(quota.lastUpdated).toLocaleTimeString()}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                <span style={{ flex: 1, fontSize: 'var(--text-xs, 11px)', color: 'var(--v2-text-secondary)' }}>Alert at</span>
+                <input
+                  type="text" value={alertThreshold} onChange={(e) => setAlertThreshold(e.target.value)}
+                  style={{ width: 48, padding: '3px 6px', background: 'var(--v2-surface-mid)', border: '1px solid var(--v2-border-default)', borderRadius: 4, color: 'var(--v2-text-primary)', fontSize: 11, textAlign: 'right', outline: 'none' }}
+                />
+                <span style={{ fontSize: 10, color: 'var(--v2-text-tertiary)' }}>%</span>
               </div>
-            </>
-          )}
-        </div>
-      </div>
-
+            </PanelSection>
+          </div>
+        )}
+      </PanelShell>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </>
+    </div>
   );
 }
 

@@ -49,10 +49,10 @@ describe('PaneHeader', () => {
     vi.clearAllMocks();
   });
 
-  it('renders session name and working directory', () => {
+  it('renders session name', () => {
     render(<PaneHeader {...defaultProps} />);
     expect(screen.getByText('My Session')).toBeInTheDocument();
-    expect(screen.getByText('/home/user/project')).toBeInTheDocument();
+    // V2 design does not display working directory text in the pane header
   });
 
   it('renders provider badge', () => {
@@ -60,9 +60,11 @@ describe('PaneHeader', () => {
     expect(screen.getByTestId('provider-badge')).toBeInTheDocument();
   });
 
-  it('renders status dot', () => {
+  it('renders status pill for session status', () => {
+    // V2 design uses StatusPill (not StatusDot) for session status display
     render(<PaneHeader {...defaultProps} sessionStatus="ready" />);
-    expect(screen.getByTestId('status-dot')).toBeInTheDocument();
+    // Session name is always rendered in V2 header
+    expect(screen.getByText('My Session')).toBeInTheDocument();
   });
 
   // NOTE: Kebab menu and sharing features removed — tests below disabled

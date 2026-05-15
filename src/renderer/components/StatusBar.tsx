@@ -1,7 +1,7 @@
 /**
  * StatusBar — 24px app-wide status strip at bottom.
  *
- * Sections (left-to-right):
+ * V1 Sections (left-to-right):
  * 1. Provider indicator: colored dot + provider name
  * 2. Model name (clickable → model switcher)
  * 3. Git branch (clickable → Git panel)
@@ -11,11 +11,17 @@
  * 7. Budget %
  * 8. Connectivity dot (rightmost)
  *
+ * V2 (Phase 2 · 01 spec):
+ * Flat row → pill row using StatusPill from item #5.
+ * Each pill is a click-target opening the relevant side panel.
+ * Pills: provider+model | branch+delta | tokens | budget | connectivity
+ *
  * Font: text-2xs, font-mono-ui. Dividers between sections.
  */
 import type { ProviderId } from '../../shared/types/provider-types';
 import type { GitStatus } from '../../shared/types/git-types';
 import type { ClaudeUsageQuota } from '../../shared/ipc-types';
+import { StatusPill } from './ui/StatusPill';
 
 interface StatusBarProps {
   providerId?:    ProviderId | string;
@@ -27,65 +33,6 @@ interface StatusBarProps {
   onModelClick?:  () => void;
   onGitClick?:    () => void;
   onBudgetClick?: () => void;
-}
-
-function Divider() {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        display:         'inline-block',
-        width:           '1px',
-        height:          '12px',
-        backgroundColor: 'var(--border-default)',
-        flexShrink:      0,
-        margin:          '0 var(--space-2)',
-      }}
-    />
-  );
-}
-
-function ClickableSection({
-  children,
-  onClick,
-  title,
-}: {
-  children:  React.ReactNode;
-  onClick?:  () => void;
-  title?:    string;
-}) {
-  return (
-    <span
-      title={title}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
-      style={{
-        display:        'inline-flex',
-        alignItems:     'center',
-        gap:            'var(--space-1)',
-        cursor:         onClick ? 'pointer' : 'default',
-        padding:        onClick ? '0 var(--space-1)' : '0',
-        borderRadius:   'var(--radius-sm)',
-        transition:     'background-color var(--duration-fast) var(--ease-inout)',
-        outline:        'none',
-        height:         '18px',
-      }}
-      onMouseEnter={(e) => { if (onClick) (e.currentTarget as HTMLSpanElement).style.backgroundColor = 'var(--state-hover)'; }}
-      onMouseLeave={(e) => { if (onClick) (e.currentTarget as HTMLSpanElement).style.backgroundColor = 'transparent'; }}
-      onFocus={(e) => { if (onClick) (e.currentTarget as HTMLSpanElement).style.outline = '2px solid var(--state-focus)'; }}
-      onBlur={(e) => { if (onClick) (e.currentTarget as HTMLSpanElement).style.outline = 'none'; }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function getProviderDotColor(providerId?: string): string {
-  if (providerId === 'claude') return 'var(--provider-claude)';
-  if (providerId === 'codex')  return 'var(--provider-codex)';
-  return 'var(--provider-future)';
 }
 
 function getProviderName(providerId?: string): string {
@@ -100,50 +47,114 @@ function formatTokens(count?: number): string {
   return String(count);
 }
 
-function MiniProgressBar({ pct }: { pct: number }) {
-  const color = pct >= 80 ? 'var(--semantic-error)'
-    : pct >= 60 ? 'var(--semantic-warning)'
-    : 'var(--accent-primary)';
+// ─────────────────────────────────────────────
+// V2 StatusBar
+// ─────────────────────────────────────────────
+function V2StatusBar({
+  providerId,
+  modelName,
+  gitStatus,
+  tokenCount,
+  quotaData,
+  isConnected = true,
+  onModelClick,
+  onGitClick,
+  onBudgetClick,
+}: StatusBarProps) {
+  const providerName = getProviderName(providerId as string | undefined);
+  const budgetPct    = quotaData
+    ? Math.round((quotaData.five_hour?.utilization ?? 0) * 100)
+    : 0;
+
+  // Connectivity: live = connected, offline = disconnected
+  const connVariant = isConnected ? 'live' : 'offline';
+  const connPulse   = isConnected; // pulse the dot when connected
+
+  // Budget severity
+  const budgetVariant = budgetPct >= 80 ? 'errored' : budgetPct >= 60 ? 'awaiting' : 'live';
 
   return (
-    <span
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label="Budget usage"
+    <div
+      role="status"
+      aria-label="Session status bar"
       style={{
-        display:         'inline-block',
-        width:           '48px',
-        height:          '4px',
-        backgroundColor: 'var(--surface-float)',
-        borderRadius:    'var(--radius-full)',
-        overflow:        'hidden',
+        height:          'var(--status-bar-height)',
+        display:         'flex',
+        alignItems:      'center',
+        gap:             '4px',
+        paddingLeft:     'var(--space-3)',
+        paddingRight:    'var(--space-3)',
+        backgroundColor: 'var(--v2-surface-base)',
+        borderTop:       `1px solid var(--v2-border-subtle)`,
         flexShrink:      0,
+        overflow:        'hidden',
       }}
     >
-      <span
-        style={{
-          display:         'block',
-          height:          '100%',
-          width:           `${Math.min(100, pct)}%`,
-          backgroundColor: color,
-          borderRadius:    'var(--radius-full)',
-          transition:      'width var(--duration-normal) var(--ease-inout), background-color var(--duration-normal) var(--ease-inout)',
-        }}
+      {/* 1. Provider + model pill */}
+      <StatusPill
+        variant="info"
+        label={modelName ? `${providerName} · ${modelName}` : providerName}
+        onClick={onModelClick}
       />
-    </span>
+
+      {/* 2. Git branch pill */}
+      {gitStatus?.branch && (
+        <StatusPill
+          variant="done"
+          label={gitStatus.branch}
+          onClick={onGitClick}
+        />
+      )}
+
+      {/* 3. Git delta pills */}
+      {gitStatus && (gitStatus.ahead || gitStatus.behind || (gitStatus as any).modified) && (
+        <>
+          {(gitStatus.ahead ?? 0) > 0 && (
+            <StatusPill variant="success" label={`+${gitStatus.ahead}`} onClick={onGitClick} />
+          )}
+          {(gitStatus.behind ?? 0) > 0 && (
+            <StatusPill variant="errored" label={`-${gitStatus.behind}`} onClick={onGitClick} />
+          )}
+          {((gitStatus as any).modified ?? 0) > 0 && (
+            <StatusPill variant="awaiting" label={`~${(gitStatus as any).modified}`} onClick={onGitClick} />
+          )}
+        </>
+      )}
+
+      {/* 4. Token count pill */}
+      {tokenCount != null && (
+        <StatusPill
+          variant="offline"
+          label={`${formatTokens(tokenCount)} tok`}
+        />
+      )}
+
+      {/* Spacer */}
+      <span style={{ flex: 1 }} />
+
+      {/* 5. Budget pill */}
+      {quotaData && (
+        <StatusPill
+          variant={budgetVariant}
+          label={`${budgetPct}%`}
+          pulse={budgetPct >= 80}
+          onClick={onBudgetClick}
+        />
+      )}
+
+      {/* 6. Connectivity pill */}
+      <StatusPill
+        variant={connVariant}
+        label={isConnected ? 'online' : 'offline'}
+        pulse={connPulse}
+      />
+    </div>
   );
 }
 
-const TEXT_STYLE: React.CSSProperties = {
-  fontSize:    'var(--text-2xs)',
-  fontFamily:  'var(--font-mono-ui)',
-  color:       'var(--text-secondary)',
-  lineHeight:  1,
-  whiteSpace:  'nowrap',
-};
-
+// ─────────────────────────────────────────────
+// Main export — dispatcher
+// ─────────────────────────────────────────────
 export function StatusBar({
   providerId,
   modelName,
@@ -155,139 +166,17 @@ export function StatusBar({
   onGitClick,
   onBudgetClick,
 }: StatusBarProps) {
-  const dotColor        = getProviderDotColor(providerId as string | undefined);
-  const providerName    = getProviderName(providerId as string | undefined);
-  const budgetPct       = quotaData
-    ? Math.round((quotaData.five_hour?.utilization ?? 0) * 100)
-    : 0;
-
   return (
-    <div
-      role="status"
-      aria-label="Session status bar"
-      style={{
-        height:          'var(--status-bar-height)',
-        display:         'flex',
-        alignItems:      'center',
-        paddingLeft:     'var(--space-3)',
-        paddingRight:    'var(--space-3)',
-        backgroundColor: 'var(--surface-base)',
-        borderTop:       '1px solid var(--border-subtle)',
-        flexShrink:      0,
-        overflow:        'hidden',
-      }}
-    >
-      {/* 1. Provider indicator */}
-      <ClickableSection title={providerName}>
-        <span
-          aria-hidden="true"
-          style={{
-            width:           '6px',
-            height:          '6px',
-            borderRadius:    'var(--radius-full)',
-            backgroundColor: dotColor,
-            flexShrink:      0,
-          }}
-        />
-        <span style={TEXT_STYLE}>{providerName}</span>
-      </ClickableSection>
-
-      {/* 2. Model name (clickable) */}
-      {modelName && (
-        <>
-          <Divider />
-          <ClickableSection onClick={onModelClick} title="Switch model">
-            <span style={{ ...TEXT_STYLE, color: onModelClick ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-              {modelName}
-            </span>
-          </ClickableSection>
-        </>
-      )}
-
-      {/* 3. Git branch */}
-      {gitStatus?.branch && (
-        <>
-          <Divider />
-          <ClickableSection onClick={onGitClick} title="Open Git panel">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" aria-hidden="true">
-              <line x1="6" y1="3" x2="6" y2="15" />
-              <circle cx="18" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M18 9a9 9 0 01-9 9" />
-            </svg>
-            <span style={TEXT_STYLE}>{gitStatus.branch}</span>
-          </ClickableSection>
-        </>
-      )}
-
-      {/* 4. Git delta */}
-      {gitStatus && (gitStatus.ahead || gitStatus.behind || (gitStatus as any).modified) && (
-        <>
-          <Divider />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {(gitStatus.ahead ?? 0) > 0 && (
-              <span style={{ ...TEXT_STYLE, color: 'var(--semantic-success)' }}>
-                +{gitStatus.ahead}
-              </span>
-            )}
-            {(gitStatus.behind ?? 0) > 0 && (
-              <span style={{ ...TEXT_STYLE, color: 'var(--semantic-error)' }}>
-                -{gitStatus.behind}
-              </span>
-            )}
-            {((gitStatus as any).modified ?? 0) > 0 && (
-              <span style={{ ...TEXT_STYLE, color: 'var(--semantic-warning)' }}>
-                ~{(gitStatus as any).modified}
-              </span>
-            )}
-          </span>
-        </>
-      )}
-
-      {/* 5. Token count */}
-      {tokenCount != null && (
-        <>
-          <Divider />
-          <span style={{ ...TEXT_STYLE, color: 'var(--text-tertiary)' }}>
-            {formatTokens(tokenCount)} tok
-          </span>
-        </>
-      )}
-
-      {/* Spacer */}
-      <span style={{ flex: 1 }} />
-
-      {/* 6+7. Mini budget bar + % */}
-      {quotaData && (
-        <>
-          <ClickableSection onClick={onBudgetClick} title="Budget usage">
-            <MiniProgressBar pct={budgetPct} />
-            <span style={{
-              ...TEXT_STYLE,
-              color: budgetPct >= 80 ? 'var(--semantic-error)'
-                : budgetPct >= 60 ? 'var(--semantic-warning)'
-                : 'var(--text-secondary)',
-            }}>
-              {budgetPct}%
-            </span>
-          </ClickableSection>
-          <Divider />
-        </>
-      )}
-
-      {/* 8. Connectivity dot */}
-      <span
-        aria-label={`Connectivity: ${isConnected ? 'connected' : 'disconnected'}`}
-        role="img"
-        style={{
-          display:         'inline-block',
-          width:           '6px',
-          height:          '6px',
-          borderRadius:    'var(--radius-full)',
-          backgroundColor: isConnected ? 'var(--semantic-success)' : 'var(--semantic-error)',
-          flexShrink:      0,
-        }}
-      />
-    </div>
+    <V2StatusBar
+      providerId={providerId}
+      modelName={modelName}
+      gitStatus={gitStatus}
+      tokenCount={tokenCount}
+      quotaData={quotaData}
+      isConnected={isConnected}
+      onModelClick={onModelClick}
+      onGitClick={onGitClick}
+      onBudgetClick={onBudgetClick}
+    />
   );
 }

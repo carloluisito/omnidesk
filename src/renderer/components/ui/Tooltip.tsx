@@ -3,6 +3,10 @@
  *
  * Default placement: right. Configurable: top, right, bottom, left.
  * Background: surface-high, text-sm, radius-sm, shadow-md.
+ *
+ * Wave 03 — shortcut hint slot:
+ *   shortcut?: string  — rendered right-aligned in mono, --v2-text-tertiary.
+ *   When absent, renders exactly as before (backward compat).
  */
 import { useState, useRef, useCallback } from 'react';
 
@@ -10,6 +14,8 @@ export type TooltipPlacement = 'top' | 'right' | 'bottom' | 'left';
 
 interface TooltipProps {
   content: React.ReactNode;
+  /** Optional keyboard shortcut hint shown right-aligned in mono inside the tooltip. */
+  shortcut?: string;
   placement?: TooltipPlacement;
   delay?: number;       /* ms, default 400 */
   disabled?: boolean;
@@ -39,7 +45,7 @@ const PLACEMENT_STYLES: Record<TooltipPlacement, React.CSSProperties> = {
   },
 };
 
-export function Tooltip({ content, placement = 'right', delay = 400, disabled = false, children }: TooltipProps) {
+export function Tooltip({ content, shortcut, placement = 'right', delay = 400, disabled = false, children }: TooltipProps) {
   const [visible, setVisible]   = useState(false);
   const timerRef                = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -81,9 +87,31 @@ export function Tooltip({ content, placement = 'right', delay = 400, disabled = 
             whiteSpace:      'nowrap',
             pointerEvents:   'none',
             animation:       'fade-in var(--duration-fast) var(--ease-out) both',
+            // When shortcut is present, lay out as a row with gap
+            display:         shortcut ? 'inline-flex' : undefined,
+            alignItems:      shortcut ? 'center' : undefined,
+            gap:             shortcut ? 8 : undefined,
           }}
         >
-          {content}
+          <span>{content}</span>
+          {shortcut && (
+            <span
+              style={{
+                fontFamily:  'var(--font-mono-ui, "JetBrains Mono", monospace)',
+                fontSize:    'var(--text-2xs, 10px)',
+                color:       'var(--v2-text-tertiary, var(--text-tertiary))',
+                background:  'var(--v2-surface-low, var(--surface-float))',
+                border:      '1px solid var(--v2-border-subtle, var(--border-subtle))',
+                borderRadius: 'var(--radius-sm)',
+                padding:     '1px 4px',
+                lineHeight:  1.4,
+                letterSpacing: '0.02em',
+                flexShrink:  0,
+              }}
+            >
+              {shortcut}
+            </span>
+          )}
         </span>
       )}
     </span>

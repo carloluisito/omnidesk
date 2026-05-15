@@ -9,6 +9,9 @@
 /* Animation keyframes + utilities */
 @import './animations.css';
 
+/* Wave 00 named motion gestures */
+@import './motion.css';
+
 /* Tailwind CSS layers */
 @tailwind base;
 @tailwind components;

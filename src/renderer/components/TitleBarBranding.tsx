@@ -1,36 +1,25 @@
 /**
- * TitleBarBranding — 36px title bar with logo + wordmark + session title.
+ * TitleBarBranding — 36px title bar with logo + wordmark + branch crumb + ⌘K chip.
+ * V2 design, unconditional.
  *
- * Left: BrandMark (18px) + "OmniDesk" wordmark.
- * Center: active session title (secondary text, truncated).
- * Bottom: 1px border-subtle.
- * Draggable region covers full bar.
+ * Layout (left → right):
+ *   logo + wordmark | repo/branch crumb | [spacer] | ⌘K chip
  */
-import { useState, useEffect } from 'react';
 import { BrandMark } from './ui/BrandMark';
 
 interface TitleBarBrandingProps {
-  onClick:       () => void;
-  sessionTitle?: string;
+  onClick:                 () => void;
+  sessionTitle?:           string;
+  branch?:                 string | null;
+  onOpenCommandPalette?:   () => void;
 }
 
-export function TitleBarBranding({ onClick, sessionTitle }: TitleBarBrandingProps) {
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handle = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handle);
-    return () => window.removeEventListener('resize', handle);
-  }, []);
-
-  const showWordmark = windowWidth >= 360;
-
+export function TitleBarBranding({ onClick, branch, onOpenCommandPalette }: TitleBarBrandingProps) {
   return (
     <div
       style={{
-        height:          'var(--title-bar-height)',
-        backgroundColor: 'var(--surface-base)',
-        borderBottom:    '1px solid var(--border-subtle)',
+        height:          '36px',
+        backgroundColor: 'var(--v2-surface-base)',
         display:         'flex',
         alignItems:      'center',
         position:        'relative',
@@ -42,16 +31,16 @@ export function TitleBarBranding({ onClick, sessionTitle }: TitleBarBrandingProp
       <div
         aria-hidden="true"
         style={{
-          position:            'absolute',
-          top:                 0,
-          left:                0,
-          right:               0,
-          bottom:              0,
-          WebkitAppRegion:     'drag',
+          position:        'absolute',
+          top:             0,
+          left:            0,
+          right:           0,
+          bottom:          0,
+          WebkitAppRegion: 'drag',
         } as React.CSSProperties}
       />
 
-      {/* Left: logo + wordmark */}
+      {/* Left: logo + wordmark (click → About) */}
       <button
         onClick={onClick}
         aria-label="Open About OmniDesk"
@@ -61,8 +50,8 @@ export function TitleBarBranding({ onClick, sessionTitle }: TitleBarBrandingProp
           zIndex:          1,
           display:         'flex',
           alignItems:      'center',
-          gap:             'var(--space-2)',
-          padding:         '0 var(--space-3)',
+          gap:             '6px',
+          padding:         '0 10px',
           height:          '100%',
           background:      'transparent',
           border:          'none',
@@ -71,61 +60,103 @@ export function TitleBarBranding({ onClick, sessionTitle }: TitleBarBrandingProp
           outline:         'none',
           flexShrink:      0,
           WebkitAppRegion: 'no-drag',
+          transition:      `background-color var(--v2-duration-120) var(--v2-ease-out)`,
         } as React.CSSProperties}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--v2-surface-low)';
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
         }}
       >
-        <BrandMark size={18} />
-        {showWordmark && (
-          <span
-            style={{
-              fontFamily:  'var(--font-ui)',
-              fontSize:    'var(--text-sm)',
-              fontWeight:  'var(--weight-medium)' as any,
-              color:       'var(--text-secondary)',
-              userSelect:  'none',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            <span style={{ fontWeight: 'var(--weight-medium)' as any }}>Omni</span>
-            <span style={{ fontWeight: 'var(--weight-light)'  as any }}>Desk</span>
-          </span>
-        )}
-      </button>
-
-      {/* Center: session title */}
-      {sessionTitle && (
-        <div
-          aria-hidden="true"
+        <BrandMark size={16} />
+        <span
           style={{
-            position:     'absolute',
-            left:         '50%',
-            transform:    'translateX(-50%)',
-            maxWidth:     '300px',
-            overflow:     'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace:   'nowrap',
-            fontSize:     'var(--text-sm)',
-            fontFamily:   'var(--font-ui)',
-            color:        'var(--text-tertiary)',
-            userSelect:   'none',
-            pointerEvents: 'none',
+            fontFamily:    'var(--font-ui)',
+            fontSize:      '12px',
+            fontWeight:    600,
+            color:         'var(--v2-text-primary)',
+            userSelect:    'none',
+            letterSpacing: '-0.01em',
           }}
         >
-          {sessionTitle}
-        </div>
+          omnidesk
+        </span>
+      </button>
+
+      {/* Branch crumb */}
+      {branch && (
+        <span
+          aria-label={`Current branch: ${branch}`}
+          style={{
+            position:   'relative',
+            zIndex:     1,
+            display:    'inline-flex',
+            alignItems: 'center',
+            gap:        '4px',
+            fontFamily: 'var(--font-mono-ui)',
+            fontSize:   '11px',
+            color:      'var(--v2-text-primary)',
+            userSelect: 'none',
+            marginLeft: '2px',
+          }}
+        >
+          <span style={{ color: 'var(--v2-text-tertiary)', marginRight: 2 }}>/</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--v2-text-tertiary)" strokeWidth="2" aria-hidden="true">
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M18 9a9 9 0 01-9 9" />
+          </svg>
+          <span style={{ color: 'var(--v2-accent)', fontWeight: 500 }}>{branch}</span>
+        </span>
       )}
 
-      <style>{`
-        button[aria-label="Open About OmniDesk"]:focus-visible {
-          outline: 2px solid var(--state-focus) !important;
-          outline-offset: 2px;
-        }
-      `}</style>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* ⌘K affordance chip — data-tour anchor for Tour step 3 */}
+      {onOpenCommandPalette && (
+        <button
+          onClick={onOpenCommandPalette}
+          title="Open command palette (⌘K)"
+          aria-label="Open command palette"
+          data-tour="cmd-k-hint"
+          style={{
+            position:        'relative',
+            zIndex:          1,
+            display:         'inline-flex',
+            alignItems:      'center',
+            gap:             '5px',
+            marginRight:     '10px',
+            padding:         '2px 8px',
+            background:      'var(--v2-surface-low)',
+            border:          `1px solid var(--v2-border-default)`,
+            borderRadius:    'var(--radius-sm)',
+            cursor:          'pointer',
+            fontFamily:      'var(--font-mono-ui)',
+            fontSize:        '11px',
+            color:           'var(--v2-text-tertiary)',
+            WebkitAppRegion: 'no-drag',
+            outline:         'none',
+            transition:      `background-color var(--v2-duration-120) var(--v2-ease-out)`,
+          } as React.CSSProperties}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--v2-surface-mid)';
+            (e.currentTarget as HTMLButtonElement).style.color            = 'var(--v2-text-secondary)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--v2-surface-low)';
+            (e.currentTarget as HTMLButtonElement).style.color            = 'var(--v2-text-tertiary)';
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="5" />
+            <path d="M11 11l3 3" strokeLinecap="round" />
+          </svg>
+          <span>⌘K to find anything</span>
+        </button>
+      )}
     </div>
   );
 }

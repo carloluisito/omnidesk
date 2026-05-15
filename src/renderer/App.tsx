@@ -42,7 +42,10 @@ import { SidePanel } from './components/SidePanel';
 import { CustomCommandPanel } from './components/CustomCommandPanel';
 import { TaskPanel } from './components/TaskPanel';
 import { TaskQuickCapture } from './components/TaskQuickCapture';
-import { WelcomeWizard } from './components/WelcomeWizard';
+// Wave 03 — WelcomeScreen, CommandCenter, Tour
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { CommandCenter } from './components/CommandCenter';
+import { Tour, isTourDismissed } from './components/Tour';
 import { ShortcutsPanel } from './components/ui/ShortcutsPanel';
 import { ModelHistoryPanel } from './components/ModelHistoryPanel';
 import { useSessionManager } from './hooks/useSessionManager';
@@ -60,6 +63,7 @@ import { Workspace, PermissionMode, WorkspaceValidationResult } from '../shared/
 import { PromptTemplate } from '../shared/types/prompt-templates';
 import { resolveVariables, readClipboard, getMissingVariables } from './utils/variable-resolver';
 import { showToast } from './utils/toast';
+import { FocusModeProvider } from './components/FocusMode';
 // import { dispatchToast } from './components/ui/ToastContainer'; // LaunchTunnel disabled (was used for sharing toasts)
 // import { ShareSessionDialog } from './components/ShareSessionDialog';
 // import { JoinSessionDialog } from './components/JoinSessionDialog';
@@ -101,7 +105,9 @@ function App() {
   const layoutPicker = useLayoutPicker((preset) => {
     showToast(`Applied ${preset.name}`, 'success');
   });
-  const [showWizard, setShowWizard] = useState(false);
+  const [showWelcomeScreen,  setShowWelcomeScreen]  = useState(false);
+  const [showCommandCenter,  setShowCommandCenter]  = useState(false);
+  const [showTour,           setShowTour]           = useState(false);
   const [showShortcutsPanel, setShowShortcutsPanel] = useState(false);
   const [showModelHistoryPanel, setShowModelHistoryPanel] = useState(false);
 
@@ -151,6 +157,7 @@ function App() {
 
   const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [settingsInitialCategory, setSettingsInitialCategory] = useState<string | undefined>(undefined);
   const [showBudgetPanel, setShowBudgetPanel] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [showCheckpointPanel, setShowCheckpointPanel] = useState(false);
@@ -259,12 +266,19 @@ function App() {
     }
   }, [agentTeamsEnabled]);
 
-  // Check if wizard should be shown
+  // Check if welcome screens should be shown
   useEffect(() => {
     const wizardCompleted = localStorage.getItem('wizardCompleted') === 'true';
     if (!wizardCompleted) {
-      setShowWizard(true);
+      setShowWelcomeScreen(true);
+    } else {
+      // Returning user: show CommandCenter, then check tour
+      setShowCommandCenter(true);
+      isTourDismissed().then(dismissed => {
+        if (!dismissed) setShowTour(false); // Tour shows after CommandCenter dismissed
+      }).catch(() => {});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Workspace management callbacks
@@ -452,7 +466,15 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Shift + P: Command palette
+      // Ctrl/Cmd + K: Command palette (v2 design advertises ⌘K everywhere —
+      // title bar chip, WelcomeScreen, CommandCenter). Must match that promise.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        commandPalette.open();
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + P: Command palette (legacy shortcut, kept for muscle memory)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault();
         commandPalette.open();
@@ -749,39 +771,6 @@ function App() {
   //   setShowJoinSessionDialog(true);
   // }, []);
 
-  // Welcome wizard handlers
-  const handleWizardComplete = useCallback(async () => {
-    try {
-      localStorage.setItem('wizardCompleted', 'true');
-      setShowWizard(false);
-      // Create first session
-      await createSession('Session 1', '.', 'standard');
-    } catch (err) {
-      console.error('Failed to complete wizard:', err);
-    }
-  }, [createSession]);
-
-  const handleWizardTryFeature = useCallback(async (featureId: string) => {
-    // Create a session first
-    await createSession('Session 1', '.', 'standard');
-
-    // Open the requested feature panel
-    switch (featureId) {
-      case 'atlas':
-        openPanel('atlas', setShowAtlasPanel);
-        break;
-      case 'teams':
-        openPanel('teams', setShowTeamPanel);
-        break;
-      case 'checkpoints':
-        openPanel('checkpoints', setShowCheckpointPanel);
-        break;
-      case 'templates':
-        commandPalette.open();
-        break;
-    }
-  }, [createSession, commandPalette, openPanel]);
-
   // ActivityBar panel toggle — opens corresponding panel or closes if same panel clicked
   const handleActivityPanelChange = useCallback((panel: ActivityPanelId) => {
     setActiveActivityPanel(panel);
@@ -872,31 +861,37 @@ function App() {
   }
 
   return (
+    <FocusModeProvider>
     <div className="app">
       {/* Title bar */}
       <TitleBarBranding
         onClick={() => setShowAboutDialog(true)}
         sessionTitle={activeSessionTitle}
+        branch={git.status?.branch ?? null}
+        onOpenCommandPalette={commandPalette.open}
       />
 
       {/* Main body: activity bar + content column */}
       <div className="app-body">
-        {/* Activity Bar */}
-        <ActivityBar
-          activePanel={activeActivityPanel}
-          onPanelChange={handleActivityPanelChange}
-          onOpenSettings={() => openPanel('settings', setShowSettingsDialog)}
-          onOpenAbout={() => setShowAboutDialog(true)}
-          onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
-          onOpenLayoutPicker={() => layoutPicker.openPicker()}
-          // tunnelActive={false}
-          teamsEnabled={agentTeamsEnabled === true}
-          // activeShareCount={sharing.activeShares.size}
-        />
+        {/* Activity Bar — data-tour anchor + focus-mode hide target */}
+        <div data-tour="activity-bar" data-focus-hide="activity-bar">
+          <ActivityBar
+            activePanel={activeActivityPanel}
+            onPanelChange={handleActivityPanelChange}
+            onOpenSettings={() => openPanel('settings', setShowSettingsDialog)}
+            onOpenAbout={() => setShowAboutDialog(true)}
+            onOpenBudget={() => openPanel('budget', setShowBudgetPanel)}
+            onOpenLayoutPicker={() => layoutPicker.openPicker()}
+            // tunnelActive={false}
+            teamsEnabled={agentTeamsEnabled === true}
+            // activeShareCount={sharing.activeShares.size}
+          />
+        </div>
 
         {/* Right column: tab bar + content + status bar */}
         <div className="app-right-col">
-          {/* Tab bar */}
+          {/* Tab bar — data-tour anchor for Wave 03 Tour step 2 */}
+          <div data-tour="tab-bar" style={{ display: 'contents' }}>
           <TabBar
         sessions={tabData}
         activeSessionId={activeSessionId}
@@ -934,6 +929,7 @@ function App() {
         // onStopSharing={handleStopSharing}
         // sharedSessionIds={[...sharing.activeShares.keys()]}
       />
+          </div>{/* end data-tour="tab-bar" */}
 
       {/* Terminal area */}
       <div className="terminal-container">
@@ -1029,17 +1025,19 @@ function App() {
         )}
           </div>
 
-          {/* Status Bar */}
-          <StatusBar
-            providerId={activeSession?.providerId}
-            modelName={undefined}
-            gitStatus={git.status}
-            tokenCount={undefined}
-            quotaData={quotaData}
-            isConnected={true}
-            onGitClick={() => handleActivityPanelChange('git')}
-            onBudgetClick={() => openPanel('budget', setShowBudgetPanel)}
-          />
+          {/* Status Bar — data-tour anchor for Wave 03 Tour step 4 */}
+          <div data-tour="status-bar" style={{ display: 'contents' }}>
+            <StatusBar
+              providerId={activeSession?.providerId}
+              modelName={undefined}
+              gitStatus={git.status}
+              tokenCount={undefined}
+              quotaData={quotaData}
+              isConnected={true}
+              onGitClick={() => handleActivityPanelChange('git')}
+              onBudgetClick={() => openPanel('budget', setShowBudgetPanel)}
+            />
+          </div>
         </div>{/* end app-right-col */}
       </div>{/* end app-body */}
 
@@ -1218,6 +1216,7 @@ function App() {
         isOpen={showSettingsDialog}
         onClose={() => {
           closePanel('settings', setShowSettingsDialog);
+          setSettingsInitialCategory(undefined);
           // Re-read settings to pick up changes (e.g., enableAgentTeams toggle)
           window.electronAPI.getSettings().then(s => {
             setAgentTeamsEnabled(s.enableAgentTeams !== false);
@@ -1230,6 +1229,7 @@ function App() {
         onValidatePath={handleValidatePath}
         projectDir={atlasProjectPath}
         sessionId={activeSessionId}
+        initialCategory={settingsInitialCategory}
       />
 
       {/* Budget panel */}
@@ -1293,14 +1293,71 @@ function App() {
           commandPalette.close();
           setShowSettingsDialog(true);
         }}
+        onOpenSettings={(category) => {
+          commandPalette.close();
+          setSettingsInitialCategory(category);
+          setShowSettingsDialog(true);
+        }}
       />
 
-      {/* Welcome Wizard */}
-      <WelcomeWizard
-        isOpen={showWizard}
-        onComplete={handleWizardComplete}
-        onTryFeature={handleWizardTryFeature}
-      />
+      {/* WelcomeScreen (first-run) */}
+      {showWelcomeScreen && (
+        <WelcomeScreen
+          onDismiss={() => {
+            localStorage.setItem('wizardCompleted', 'true');
+            setShowWelcomeScreen(false);
+          }}
+          onOpenRepository={() => setShowNewSessionDialog(true)}
+          onStartSession={() => createSession('Session 1', '.', 'standard')}
+          onStartTour={() => {
+            localStorage.setItem('wizardCompleted', 'true');
+            setShowWelcomeScreen(false);
+            setShowTour(true);
+          }}
+        />
+      )}
+
+      {/* CommandCenter (returning user) */}
+      {showCommandCenter && (
+        <CommandCenter
+          onDismiss={() => {
+            setShowCommandCenter(false);
+            isTourDismissed().then(dismissed => {
+              if (!dismissed) setShowTour(true);
+            }).catch(() => {});
+          }}
+          onResumeSession={(entry) => {
+            // A history entry id is NOT a live-session id. Switch to it only
+            // if that session is actually running; otherwise reopen a new
+            // session in the entry's working directory (true "resume").
+            const live = sessions.find((s) => s.id === entry.id);
+            if (live) {
+              switchSession(entry.id);
+            } else {
+              // launchMode 'continue' → `claude --continue` restores the most
+              // recent conversation in that directory (fresh if none exists).
+              createSession(
+                entry.name || 'Session',
+                entry.workingDirectory || '.',
+                'standard',
+                undefined,
+                undefined,
+                'continue',
+              );
+            }
+          }}
+          onNewSession={() => setShowNewSessionDialog(true)}
+          onOpenPalette={commandPalette.open}
+          onRunPlaybook={() => pb.openPicker()}
+          onLaunchTeam={agentTeamsEnabled ? () => openPanel('teams', setShowTeamPanel) : undefined}
+          gitStatus={git.status}
+        />
+      )}
+
+      {/* Tour overlay (shown after CommandCenter dismissed, tour not yet dismissed) */}
+      {showTour && (
+        <Tour onDismiss={() => setShowTour(false)} />
+      )}
 
       {/* Keyboard Shortcuts Panel */}
       <ShortcutsPanel
@@ -1332,6 +1389,7 @@ function App() {
 
       <style>{appStyles}</style>
     </div>
+    </FocusModeProvider>
   );
 }
 

@@ -5,11 +5,12 @@
  * Active tab: surface-raised bg, top accent border.
  * Inactive: transparent.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Tab, TabData } from './Tab';
 import { NewSessionDialog } from './NewSessionDialog';
 import { ContextMenu, ContextMenuPosition } from './ContextMenu';
 import { LayoutGrid } from 'lucide-react';
+import { useDrag } from '../../hooks/useDrag';
 
 import { Workspace } from '../../../shared/ipc-types';
 
@@ -85,6 +86,49 @@ export function TabBar({
   const [canScrollRight, setCanScrollRight]          = useState(false);
   const [contextMenu, setContextMenu]                = useState<{ sessionId: string; position: ContextMenuPosition } | null>(null);
   const [editingTabId, setEditingTabId]              = useState<string | null>(null);
+
+  // Drag-to-reorder tab order — maintained locally; persisted via setSettings on each reorder.
+  const [tabOrder, setTabOrder] = useState<string[]>([]);
+
+  // Keep tabOrder in sync when sessions list changes externally
+  useEffect(() => {
+    setTabOrder((prev) => {
+      const ids = sessions.map((s) => s.id);
+      // Add new sessions at end, remove deleted sessions, preserve order of existing
+      const existing = prev.filter((id) => ids.includes(id));
+      const newIds = ids.filter((id) => !prev.includes(id));
+      return [...existing, ...newIds];
+    });
+  }, [sessions]);
+
+  const orderedSessions = [...sessions].sort((a, b) => {
+    const ai = tabOrder.indexOf(a.id);
+    const bi = tabOrder.indexOf(b.id);
+    // Unordered items go to end
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  const handleTabReorder = useCallback((from: number, to: number) => {
+    setTabOrder((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      // Persist to settings (best-effort)
+      if (typeof window.electronAPI?.setSettings === 'function') {
+        // 'tabs.order' is stored as an opaque extension key; cast through unknown
+        (window.electronAPI.setSettings as (s: Record<string, unknown>) => Promise<unknown>)({ 'tabs.order': next }).catch(() => {});
+      }
+      return next;
+    });
+  }, []);
+
+  const { dragState: tabDragState, dragHandlers: tabDragHandlers } = useDrag({
+    items: orderedSessions,
+    onReorder: handleTabReorder,
+  });
 
   const isSplitActive    = paneCount > 1;
   const isDialogOpen     = externalDialogOpen ?? internalDialogOpen;
@@ -205,8 +249,8 @@ export function TabBar({
         aria-label="Sessions"
         style={{
           height:          'var(--tab-bar-height)',
-          backgroundColor: 'var(--surface-base)',
-          borderBottom:    '1px solid var(--border-subtle)',
+          backgroundColor: 'var(--v2-surface-low)',
+          borderBottom:    `1px solid var(--v2-border-subtle)`,
           display:         'flex',
           alignItems:      'center',
           position:        'relative',
@@ -260,7 +304,7 @@ export function TabBar({
               top:             0,
               bottom:          0,
               width:           '24px',
-              background:      'linear-gradient(to right, var(--surface-base), transparent)',
+              background:      'linear-gradient(to right, var(--v2-surface-low), transparent)',
               pointerEvents:   'none',
               zIndex:          1,
             }}
@@ -291,7 +335,7 @@ export function TabBar({
               gap:         '2px',
             }}
           >
-            {sessions.map((session, index) => {
+            {orderedSessions.map((session, index) => {
               let visibilityState: 'focused' | 'visible' | 'hidden' = 'hidden';
               if (isSplitActive && visibleSessionIds.includes(session.id)) {
                 visibilityState = session.id === focusedSessionId ? 'focused' : 'visible';
@@ -309,21 +353,42 @@ export function TabBar({
                 }
               };
 
+              // live-dot when session is running
+              const isLive = session.status === 'running';
+              // drag visual: dragged tab is dimmed; drop gap shown via border
+              const isDragging = tabDragState.activeIndex === index;
+              const isDropTarget = tabDragState.overIndex === index && tabDragState.activeIndex !== index;
+
               return (
-                <Tab
+                <div
                   key={session.id}
-                  data={session}
-                  isActive={session.id === activeSessionId}
-                  isEditing={session.id === editingTabId}
-                  index={index}
-                  onSelect={handleTabSelect}
-                  onClose={() => onCloseSession(session.id)}
-                  onContextMenu={(pos) => handleContextMenu(session.id, pos)}
-                  onRename={(name) => handleRename(session.id, name)}
-                  onCancelEdit={() => setEditingTabId(null)}
-                  visibilityState={visibilityState}
-                  checkpointCount={checkpointCounts[session.id] || 0}
-                />
+                  style={{
+                    display:    'flex',
+                    alignItems: 'flex-end',
+                    height:     '100%',
+                    opacity:    isDragging ? 0.5 : 1,
+                    cursor:     'grab',
+                    borderLeft: isDropTarget ? '2px solid var(--v2-accent, #00C9A7)' : '2px solid transparent',
+                    transition: 'border-color 80ms ease, opacity 80ms ease',
+                  }}
+                  {...tabDragHandlers(index)}
+                >
+                  <Tab
+                    data={session}
+                    isActive={session.id === activeSessionId}
+                    isEditing={session.id === editingTabId}
+                    index={index}
+                    onSelect={handleTabSelect}
+                    onClose={() => onCloseSession(session.id)}
+                    onContextMenu={(pos) => handleContextMenu(session.id, pos)}
+                    onRename={(name) => handleRename(session.id, name)}
+                    onCancelEdit={() => setEditingTabId(null)}
+                    visibilityState={visibilityState}
+                    checkpointCount={checkpointCounts[session.id] || 0}
+                    v2={true}
+                    liveDot={isLive}
+                  />
+                </div>
               );
             })}
           </div>
@@ -339,7 +404,7 @@ export function TabBar({
               top:           0,
               bottom:        0,
               width:         '24px',
-              background:    'linear-gradient(to left, var(--surface-base), transparent)',
+              background:    'linear-gradient(to left, var(--v2-surface-low), transparent)',
               pointerEvents: 'none',
               zIndex:        1,
             }}

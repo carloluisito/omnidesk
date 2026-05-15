@@ -28,9 +28,9 @@ describe('TaskPanel', () => {
     expect(screen.getByText('done task')).toBeInTheDocument();
   });
 
-  it('shows count "1 open / 2 total"', async () => {
+  it('shows count "1 open · 2 total"', async () => {
     render(<TaskPanel repoPath="/r" />);
-    await waitFor(() => expect(screen.getByText(/1 open \/ 2 total/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/1 open · 2 total/i)).toBeInTheDocument());
   });
 
   it('adds a task via the inline input', async () => {

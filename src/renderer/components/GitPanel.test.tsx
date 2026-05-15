@@ -36,7 +36,7 @@ vi.mock('../hooks/useGit', () => ({
   useGit: () => mockUseGit,
 }));
 
-// Mock ConfirmDialog
+// Mock ui components
 vi.mock('./ui', () => ({
   ConfirmDialog: ({ isOpen, onConfirm, onCancel }: any) =>
     isOpen ? (
@@ -45,6 +45,21 @@ vi.mock('./ui', () => ({
         <button data-testid="confirm-no" onClick={onCancel}>No</button>
       </div>
     ) : null,
+  PanelShell: ({ children, title }: any) => (
+    <div data-testid="panel-shell">
+      <div data-testid="panel-title">{title}</div>
+      {children}
+    </div>
+  ),
+  PanelSection: ({ children, title, count }: any) => (
+    <div data-testid={`panel-section-${title}`}>
+      <span>{title}</span>
+      {count !== undefined && <span>{count}</span>}
+      {children}
+    </div>
+  ),
+  PanelEmpty: ({ title }: any) => <div data-testid="panel-empty">{title}</div>,
+  PanelLoading: () => <div data-testid="panel-loading">Loading…</div>,
 }));
 
 // Mock CommitDialog

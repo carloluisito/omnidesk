@@ -9,11 +9,14 @@ export type PermissionMode = 'standard' | 'skip-permissions';
  * - `'default'`              — `claude`
  * - `'bypass-permissions'`   — `claude --dangerously-skip-permissions`
  * - `'agents'`               — `claude agents` (Claude Code v2.1.139+ background-session TUI)
+ * - `'continue'`             — `claude --continue` (resume the most recent
+ *                              conversation in the session's working directory;
+ *                              Claude Code starts fresh if none exists)
  *
  * Gated on `AgentViewAvailability` for `'agents'`; the spawner falls back to
  * `'default'` if the agents mode is requested while unavailable.
  */
-export type LaunchMode = 'default' | 'bypass-permissions' | 'agents';
+export type LaunchMode = 'default' | 'bypass-permissions' | 'agents' | 'continue';
 
 // Session status
 export type SessionStatus = 'starting' | 'running' | 'exited' | 'error';
@@ -201,6 +204,10 @@ export interface AppSettings {
   modelPreset?: ModelPreset; // Model preset mode (default: 'balanced')
   gitSettings?: import('./types/git-types').GitSettings;
   worktreeSettings?: import('./types/git-types').WorktreeSettings;
+  // Tour persistence
+  tourDismissed?: boolean;
+  // Wave 05 — focus mode persistence
+  focusMode?: boolean;
 }
 
 // Workspace create request

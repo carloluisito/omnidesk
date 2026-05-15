@@ -236,6 +236,7 @@ export interface IPCContractMap {
 
   // ── Settings & Workspaces (invoke) ──
   getSettings:         InvokeContract<'settings:get',            [],                              AppSettings>;
+  setSettings:         InvokeContract<'settings:set',            [Partial<AppSettings>],          AppSettings>;
   listWorkspaces:      InvokeContract<'workspace:list',          [],                              Workspace[]>;
   addWorkspace:        InvokeContract<'workspace:add',           [WorkspaceCreateRequest],        Workspace>;
   updateWorkspace:     InvokeContract<'workspace:update',        [WorkspaceUpdateRequest],        Workspace>;
@@ -535,6 +536,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
 
   // Settings & Workspaces
   getSettings:         'settings:get',
+  setSettings:         'settings:set',
   listWorkspaces:      'workspace:list',
   addWorkspace:        'workspace:add',
   updateWorkspace:     'workspace:update',
@@ -813,6 +815,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   createDirectory:     'invoke',
 
   getSettings:         'invoke',
+  setSettings:         'invoke',
   listWorkspaces:      'invoke',
   addWorkspace:        'invoke',
   updateWorkspace:     'invoke',

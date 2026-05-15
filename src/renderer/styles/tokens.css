@@ -189,3 +189,64 @@
   --bp-default: 1280px;
   --bp-wide:    1600px;
 }
+
+/* ============================================================
+   v2 (DESIGN OVERHAUL) — additive namespace; Wave 05 will
+   drop the --v2- prefix and delete the legacy tokens above.
+   Source of truth: omnidesk/phase-2/tokens.css
+   DO NOT modify existing tokens above — only add here.
+   ============================================================ */
+
+:root {
+
+  /* === v2 SURFACE TIERS (5 tiers, deeper floor) === */
+  --v2-surface-base:    #0A0B11;   /* Deepest: app chrome, title bar, activity bar */
+  --v2-surface-low:     #11131C;   /* Activity bar, tab bar, side rails */
+  --v2-surface-mid:     #181B28;   /* Default card / row background */
+  --v2-surface-high:    #232739;   /* Hover & active rows, pane header strip */
+  --v2-surface-overlay: #2A2E44;   /* Modals, toasts, command palette (always shadow-lg) */
+
+  /* === v2 BORDERS (demoted alpha scale) === */
+  --v2-border-subtle:  rgba(255, 255, 255, 0.035); /* Present but almost invisible */
+  --v2-border-default: rgba(255, 255, 255, 0.07);  /* Explicit grouping: input outlines, key dividers */
+  --v2-border-strong:  rgba(255, 255, 255, 0.12);  /* Split-pane handles, structural dividers */
+
+  /* === v2 ACCENTS === */
+  --v2-accent:     #00C9A7;   /* Core identity — used sparingly */
+  --v2-accent-dim: #0E7E6C;   /* Inactive-but-related accent states */
+  --v2-accent-2:   #7C8FFF;   /* Secondary accent; also used for focus rings */
+  --v2-accent-glow: 0 0 0 1px rgba(0, 201, 167, 0.35), 0 0 24px -4px rgba(0, 201, 167, 0.45);
+
+  /* === v2 SEMANTIC === */
+  --v2-success: #3DD68C;
+  --v2-warning: #F7A84A;
+  --v2-error:   #F7678E;
+  --v2-info:    #7C8FFF;
+
+  /* === v2 TEXT HIERARCHY === */
+  --v2-text-primary:    #E2E4F0;
+  --v2-text-secondary:  #9DA3BE;
+  --v2-text-tertiary:   #5C6080;
+  --v2-text-quaternary: #3E4264;   /* New tier — separator text, faintest labels */
+
+  /* === v2 FOCUS RINGS === */
+  /* Two-stop offset so the ring reads on any surface tier */
+  --v2-ring-focus: 0 0 0 2px var(--v2-surface-base), 0 0 0 4px var(--v2-accent-2);
+  --v2-ring-error: 0 0 0 2px var(--v2-surface-base), 0 0 0 4px var(--v2-error);
+
+  /* === v2 MOTION — DURATIONS === */
+  --v2-duration-80:  80ms;
+  --v2-duration-120: 120ms;
+  --v2-duration-160: 160ms;
+  --v2-duration-200: 200ms;
+  --v2-duration-240: 240ms;
+  --v2-duration-300: 300ms;
+  --v2-duration-600: 600ms;   /* success.flash only — the one motion allowed to linger */
+
+  /* === v2 MOTION — EASES === */
+  --v2-ease-out:    cubic-bezier(0.2, 0.7, 0.2, 1);   /* Default out-curve */
+  --v2-ease-in-out: cubic-bezier(0.6, 0.0, 0.2, 1);   /* Symmetric enter/exit */
+  --v2-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Snappy spring — panel/toast enters */
+  --v2-ease-snap:   cubic-bezier(0.2, 0.8, 0.2, 1);   /* Sharp out — confirms, success flashes */
+
+}

@@ -1,12 +1,12 @@
 /**
  * ActivityBar — 48px wide vertical strip, full height minus title bar.
+ * V2 design, unconditional.
  *
- * Top section (tool panels): Git, History, Teams, Atlas, Playbooks, Tunnels.
+ * Top section (tool panels): Git, History, Teams, Atlas, Playbooks, Commands, Tasks.
  * Bottom section (utility): Budget, Settings, About.
  *
- * Active state: accent color icon + 2px left accent border + muted accent bg.
- * Tooltips on hover (400ms delay), via inline Tooltip.
- * Badge dot for tunnel active.
+ * Active state: accent color icon + 2px left accent border (inset shadow) + muted accent bg.
+ * Tooltips on hover (400ms delay).
  */
 import { useState, useRef, useCallback } from 'react';
 import {
@@ -46,17 +46,20 @@ interface NavItem {
   label:   string;
   Icon:    LucideIcon;
   badge?:  boolean;
+  count?:  number;
 }
 
 function ActivityButton({
   item,
   isActive,
   hasBadge,
+  count,
   onClick,
 }: {
   item:     NavItem;
   isActive: boolean;
   hasBadge: boolean;
+  count?:   number;
   onClick:  () => void;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -79,6 +82,7 @@ function ActivityButton({
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        className="anim-lift"
         style={{
           position:        'relative',
           width:           '36px',
@@ -86,52 +90,57 @@ function ActivityButton({
           display:         'flex',
           alignItems:      'center',
           justifyContent:  'center',
-          background:      isActive ? 'var(--accent-primary-muted)' : 'transparent',
+          background:      isActive ? 'var(--v2-surface-low)' : 'transparent',
           border:          'none',
-          borderLeft:      isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
           borderRadius:    '0 var(--radius-sm) var(--radius-sm) 0',
           cursor:          'pointer',
-          color:           isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-          transition:      [
-            'color var(--duration-fast) var(--ease-inout)',
-            'background-color var(--duration-fast) var(--ease-inout)',
-            'border-color var(--duration-fast) var(--ease-inout)',
-          ].join(', '),
+          color:           isActive ? 'var(--v2-accent)' : 'var(--v2-text-tertiary)',
           outline:         'none',
           flexShrink:      0,
+          boxShadow:       isActive ? `inset 2px 0 0 0 var(--v2-accent)` : 'none',
         }}
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
         onMouseOver={(e) => {
           if (!isActive) {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
-            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
+            (e.currentTarget as HTMLButtonElement).style.color           = 'var(--v2-text-primary)';
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--v2-surface-low)';
           }
         }}
         onMouseOut={(e) => {
           if (!isActive) {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+            (e.currentTarget as HTMLButtonElement).style.color           = 'var(--v2-text-tertiary)';
             (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
           }
         }}
       >
         <item.Icon size={18} strokeWidth={1.5} />
 
-        {/* Badge dot */}
-        {hasBadge && (
+        {/* Numeric badge */}
+        {hasBadge && (count != null ? count > 0 : true) && (
           <span
             aria-hidden="true"
             style={{
               position:        'absolute',
-              top:             '5px',
-              right:           '5px',
-              width:           '7px',
-              height:          '7px',
+              top:             '4px',
+              right:           '3px',
+              minWidth:        count != null ? '14px' : '7px',
+              height:          count != null ? '14px' : '7px',
               borderRadius:    'var(--radius-full)',
-              backgroundColor: 'var(--semantic-warning)',
-              animation:       'dot-pulse 2s ease-in-out infinite',
+              backgroundColor: 'var(--v2-accent-2)',
+              color:           '#fff',
+              fontSize:        '9px',
+              fontFamily:      'var(--font-mono-ui)',
+              fontWeight:      700,
+              display:         'flex',
+              alignItems:      'center',
+              justifyContent:  'center',
+              lineHeight:      1,
+              padding:         count != null ? '0 3px' : '0',
             }}
-          />
+          >
+            {count != null ? count : null}
+          </span>
         )}
       </button>
 
@@ -145,17 +154,16 @@ function ActivityButton({
             top:             '50%',
             transform:       'translateY(-50%)',
             zIndex:          'var(--z-tooltip)' as any,
-            backgroundColor: 'var(--surface-high)',
-            color:           'var(--text-secondary)',
+            backgroundColor: 'var(--v2-surface-overlay)',
+            color:           'var(--v2-text-secondary)',
             fontSize:        'var(--text-sm)',
             fontFamily:      'var(--font-ui)',
             padding:         '4px 8px',
             borderRadius:    'var(--radius-sm)',
             boxShadow:       'var(--shadow-md)',
-            border:          '1px solid var(--border-default)',
+            border:          `1px solid var(--v2-border-default)`,
             whiteSpace:      'nowrap',
             pointerEvents:   'none',
-            animation:       'fade-in var(--duration-fast) var(--ease-out) both',
           }}
         >
           {item.label}
@@ -186,26 +194,27 @@ function UtilityButton({
         onMouseLeave={() => { if (timerRef.current) clearTimeout(timerRef.current); setShowTooltip(false); }}
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
+        className="anim-lift"
         style={{
-          width:           '36px',
-          height:          '36px',
-          display:         'flex',
-          alignItems:      'center',
-          justifyContent:  'center',
-          background:      'transparent',
-          border:          '2px solid transparent',
-          borderRadius:    'var(--radius-sm)',
-          cursor:          'pointer',
-          color:           'var(--text-tertiary)',
-          transition:      'color var(--duration-fast) var(--ease-inout), background-color var(--duration-fast) var(--ease-inout)',
-          outline:         'none',
+          width:          '36px',
+          height:         '36px',
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          background:     'transparent',
+          border:         '2px solid transparent',
+          borderRadius:   'var(--radius-sm)',
+          cursor:         'pointer',
+          color:          'var(--v2-text-tertiary)',
+          transition:     `color var(--v2-duration-120) var(--v2-ease-out), background-color var(--v2-duration-120) var(--v2-ease-out)`,
+          outline:        'none',
         }}
         onMouseOver={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
+          (e.currentTarget as HTMLButtonElement).style.color           = 'var(--v2-text-primary)';
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--v2-surface-low)';
         }}
         onMouseOut={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+          (e.currentTarget as HTMLButtonElement).style.color           = 'var(--v2-text-tertiary)';
           (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
         }}
       >
@@ -221,17 +230,16 @@ function UtilityButton({
             top:             '50%',
             transform:       'translateY(-50%)',
             zIndex:          'var(--z-tooltip)' as any,
-            backgroundColor: 'var(--surface-high)',
-            color:           'var(--text-secondary)',
+            backgroundColor: 'var(--v2-surface-overlay)',
+            color:           'var(--v2-text-secondary)',
             fontSize:        'var(--text-sm)',
             fontFamily:      'var(--font-ui)',
             padding:         '4px 8px',
             borderRadius:    'var(--radius-sm)',
             boxShadow:       'var(--shadow-md)',
-            border:          '1px solid var(--border-default)',
+            border:          `1px solid var(--v2-border-default)`,
             whiteSpace:      'nowrap',
             pointerEvents:   'none',
-            animation:       'fade-in var(--duration-fast) var(--ease-out) both',
           }}
         >
           {label}
@@ -253,13 +261,13 @@ export function ActivityBar({
   // activeShareCount = 0,
 }: ActivityBarProps) {
   const topItems: NavItem[] = [
-    { id: 'git',       label: 'Git',         Icon: GitBranch },
-    { id: 'history',   label: 'History',     Icon: History   },
+    { id: 'git',       label: 'Git',          Icon: GitBranch  },
+    { id: 'history',   label: 'History',      Icon: History    },
     ...(teamsEnabled ? [{ id: 'teams' as const, label: 'Agent Teams', Icon: Users }] : []),
-    { id: 'atlas',     label: 'Atlas',       Icon: BookOpen  },
-    { id: 'playbooks', label: 'Playbooks',   Icon: Radio       },
-    { id: 'commands',  label: 'Commands',    Icon: Terminal    },
-    { id: 'tasks',     label: 'Tasks',       Icon: ListChecks  },
+    { id: 'atlas',     label: 'Atlas',        Icon: BookOpen   },
+    { id: 'playbooks', label: 'Playbooks',    Icon: Radio      },
+    { id: 'commands',  label: 'Commands',     Icon: Terminal   },
+    { id: 'tasks',     label: 'Tasks',        Icon: ListChecks },
     // NOTE: LaunchTunnel/sharing disabled
     // { id: 'tunnels',   label: 'Tunnels',     Icon: Network, badge: tunnelActive },
     // { id: 'sharing',   label: 'Sharing',     Icon: Share2,  badge: activeShareCount > 0 },
@@ -279,8 +287,8 @@ export function ActivityBar({
         flexDirection:   'column',
         alignItems:      'center',
         justifyContent:  'space-between',
-        backgroundColor: 'var(--surface-base)',
-        borderRight:     '1px solid var(--border-subtle)',
+        backgroundColor: 'var(--v2-surface-base)',
+        borderRight:     `1px solid var(--v2-border-subtle)`,
         flexShrink:      0,
         paddingTop:      'var(--space-2)',
         paddingBottom:   'var(--space-2)',
@@ -303,6 +311,7 @@ export function ActivityBar({
             item={item}
             isActive={activePanel === item.id}
             hasBadge={!!item.badge}
+            count={item.count}
             onClick={() => handleToggle(item.id)}
           />
         ))}

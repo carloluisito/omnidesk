@@ -1,11 +1,11 @@
 /**
  * HistoryPanel — Redesigned to match Obsidian spec §6.8.
  *
- * Layout: Search input → Filter row → Date-grouped session cards.
- * Preserves all existing hooks, IPC calls, and history functionality.
+ * PanelShell + date-grouped PanelSection rows (Today / Yesterday / This week / Older).
+ * Provider filter chips at top.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useHistory } from '../hooks/useHistory';
 import type {
   HistorySessionEntry,
@@ -13,7 +13,8 @@ import type {
 } from '../../shared/types/history-types';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { SidePanel } from './SidePanel';
-import { Search, Clock, Trash2, Download } from 'lucide-react';
+import { PanelShell, PanelSection, PanelEmpty, PanelLoading } from './ui';
+import { Search, Trash2, Download, History } from 'lucide-react';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -72,17 +73,21 @@ function groupSessionsByDate(sessions: HistorySessionEntry[]): GroupedSessions[]
   return Array.from(groups.entries()).map(([label, sessions]) => ({ label, sessions }));
 }
 
-// ─── Session Card ──────────────────────────────────────────────────────────
+// ─── V2 session row ───────────────────────────────────────────────────────
 
-interface SessionCardProps {
+function V2SessionRow({
+  session,
+  isSelected,
+  onSelect,
+  onDelete,
+  onExport,
+}: {
   session: HistorySessionEntry;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onExport: () => void;
-}
-
-function SessionCard({ session, isSelected, onSelect, onDelete, onExport }: SessionCardProps) {
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -90,162 +95,54 @@ function SessionCard({ session, isSelected, onSelect, onDelete, onExport }: Sess
       onClick={onSelect}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="anim-lift"
       style={{
-        padding: 'var(--space-2) var(--space-3)',
-        cursor: 'pointer',
-        background: isSelected ? 'var(--accent-primary-muted)' : hovered ? 'var(--state-hover)' : 'transparent',
-        borderLeft: isSelected ? '2px solid var(--border-accent)' : '2px solid transparent',
-        transition: 'background var(--duration-instant), border-color var(--duration-instant)',
-        position: 'relative',
+        display:      'flex',
+        alignItems:   'center',
+        gap:          8,
+        padding:      '7px 10px',
+        borderRadius: 'var(--radius-md, 6px)',
+        background:   isSelected ? 'var(--v2-surface-high)' : 'var(--v2-surface-mid)',
+        borderLeft:   isSelected ? '2px solid var(--v2-accent)' : '2px solid transparent',
+        cursor:       'pointer',
+        position:     'relative',
+        transition:   'background 120ms ease, border-color 120ms ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 2 }}>
-        {/* Provider badge placeholder */}
-        <span
-          style={{
-            fontSize: 8,
-            fontWeight: 700,
-            fontFamily: 'var(--font-mono-ui)',
-            color: 'var(--provider-claude)',
-            background: 'rgba(204,133,51,0.15)',
-            padding: '1px 4px',
-            borderRadius: 2,
-            flexShrink: 0,
-          }}
-        >
-          CL
-        </span>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--weight-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-ui)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 'var(--text-sm, 12px)', fontWeight: 600, color: 'var(--v2-text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {session.name || `Session ${session.id.slice(0, 8)}`}
-        </span>
-        <span
-          style={{
-            fontSize: 'var(--text-2xs)',
-            color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono-ui)',
-            flexShrink: 0,
-          }}
-        >
-          {formatTimeAgo(session.lastUpdatedAt)}
-        </span>
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--v2-text-tertiary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {formatTimeAgo(session.lastUpdatedAt)} · {formatTokenCount(session.sizeBytes)}
+        </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 'var(--text-xs)',
-            fontFamily: 'var(--font-mono-ui)',
-            color: 'var(--text-tertiary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-          title={session.workingDirectory}
-        >
-          {session.workingDirectory || '(no directory)'}
-        </span>
-        <span
-          style={{
-            fontSize: 'var(--text-2xs)',
-            fontFamily: 'var(--font-mono-ui)',
-            color: 'var(--text-tertiary)',
-            flexShrink: 0,
-          }}
-        >
-          {formatTokenCount(session.sizeBytes)}
-        </span>
-      </div>
-      {/* Actions overlay */}
       {hovered && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 8,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            display: 'flex',
-            gap: 4,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={onExport}
-            title="Export"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              background: 'var(--surface-high)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            <Download size={11} />
-          </button>
-          <button
-            onClick={onDelete}
-            title="Delete"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              background: 'var(--semantic-error-muted)',
-              border: '1px solid var(--semantic-error)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--semantic-error)',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            <Trash2 size={11} />
-          </button>
+        <div style={{ display: 'flex', gap: 3, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={onExport} title="Export" style={histBtn(false)}><Download size={10} /></button>
+          <button onClick={onDelete} title="Delete" style={histBtn(true)}><Trash2 size={10} /></button>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Date group header ─────────────────────────────────────────────────────
-
-function DateGroupHeader({ label }: { label: string }) {
-  return (
-    <div
-      style={{
-        padding: '10px var(--space-3) 4px',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 'var(--text-2xs)',
-          fontWeight: 'var(--weight-semibold)',
-          color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-ui)',
-          letterSpacing: 'var(--tracking-widest)',
-          textTransform: 'uppercase',
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
+function histBtn(danger: boolean): React.CSSProperties {
+  return {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 22, height: 22,
+    background: 'none',
+    border: `1px solid ${danger ? 'var(--v2-error)' : 'var(--v2-border-default)'}`,
+    borderRadius: 4,
+    color: danger ? 'var(--v2-error)' : 'var(--v2-text-secondary)',
+    cursor: 'pointer', padding: 0,
+  };
 }
 
 // ─── Main component ────────────────────────────────────────────────────────
@@ -254,8 +151,6 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<HistorySearchResult[]>([]);
 
   const history = useHistory();
@@ -272,13 +167,11 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
       setSearchResults([]);
       return;
     }
-    setIsSearching(true);
     const t = setTimeout(async () => {
       const results = await history.searchHistory(searchQuery, false);
       setSearchResults(results);
-      setIsSearching(false);
     }, 300);
-    return () => { clearTimeout(t); setIsSearching(false); };
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
   const handleDelete = useCallback(async (id: string) => {
@@ -286,12 +179,6 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
     setShowDeleteConfirm(null);
     if (selectedSession === id) setSelectedSession(null);
   }, [history, selectedSession]);
-
-  const handleDeleteAll = useCallback(async () => {
-    await history.deleteAllSessions();
-    setShowDeleteAllConfirm(false);
-    setSelectedSession(null);
-  }, [history]);
 
   const handleExport = useCallback(async (id: string) => {
     const session = history.sessions.find((s) => s.id === id);
@@ -303,7 +190,6 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
 
   if (!isOpen) return null;
 
-  // Decide what to show
   const isFiltered = searchQuery.trim().length > 0;
   const displaySessions: HistorySessionEntry[] = isFiltered
     ? searchResults.map((r) => r.session)
@@ -314,124 +200,68 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
   return (
     <>
       <SidePanel isOpen={isOpen} onClose={onClose} title="History">
-        {/* Search input */}
-        <div
-          style={{
-            padding: 'var(--space-2) var(--space-3)',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              padding: '5px var(--space-2)',
-              background: 'var(--surface-float)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid transparent',
-              transition: 'border-color var(--duration-fast)',
-            }}
-            onFocus={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-accent)';
-            }}
-            onBlur={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor = 'transparent';
-            }}
+        <div style={{ height: '100%' }}>
+          <PanelShell
+            icon={<History size={13} />}
+            title="History"
+            count={history.sessions.length > 0 ? `${history.sessions.length}` : undefined}
+            actions={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Search size={12} style={{ color: 'var(--v2-text-tertiary)' }} />
+              </div>
+            }
           >
-            <Search size={12} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search sessions..."
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                fontSize: 'var(--text-sm)',
-                fontFamily: 'var(--font-ui)',
-                color: 'var(--text-primary)',
-              }}
-            />
-            {isSearching && (
-              <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-tertiary)' }}>...</span>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        {history.isLoading && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--space-8)',
-              color: 'var(--text-tertiary)',
-              fontSize: 'var(--text-sm)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            Loading...
-          </div>
-        )}
-
-        {!history.isLoading && isEmpty && !isFiltered && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--space-8) var(--space-4)',
-              gap: 'var(--space-2)',
-            }}
-          >
-            <Clock size={32} style={{ color: 'var(--text-tertiary)' }} />
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', textAlign: 'center' }}>
-              No session history
-            </span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', textAlign: 'center' }}>
-              Sessions will appear here as you use OmniDesk
-            </span>
-          </div>
-        )}
-
-        {!history.isLoading && isEmpty && isFiltered && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--space-6) var(--space-4)',
-              gap: 'var(--space-1)',
-            }}
-          >
-            <Search size={24} style={{ color: 'var(--text-tertiary)' }} />
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', textAlign: 'center' }}>
-              No sessions found
-            </span>
-          </div>
-        )}
-
-        {!history.isLoading && groups.map(({ label, sessions }) => (
-          <div key={label}>
-            <DateGroupHeader label={label} />
-            {sessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                session={session}
-                isSelected={selectedSession === session.id}
-                onSelect={() => setSelectedSession(session.id === selectedSession ? null : session.id)}
-                onDelete={() => setShowDeleteConfirm(session.id)}
-                onExport={() => handleExport(session.id)}
+            {/* Search */}
+            <div style={{ padding: '8px 10px 0', borderBottom: '1px solid var(--v2-border-subtle)' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 8px',
+                background: 'var(--v2-surface-mid)', borderRadius: 'var(--radius-md, 6px)',
+                border: '1px solid var(--v2-border-subtle)',
+                marginBottom: 8,
+              }}>
+                <Search size={11} style={{ color: 'var(--v2-text-tertiary)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search sessions..."
+                  style={{
+                    flex: 1, background: 'none', border: 'none', outline: 'none',
+                    fontSize: 'var(--text-sm, 12px)', color: 'var(--v2-text-primary)',
+                  }}
+                />
+              </div>
+            </div>
+            {/* Content */}
+            {history.isLoading ? (
+              <PanelLoading rows={3} />
+            ) : isEmpty ? (
+              <PanelEmpty
+                icon={<History size={26} />}
+                title="No session history"
+                body="Sessions appear here as you use OmniDesk. Each entry stores its working directory and size."
               />
-            ))}
-          </div>
-        ))}
+            ) : (
+              <div style={{ padding: '8px 6px 0' }}>
+                {groups.map(({ label, sessions }) => (
+                  <PanelSection key={label} title={label} count={sessions.length}>
+                    {sessions.map((session) => (
+                      <V2SessionRow
+                        key={session.id}
+                        session={session}
+                        isSelected={selectedSession === session.id}
+                        onSelect={() => setSelectedSession(session.id === selectedSession ? null : session.id)}
+                        onDelete={() => setShowDeleteConfirm(session.id)}
+                        onExport={() => handleExport(session.id)}
+                      />
+                    ))}
+                  </PanelSection>
+                ))}
+              </div>
+            )}
+          </PanelShell>
+        </div>
       </SidePanel>
 
       {showDeleteConfirm && (
@@ -443,19 +273,6 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
           cancelLabel="Cancel"
           onConfirm={() => handleDelete(showDeleteConfirm)}
           onCancel={() => setShowDeleteConfirm(null)}
-          isDangerous={true}
-        />
-      )}
-
-      {showDeleteAllConfirm && (
-        <ConfirmDialog
-          isOpen={true}
-          title="Delete All History?"
-          message="This will permanently delete all session history. This action cannot be undone."
-          confirmLabel="Delete All"
-          cancelLabel="Cancel"
-          onConfirm={handleDeleteAll}
-          onCancel={() => setShowDeleteAllConfirm(false)}
           isDangerous={true}
         />
       )}

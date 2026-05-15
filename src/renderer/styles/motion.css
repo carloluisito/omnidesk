@@ -1,0 +1,217 @@
+/* ============================================================
+   OmniDesk Motion Gestures — Wave 00 foundation
+   10 named gesture classes consumed by Wave 01+ components.
+   All durations and eases reference v2 tokens from tokens.css.
+   Source spec: omnidesk/phase-1-direction.html MOTIONS array.
+   ============================================================ */
+
+/* ── Keyframe definitions ── */
+
+@keyframes v2-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes v2-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes v2-dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes v2-palette-open {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes v2-success-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes v2-status-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes v2-shake {
+  0%   { transform: translateX(0); }
+  12%  { transform: translateX(-6px); }
+  25%  { transform: translateX(6px); }
+  37%  { transform: translateX(-5px); }
+  50%  { transform: translateX(5px); }
+  62%  { transform: translateX(-3px); }
+  75%  { transform: translateX(3px); }
+  87%  { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Gesture classes ── */
+
+/**
+ * panel.enter — 240ms · spring
+ * Right-panel and dialog reveals. Slides up 8px, fades in. Interruptible.
+ * Trigger: Activity bar item activated.
+ */
+.anim-panel-enter {
+  animation: v2-panel-enter var(--v2-duration-240, 240ms) var(--v2-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+/**
+ * tab.switch — 200ms · spring
+ * Active-tab indicator slides between targets; text colour transitions in parallel.
+ * Trigger: Click or ⌘1–9.
+ * Applied as a transition property on the indicator element; not a keyframe animation.
+ */
+.anim-tab-switch {
+  transition:
+    transform var(--v2-duration-200, 200ms) var(--v2-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+    color     var(--v2-duration-200, 200ms) var(--v2-ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/**
+ * status.pulse — 1.6s · loop
+ * Calm "alive" signal for burn rate, agent thinking, tunnel open. Never urgent.
+ * Trigger: Continuous while state is live.
+ */
+.anim-status-pulse {
+  animation: v2-status-pulse 1.6s var(--v2-ease-in-out, cubic-bezier(0.6, 0.0, 0.2, 1)) infinite;
+}
+
+/**
+ * success.flash — 600ms · snap
+ * Scales 0.6 → 1.08 → 1.0, fades in. The only motion allowed to linger.
+ * Trigger: Checkpoint created, commit landed, palette confirm.
+ */
+.anim-success-flash {
+  animation: v2-success-flash var(--v2-duration-600, 600ms) var(--v2-ease-snap, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+/**
+ * toast.enter — 240ms · spring
+ * Slides up 12px from below. Stacks newest at bottom. Auto-dismiss 4s; persists on hover.
+ * Trigger: Async result, non-blocking error.
+ */
+.anim-toast-enter {
+  animation: v2-toast-enter var(--v2-duration-240, 240ms) var(--v2-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+/**
+ * dialog.enter — 180ms · snap
+ * Modal scales 0.96 → 1.0 with opacity. Short enough not to delay typing.
+ * Trigger: Confirm, settings, destructive action.
+ * Note: 180ms falls between --v2-duration-160 and --v2-duration-200; using literal value.
+ */
+.anim-dialog-enter {
+  animation: v2-dialog-enter 180ms var(--v2-ease-snap, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+/**
+ * confirm.shake — 360ms · custom
+ * Destructive dialog shakes when wrong-button shortcut pressed. Friction by design.
+ * Trigger: Enter pressed without holding ⌘ on destructive dialog.
+ */
+.anim-shake {
+  animation: v2-shake 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/**
+ * hover.lift — 120ms · out
+ * List rows and cards step to next surface tier. No shadow change — just contrast.
+ * Trigger: Pointer enter.
+ * Applied as a transition; the caller sets the new background-color on :hover.
+ */
+.anim-lift {
+  transition: background-color var(--v2-duration-120, 120ms) var(--v2-ease-out, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+/**
+ * focus.ring — 120ms · out
+ * Two-stop ring on keyboard focus. Reads on any surface tier.
+ * Never shown on click — use :focus-visible, not :focus.
+ * Trigger: Tab key, programmatic focus.
+ */
+.focus-ring,
+:focus-visible {
+  outline: none;
+  box-shadow: var(--v2-ring-focus, 0 0 0 2px #0A0B11, 0 0 0 4px #7C8FFF);
+  transition: box-shadow var(--v2-duration-120, 120ms) var(--v2-ease-out, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+/**
+ * palette.open — 160ms · spring
+ * Backdrop fades; palette scales 0.97 → 1.0 from top. Input focused before motion ends.
+ * Trigger: ⌘K.
+ */
+.anim-palette-open {
+  animation: v2-palette-open var(--v2-duration-160, 160ms) var(--v2-ease-spring, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+/* ── Reduced-motion overrides ── */
+@media (prefers-reduced-motion: reduce) {
+  .anim-panel-enter,
+  .anim-success-flash,
+  .anim-toast-enter,
+  .anim-dialog-enter,
+  .anim-shake,
+  .anim-palette-open {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .anim-status-pulse {
+    animation: none;
+    opacity: 1;
+  }
+
+  .anim-tab-switch,
+  .anim-lift {
+    transition-duration: 1ms;
+  }
+
+  .focus-ring,
+  :focus-visible {
+    transition-duration: 1ms;
+  }
+}

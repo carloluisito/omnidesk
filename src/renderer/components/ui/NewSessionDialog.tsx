@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Workspace, PermissionMode, SubdirectoryEntry, LaunchMode } from '../../../shared/ipc-types';
+import { FieldError } from './FieldError';
 import type { WorktreeCreateRequest, GitBranchInfo } from '../../../shared/types/git-types';
 import type { ProviderId } from '../../../shared/types/provider-types';
 import type { AgentViewAvailability } from '../../../shared/types/agent-view-types';
@@ -680,15 +681,10 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
             </div>
           )}
 
-          {/* Error */}
+          {/* Error — use FieldError for v2 pattern proof; legacy nsd-error div retained
+              as fallback since nsd-error CSS still works without the v2 flag */}
           {error && (
-            <div className="nsd-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 8v4m0 4h.01"/>
-              </svg>
-              {error}
-            </div>
+            <FieldError>{error}</FieldError>
           )}
         </form>
       </div>

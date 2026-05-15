@@ -1,11 +1,91 @@
 /**
- * CheckpointPanel - Side panel for viewing and managing checkpoints
+ * CheckpointPanel — Side panel for viewing and managing checkpoints.
+ *
+ * Layout: PanelShell + "Recent (last 24h)" / "Older" PanelSection groups.
+ * Empty / loading / error states use PanelEmpty / PanelLoading / PanelError primitives.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCheckpoints, CheckpointGroup } from '../hooks/useCheckpoints';
 import type { Checkpoint } from '../../shared/ipc-types';
 import { showToast } from '../utils/toast';
+import { PanelShell, PanelSection, PanelEmpty, PanelLoading, PanelError } from './ui';
+import { SidePanel } from './SidePanel';
+import { Camera, Copy, Download, Trash2 } from 'lucide-react';
+
+// ─── V2 row ───────────────────────────────────────────────────────────────
+
+function formatRelTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
+function V2CheckpointRow({
+  checkpoint,
+  onCopy,
+  onExport,
+  onDelete,
+}: {
+  checkpoint: Checkpoint;
+  onCopy: () => void;
+  onExport: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="anim-lift"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '7px 10px', borderRadius: 'var(--radius-md, 6px)',
+        background: 'var(--v2-surface-mid)', cursor: 'default',
+      }}
+    >
+      <Camera size={12} style={{ color: 'var(--v2-accent)', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 'var(--text-sm, 12px)', fontWeight: 600, color: 'var(--v2-text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {checkpoint.name}
+        </div>
+        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--v2-text-tertiary)' }}>
+          {formatRelTime(checkpoint.createdAt)}
+        </div>
+      </div>
+      {hovered && (
+        <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+          <button onClick={onCopy} title="Copy" style={cpBtn(false)}><Copy size={10} /></button>
+          <button onClick={onExport} title="Export" style={cpBtn(false)}><Download size={10} /></button>
+          <button onClick={onDelete} title="Delete" style={cpBtn(true)}><Trash2 size={10} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function cpBtn(danger: boolean): React.CSSProperties {
+  return {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 22, height: 22,
+    background: danger ? 'none' : 'var(--v2-surface-high)',
+    border: `1px solid ${danger ? 'var(--v2-error)' : 'var(--v2-border-default)'}`,
+    borderRadius: 4,
+    color: danger ? 'var(--v2-error)' : 'var(--v2-text-secondary)',
+    cursor: 'pointer', padding: 0,
+  };
+}
+
+// ─── Main component ────────────────────────────────────────────────────────
 
 interface CheckpointPanelProps {
   isOpen: boolean;
@@ -13,13 +93,9 @@ interface CheckpointPanelProps {
   sessionId?: string;
 }
 
-type TabType = 'timeline' | 'export';
 
 export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('timeline');
-  const [selectedCheckpoint, setSelectedCheckpoint] = useState<Checkpoint | null>(null);
   const [checkpointGroups, setCheckpointGroups] = useState<CheckpointGroup[]>([]);
-  const [isExporting, setIsExporting] = useState(false);
 
   const {
     checkpoints,
@@ -38,30 +114,6 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
       setCheckpointGroups([]);
     }
   }, [checkpoints, getCheckpointGroups]);
-
-  // Handle overlay click (close panel)
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onClose]);
 
   // Handle delete checkpoint
   const handleDelete = useCallback(
@@ -98,18 +150,13 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
   // Handle export to file
   const handleExportToFile = useCallback(
     async (checkpointId: string, format: 'markdown' | 'json') => {
-      setIsExporting(true);
-
       try {
         const checkpoint = await window.electronAPI.getCheckpoint(checkpointId);
-        if (!checkpoint) {
-          throw new Error('Checkpoint not found');
-        }
+        if (!checkpoint) throw new Error('Checkpoint not found');
 
         const extension = format === 'markdown' ? 'md' : 'json';
         const defaultFilename = `${checkpoint.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checkpoint.${extension}`;
 
-        // Show save dialog
         const filePath = await window.electronAPI.showSaveDialog({
           defaultPath: defaultFilename,
           filters: [
@@ -118,16 +165,9 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
           ],
         });
 
-        if (!filePath) {
-          // User cancelled
-          setIsExporting(false);
-          return;
-        }
+        if (!filePath) return;
 
-        // Get checkpoint content
         const content = await exportCheckpoint(checkpointId, format);
-
-        // Write to file
         const success = await window.electronAPI.writeFile(filePath, content);
 
         if (success) {
@@ -138,237 +178,83 @@ export function CheckpointPanel({ isOpen, onClose, sessionId }: CheckpointPanelP
       } catch (err) {
         console.error('Failed to export checkpoint:', err);
         showToast('Failed to export checkpoint', 'error');
-      } finally {
-        setIsExporting(false);
       }
     },
     [exportCheckpoint]
   );
 
-  // Format relative time
-  const formatRelativeTime = (timestamp: number): string => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
-
   if (!isOpen) return null;
 
+  const now = Date.now();
+  const dayMs = 86_400_000;
+  const recentGroups: CheckpointGroup[] = [];
+  const olderGroups: CheckpointGroup[] = [];
+  for (const group of checkpointGroups) {
+    const recent = group.checkpoints.filter((c) => now - c.createdAt < dayMs);
+    const older = group.checkpoints.filter((c) => now - c.createdAt >= dayMs);
+    if (recent.length) recentGroups.push({ ...group, checkpoints: recent });
+    if (older.length) olderGroups.push({ ...group, checkpoints: older });
+  }
+  const totalCount = checkpoints.length;
+
   return (
-    <div
-      className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-end"
-      onClick={handleOverlayClick}
-    >
-      <div
-        className="bg-[var(--surface-overlay)] h-full w-[500px] shadow-2xl flex flex-col animate-slide-in-right"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
-          <h2 className="text-lg font-semibold text-[var(--text-secondary)]">Checkpoints</h2>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-            aria-label="Close panel"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-[var(--border-default)]">
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'timeline'
-                ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            Timeline
-          </button>
-          <button
-            onClick={() => setActiveTab('export')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'export'
-                ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            Export
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading && (
-            <div className="flex items-center justify-center h-32">
-              <div className="text-[var(--text-tertiary)]">Loading checkpoints...</div>
-            </div>
-          )}
-
-          {error && (
-            <div className="m-4 p-4 bg-[var(--semantic-error)]/10 border border-[var(--semantic-error)]/20 rounded text-[var(--semantic-error)] text-sm">
-              {error}
-            </div>
-          )}
-
-          {!isLoading && !error && activeTab === 'timeline' && (
-            <div className="p-4">
-              {checkpointGroups.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-4">📌</div>
-                  <div className="text-[var(--text-tertiary)] mb-2">No checkpoints yet</div>
-                  <div className="text-sm text-[var(--border-strong)]">
-                    Press <kbd className="px-2 py-1 bg-[var(--border-default)] rounded text-xs">Ctrl+Shift+S</kbd> to
-                    create a checkpoint
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {checkpointGroups.map((group) => (
-                    <div key={group.sessionId} className="checkpoint-group">
-                      <div className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-3">
-                        Session: {group.sessionName}
-                      </div>
-                      <div className="space-y-3">
-                        {group.checkpoints.map((checkpoint) => (
-                          <div
-                            key={checkpoint.id}
-                            className="bg-[var(--border-default)]/50 rounded-lg p-4 hover:bg-[var(--border-default)] transition-colors"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="text-xl pt-1">📌</div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-[var(--text-secondary)] mb-1 truncate">
-                                  {checkpoint.name}
-                                </div>
-                                <div className="text-xs text-[var(--text-tertiary)] mb-2">
-                                  {formatRelativeTime(checkpoint.createdAt)}
-                                  {checkpoint.tags && checkpoint.tags.length > 0 && (
-                                    <span className="ml-2">
-                                      {checkpoint.tags.map((tag) => (
-                                        <span
-                                          key={tag}
-                                          className="inline-block px-2 py-0.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded text-xs mr-1"
-                                        >
-                                          {tag}
-                                        </span>
-                                      ))}
-                                    </span>
-                                  )}
-                                </div>
-                                {checkpoint.description && (
-                                  <div className="text-sm text-[var(--text-tertiary)] mb-3">
-                                    {checkpoint.description}
-                                  </div>
-                                )}
-                                {checkpoint.conversationSummary && (
-                                  <div className="text-xs text-[var(--border-strong)] bg-[var(--surface-overlay)] rounded p-2 mb-3 font-mono overflow-hidden">
-                                    <div className="line-clamp-3">{checkpoint.conversationSummary}</div>
-                                  </div>
-                                )}
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleCopy(checkpoint.id)}
-                                    className="text-xs px-3 py-1.5 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded hover:bg-[var(--accent-primary)]/20 transition-colors"
-                                  >
-                                    Copy
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCheckpoint(checkpoint);
-                                      setActiveTab('export');
-                                    }}
-                                    className="text-xs px-3 py-1.5 bg-[var(--text-tertiary)]/10 text-[var(--text-secondary)] rounded hover:bg-[var(--text-tertiary)]/20 transition-colors"
-                                  >
-                                    Export
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(checkpoint.id)}
-                                    className="text-xs px-3 py-1.5 bg-[var(--semantic-error)]/10 text-[var(--semantic-error)] rounded hover:bg-[var(--semantic-error)]/20 transition-colors ml-auto"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!isLoading && !error && activeTab === 'export' && (
-            <div className="p-4">
-              {selectedCheckpoint ? (
-                <div className="space-y-4">
-                  <div className="bg-[var(--border-default)]/50 rounded-lg p-4">
-                    <div className="text-sm font-medium text-[var(--text-secondary)] mb-2">Selected Checkpoint</div>
-                    <div className="text-lg font-semibold text-[var(--text-secondary)] mb-1">
-                      {selectedCheckpoint.name}
-                    </div>
-                    <div className="text-xs text-[var(--text-tertiary)]">
-                      {formatRelativeTime(selectedCheckpoint.createdAt)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="text-sm font-medium text-[var(--text-secondary)]">Export Format</div>
-
-                    <button
-                      onClick={() => handleExportToFile(selectedCheckpoint.id, 'markdown')}
-                      disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="font-medium text-[var(--text-secondary)] mb-1">Markdown (.md)</div>
-                      <div className="text-xs text-[var(--text-tertiary)]">
-                        Human-readable format with conversation history
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => handleExportToFile(selectedCheckpoint.id, 'json')}
-                      disabled={isExporting}
-                      className="w-full px-4 py-3 bg-[var(--border-default)] hover:bg-[var(--border-strong)] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="font-medium text-[var(--text-secondary)] mb-1">JSON (.json)</div>
-                      <div className="text-xs text-[var(--text-tertiary)]">Structured data for programmatic access</div>
-                    </button>
-                  </div>
-
-                  {isExporting && (
-                    <div className="text-center py-4 text-[var(--text-tertiary)]">
-                      Exporting checkpoint...
-                    </div>
+    <SidePanel isOpen={isOpen} onClose={onClose} title="Checkpoints">
+      <div style={{ height: '100%' }}>
+        <PanelShell
+          icon={<Camera size={13} />}
+          title="Checkpoints"
+          count={totalCount > 0 ? `${totalCount}` : undefined}
+        >
+          {isLoading ? (
+            <PanelLoading rows={3} />
+          ) : error ? (
+            <PanelError
+              title="Could not load checkpoints"
+              message={error}
+              recover={{ label: 'Retry', onClick: () => {} }}
+            />
+          ) : checkpoints.length === 0 ? (
+            <PanelEmpty
+              icon={<Camera size={26} />}
+              title="No checkpoints yet"
+              body="Snapshot a session's state and resume it later. Useful before a risky refactor or to fork an experiment."
+            />
+          ) : (
+            <div style={{ padding: '8px 6px 0' }}>
+              {recentGroups.length > 0 && (
+                <PanelSection title="Recent (last 24h)" count={recentGroups.reduce((s, g) => s + g.checkpoints.length, 0)}>
+                  {recentGroups.flatMap((group) =>
+                    group.checkpoints.map((cp) => (
+                      <V2CheckpointRow
+                        key={cp.id}
+                        checkpoint={cp}
+                        onCopy={() => handleCopy(cp.id)}
+                        onExport={() => handleExportToFile(cp.id, 'markdown')}
+                        onDelete={() => handleDelete(cp.id)}
+                      />
+                    ))
                   )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-4">📦</div>
-                  <div className="text-[var(--text-tertiary)] mb-2">No checkpoint selected</div>
-                  <div className="text-sm text-[var(--border-strong)]">
-                    Select a checkpoint from the Timeline tab to export
-                  </div>
-                </div>
+                </PanelSection>
+              )}
+              {olderGroups.length > 0 && (
+                <PanelSection title="Older" count={olderGroups.reduce((s, g) => s + g.checkpoints.length, 0)} defaultOpen={recentGroups.length === 0}>
+                  {olderGroups.flatMap((group) =>
+                    group.checkpoints.map((cp) => (
+                      <V2CheckpointRow
+                        key={cp.id}
+                        checkpoint={cp}
+                        onCopy={() => handleCopy(cp.id)}
+                        onExport={() => handleExportToFile(cp.id, 'markdown')}
+                        onDelete={() => handleDelete(cp.id)}
+                      />
+                    ))
+                  )}
+                </PanelSection>
               )}
             </div>
           )}
-        </div>
+        </PanelShell>
       </div>
-    </div>
+    </SidePanel>
   );
 }

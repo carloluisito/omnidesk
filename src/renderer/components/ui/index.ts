@@ -35,3 +35,23 @@ export type { ClaudeUsageQuota, BurnRateData, QuotaBucket } from '../../../share
 // Export prompt template components (from parent directory)
 export { CommandPalette } from '../CommandPalette';
 export { TemplateEditor } from '../TemplateEditor';
+// Wave 01 — design overhaul primitives
+export { SurfaceCard } from './SurfaceCard';
+export { StatusPill } from './StatusPill';
+export type { StatusPillVariant } from './StatusPill';
+// Wave 04 — dialogs, toasts, banners
+export { InlineBanner } from './InlineBanner';
+export type { InlineBannerProps, InlineBannerSeverity, InlineBannerAction } from './InlineBanner';
+export { FieldError } from './FieldError';
+export type { FieldErrorProps } from './FieldError';
+// Wave 02 — panel primitives
+export { PanelShell } from './PanelShell';
+export type { PanelShellProps } from './PanelShell';
+export { PanelSection } from './PanelSection';
+export type { PanelSectionProps } from './PanelSection';
+export { PanelEmpty } from './PanelEmpty';
+export type { PanelEmptyProps } from './PanelEmpty';
+export { PanelLoading } from './PanelLoading';
+export type { PanelLoadingProps } from './PanelLoading';
+export { PanelError } from './PanelError';
+export type { PanelErrorProps } from './PanelError';
