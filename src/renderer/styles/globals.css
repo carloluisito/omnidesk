@@ -12,6 +12,9 @@
 /* Wave 00 named motion gestures */
 @import './motion.css';
 
+/* Phase 4 prototype shell — new design system */
+@import './prototype-shell.css';
+
 /* Tailwind CSS layers */
 @tailwind base;
 @tailwind components;

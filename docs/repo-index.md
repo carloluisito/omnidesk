@@ -117,7 +117,9 @@
 
 | File | Layer | Role | Lines |
 |------|-------|------|-------|
-| `src/renderer/components/ui/TabBar.tsx` | UI | Session tabs, toolbar buttons | 705 |
+| `src/renderer/components/FocusMode.tsx` | Renderer | ⌘./Ctrl+. focus mode toggle — hides activity bar + right panel via CSS class on `document.documentElement` in ≤160ms; persists to AppSettings | ~120 |
+| `src/renderer/hooks/useDrag.ts` | Renderer | Hand-rolled pointer-events drag-to-reorder — threshold-based start, sibling midpoint hit-testing, `onReorder(from, to)` callback; wired to TabBar v2 and TaskPanel v2 | ~133 |
+| `src/renderer/components/ui/TabBar.tsx` | UI | Session tabs, toolbar buttons; v2: drag-to-reorder via useDrag, persists tab order | 705 |
 | `src/renderer/components/ui/Tab.tsx` | UI | Individual tab with close/rename | 438 |
 | `src/renderer/components/ui/ModelBadge.tsx` | UI | Dynamic badge showing current model | 70 |
 | `src/renderer/components/ui/ModelSwitcher.tsx` | UI | Dropdown for mid-session model switching | 167 |
@@ -184,7 +186,6 @@ IPC: `git:*` (30 methods — 26 invoke + 4 events)
 | `src/renderer/components/DiffContentArea.tsx` | Renderer | Diff rendering: dual gutter line numbers, colored add/remove/context lines | ~120 |
 | `src/renderer/components/ui/CommitDialog.tsx` | UI | Commit message editor with AI generation | ~465 |
 | `src/renderer/components/WorktreePanel.tsx` | Renderer | Worktree management panel: list, remove, prune stale | ~520 |
-| `src/renderer/components/WorktreeCleanupDialog.tsx` | Renderer | Cleanup prompt when closing managed worktree session | ~313 |
 
 ## Session Playbooks
 

@@ -71,6 +71,11 @@ export class ClaudeProvider implements IProvider {
       case 'bypass-permissions':
         command = 'claude --dangerously-skip-permissions';
         break;
+      case 'continue':
+        // Resume the most recent conversation in the session cwd.
+        // Claude Code starts a fresh conversation if none exists.
+        command = 'claude --continue';
+        break;
       case 'agents': {
         // Defense-in-depth: verify availability at command-build time.
         // The getter reads the live cached value so this check is always current.

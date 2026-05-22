@@ -17,6 +17,7 @@ import type {
   SessionInput,
   SessionResizeRequest,
   SubdirectoryEntry,
+  GitRepoEntry,
   AppSettings,
   Workspace,
   WorkspaceCreateRequest,
@@ -187,11 +188,12 @@ export interface EventContract<Ch extends string, Payload> {
 export interface IPCContractMap {
   // ── Session management (invoke) ──
   createSession:       InvokeContract<'session:create',    [SessionCreateRequest],               SessionMetadata>;
-  closeSession:        InvokeContract<'session:close',     [string],                             boolean>;
+  closeSession:        InvokeContract<'session:close',     [string, { removeWorktree?: boolean; removeBranch?: boolean }?], boolean>;
   switchSession:       InvokeContract<'session:switch',    [string],                             boolean>;
   renameSession:       InvokeContract<'session:rename',    [string, string],                     SessionMetadata>;
   listSessions:        InvokeContract<'session:list',      [],                                   SessionListResponse>;
   restartSession:      InvokeContract<'session:restart',   [string],                             boolean>;
+  stopSession:         InvokeContract<'session:stop',      [string],                             boolean>;
   getActiveSession:    InvokeContract<'session:getActive', [],                                   string | null>;
   revealInExplorer:    InvokeContract<'session:revealInExplorer', [string],                      boolean>;
 
@@ -232,6 +234,7 @@ export interface IPCContractMap {
   showSaveDialog:      InvokeContract<'dialog:showSaveDialog',  [{ defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }], string | null>;
   writeFile:           InvokeContract<'fs:writeFile',            [string, string],                boolean>;
   listSubdirectories:  InvokeContract<'fs:listSubdirectories',   [string],                       SubdirectoryEntry[]>;
+  listGitRepos:        InvokeContract<'fs:listGitRepos',         [string],                       GitRepoEntry[]>;
   createDirectory:     InvokeContract<'fs:createDirectory',      [string],                       boolean>;
 
   // ── Settings & Workspaces (invoke) ──
@@ -492,6 +495,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   renameSession:       'session:rename',
   listSessions:        'session:list',
   restartSession:      'session:restart',
+  stopSession:         'session:stop',
   getActiveSession:    'session:getActive',
   revealInExplorer:    'session:revealInExplorer',
 
@@ -532,6 +536,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   showSaveDialog:      'dialog:showSaveDialog',
   writeFile:           'fs:writeFile',
   listSubdirectories:  'fs:listSubdirectories',
+  listGitRepos:        'fs:listGitRepos',
   createDirectory:     'fs:createDirectory',
 
   // Settings & Workspaces
@@ -781,6 +786,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   renameSession:       'invoke',
   listSessions:        'invoke',
   restartSession:      'invoke',
+  stopSession:         'invoke',
   getActiveSession:    'invoke',
   revealInExplorer:    'invoke',
 
@@ -812,6 +818,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   showSaveDialog:      'invoke',
   writeFile:           'invoke',
   listSubdirectories:  'invoke',
+  listGitRepos:        'invoke',
   createDirectory:     'invoke',
 
   getSettings:         'invoke',

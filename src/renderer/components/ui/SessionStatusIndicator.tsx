@@ -22,9 +22,9 @@ export function SessionStatusIndicator({
       case 'warning':
         return 'var(--semantic-warning)';
       case 'idle':
-        return 'var(--text-tertiary)';
+        return 'var(--v2-text-tertiary)';
       default:
-        return 'var(--text-tertiary)';
+        return 'var(--v2-text-tertiary)';
     }
   };
 

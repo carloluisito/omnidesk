@@ -140,8 +140,8 @@ export function ContextMenu({
         .context-menu {
           position: fixed;
           min-width: 200px;
-          background: var(--surface-overlay);
-          border: 1px solid var(--border-default);
+          background: var(--v2-surface-overlay);
+          border: 1px solid var(--v2-border-default);
           border-radius: var(--radius-lg, 10px);
           padding: var(--space-1, 4px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
@@ -191,7 +191,7 @@ export function ContextMenu({
 
         .menu-label {
           font-size: var(--text-sm, 12px);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
         }
 
         .menu-item.danger .menu-label {
@@ -200,13 +200,13 @@ export function ContextMenu({
 
         .menu-shortcut {
           font-size: var(--text-xs, 11px);
-          color: var(--text-tertiary);
+          color: var(--v2-text-tertiary);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .menu-divider {
           height: 1px;
-          background: var(--border-subtle);
+          background: var(--v2-border-subtle);
           margin: 4px var(--space-2, 8px);
         }
       `}</style>

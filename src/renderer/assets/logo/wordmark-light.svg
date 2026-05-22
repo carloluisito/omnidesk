@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 128" fill="none">
+  <g transform="translate(16,16)">
+    <rect x="42" y="22" width="56" height="56" rx="6" ry="6" stroke="rgba(94,108,206,0.55)" stroke-width="2"></rect>
+    <rect x="34" y="34" width="56" height="56" rx="6" ry="6" stroke="#5E6CCE" stroke-width="2"></rect>
+    <rect x="26" y="46" width="56" height="56" rx="6" ry="6" fill="#0F9D85"></rect>
+    <path d="M 42 67 L 50 73 L 42 79" stroke="#F4F5F8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+    <rect x="56" y="78" width="14" height="3" rx="1.5" fill="#F4F5F8"></rect>
+  </g>
+  <text x="148" y="84" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="600" fill="#1B1D26" letter-spacing="-1">OmniDesk</text>
+</svg>

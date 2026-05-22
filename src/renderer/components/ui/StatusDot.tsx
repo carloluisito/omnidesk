@@ -21,11 +21,11 @@ interface StatusDotProps {
 
 const STATUS_CONFIG: Record<StatusDotState, { color: string; label: string; pulse: boolean }> = {
   running: { color: 'var(--semantic-success)', label: 'Running',      pulse: true  },
-  idle:    { color: 'var(--text-tertiary)',     label: 'Idle',         pulse: false },
+  idle:    { color: 'var(--v2-text-tertiary)',     label: 'Idle',         pulse: false },
   error:   { color: 'var(--semantic-error)',    label: 'Error',        pulse: false },
   warning: { color: 'var(--semantic-warning)',  label: 'Warning',      pulse: false },
   exited:  { color: 'var(--semantic-error)',    label: 'Exited',       pulse: false },
-  active:  { color: 'var(--accent-primary)',    label: 'Active',       pulse: true  },
+  active:  { color: 'var(--v2-accent)',    label: 'Active',       pulse: true  },
 };
 
 export function StatusDot({ status, size = 8, pulse: forcePulse, className = '' }: StatusDotProps) {

@@ -98,10 +98,10 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           gap: 6px;
           height: 32px;
           padding: 0 var(--space-3, 12px);
-          background: var(--surface-float);
-          border: 1px solid var(--border-default);
+          background: var(--v2-surface-low);
+          border: 1px solid var(--v2-border-default);
           border-radius: var(--radius-md, 6px);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-medium, 500);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -113,14 +113,14 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
 
         .toolbar-dropdown-trigger:hover {
           background: var(--state-hover);
-          border-color: var(--border-accent);
-          color: var(--text-accent);
+          border-color: var(--v2-accent);
+          color: var(--v2-accent);
         }
 
         .toolbar-dropdown-trigger.active {
           background: var(--state-hover);
-          border-color: var(--border-accent);
-          color: var(--text-accent);
+          border-color: var(--v2-accent);
+          color: var(--v2-accent);
         }
 
         .trigger-icon {
@@ -145,8 +145,8 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           top: calc(100% + 8px);
           left: 0;
           min-width: 200px;
-          background: var(--surface-overlay);
-          border: 1px solid var(--border-default);
+          background: var(--v2-surface-overlay);
+          border: 1px solid var(--v2-border-default);
           border-radius: var(--radius-md, 6px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           z-index: 1000;
@@ -173,8 +173,8 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
           padding: var(--space-2, 8px) var(--space-4, 16px);
           background: transparent;
           border: none;
-          border-bottom: 1px solid var(--border-subtle);
-          color: var(--text-secondary);
+          border-bottom: 1px solid var(--v2-border-subtle);
+          color: var(--v2-text-secondary);
           font-size: var(--text-sm, 12px);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           cursor: pointer;
@@ -189,7 +189,7 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
 
         .dropdown-menu-item:hover:not(.disabled) {
           background: var(--state-hover);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
         }
 
         .dropdown-menu-item.disabled {
@@ -200,7 +200,7 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
         .menu-item-icon {
           display: flex;
           align-items: center;
-          color: var(--text-accent);
+          color: var(--v2-accent);
         }
 
         .menu-item-label {
@@ -209,14 +209,14 @@ export function ToolbarDropdown({ icon, label, items, title }: ToolbarDropdownPr
 
         .menu-item-shortcut {
           font-size: 10px;
-          color: var(--text-tertiary);
+          color: var(--v2-text-tertiary);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
         }
 
         .menu-item-badge {
           padding: 2px 6px;
-          background: var(--accent-primary);
-          color: var(--text-inverse);
+          background: var(--v2-accent);
+          color: #0A0B11;
           font-size: 10px;
           font-weight: var(--weight-semibold, 600);
           border-radius: var(--radius-full, 9999px);

@@ -12,7 +12,7 @@ interface BrandMarkProps {
   className?: string;
 }
 
-export function BrandMark({ size = 20, color = 'var(--accent-primary)', className = '' }: BrandMarkProps) {
+export function BrandMark({ size = 20, color = 'var(--v2-accent)', className = '' }: BrandMarkProps) {
   // Hexagon geometry — flat-top orientation, centered at (32,32) in a 64x64 viewBox
   // Vertices at radius 18 from center (slightly inset for clean scaling)
   const cx = 32;

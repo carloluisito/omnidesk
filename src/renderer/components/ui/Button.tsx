@@ -42,18 +42,18 @@ const SIZE_STYLES: Record<ButtonSize, React.CSSProperties> = {
 
 const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
-    backgroundColor: 'var(--accent-primary)',
-    color:           'var(--text-inverse)',
+    backgroundColor: 'var(--v2-accent)',
+    color:           '#0A0B11',
     border:          '1px solid transparent',
   },
   secondary: {
     backgroundColor: 'transparent',
-    color:           'var(--text-secondary)',
-    border:          '1px solid var(--border-default)',
+    color:           'var(--v2-text-secondary)',
+    border:          '1px solid var(--v2-border-default)',
   },
   ghost: {
     backgroundColor: 'transparent',
-    color:           'var(--text-secondary)',
+    color:           'var(--v2-text-secondary)',
     border:          '1px solid transparent',
   },
   danger: {
@@ -137,18 +137,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         }
 
         .omni-btn[data-variant="secondary"]:hover:not(:disabled) {
-          background-color: var(--surface-float);
-          border-color: var(--border-strong);
-          color: var(--text-primary);
+          background-color: var(--v2-surface-low);
+          border-color: var(--v2-border-strong);
+          color: var(--v2-text-primary);
         }
 
         .omni-btn[data-variant="ghost"]:hover:not(:disabled) {
           background-color: var(--state-hover);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
         }
 
         .omni-btn[data-variant="primary"]:hover:not(:disabled) {
-          background-color: var(--accent-primary-dim);
+          background-color: var(--v2-accent-dim);
           filter: none;
         }
 

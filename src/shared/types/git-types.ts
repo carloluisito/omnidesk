@@ -133,10 +133,14 @@ export interface WorktreeInfo {
   mainRepoPath: string;
   worktreePath: string;
   branch: string;
-  /** New field. Backward-compat: read managedByClaudeDesk as fallback. */
+  /** True when OmniDesk created the WORKTREE DIR (so cleanup may remove it on close). */
   managedByOmniDesk: boolean;
   /** @deprecated Use managedByOmniDesk. Kept for backward-compat reads of persisted data. */
   managedByClaudeDesk?: boolean;
+  /** True when OmniDesk also created the BRANCH (session was started with
+   *  isNewBranch=true). When false, the user re-used a pre-existing branch and
+   *  cleanup MUST preserve it on session close. */
+  branchCreatedByOmniDesk?: boolean;
   createdAt: number;
 }
 

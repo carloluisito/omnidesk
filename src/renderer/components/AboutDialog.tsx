@@ -84,8 +84,8 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
         style={{
           width: 'var(--dialog-width-sm)',
           maxWidth: 'calc(100vw - 48px)',
-          background: 'var(--surface-overlay)',
-          border: '1px solid var(--border-default)',
+          background: 'var(--v2-surface-overlay)',
+          border: '1px solid var(--v2-border-default)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-xl)',
           overflow: 'hidden',
@@ -109,7 +109,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               margin: 0,
               fontSize: 'var(--text-xl)',
               fontWeight: 'var(--weight-semibold)',
-              color: 'var(--text-primary)',
+              color: 'var(--v2-text-primary)',
               fontFamily: 'var(--font-ui)',
             }}
           >
@@ -118,7 +118,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
           <span
             style={{
               fontSize: 'var(--text-sm)',
-              color: 'var(--text-tertiary)',
+              color: 'var(--v2-text-tertiary)',
               fontFamily: 'var(--font-mono-ui)',
             }}
           >
@@ -127,7 +127,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
           <span
             style={{
               fontSize: 'var(--text-xs)',
-              color: 'var(--text-secondary)',
+              color: 'var(--v2-text-secondary)',
               fontFamily: 'var(--font-ui)',
               textAlign: 'center',
             }}
@@ -137,7 +137,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
         </div>
 
         {/* Divider */}
-        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 var(--space-4)' }} />
+        <div style={{ height: 1, background: 'var(--v2-border-subtle)', margin: '0 var(--space-4)' }} />
 
         {/* Info rows */}
         <div style={{ padding: 'var(--space-3) var(--space-5)' }}>
@@ -149,13 +149,13 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '6px 0',
-                borderBottom: '1px solid var(--border-subtle)',
+                borderBottom: '1px solid var(--v2-border-subtle)',
               }}
             >
               <span
                 style={{
                   fontSize: 'var(--text-sm)',
-                  color: 'var(--text-tertiary)',
+                  color: 'var(--v2-text-tertiary)',
                   fontFamily: 'var(--font-ui)',
                 }}
               >
@@ -165,7 +165,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
                 style={{
                   fontSize: 'var(--text-xs)',
                   fontFamily: 'var(--font-mono-ui)',
-                  color: 'var(--text-secondary)',
+                  color: 'var(--v2-text-secondary)',
                   textAlign: 'right',
                   maxWidth: '60%',
                   overflow: 'hidden',
@@ -212,17 +212,17 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               justifyContent: 'center',
               gap: 'var(--space-2)',
               padding: '8px',
-              background: 'var(--surface-float)',
-              border: '1px solid var(--border-default)',
+              background: 'var(--v2-surface-low)',
+              border: '1px solid var(--v2-border-default)',
               borderRadius: 'var(--radius-md)',
-              color: updateStatus === 'available' ? 'var(--text-accent)' : 'var(--text-secondary)',
+              color: updateStatus === 'available' ? 'var(--v2-accent)' : 'var(--v2-text-secondary)',
               fontSize: 'var(--text-sm)',
               fontFamily: 'var(--font-ui)',
               cursor: updateStatus === 'checking' ? 'wait' : 'pointer',
               opacity: updateStatus === 'checking' ? 0.6 : 1,
             }}
-            onMouseEnter={(e) => { if (updateStatus !== 'checking') { e.currentTarget.style.borderColor = 'var(--border-accent)'; e.currentTarget.style.color = 'var(--text-accent)'; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = updateStatus === 'available' ? 'var(--text-accent)' : 'var(--text-secondary)'; }}
+            onMouseEnter={(e) => { if (updateStatus !== 'checking') { e.currentTarget.style.borderColor = 'var(--v2-accent)'; e.currentTarget.style.color = 'var(--v2-accent)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--v2-border-default)'; e.currentTarget.style.color = updateStatus === 'available' ? 'var(--v2-accent)' : 'var(--v2-text-secondary)'; }}
           >
             <RefreshCw size={13} style={updateStatus === 'checking' ? { animation: 'spin 1s linear infinite' } : undefined} />
             {updateStatus === 'checking' ? 'Checking...' :
@@ -241,15 +241,15 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
               gap: 'var(--space-2)',
               padding: '8px',
               background: 'none',
-              border: '1px solid var(--border-default)',
+              border: '1px solid var(--v2-border-default)',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--text-tertiary)',
+              color: 'var(--v2-text-tertiary)',
               fontSize: 'var(--text-sm)',
               fontFamily: 'var(--font-ui)',
               cursor: 'pointer',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-tertiary)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--v2-text-secondary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--v2-text-tertiary)'; }}
           >
             <Github size={13} />
             View on GitHub
@@ -259,11 +259,11 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
         {/* Close footer */}
         <div
           style={{
-            borderTop: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--v2-border-subtle)',
             padding: 'var(--space-3) var(--space-5)',
             display: 'flex',
             justifyContent: 'center',
-            background: 'var(--surface-raised)',
+            background: 'var(--v2-surface-mid)',
           }}
         >
           <button
@@ -271,10 +271,10 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps) {
             onClick={onClose}
             style={{
               padding: '6px 24px',
-              background: 'var(--accent-primary)',
+              background: 'var(--v2-accent)',
               border: 'none',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--text-inverse)',
+              color: '#0A0B11',
               fontSize: 'var(--text-sm)',
               fontWeight: 'var(--weight-semibold)',
               fontFamily: 'var(--font-ui)',

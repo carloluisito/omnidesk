@@ -168,13 +168,15 @@ function createWindow(): void {
     height: windowState.height,
     minWidth: 600,
     minHeight: 400,
-    backgroundColor: '#1a1b26',
+    backgroundColor: '#0A0B11',
+    // Hidden title bar + NO native overlay — the in-app traffic lights handle
+    // minimize / maximize / close via the window:* IPCs.
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#1a1b26',
-      symbolColor: '#a9b1d6',
-      height: 36,
-    },
+    // macOS-only: position the OS controls under our title bar so they don't show.
+    // On Windows/Linux, omitting titleBarOverlay removes the native controls entirely.
+    ...(process.platform === 'darwin'
+      ? { trafficLightPosition: { x: -100, y: -100 } as any }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
       contextIsolation: true,
@@ -411,6 +413,22 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Drain in-flight session-cleanup work before the main process exits.
+// Without this, closing a session and then immediately quitting can leave
+// the worktree dir removed but the branch ref still alive, which then breaks
+// future "Existing branch" worktree creation on the same name.
+let isFlushingCleanups = false;
+app.on('before-quit', (e) => {
+  if (isFlushingCleanups) return;        // already flushing — let it complete
+  if (!sessionManager) return;
+  // Defer the actual quit until cleanups settle.
+  e.preventDefault();
+  isFlushingCleanups = true;
+  sessionManager.waitForPendingCleanups()
+    .catch(err => console.warn('[before-quit] cleanup error', err))
+    .finally(() => app.quit());
 });
 
 // ── Protocol registration (Phase 11): omnidesk:// deep links ─────────────────

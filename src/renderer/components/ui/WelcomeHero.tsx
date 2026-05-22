@@ -8,7 +8,7 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
   return (
     <div className="welcome-hero">
       <div className="hero-brandmark">
-        <BrandMark size={64} color="var(--accent-primary)" />
+        <BrandMark size={64} color="var(--v2-accent)" />
       </div>
 
       <h1 className="hero-title">
@@ -50,7 +50,7 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
         .hero-title {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-2xl, 28px);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
           margin: 0 0 var(--space-2, 8px) 0;
           letter-spacing: var(--tracking-tight, -0.01em);
           line-height: var(--leading-tight, 1.2);
@@ -68,7 +68,7 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           margin: 0 0 var(--space-3, 12px) 0;
           text-align: center;
           max-width: 360px;
@@ -79,12 +79,12 @@ export function WelcomeHero({ version }: WelcomeHeroProps) {
           display: inline-flex;
           align-items: center;
           padding: 2px var(--space-3, 12px);
-          background: var(--surface-float);
-          border: 1px solid var(--border-default);
+          background: var(--v2-surface-low);
+          border: 1px solid var(--v2-border-default);
           border-radius: var(--radius-full, 9999px);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-2xs, 10px);
-          color: var(--text-tertiary);
+          color: var(--v2-text-tertiary);
         }
 
         @media (prefers-reduced-motion: reduce) {

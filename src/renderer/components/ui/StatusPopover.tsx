@@ -60,8 +60,8 @@ export function StatusPopover({
       case 'initializing': return 'var(--semantic-warning)';
       case 'error': return 'var(--semantic-error)';
       case 'warning': return 'var(--semantic-warning)';
-      case 'idle': return 'var(--text-tertiary)';
-      default: return 'var(--text-tertiary)';
+      case 'idle': return 'var(--v2-text-tertiary)';
+      default: return 'var(--v2-text-tertiary)';
     }
   };
 
@@ -181,8 +181,8 @@ export function StatusPopover({
             top: 80px;
             right: 20px;
             width: 320px;
-            background: var(--surface-overlay);
-            border: 1px solid var(--border-default);
+            background: var(--v2-surface-overlay);
+            border: 1px solid var(--v2-border-default);
             border-radius: var(--radius-lg, 10px);
             padding: var(--space-5, 20px);
             z-index: 999;
@@ -212,7 +212,7 @@ export function StatusPopover({
           .popover-title {
             font-size: var(--text-sm, 12px);
             font-weight: var(--weight-semibold, 600);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
             margin: 0;
             text-transform: uppercase;
             letter-spacing: var(--tracking-widest, 0.1em);
@@ -221,7 +221,7 @@ export function StatusPopover({
           .close-btn {
             background: none;
             border: none;
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
             cursor: pointer;
             padding: 4px;
             display: flex;
@@ -234,7 +234,7 @@ export function StatusPopover({
 
           .close-btn:hover {
             background: var(--state-hover);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
           }
 
           .status-badge {
@@ -242,7 +242,7 @@ export function StatusPopover({
             align-items: center;
             gap: var(--space-2, 8px);
             padding: var(--space-2, 8px) var(--space-3, 12px);
-            background: var(--surface-float);
+            background: var(--v2-surface-low);
             border: 1px solid;
             border-radius: var(--radius-md, 6px);
             margin-bottom: var(--space-4, 16px);
@@ -257,7 +257,7 @@ export function StatusPopover({
           .status-label {
             font-size: var(--text-sm, 12px);
             font-weight: var(--weight-medium, 500);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
           }
 
           .stats-grid {
@@ -275,7 +275,7 @@ export function StatusPopover({
 
           .stat-label {
             font-size: 10px;
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
@@ -283,7 +283,7 @@ export function StatusPopover({
 
           .stat-value {
             font-size: var(--text-sm, 12px);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
             font-weight: var(--weight-medium, 500);
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
@@ -291,7 +291,7 @@ export function StatusPopover({
           .budget-bar {
             width: 100%;
             height: 4px;
-            background: var(--surface-float);
+            background: var(--v2-surface-low);
             border-radius: var(--radius-full, 9999px);
             overflow: hidden;
             margin-bottom: 4px;
@@ -299,13 +299,13 @@ export function StatusPopover({
 
           .budget-fill {
             height: 100%;
-            background: var(--accent-primary);
+            background: var(--v2-accent);
             transition: width 0.3s ease;
           }
 
           .budget-percent {
             font-size: var(--text-xs, 11px);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           }
 
@@ -313,7 +313,7 @@ export function StatusPopover({
             display: flex;
             gap: var(--space-2, 8px);
             padding-top: var(--space-4, 16px);
-            border-top: 1px solid var(--border-subtle);
+            border-top: 1px solid var(--v2-border-subtle);
           }
 
           .action-btn {
@@ -323,10 +323,10 @@ export function StatusPopover({
             justify-content: center;
             gap: 6px;
             padding: var(--space-2, 8px) var(--space-3, 12px);
-            background: var(--surface-float);
-            border: 1px solid var(--border-default);
+            background: var(--v2-surface-low);
+            border: 1px solid var(--v2-border-default);
             border-radius: var(--radius-md, 6px);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             font-size: var(--text-xs, 11px);
             font-weight: var(--weight-medium, 500);
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -338,8 +338,8 @@ export function StatusPopover({
 
           .action-btn:hover {
             background: var(--state-hover);
-            border-color: var(--border-accent);
-            color: var(--text-accent);
+            border-color: var(--v2-accent);
+            color: var(--v2-accent);
           }
 
           .action-btn svg {

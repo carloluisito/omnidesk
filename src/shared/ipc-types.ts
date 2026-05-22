@@ -238,6 +238,20 @@ export interface SubdirectoryEntry {
   path: string;
 }
 
+// Git repository entry — surfaced via fs:listGitRepos.
+// A repo is a subdir (any depth, but typically depth 1) of a workspace that
+// contains a `.git` directory or file (the file form is used by git worktrees).
+export interface GitRepoEntry {
+  /** Folder name. Acts as the human-readable label. */
+  name: string;
+  /** Absolute path to the repo's working tree root. */
+  path: string;
+  /** Path of the workspace this repo lives under. */
+  workspacePath: string;
+  /** Current branch name, if cheaply derivable from .git/HEAD; otherwise undefined. */
+  branch?: string;
+}
+
 // Window state
 export interface WindowState {
   x: number;

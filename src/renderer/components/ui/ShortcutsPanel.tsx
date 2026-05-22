@@ -229,8 +229,8 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             transform: translate(-50%, -50%);
             width: min(var(--dialog-width-lg, 680px), calc(100vw - 48px));
             max-height: var(--dialog-max-height, 85vh);
-            background: var(--surface-overlay);
-            border: 1px solid var(--border-default);
+            background: var(--v2-surface-overlay);
+            border: 1px solid var(--v2-border-default);
             border-radius: var(--radius-lg, 10px);
             z-index: var(--z-modal, 400);
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -256,7 +256,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             justify-content: space-between;
             align-items: center;
             padding: var(--space-5, 20px) var(--space-6, 24px);
-            border-bottom: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--v2-border-subtle);
             flex-shrink: 0;
           }
 
@@ -264,7 +264,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             font-size: var(--text-lg, 16px);
             font-weight: var(--weight-semibold, 600);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
             margin: 0;
           }
 
@@ -280,9 +280,9 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             gap: var(--space-1, 4px);
             padding: var(--space-2, 8px) var(--space-3, 12px);
             background: transparent;
-            border: 1px solid var(--border-default);
+            border: 1px solid var(--v2-border-default);
             border-radius: var(--radius-md, 6px);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             font-size: var(--text-sm, 12px);
             font-weight: var(--weight-medium, 500);
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -294,8 +294,8 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
 
           .print-btn:hover {
             background: var(--state-hover);
-            border-color: var(--border-strong);
-            color: var(--text-primary);
+            border-color: var(--v2-border-strong);
+            color: var(--v2-text-primary);
           }
 
           .print-btn:focus-visible {
@@ -311,7 +311,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             height: 28px;
             background: transparent;
             border: none;
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
             cursor: pointer;
             border-radius: var(--radius-md, 6px);
             transition: color var(--duration-fast, 150ms) var(--ease-inout, ease),
@@ -320,7 +320,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
 
           .close-btn:hover {
             background: var(--state-hover);
-            color: var(--text-primary);
+            color: var(--v2-text-primary);
           }
 
           .close-btn:focus-visible {
@@ -333,13 +333,13 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             align-items: center;
             gap: var(--space-3, 12px);
             padding: var(--space-3, 12px) var(--space-6, 24px);
-            border-bottom: 1px solid var(--border-subtle);
-            background: var(--surface-raised);
+            border-bottom: 1px solid var(--v2-border-subtle);
+            background: var(--v2-surface-mid);
             flex-shrink: 0;
           }
 
           .search-icon {
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
             flex-shrink: 0;
           }
 
@@ -347,18 +347,18 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             flex: 1;
             background: transparent;
             border: none;
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             font-size: var(--text-sm, 12px);
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             outline: none;
           }
 
           .shortcuts-search input::placeholder {
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
           }
 
           .shortcuts-search:focus-within {
-            border-bottom-color: var(--border-accent);
+            border-bottom-color: var(--v2-accent);
           }
 
           .shortcuts-content {
@@ -372,17 +372,17 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
           }
 
           .shortcuts-content::-webkit-scrollbar-track {
-            background: var(--surface-float);
+            background: var(--v2-surface-low);
             border-radius: var(--radius-full, 9999px);
           }
 
           .shortcuts-content::-webkit-scrollbar-thumb {
-            background: var(--border-strong);
+            background: var(--v2-border-strong);
             border-radius: var(--radius-full, 9999px);
           }
 
           .shortcuts-content::-webkit-scrollbar-thumb:hover {
-            background: var(--text-tertiary);
+            background: var(--v2-text-tertiary);
           }
 
           .shortcut-group {
@@ -397,7 +397,7 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             font-size: var(--text-xs, 11px);
             font-weight: var(--weight-medium, 500);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             margin: 0 0 var(--space-2, 8px) 0;
             text-transform: uppercase;
             letter-spacing: var(--tracking-widest, 0.08em);
@@ -436,36 +436,36 @@ export function ShortcutsPanel({ isOpen, onClose }: ShortcutsPanelProps) {
             align-items: center;
             justify-content: center;
             padding: 2px var(--space-2, 8px);
-            background: var(--surface-high);
-            border: 1px solid var(--border-default);
+            background: var(--v2-surface-high);
+            border: 1px solid var(--v2-border-default);
             border-radius: var(--radius-sm, 3px);
             font-size: var(--text-xs, 11px);
             font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             font-weight: var(--weight-medium, 500);
             min-width: 28px;
             text-align: center;
-            box-shadow: 0 1px 0 var(--border-strong);
+            box-shadow: 0 1px 0 var(--v2-border-strong);
           }
 
           .key-sep {
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             font-size: var(--text-xs, 11px);
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
             margin: 0 1px;
           }
 
           .shortcut-desc {
             font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
             font-size: var(--text-sm, 12px);
-            color: var(--text-secondary);
+            color: var(--v2-text-secondary);
             flex: 1;
           }
 
           .no-results {
             text-align: center;
             padding: var(--space-12, 48px) var(--space-6, 24px);
-            color: var(--text-tertiary);
+            color: var(--v2-text-tertiary);
           }
 
           .no-results p {

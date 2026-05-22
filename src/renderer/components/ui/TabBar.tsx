@@ -245,6 +245,7 @@ export function TabBar({
   return (
     <>
       <div
+        data-testid="tab-bar"
         role="tablist"
         aria-label="Sessions"
         style={{
@@ -260,6 +261,7 @@ export function TabBar({
       >
         {/* New session button */}
         <button
+          data-testid="tab-bar-new-session"
           onClick={() => setIsDialogOpen(true)}
           title="New session (Ctrl+T)"
           aria-label="New session"
@@ -274,18 +276,18 @@ export function TabBar({
             background:      'transparent',
             border:          '1px solid transparent',
             borderRadius:    'var(--radius-sm)',
-            color:           'var(--text-tertiary)',
+            color:           'var(--v2-text-tertiary)',
             cursor:          'pointer',
             flexShrink:      0,
             transition:      'color var(--duration-fast) var(--ease-inout), background-color var(--duration-fast) var(--ease-inout)',
             outline:         'none',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)';
             (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)';
             (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
           }}
         >
@@ -429,7 +431,7 @@ export function TabBar({
                 background:      showOverflow ? 'var(--state-active)' : 'transparent',
                 border:          '1px solid transparent',
                 borderRadius:    'var(--radius-sm)',
-                color:           'var(--text-tertiary)',
+                color:           'var(--v2-text-tertiary)',
                 cursor:          'pointer',
                 fontSize:        'var(--text-sm)',
                 fontFamily:      'var(--font-ui)',
@@ -438,10 +440,10 @@ export function TabBar({
                 marginRight:     'var(--space-1)',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)';
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
@@ -460,8 +462,8 @@ export function TabBar({
                   position:        'absolute',
                   top:             'calc(100% + 4px)',
                   right:           0,
-                  backgroundColor: 'var(--surface-high)',
-                  border:          '1px solid var(--border-default)',
+                  backgroundColor: 'var(--v2-surface-high)',
+                  border:          '1px solid var(--v2-border-default)',
                   borderRadius:    'var(--radius-md)',
                   boxShadow:       'var(--shadow-md)',
                   zIndex:          'var(--z-dropdown)' as any,
@@ -484,17 +486,17 @@ export function TabBar({
                       gap:             'var(--space-2)',
                       width:           '100%',
                       padding:         '6px var(--space-3)',
-                      background:      session.id === activeSessionId ? 'var(--accent-primary-muted)' : 'transparent',
+                      background:      session.id === activeSessionId ? 'rgba(0,201,167,0.14)' : 'transparent',
                       border:          'none',
                       cursor:          'pointer',
-                      color:           session.id === activeSessionId ? 'var(--text-accent)' : 'var(--text-secondary)',
+                      color:           session.id === activeSessionId ? 'var(--v2-accent)' : 'var(--v2-text-secondary)',
                       fontSize:        'var(--text-sm)',
                       fontFamily:      'var(--font-ui)',
                       textAlign:       'left',
                       transition:      'background-color var(--duration-fast) var(--ease-inout)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = session.id === activeSessionId ? 'var(--accent-primary-muted)' : 'transparent'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = session.id === activeSessionId ? 'rgba(0,201,167,0.14)' : 'transparent'; }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {session.name}
@@ -522,15 +524,15 @@ export function TabBar({
               background:      'transparent',
               border:          '1px solid transparent',
               borderRadius:    'var(--radius-sm)',
-              color:           'var(--text-tertiary)',
+              color:           'var(--v2-text-tertiary)',
               cursor:          'pointer',
               marginRight:     'var(--space-1)',
               flexShrink:      0,
               outline:         'none',
               transition:      'color var(--duration-fast) var(--ease-inout)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
           >
             <LayoutGrid size={15} strokeWidth={1.5} aria-hidden="true" />
           </button>
@@ -551,15 +553,15 @@ export function TabBar({
               background:      'transparent',
               border:          '1px solid transparent',
               borderRadius:    'var(--radius-sm)',
-              color:           'var(--text-tertiary)',
+              color:           'var(--v2-text-tertiary)',
               cursor:          'pointer',
               marginRight:     'var(--space-1)',
               flexShrink:      0,
               outline:         'none',
               transition:      'color var(--duration-fast) var(--ease-inout)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)'; }}
           >
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <circle cx="7.5" cy="7.5" r="6.5" />

@@ -32,9 +32,6 @@ export { ToolsDropdown } from './ToolsDropdown';
 export { FuelTooltip } from './FuelTooltip';
 // Re-export quota types from shared
 export type { ClaudeUsageQuota, BurnRateData, QuotaBucket } from '../../../shared/ipc-types';
-// Export prompt template components (from parent directory)
-export { CommandPalette } from '../CommandPalette';
-export { TemplateEditor } from '../TemplateEditor';
 // Wave 01 — design overhaul primitives
 export { SurfaceCard } from './SurfaceCard';
 export { StatusPill } from './StatusPill';

@@ -118,7 +118,7 @@ export function FuelStatusIndicator({
   if (isLoading && !quotaData) {
     return (
       <div className="fuel-indicator fuel-indicator-loading" aria-label="Loading fuel status">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" className="fuel-spin-icon">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--v2-text-tertiary)" strokeWidth="1.5" className="fuel-spin-icon">
           <path d="M6 1a5 5 0 014.33 2.5" strokeLinecap="round" />
         </svg>
         <span className="fuel-text-loading">---</span>
@@ -159,10 +159,10 @@ export function FuelStatusIndicator({
         aria-haspopup="dialog"
         title="No quota data - click for details"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="var(--v2-text-tertiary)" strokeWidth="1.5">
           <circle cx="6" cy="6" r="5" />
           <path d="M5 5a1.5 1.5 0 011.5-1.5A1.5 1.5 0 018 5c0 1-1.5 1.5-1.5 1.5" strokeLinecap="round" />
-          <circle cx="6" cy="9" r="0.5" fill="var(--text-tertiary)" />
+          <circle cx="6" cy="9" r="0.5" fill="var(--v2-text-tertiary)" />
         </svg>
         <span className="fuel-text-nodata">N/A</span>
         <style>{indicatorStyles}</style>
@@ -219,12 +219,12 @@ const indicatorStyles = `
     height: 22px;
     padding: 0 var(--space-2, 8px);
     background: transparent;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-md, 6px);
     cursor: pointer;
     font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
     font-size: var(--text-xs, 11px);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     transition: all var(--duration-fast, 150ms) var(--ease-inout, ease);
     flex-shrink: 0;
     outline: none;
@@ -232,7 +232,7 @@ const indicatorStyles = `
 
   .fuel-indicator:hover {
     background: var(--state-hover);
-    border-color: var(--border-strong);
+    border-color: var(--v2-border-strong);
   }
 
   .fuel-indicator:focus-visible {
@@ -246,7 +246,7 @@ const indicatorStyles = `
 
   /* Severity states */
   .fuel-indicator-normal {
-    border-color: var(--border-default);
+    border-color: var(--v2-border-default);
   }
 
   .fuel-indicator-normal:hover {
@@ -311,9 +311,9 @@ const indicatorStyles = `
   }
 
   .fuel-text-loading {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-weight: var(--weight-semibold, 600);
-    background: linear-gradient(90deg, var(--text-tertiary) 0%, var(--border-strong) 50%, var(--text-tertiary) 100%);
+    background: linear-gradient(90deg, var(--v2-text-tertiary) 0%, var(--v2-border-strong) 50%, var(--v2-text-tertiary) 100%);
     background-size: 200px 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -341,7 +341,7 @@ const indicatorStyles = `
   }
 
   .fuel-text-nodata {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-weight: var(--weight-semibold, 600);
     font-size: var(--text-2xs, 10px);
   }

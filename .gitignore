@@ -38,6 +38,9 @@ Session_*.md
 .omnidesk/
 .claudedesk/
 
+# Feature-flow manual evidence (screenshots + notes per slug)
+evidence/
+
 # Test output
 coverage/
 test-results/

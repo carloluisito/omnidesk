@@ -32,7 +32,7 @@ export interface BudgetPanelProps {
 function gaugeColor(pct: number): string {
   if (pct >= 80) return 'var(--semantic-error)';
   if (pct >= 60) return 'var(--semantic-warning)';
-  return 'var(--accent-primary)';
+  return 'var(--v2-accent)';
 }
 
 function getTimeUntilReset(resetsAt: string): string {
@@ -65,7 +65,7 @@ function GaugeBar({ pct, label, sublabel }: { pct: number; label: string; sublab
         <span
           style={{
             fontSize: 'var(--text-xs)',
-            color: 'var(--text-secondary)',
+            color: 'var(--v2-text-secondary)',
             fontFamily: 'var(--font-ui)',
             fontWeight: 'var(--weight-medium)',
           }}
@@ -86,7 +86,7 @@ function GaugeBar({ pct, label, sublabel }: { pct: number; label: string; sublab
       <div
         style={{
           height: 6,
-          background: 'var(--surface-float)',
+          background: 'var(--v2-surface-low)',
           borderRadius: 'var(--radius-full)',
           overflow: 'hidden',
         }}
@@ -107,7 +107,7 @@ function GaugeBar({ pct, label, sublabel }: { pct: number; label: string; sublab
           style={{
             fontSize: 'var(--text-2xs)',
             fontFamily: 'var(--font-mono-ui)',
-            color: 'var(--text-tertiary)',
+            color: 'var(--v2-text-tertiary)',
           }}
         >
           {sublabel}

@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
+import { execFile } from 'child_process';
 import { CLIManager } from './cli-manager';
 import { HistoryManager } from './history-manager';
 import { SessionPool } from './session-pool';
@@ -48,6 +49,9 @@ export class SessionManager {
   private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
   private outputSubscribers: Map<string, Set<(data: string) => void>> = new Map();
   private providerRegistry: ProviderRegistry | null = null;
+  /** In-flight worktree/branch cleanup promises. Awaited on app quit so the
+   *  user-initiated close→quit sequence doesn't leave a half-cleaned repo. */
+  private pendingCleanups: Set<Promise<void>> = new Set();
 
   constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
@@ -68,6 +72,14 @@ export class SessionManager {
 
   setWorktreeSettings(settings: WorktreeSettings): void {
     this.worktreeSettings = settings;
+  }
+
+  /** Resolves once every in-flight worktree cleanup has settled. Call this
+   *  from `before-quit` so Electron doesn't tear down the main process
+   *  mid-`git branch -D` / `git worktree prune`. */
+  async waitForPendingCleanups(): Promise<void> {
+    if (this.pendingCleanups.size === 0) return;
+    await Promise.all([...this.pendingCleanups]);
   }
 
   /** Register a callback to be called when a session closes or exits. */
@@ -149,7 +161,39 @@ export class SessionManager {
     // Handle worktree creation if requested
     let worktreeInfo: import('../shared/types/git-types').WorktreeInfo | undefined;
     if (request.worktree && this.gitManager) {
-      const result = await this.gitManager.addWorktree(request.worktree, this.worktreeSettings);
+      let result = await this.gitManager.addWorktree(request.worktree, this.worktreeSettings);
+      // If the orphaned worktree directory (or its branch) still exists from
+      // a prior session that didn't clean up properly, clear those out and retry.
+      if (!result.success && /already exists/i.test(result.message)) {
+        const targetPath = this.gitManager.computeWorktreePath(
+          request.worktree.mainRepoPath,
+          request.worktree.branch,
+          this.worktreeSettings,
+        );
+        // Prune dangling worktree records git is tracking.
+        await new Promise<void>((resolve) => {
+          execFile('git', ['worktree', 'prune'], { cwd: request.worktree!.mainRepoPath, windowsHide: true }, () => resolve());
+        });
+        // Force-remove via git first; if that fails (e.g. record already gone),
+        // fall back to rmdir on disk. Both are best-effort.
+        await new Promise<void>((resolve) => {
+          execFile('git', ['worktree', 'remove', '--force', targetPath], { cwd: request.worktree!.mainRepoPath, windowsHide: true }, () => resolve());
+        });
+        try {
+          const fs = await import('fs');
+          if (fs.existsSync(targetPath)) {
+            await fs.promises.rm(targetPath, { recursive: true, force: true });
+          }
+        } catch (err) {
+          console.warn('[SessionManager] Failed to remove orphaned worktree dir:', err);
+        }
+        // Also drop a stale branch with the same name (best-effort).
+        await new Promise<void>((resolve) => {
+          execFile('git', ['branch', '-D', request.worktree!.branch], { cwd: request.worktree!.mainRepoPath, windowsHide: true }, () => resolve());
+        });
+        // Retry with the original request (isNewBranch as the caller specified).
+        result = await this.gitManager.addWorktree(request.worktree, this.worktreeSettings);
+      }
       if (!result.success || !result.worktreePath) {
         throw new Error(`Failed to create worktree: ${result.message}`);
       }
@@ -159,6 +203,10 @@ export class SessionManager {
         worktreePath: result.worktreePath,
         branch: request.worktree.branch,
         managedByOmniDesk: true,
+        // Only own the branch if WE created it. When user picks "Existing"
+        // mode (isNewBranch=false), the branch is their work and must be
+        // preserved across session close.
+        branchCreatedByOmniDesk: request.worktree.isNewBranch === true,
         createdAt: Date.now(),
       };
       addWorktreeToRegistry(worktreeInfo);
@@ -308,7 +356,10 @@ export class SessionManager {
     return metadata;
   }
 
-  async closeSession(sessionId: string, removeWorktree?: boolean): Promise<boolean> {
+  async closeSession(
+    sessionId: string,
+    opts?: { removeWorktree?: boolean; removeBranch?: boolean },
+  ): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       return false;
@@ -319,30 +370,71 @@ export class SessionManager {
       session.cliManager.destroy();
     }
 
-    // Handle worktree cleanup
+    // Worktree / branch cleanup is now strictly OPT-IN. Default close = stop
+    // the CLI process and leave everything else alone (user might be pausing
+    // for the day and continuing tomorrow).
+    const removeWorktree = opts?.removeWorktree === true;
+    const removeBranch = opts?.removeBranch === true;
+
     const wt = session.metadata.worktreeInfo;
-    if ((wt?.managedByOmniDesk ?? wt?.managedByClaudeDesk) && this.gitManager) {
+    if ((removeWorktree || removeBranch) &&
+        (wt?.managedByOmniDesk ?? wt?.managedByClaudeDesk) &&
+        this.gitManager) {
       // Check if any other active session uses this worktree
       const otherSessionUsesWorktree = Array.from(this.sessions.entries()).some(
         ([id, s]) => id !== sessionId && s.metadata.worktreeInfo?.worktreePath === wt.worktreePath
       );
 
       if (!otherSessionUsesWorktree) {
-        const cleanup = removeWorktree !== undefined
-          ? removeWorktree
-          : this.worktreeSettings.cleanupOnSessionClose === 'always';
+        const cleanup = removeWorktree;
 
         if (cleanup) {
-          try {
-            await this.gitManager.removeWorktree({
-              mainRepoPath: wt.mainRepoPath,
-              worktreePath: wt.worktreePath,
-              force: false,
-            });
-            removeWorktreeFromRegistry(wt.worktreePath);
-          } catch (err) {
-            console.warn('[SessionManager] Failed to cleanup worktree:', err);
-          }
+          // Track the cleanup so `waitForPendingCleanups()` (called on app quit)
+          // can flush it. We also `await` here so the closeSession IPC reply
+          // doesn't return until cleanup settles — but if the renderer hung up
+          // or the app is quitting, the tracked promise still keeps the chain
+          // alive for the quit-handler to await.
+          const cleanupPromise = (async () => {
+            try {
+              await this.gitManager!.removeWorktree({
+                mainRepoPath: wt.mainRepoPath,
+                worktreePath: wt.worktreePath,
+                force: false,
+              });
+              removeWorktreeFromRegistry(wt.worktreePath);
+              // Branch deletion is its own explicit opt-in — the user must
+              // have ticked "Also delete branch". Even if they did, we still
+              // refuse to delete the branch if OmniDesk didn't create it AND
+              // it's not theirs (handled in renderer by hiding the checkbox).
+              if (wt.branch && removeBranch) {
+                await new Promise<void>((resolve) => {
+                  execFile(
+                    'git',
+                    ['branch', '-D', wt.branch],
+                    { cwd: wt.mainRepoPath, windowsHide: true },
+                    (err) => {
+                      if (err) console.warn('[SessionManager] Failed to delete branch:', err.message);
+                      resolve();
+                    }
+                  );
+                });
+              }
+              // Prune any leftover .git/worktrees/<name>/ records to keep state coherent.
+              await new Promise<void>((resolve) => {
+                execFile(
+                  'git',
+                  ['worktree', 'prune'],
+                  { cwd: wt.mainRepoPath, windowsHide: true },
+                  () => resolve(),
+                );
+              });
+            } catch (err) {
+              console.warn('[SessionManager] Failed to cleanup worktree:', err);
+            }
+          })();
+          this.pendingCleanups.add(cleanupPromise);
+          cleanupPromise.finally(() => this.pendingCleanups.delete(cleanupPromise));
+          await cleanupPromise;
         }
       }
     }
@@ -405,6 +497,26 @@ export class SessionManager {
     );
 
     return session.metadata;
+  }
+
+  /** Terminate the CLI process but KEEP the session in the rail (marked exited).
+   *  The worktree/branch are untouched. Use restartSession to spin it back up. */
+  async stopSession(sessionId: string): Promise<boolean> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    if (session.cliManager) {
+      session.cliManager.destroy();
+      session.cliManager = null;
+    }
+    // Clear the terminal display so a killed session reads as a clean black
+    // slate — matching freshly-restored idle sessions. ESC[2J (clear screen),
+    // ESC[3J (clear scrollback), ESC[H (cursor home).
+    this.emitter?.emit('onSessionOutput', { sessionId, data: '\x1b[2J\x1b[3J\x1b[H' });
+    this.notifyOutputSubscribers(sessionId, '\x1b[2J\x1b[3J\x1b[H');
+    session.metadata.status = 'exited';
+    this.persistState();
+    this.emitter?.emit('onSessionUpdated', session.metadata);
+    return true;
   }
 
   async restartSession(sessionId: string): Promise<boolean> {

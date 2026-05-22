@@ -383,6 +383,9 @@ export class CLIManager {
           console.warn('[CLIManager] launchMode=agents requested in no-provider fallback; falling back to default');
           command = 'claude';
           break;
+        case 'continue':
+          command = 'claude --continue';
+          break;
         default: {
           const exhaustive: never = launchMode;
           void exhaustive;

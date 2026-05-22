@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, shell } from 'electron';
 import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SubdirectoryEntry } from '../shared/ipc-types';
+import type { SubdirectoryEntry, GitRepoEntry } from '../shared/ipc-types';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
@@ -70,10 +70,10 @@ export function setupIPCHandlers(
     catch (err) { console.error('Failed to create session:', err); throw err; }
   });
 
-  registry.handle('closeSession', async (_e, sessionId) => {
+  registry.handle('closeSession', async (_e, sessionId, opts) => {
     // Clean up session-only commands before closing
     customCommandManager.cleanupSession(sessionId);
-    return sessionManager.closeSession(sessionId);
+    return sessionManager.closeSession(sessionId, opts);
   });
 
   registry.handle('switchSession', async (_e, sessionId) => {
@@ -94,6 +94,10 @@ export function setupIPCHandlers(
 
   registry.handle('restartSession', async (_e, sessionId) => {
     return sessionManager.restartSession(sessionId);
+  });
+
+  registry.handle('stopSession', async (_e, sessionId) => {
+    return sessionManager.stopSession(sessionId);
   });
 
   registry.handle('getActiveSession', async () => {
@@ -253,6 +257,58 @@ export function setupIPCHandlers(
     } catch (err) { console.error('Failed to list subdirectories:', err); return []; }
   });
 
+  registry.handle('listGitRepos', async (_e, parentPath): Promise<GitRepoEntry[]> => {
+    const resolved = path.resolve(parentPath);
+    if (!isPathAllowed(resolved)) {
+      console.warn('[listGitRepos] Blocked path outside home/workspaces:', resolved);
+      return [];
+    }
+    const repos: GitRepoEntry[] = [];
+    const readBranch = (gitPath: string): string | undefined => {
+      try {
+        // .git can be a directory (regular repo) or a file (worktree pointing at the parent .git).
+        const stat = fs.statSync(gitPath);
+        const headFile = stat.isDirectory()
+          ? path.join(gitPath, 'HEAD')
+          : (() => {
+              const ptr = fs.readFileSync(gitPath, 'utf8').trim();
+              const m = ptr.match(/^gitdir:\s*(.+)$/);
+              if (!m) return null;
+              const dir = path.isAbsolute(m[1]) ? m[1] : path.resolve(path.dirname(gitPath), m[1]);
+              return path.join(dir, 'HEAD');
+            })();
+        if (!headFile || !fs.existsSync(headFile)) return undefined;
+        const head = fs.readFileSync(headFile, 'utf8').trim();
+        const m = head.match(/^ref:\s*refs\/heads\/(.+)$/);
+        return m ? m[1] : head.slice(0, 7); // detached HEAD: short SHA
+      } catch {
+        return undefined;
+      }
+    };
+    const considerEntry = (name: string, fullPath: string) => {
+      const gitPath = path.join(fullPath, '.git');
+      if (!fs.existsSync(gitPath)) return;
+      repos.push({ name, path: fullPath, workspacePath: resolved, branch: readBranch(gitPath) });
+    };
+    try {
+      // First, is the workspace path ITSELF a git repo?
+      if (fs.existsSync(path.join(resolved, '.git'))) {
+        considerEntry(path.basename(resolved), resolved);
+      }
+      // Then enumerate top-level subdirs as candidate repos.
+      const entries = fs.readdirSync(resolved, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        considerEntry(entry.name, path.join(resolved, entry.name));
+      }
+      repos.sort((a, b) => a.name.localeCompare(b.name));
+      return repos;
+    } catch (err) {
+      console.error('Failed to list git repos:', err);
+      return repos;
+    }
+  });
+
   registry.handle('createDirectory', async (_e, dirPath) => {
     const resolved = path.resolve(dirPath);
     if (!isPathAllowed(resolved)) {
@@ -268,6 +324,7 @@ export function setupIPCHandlers(
   // ── Settings & Workspaces ──
 
   registry.handle('getSettings', async () => settingsManager.getSettings());
+  registry.handle('setSettings', async (_e, partial) => settingsManager.mergeSettings(partial as Record<string, unknown>));
   registry.handle('listWorkspaces', async () => settingsManager.getWorkspaces());
 
   registry.handle('addWorkspace', async (_e, request) => {

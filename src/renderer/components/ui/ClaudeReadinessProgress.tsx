@@ -50,7 +50,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
     >
       <div className="readiness-content">
         <div className="readiness-brandmark">
-          <BrandMark size={48} color="var(--accent-primary)" />
+          <BrandMark size={48} color="var(--v2-accent)" />
         </div>
 
         <h2 className="readiness-title">{title}</h2>
@@ -61,7 +61,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
             max={100}
             height={4}
             label="Session initialization progress"
-            color="var(--accent-primary)"
+            color="var(--v2-accent)"
           />
         </div>
 
@@ -74,7 +74,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
         .session-readiness-overlay {
           position: absolute;
           inset: 0;
-          background: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
+          background: color-mix(in srgb, var(--v2-surface-overlay) 92%, transparent);
           backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
@@ -113,7 +113,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
         }
 
         @keyframes brandmark-pulse {
-          0%, 100% { filter: drop-shadow(0 0 8px var(--accent-primary-muted)); }
+          0%, 100% { filter: drop-shadow(0 0 8px rgba(0,201,167,0.14)); }
           50%       { filter: drop-shadow(0 0 20px #00C9A740); }
         }
 
@@ -121,7 +121,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-lg, 16px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
           margin: 0;
           letter-spacing: var(--tracking-tight, -0.01em);
           text-align: center;
@@ -131,7 +131,7 @@ export function ClaudeReadinessProgress({ isVisible, providerName }: ClaudeReadi
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           margin: 0;
           min-height: 18px;
           animation: status-fade-in var(--duration-fast, 150ms) var(--ease-out, ease) both;

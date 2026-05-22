@@ -70,7 +70,7 @@ const burnRateLabels: Record<string, { text: string; color: string }> = {
   'on-track': { text: 'On Track', color: 'var(--semantic-success)' },
   'elevated': { text: 'Elevated', color: 'var(--semantic-warning)' },
   'critical': { text: 'Critical', color: 'var(--semantic-error)' },
-  'unknown': { text: 'Unknown', color: 'var(--text-tertiary)' },
+  'unknown': { text: 'Unknown', color: 'var(--v2-text-tertiary)' },
 };
 
 export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipProps) {
@@ -195,14 +195,14 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
           position: absolute;
           z-index: 10000;
           width: 280px;
-          background: var(--surface-overlay);
-          border: 1px solid var(--border-default);
+          background: var(--v2-surface-overlay);
+          border: 1px solid var(--v2-border-default);
           border-radius: var(--radius-md, 6px);
           padding: var(--space-3, 12px);
           box-shadow: var(--shadow-xl, 0 24px 64px #000000A0);
           font-family: var(--font-mono-ui, 'JetBrains Mono', monospace);
           font-size: var(--text-xs, 11px);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           pointer-events: none;
           animation: fadeIn 150ms ease-out;
         }
@@ -222,13 +222,13 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         .fuel-tooltip-title {
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-bold, 700);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
           margin-bottom: var(--space-1, 4px);
         }
 
         .fuel-tooltip-divider {
           height: 1px;
-          background: var(--border-subtle);
+          background: var(--v2-border-subtle);
           margin: var(--space-2, 8px) 0;
         }
 
@@ -245,11 +245,11 @@ export function FuelTooltip({ quotaData, burnRateData, anchorRef }: FuelTooltipP
         }
 
         .fuel-tooltip-label {
-          color: var(--text-tertiary);
+          color: var(--v2-text-tertiary);
         }
 
         .fuel-tooltip-value {
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           font-weight: var(--weight-semibold, 600);
         }
 

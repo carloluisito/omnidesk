@@ -73,7 +73,7 @@ export function ControlRequestDialog({
       style={{
         position:        'fixed',
         inset:           0,
-        background:      'color-mix(in srgb, var(--surface-base) 72%, transparent)',
+        background:      'color-mix(in srgb, var(--v2-surface-base) 72%, transparent)',
         display:         'flex',
         alignItems:      'center',
         justifyContent:  'center',
@@ -91,10 +91,10 @@ export function ControlRequestDialog({
         style={{
           width:           '360px',
           maxWidth:        'calc(100vw - 48px)',
-          background:      'var(--surface-overlay)',
-          border:          '1px solid var(--border-default)',
+          background:      'var(--v2-surface-overlay)',
+          border:          '1px solid var(--v2-border-default)',
           borderRadius:    'var(--radius-lg)',
-          boxShadow:       '0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent), var(--shadow-xl)',
+          boxShadow:       '0 0 0 1px color-mix(in srgb, var(--v2-accent) 12%, transparent), var(--shadow-xl)',
           overflow:        'hidden',
           animation:       'dialog-enter var(--duration-fast) var(--ease-out)',
         }}
@@ -103,7 +103,7 @@ export function ControlRequestDialog({
         <div
           style={{
             height:          '2px',
-            background:      'var(--border-subtle)',
+            background:      'var(--v2-border-subtle)',
             position:        'relative',
             overflow:        'hidden',
           }}
@@ -112,7 +112,7 @@ export function ControlRequestDialog({
             style={{
               position:        'absolute',
               inset:           0,
-              background:      'var(--accent-primary)',
+              background:      'var(--v2-accent)',
               width:           `${progressPct}%`,
               transition:      'width 1s linear',
               transformOrigin: 'left',
@@ -129,7 +129,7 @@ export function ControlRequestDialog({
                 width:           32,
                 height:          32,
                 borderRadius:    'var(--radius-md)',
-                background:      'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
+                background:      'color-mix(in srgb, var(--v2-accent) 12%, transparent)',
                 display:         'flex',
                 alignItems:      'center',
                 justifyContent:  'center',
@@ -138,11 +138,11 @@ export function ControlRequestDialog({
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 {/* Keyboard/control icon */}
-                <rect x="1" y="4" width="14" height="9" rx="1.5" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
-                <rect x="3.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
-                <rect x="7" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
-                <rect x="10.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--accent-primary)" />
-                <rect x="5" y="9.5" width="6" height="1.5" rx="0.75" fill="var(--accent-primary)" />
+                <rect x="1" y="4" width="14" height="9" rx="1.5" stroke="var(--v2-accent)" strokeWidth="1.5" fill="none" />
+                <rect x="3.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--v2-accent)" />
+                <rect x="7" y="6.5" width="2" height="2" rx="0.5" fill="var(--v2-accent)" />
+                <rect x="10.5" y="6.5" width="2" height="2" rx="0.5" fill="var(--v2-accent)" />
+                <rect x="5" y="9.5" width="6" height="1.5" rx="0.75" fill="var(--v2-accent)" />
               </svg>
             </div>
 
@@ -152,7 +152,7 @@ export function ControlRequestDialog({
                 margin:      0,
                 fontSize:    'var(--text-md)',
                 fontWeight:  'var(--weight-semibold)' as any,
-                color:       'var(--text-primary)',
+                color:       'var(--v2-text-primary)',
                 fontFamily:  'var(--font-ui)',
               }}
             >
@@ -165,14 +165,14 @@ export function ControlRequestDialog({
             style={{
               margin:      '0 0 var(--space-1) 0',
               fontSize:    'var(--text-sm)',
-              color:       'var(--text-secondary)',
+              color:       'var(--v2-text-secondary)',
               lineHeight:  'var(--leading-relaxed)',
               fontFamily:  'var(--font-ui)',
             }}
           >
             <span
               style={{
-                color:      'var(--text-accent)',
+                color:      'var(--v2-accent)',
                 fontFamily: '"JetBrains Mono", monospace',
                 fontWeight: 600,
               }}
@@ -186,7 +186,7 @@ export function ControlRequestDialog({
             style={{
               margin:      '0 0 var(--space-5) 0',
               fontSize:    'var(--text-xs)',
-              color:       'var(--text-tertiary)',
+              color:       'var(--v2-text-tertiary)',
               fontFamily:  'var(--font-ui)',
             }}
           >
@@ -202,8 +202,8 @@ export function ControlRequestDialog({
             justifyContent:  'flex-end',
             gap:             'var(--space-2)',
             padding:         'var(--space-3) var(--space-5)',
-            borderTop:       '1px solid var(--border-subtle)',
-            background:      'var(--surface-raised)',
+            borderTop:       '1px solid var(--v2-border-subtle)',
+            background:      'var(--v2-surface-mid)',
           }}
         >
           <button
@@ -211,9 +211,9 @@ export function ControlRequestDialog({
             style={{
               padding:      '7px var(--space-4)',
               background:   'none',
-              border:       '1px solid var(--border-default)',
+              border:       '1px solid var(--v2-border-default)',
               borderRadius: 'var(--radius-md)',
-              color:        'var(--text-secondary)',
+              color:        'var(--v2-text-secondary)',
               fontSize:     'var(--text-sm)',
               fontFamily:   'var(--font-ui)',
               cursor:       'pointer',
@@ -221,11 +221,11 @@ export function ControlRequestDialog({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--state-hover)';
-              e.currentTarget.style.borderColor = 'var(--border-strong)';
+              e.currentTarget.style.borderColor = 'var(--v2-border-strong)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'none';
-              e.currentTarget.style.borderColor = 'var(--border-default)';
+              e.currentTarget.style.borderColor = 'var(--v2-border-default)';
             }}
           >
             Deny
@@ -236,10 +236,10 @@ export function ControlRequestDialog({
             onClick={onGrant}
             style={{
               padding:      '7px var(--space-4)',
-              background:   'var(--accent-primary)',
+              background:   'var(--v2-accent)',
               border:       'none',
               borderRadius: 'var(--radius-md)',
-              color:        'var(--text-inverse)',
+              color:        '#0A0B11',
               fontSize:     'var(--text-sm)',
               fontWeight:   'var(--weight-semibold)' as any,
               fontFamily:   'var(--font-ui)',
