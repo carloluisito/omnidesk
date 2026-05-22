@@ -1,6 +1,6 @@
 # OmniDesk
 
-Multi-provider Electron desktop application for AI coding CLIs, with multi-session terminals, split views, and agent team visualization. Supports Claude Code, Codex CLI, and future providers via a pluggable provider abstraction layer.
+Multi-provider Electron desktop application for AI coding CLIs. Organizes work around a flat repo→session model: an activity bar for switching repositories, a session rail for navigating sessions within a repo, and a terminal host that fills the main view. Supports Claude Code, Codex CLI, and future providers via a pluggable provider abstraction layer.
 
 ## Workflow Rule
 
@@ -8,29 +8,29 @@ Multi-provider Electron desktop application for AI coding CLIs, with multi-sessi
 
 ## Tech Stack
 
-Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | reactflow
+Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
 │  Main Process (Node.js)                     │
-│  15 managers + IPC handlers + session pool  │
+│  ~8 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (~191 methods)
+                   │ IPC (103 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────┴──────────────────────────┐
 │  Renderer (React 18)                        │
-│  Hooks → Components → UI                   │
+│  Hooks → Shell components → Terminal        │
 └─────────────────────────────────────────────┘
 ```
 
 **3-layer pattern per domain:** Manager (main) → Hook (renderer) → Components (renderer)
 
-**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — ~191 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 103 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
 
 **Provider abstraction**: `IProvider` interface (`src/main/providers/`) decouples CLI specifics from session management. `CLIManager` delegates to the active provider for command building, environment variables, and model detection. Default provider is Claude.
 
@@ -40,27 +40,18 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS | react
 
 | Domain | Main (manager) | Renderer (hook + UI) | Shared types | IPC prefix |
 |--------|---------------|---------------------|-------------|------------|
-| Sessions | session-manager, cli-manager, session-pool, session-persistence | useSessionManager, Terminal | ipc-types.ts | `session:*` |
-| Split View | settings-persistence | useSplitView, SplitLayout, PaneHeader, PaneSessionPicker | ipc-types.ts | `settings:*` |
-| Agent Teams | agent-team-manager | useAgentTeams, useAutoTeamLayout, useMessageStream, TeamPanel, TaskBoard, MessageStream, AgentGraph | ipc-types.ts, message-parser.ts | `teams:*` |
-| Templates | prompt-templates-manager, built-in-actions | useCommandPalette, CommandPalette, TemplateEditor | types/prompt-templates.ts | `template:*` |
-| Custom Commands | custom-command-manager | useCustomCommands, CustomCommandDialog, CustomCommandPanel, CustomCommandParameterDialog | types/custom-command-types.ts | `customCommands:*` |
-| History | history-manager | useHistory, HistoryPanel | types/history-types.ts | `history:*` |
-| Checkpoints | checkpoint-manager, checkpoint-persistence | useCheckpoints, CheckpointPanel, CheckpointDialog | types/checkpoint-types.ts | `checkpoint:*` |
-| Quota | quota-service | useQuota, BudgetPanel, BudgetSettings | ipc-types.ts | `quota:*`, `burnRate:*` |
-| Drag-Drop | file-dragdrop-handler, file-utils | useDragDrop, DragDropOverlay, DragDropContextMenu, DragDropSettings | ipc-types.ts | `dragdrop:*` |
-| Workspaces | settings-persistence | SettingsDialog | ipc-types.ts | `workspace:*` |
-| Tasks | task-manager | useTasks, TaskPanel, TaskQuickCapture | types/task-types.ts, task-parser.ts | `task:*` |
-| Atlas | atlas-manager | useAtlas, AtlasPanel | types/atlas-types.ts | `atlas:*` |
-| Git | git-manager | useGit, useDiffViewer, GitPanel, DiffViewer, DiffFileNav, DiffViewerHeader, DiffContentArea, CommitDialog, WorktreePanel, diff-parser | types/git-types.ts | `git:*` |
-| Focus Mode | — | FocusMode (Context + Provider), useFocusMode | ipc-types.ts (`AppSettings.focusMode`) | `settings:*` |
-| Drag-Reorder | — | useDrag (pointer-events hook) | — | — |
-| Playbooks | playbook-manager, playbook-executor, built-in-playbooks | usePlaybooks, PlaybookPicker, PlaybookParameterDialog, PlaybookProgressPanel, PlaybookPanel, PlaybookEditor | types/playbook-types.ts | `playbook:*` |
-| Tunnels | tunnel-manager | useTunnel, TunnelPanel, TunnelCreateDialog, TunnelRequestLogs | types/tunnel-types.ts | `tunnel:*` |
+| Shell | — | `components/shell/` (RepoActivityBar, SessionRail, MainView, RightInspector, TerminalHost, Palette, RepoSwitcher, AddRepoSheet, NewSessionSheet, StatusBar, TitleBar, ContextMenu, PromptDialog, CloseSessionDialog, P4Icon, SessionPane, SessionTile, shell-utils) | — | — |
+| Sessions | session-manager, cli-manager, session-pool, session-persistence | useSessionManager, useSessionPreviews, Terminal | ipc-types.ts | `session:*` |
+| Repos / Workspaces | settings-persistence | useRepos | ipc-types.ts | `workspace:*`, `fs:listGitRepos` |
+| Git (worktree ops) | git-manager | — (backend only; useRepos calls git IPC) | types/git-types.ts | `git:*` |
+| History | history-manager | — (backend/persistence only; no UI panel) | types/history-types.ts | `history:*` |
+| Checkpoints | checkpoint-manager, checkpoint-persistence | — (backend/persistence only; no UI panel) | types/checkpoint-types.ts | `checkpoint:*` |
+| Quota / Burn Rate | quota-service | useQuota | ipc-types.ts | `quota:*`, `burnRate:*` |
+| Drag-Drop | file-dragdrop-handler, file-utils | — | ipc-types.ts | `dragdrop:*` |
+| Settings | settings-persistence | — | ipc-types.ts | `settings:*` |
 | Providers | provider-registry, claude-provider, codex-provider | useProvider | types/provider-types.ts | `provider:*` |
 | Agent View | agent-view/availability, agent-view/availability-cache, agent-view/probe-version | useAgentViewAvailability | types/agent-view-types.ts | `agentView:availability`, `agentView:availabilityChanged` |
-| Session Sharing | sharing-manager | useSessionSharing, ShareSessionDialog, JoinSessionDialog, ObserverToolbar, ObserverMetadataSidebar, ShareManagementPanel, ShareIndicator, ControlRequestDialog | types/sharing-types.ts | `sharing:*` |
-| Window | index.ts | ConfirmDialog, SettingsDialog, AboutDialog, TitleBarBranding | ipc-types.ts | `window:*`, `dialog:*` |
+| Window | index.ts | ConfirmDialog, ToastContainer | ipc-types.ts | `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*` |
 
 ## Adding a New IPC Method
 
@@ -89,17 +80,12 @@ Example: The **Providers** domain uses `src/main/providers/` with `IProvider` in
 - **Newline insertion**: Ctrl+Enter, Shift+Enter, Alt+Enter, and Cmd+Enter insert a literal `\n` into the terminal via `attachCustomKeyEventHandler` in `Terminal.tsx`. Works in both host and read-only modes (suppressed in read-only).
 - **Session pool**: Pre-warmed shells in `session-pool.ts` for faster session creation. Delayed init (2.5s after app start).
 - **IPC contract**: One entry in `IPCContractMap` = auto-derived channel, kind, preload bridge method, and TypeScript type. No manual wiring needed.
-- **Split view**: `useSplitView` manages a tree of leaf/branch nodes. Max 4 panes. State persisted in settings.
-- **Agent team detection**: `AgentTeamManager` watches `~/.claude/teams/` and `~/.claude/tasks/` via `fs.watch()`. Auto-links sessions within 30s of team creation.
-- **Git integration**: `GitManager` uses `child_process.execFile` (not `exec` — prevents shell injection). Per-directory mutex serializes operations. `.git` directory watching with 500ms debounce for real-time status. Heuristic-based AI commit message generation (conventional commits format).
-- **Playbook execution**: `PlaybookExecutor` writes prompts to PTY and uses silence-based detection (3s no output = step done) for step completion. Never sends Ctrl+C on cancel (just stops sending further steps). One execution per session, confirmation gates pause between steps.
+- **Git integration**: `GitManager` uses `child_process.execFile` (not `exec` — prevents shell injection). Per-directory mutex serializes operations. `.git` directory watching with 500ms debounce for real-time status. Heuristic-based AI commit message generation (conventional commits format). Used by `useRepos` for repo/worktree discovery and session creation — there is no Git panel UI in the current shell.
+- **History and Checkpoints (backend-only)**: `HistoryManager` and `CheckpointManager` are kept because they are load-bearing dependencies (`SessionManager` requires `historyManager`; `GitManager` requires `checkpointManager`). They have IPC handlers and full persistence, but the current shell has no UI panel for either domain.
 - **Provider abstraction**: `IProvider` interface decouples CLI specifics. `CLIManager` delegates to provider for command building, env vars, and model detection. Default provider is Claude. `ProviderRegistry` auto-registers Claude and Codex providers on construction.
-- **Launch mode picker**: `NewSessionDialog` shows a "Launch mode" dropdown when the Claude provider is selected, with three options driven by `LaunchMode = 'default' | 'bypass-permissions' | 'agents'` (`src/shared/ipc-types.ts`). Selection rides on the optional `SessionCreateRequest.launchMode`; `ClaudeProvider.buildCommand` switches on it. The default selection comes from the workspace's `defaultPermissionMode` (`'skip-permissions'` → seeds `'bypass-permissions'`). Codex sessions ignore the field. Defense-in-depth: `ClaudeProvider` reads the live availability cache and downgrades `'agents'` → `'default'` with a warning if availability is `'unavailable'`.
-- **Agent View availability**: `claude agents` mode is gated by a one-shot main-process probe of `claude --version` plus `~/.claude/settings.json.disableAgentView` and `CLAUDE_CODE_DISABLE_AGENT_VIEW` kill switches (`src/main/agent-view/`). The probe runs in a `setTimeout(..., 2000)` block off the synchronous `createWindow` critical path (lesson from a prior aborted feature). Result is held in a module-level cache (`availability-cache.ts`), exposed via `agentView:availability` IPC (one-shot fetch on dialog open), and pushed to the renderer via `agentView:availabilityChanged` event once the probe completes. The `useAgentViewAvailability` hook does a **one-shot fetch on mount** then **subscribes to `onAgentViewAvailabilityChanged`**; if the initial fetch returns `reason: 'probing'` the hook stays `loading: true` until the push event delivers the final state. This is the same pattern used by `gitManager.setMainWindow` and `taskManager.setMainWindow`. Reason variants: `'cli-not-found'`, `'cli-too-old'`, `'version-unparseable'`, `'disabled-by-setting'`, `'disabled-by-env'`, `'probing'` (transient initial cache state — internal sentinel, never exposed to picker consumers), `'detection-failed'` (renderer-side IPC catch + the no-args ClaudeProvider fallback getter).
-- **Tasks**: Per-repo todo list backed by `.omnidesk/tasks.md`. `TaskManager` uses `fs.watch` (200ms debounce) so external edits — including those by the active AI session — propagate to the UI. Mutations serialized via per-repo mutex. `Task.id` is a stable UUID stored in `.omnidesk/tasks.meta.json` (sidecar) so ids survive title edits; the markdown file stays clean of metadata noise.
-- **Focus mode**: `FocusMode.tsx` exports `FocusModeProvider` (wraps `App.tsx`) and `useFocusMode()`. ⌘./Ctrl+. toggles the `focus-mode` class on `document.documentElement`. CSS transitions hide `[data-focus-hide="activity-bar"]` (slide left) and `[data-focus-hide="right-panel"]` (slide right) in ≤160ms using `var(--v2-duration-160)`. State persists to `AppSettings.focusMode` via `setSettings`. Restored on mount via `getSettings()`.
-- **Drag-reorder**: `useDrag<T>({ items, onReorder, threshold? })` in `src/renderer/hooks/useDrag.ts` — hand-rolled pointer-capture drag. Uses `setPointerCapture` so move/up events follow the pointer off the element. Drag starts only after moving past threshold (default 4px). Drop target computed from sibling midpoints. Fires `onReorder(from, to)` on pointer up. Wired to TabBar v2 (persists `tabs.order` to settings) and TaskPanel v2 (persists `tasks.order` to settings). No external DnD library.
-- **Session sharing** *(currently disabled — LaunchTunnel integration being fixed)*: WebSocket relay via LaunchTunnel (`wss://relay.launchtunnel.dev/share/<id>`). Binary frame protocol — 12 frame types (`0x10`–`0x1B`): TerminalData, TerminalInput, Metadata, ScrollbackBuffer, ControlRequest/Grant/Revoke, ObserverAnnounce/List, ShareClose, Ping/Pong. Scrollback buffer on observer join: 5000 lines, gzip-compressed. Observer Ctrl+C (`\x03`) is stripped from TerminalInput frames — same safety rule as local sessions. Metadata broadcast interval: 2s. Sharing gated behind LaunchTunnel Pro subscription (checked via `TunnelManager.getAccount()`). `omnidesk://join/<code>` deep links handled in `app.on('second-instance')` (Windows) and `app.on('open-url')` (macOS), pre-filling `JoinSessionDialog` via `sharing:deepLinkJoin` IPC event.
+- **Launch mode picker**: `NewSessionSheet` (in `src/renderer/components/shell/NewSessionSheet.tsx`) shows a launch mode control when the Claude provider is selected, with three options driven by `LaunchMode = 'default' | 'bypass-permissions' | 'agents'` (`src/shared/ipc-types.ts`). Selection rides on the optional `SessionCreateRequest.launchMode`; `ClaudeProvider.buildCommand` switches on it. The default selection comes from the workspace's `defaultPermissionMode` (`'skip-permissions'` → seeds `'bypass-permissions'`). Codex sessions ignore the field. Defense-in-depth: `ClaudeProvider` reads the live availability cache and downgrades `'agents'` → `'default'` with a warning if availability is `'unavailable'`.
+- **Agent View availability**: `claude agents` mode is gated by a one-shot main-process probe of `claude --version` plus `~/.claude/settings.json.disableAgentView` and `CLAUDE_CODE_DISABLE_AGENT_VIEW` kill switches (`src/main/agent-view/`). The probe runs in a `setTimeout(..., 2000)` block off the synchronous `createWindow` critical path (lesson from a prior aborted feature). Result is held in a module-level cache (`availability-cache.ts`), exposed via `agentView:availability` IPC (one-shot fetch on sheet open), and pushed to the renderer via `agentView:availabilityChanged` event once the probe completes. The `useAgentViewAvailability` hook does a **one-shot fetch on mount** then **subscribes to `onAgentViewAvailabilityChanged`**; if the initial fetch returns `reason: 'probing'` the hook stays `loading: true` until the push event delivers the final state. Reason variants: `'cli-not-found'`, `'cli-too-old'`, `'version-unparseable'`, `'disabled-by-setting'`, `'disabled-by-env'`, `'probing'` (transient initial cache state — internal sentinel, never exposed to picker consumers), `'detection-failed'` (renderer-side IPC catch + the no-args ClaudeProvider fallback getter).
+- **Agent teams CLI capability**: The `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` environment variable is injected by `ClaudeProvider` when the setting is enabled. This is independent of any team-visualization UI (which was removed). The provider env-var injection is the only surviving part of the agent-teams feature.
 
 ## Testing
 
@@ -128,8 +114,6 @@ npm run test:ci             # CI mode (coverage + JUnit XML)
 - `test/setup-renderer.ts` — Imports `@testing-library/jest-dom`, resets `window.electronAPI` before each test
 - `test/helpers/electron-api-mock.ts` — Auto-derives comprehensive `window.electronAPI` mock from IPC contract. Use `getElectronAPI()` for per-test customization.
 
-**Extracted utility:** `src/renderer/utils/layout-tree.ts` — 7 pure tree functions extracted from `useSplitView.ts` for testability: `countPanes`, `traverseTree`, `transformTree`, `pruneTree`, `updateRatioAtPath`, `getAllPaneIds`, `getFirstPaneId`.
-
 **Important:** The existing `vite.config.ts` has `root: 'src/renderer'` which conflicts with vitest auto-discovery. All test scripts use `--config vitest.workspace.ts` explicitly.
 
 **E2E build requirement:** `npm run build` is `tsc && vite build` — it only rebuilds the **renderer** (the `tsc` step uses the default `tsconfig.json` with `noEmit: true`; vite outputs to `dist/renderer/`). The main process is built separately by `npm run build:electron` (`tsc -p tsconfig.main.json` → `dist/main/`). Playwright e2e tests load from `dist/main/index.js`, so before running them you must run **both** (or `npm run start` which chains them). Stale `dist/main` silently means source edits to managers/IPC handlers/providers don't apply, and the failure mode looks like old behavior persisting after a "successful" build.
@@ -138,9 +122,7 @@ npm run test:ci             # CI mode (coverage + JUnit XML)
 
 - Windows paths need `.replace(/\\/g, '\\\\')`
 - Never send Ctrl+C (`\x03`) to Claude — it exits immediately
-- Never use React hooks inside callbacks (caused SplitLayout crash — see `useSplitView.ts`)
 - Always batch PTY output (16ms `FLUSH_INTERVAL` in CLIManager)
-- `transformTree` in `useSplitView.ts` must recurse children BEFORE applying transformation (infinite recursion otherwise)
 - Reuse existing UI components from `components/ui/` for consistency
 - No global state library — React hooks only
 
@@ -149,6 +131,7 @@ npm run test:ci             # CI mode (coverage + JUnit XML)
 Dark theme (Obsidian): bg `#0D0E14`, accent `#00C9A7`, danger `#F7678E`, border `#292E44`
 Font: JetBrains Mono. Monospace everywhere.
 Design tokens defined in `src/renderer/styles/tokens.css`.
+`globals.css` imports `tokens.css`, `animations.css`, `motion.css`, and `prototype-shell.css` (the Phase 4 shell's own CSS). `App.tsx` imports `tokens.css` and `animations.css` directly before mounting.
 
 ## Docs
 
