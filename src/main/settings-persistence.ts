@@ -13,7 +13,6 @@ import {
   SessionPoolSettings,
   LayoutNode,
 } from '../shared/ipc-types';
-import type { AtlasSettings } from '../shared/types/atlas-types';
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
 import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
@@ -400,21 +399,6 @@ export class SettingsManager {
   getSessionPoolSettings(): SessionPoolSettings {
     const defaults = getDefaultSettings();
     return this.settings.sessionPoolSettings || defaults.sessionPoolSettings!;
-  }
-
-  getAtlasSettings(): AtlasSettings {
-    const defaults = getDefaultSettings();
-    return this.settings.atlasSettings || defaults.atlasSettings!;
-  }
-
-  updateAtlasSettings(settings: Partial<AtlasSettings>): AtlasSettings {
-    const defaults = getDefaultSettings();
-    this.settings.atlasSettings = {
-      ...(this.settings.atlasSettings || defaults.atlasSettings!),
-      ...settings,
-    };
-    saveSettings(this.settings);
-    return this.settings.atlasSettings;
   }
 
   getEnableAgentTeams(): boolean {

@@ -5,7 +5,6 @@ import { CLIManager } from './cli-manager';
 import { HistoryManager } from './history-manager';
 import { SessionPool } from './session-pool';
 import { IPCEmitter } from './ipc-emitter';
-import { ModelHistoryManager } from './model-history-manager';
 import {
   SessionMetadata,
   SessionCreateRequest,
@@ -43,7 +42,6 @@ export class SessionManager {
   private historyManager: HistoryManager;
   private sessionPool: SessionPool;
   private sessionEndCallbacks: Array<(sessionId: string) => void> = [];
-  private modelHistoryManager: ModelHistoryManager | null = null;
   private gitManager: GitManager | null = null;
   private agentTeamsGetter: (() => boolean) | null = null;
   private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
@@ -97,10 +95,6 @@ export class SessionManager {
 
   setMainWindow(window: BrowserWindow): void {
     this.emitter = new IPCEmitter(window);
-  }
-
-  setModelHistoryManager(manager: ModelHistoryManager): void {
-    this.modelHistoryManager = manager;
   }
 
   initialize(): void {
@@ -254,11 +248,6 @@ export class SessionManager {
 
           // Emit model change event
           this.emitter?.emit('onModelChanged', event);
-
-          // Log to model history
-          if (this.modelHistoryManager) {
-            this.modelHistoryManager.logSwitch(event);
-          }
 
           // Also emit general session updated
           this.emitter?.emit('onSessionUpdated', session.metadata);
@@ -576,11 +565,6 @@ export class SessionManager {
 
         // Emit model change event
         this.emitter?.emit('onModelChanged', event);
-
-        // Log to model history
-        if (this.modelHistoryManager) {
-          this.modelHistoryManager.logSwitch(event);
-        }
 
         // Also emit general session updated
         this.emitter?.emit('onSessionUpdated', session.metadata);

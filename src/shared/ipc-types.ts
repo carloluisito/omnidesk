@@ -193,7 +193,7 @@ export interface AppSettings {
   sessionPoolSettings?: SessionPoolSettings;
   enableAgentTeams?: boolean;
   autoLayoutTeams?: boolean;
-  atlasSettings?: import('./types/atlas-types').AtlasSettings;
+  atlasSettings?: Record<string, unknown>;
   hasLaunchedBefore?: boolean; // Track first launch for Layout Picker
   lastUsedLayoutPresetId?: string; // Track which preset was last applied
   wizardCompleted?: boolean; // Track if welcome wizard has been completed
@@ -361,12 +361,6 @@ export interface TeamRemovedEvent {
 
 // Re-export types from sub-modules for convenience
 export type {
-  PromptTemplate,
-  TemplateCreateRequest,
-  TemplateUpdateRequest,
-} from './types/prompt-templates';
-
-export type {
   HistorySessionEntry,
   HistorySearchResult,
   HistorySettings,
@@ -378,25 +372,6 @@ export type {
   CheckpointCreateRequest,
   CheckpointExportFormat,
 } from './types/checkpoint-types';
-
-export type {
-  AtlasSettings,
-  AtlasGenerateRequest,
-  AtlasGenerateResult,
-  AtlasWriteRequest,
-  AtlasWriteResult,
-  AtlasStatus,
-  AtlasScanProgress,
-  AtlasScanResult,
-  AtlasGeneratedContent,
-  InlineTag,
-  SourceFileInfo,
-  InferredDomain,
-  CrossDependency,
-  SupportedLanguage,
-  DomainSensitivity,
-  AtlasOutputLocation,
-} from './types/atlas-types';
 
 export type {
   GitFileStatus,
@@ -421,21 +396,4 @@ export type {
   WorktreeSettings,
   WorktreeErrorCode,
 } from './types/git-types';
-
-export type {
-  TunnelStatus,
-  TunnelProtocol,
-  TunnelInfo,
-  TunnelCreateRequest,
-  TunnelSettings,
-  TunnelAccountInfo,
-  TunnelUsageStats,
-  TunnelRequestLog,
-  TunnelOperationResult,
-  TunnelErrorCode,
-  TunnelCreatedEvent,
-  TunnelStoppedEvent,
-  TunnelErrorEvent,
-  TunnelOutputEvent,
-} from './types/tunnel-types';
 

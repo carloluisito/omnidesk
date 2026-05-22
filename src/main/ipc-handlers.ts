@@ -6,26 +6,12 @@ import type { SubdirectoryEntry, GitRepoEntry } from '../shared/ipc-types';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
-import { PromptTemplatesManager } from './prompt-templates-manager';
 import { HistoryManager } from './history-manager';
 import { CheckpointManager } from './checkpoint-manager';
-import { AgentTeamManager } from './agent-team-manager';
-import { AtlasManager } from './atlas-manager';
-import { LayoutPresetsManager } from './layout-presets-manager';
-import { CommandRegistry } from './command-registry';
-import { ModelHistoryManager } from './model-history-manager';
 import { GitManager } from './git-manager';
-import { PlaybookManager } from './playbook-manager';
-import { PlaybookExecutor } from './playbook-executor';
-import { CustomCommandManager } from './custom-command-manager';
-import { TaskManager } from './task-manager';
-// NOTE: LaunchTunnel/sharing disabled — uncomment when integration is fixed
-// import { TunnelManager } from './tunnel-manager';
 import { ProviderRegistry } from './providers/provider-registry';
-// import { SharingManager } from './sharing-manager';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
-import { IPCEmitter } from './ipc-emitter';
 import { IPCRegistry } from './ipc-registry';
 
 let registry: IPCRegistry | null = null;
@@ -34,29 +20,15 @@ export function setupIPCHandlers(
   mainWindow: BrowserWindow,
   sessionManager: SessionManager,
   settingsManager: SettingsManager,
-  templatesManager: PromptTemplatesManager,
   historyManager: HistoryManager,
   checkpointManager: CheckpointManager,
   sessionPool: SessionPool,
-  agentTeamManager: AgentTeamManager,
-  atlasManager: AtlasManager,
-  layoutPresetsManager: LayoutPresetsManager,
-  commandRegistry: CommandRegistry,
-  modelHistoryManager: ModelHistoryManager,
   gitManager: GitManager,
-  playbookManager: PlaybookManager,
-  playbookExecutor: PlaybookExecutor,
-  // tunnelManager: TunnelManager, // LaunchTunnel disabled
   providerRegistry: ProviderRegistry,
-  // sharingManager: SharingManager // LaunchTunnel disabled
-  customCommandManager: CustomCommandManager,
-  taskManager: TaskManager,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
   checkpointManager.setMainWindow(mainWindow);
-  playbookExecutor.setEmitter(new IPCEmitter(mainWindow));
-  customCommandManager.setEmitter(new IPCEmitter(mainWindow));
 
   registry = new IPCRegistry();
 
@@ -71,8 +43,6 @@ export function setupIPCHandlers(
   });
 
   registry.handle('closeSession', async (_e, sessionId, opts) => {
-    // Clean up session-only commands before closing
-    customCommandManager.cleanupSession(sessionId);
     return sessionManager.closeSession(sessionId, opts);
   });
 
@@ -168,17 +138,6 @@ export function setupIPCHandlers(
     sessionManager.sendInput(sessionId, '\r');
     console.log('[switchModel] Command sent');
 
-    return true;
-  });
-
-  // ── Model History ──
-
-  registry.handle('getModelHistory', async (_e, sessionId) => {
-    return modelHistoryManager.getHistory(sessionId);
-  });
-
-  registry.handle('clearModelHistory', async (_e, sessionId) => {
-    modelHistoryManager.clearHistory(sessionId);
     return true;
   });
 
@@ -398,56 +357,6 @@ export function setupIPCHandlers(
     return getBurnRate(configDir);
   });
 
-  // ── Templates ──
-
-  registry.handle('listAllTemplates', async () => templatesManager.getAllTemplates());
-  registry.handle('listUserTemplates', async () => templatesManager.getUserTemplates());
-  registry.handle('getTemplate', async (_e, id) => templatesManager.getTemplateById(id));
-
-  registry.handle('addTemplate', async (_e, request) => {
-    try { return templatesManager.addTemplate(request); }
-    catch (err) { console.error('Failed to add template:', err); throw err; }
-  });
-
-  registry.handle('updateTemplate', async (_e, request) => {
-    try { return templatesManager.updateTemplate(request); }
-    catch (err) { console.error('Failed to update template:', err); throw err; }
-  });
-
-  registry.handle('deleteTemplate', async (_e, id) => {
-    try { return templatesManager.deleteTemplate(id); }
-    catch (err) { console.error('Failed to delete template:', err); throw err; }
-  });
-
-  // ── Commands ──
-
-  registry.handle('searchCommands', async (_e, query, maxResults = 10) => {
-    try { return commandRegistry.search(query, maxResults); }
-    catch (err) { console.error('Failed to search commands:', err); throw err; }
-  });
-
-  registry.handle('getAllCommands', async () => {
-    try { return commandRegistry.getAllCommands(); }
-    catch (err) { console.error('Failed to get all commands:', err); throw err; }
-  });
-
-  registry.handle('executeCommand', async (_e, commandId, args) => {
-    try {
-      const command = commandRegistry.getCommand(commandId);
-      if (!command) {
-        console.error('Command not found:', commandId);
-        return false;
-      }
-
-      // Execute command action
-      // For now, commands with UI actions will be handled by the renderer
-      // This is a placeholder for future server-side command execution
-      console.log('Executing command:', commandId, args);
-      return true;
-    }
-    catch (err) { console.error('Failed to execute command:', err); return false; }
-  });
-
   // ── Drag-Drop ──
 
   registry.handle('getFileInfo', async (_e, filePaths) => {
@@ -544,175 +453,6 @@ export function setupIPCHandlers(
   registry.handle('getCheckpointCount', async (_e, sessionId) => {
     try { return checkpointManager.getCheckpointCount(sessionId); }
     catch (err) { console.error('Failed to get checkpoint count:', err); return 0; }
-  });
-
-  // ── Agent Teams ──
-
-  registry.handle('getTeams', async () => {
-    if (!settingsManager.getEnableAgentTeams()) return [];
-    return agentTeamManager.getTeams();
-  });
-
-  registry.handle('getTeamForSession', async (_e, sessionId) => {
-    if (!settingsManager.getEnableAgentTeams()) return null;
-    return agentTeamManager.getTeamForSession(sessionId);
-  });
-
-  registry.handle('getTeamSessions', async (_e, teamName) => {
-    if (!settingsManager.getEnableAgentTeams()) return [];
-    return agentTeamManager.getTeamSessions(teamName);
-  });
-
-  registry.handle('linkSessionToTeam', async (_e, sessionId, teamName, agentId) => {
-    if (!settingsManager.getEnableAgentTeams()) return false;
-    return agentTeamManager.linkSessionToTeam(sessionId, teamName, agentId);
-  });
-
-  registry.handle('unlinkSessionFromTeam', async (_e, sessionId) => {
-    if (!settingsManager.getEnableAgentTeams()) return false;
-    return agentTeamManager.unlinkSessionFromTeam(sessionId);
-  });
-
-  registry.handle('closeTeam', async (_e, teamName) => {
-    if (!settingsManager.getEnableAgentTeams()) return false;
-    try { return await agentTeamManager.closeTeam(teamName); }
-    catch (err) { console.error('Failed to close team:', err); return false; }
-  });
-
-  registry.handle('updateEnableAgentTeams', async (_e, enabled) => {
-    try {
-      settingsManager.updateEnableAgentTeams(enabled);
-      if (enabled) {
-        await agentTeamManager.initialize();
-      } else {
-        agentTeamManager.destroy();
-      }
-      // Drain and replenish pool so new sessions get correct env var
-      sessionPool.drainAndReplenish();
-      return true;
-    } catch (err) { console.error('Failed to update enableAgentTeams:', err); return false; }
-  });
-
-  registry.handle('updateAutoLayoutTeams', async (_e, enabled) => {
-    try {
-      settingsManager.updateAutoLayoutTeams(enabled);
-      return true;
-    } catch (err) { console.error('Failed to update auto-layout setting:', err); return false; }
-  });
-
-  registry.handle('updateUIMode', async (_e, mode) => {
-    try {
-      settingsManager.updateUIMode(mode);
-      return true;
-    } catch (err) { console.error('Failed to update UI mode:', err); return false; }
-  });
-
-  registry.handle('updateDefaultModel', async (_e, model) => {
-    try {
-      settingsManager.updateDefaultModel(model);
-      return true;
-    } catch (err) { console.error('Failed to update default model:', err); return false; }
-  });
-
-  // ── Repository Atlas ──
-
-  registry.handle('generateAtlas', async (_e, request) => {
-    try { return await atlasManager.generateAtlas(request); }
-    catch (err) { console.error('Failed to generate atlas:', err); throw err; }
-  });
-
-  registry.handle('writeAtlas', async (_e, request) => {
-    try { return await atlasManager.writeAtlas(request); }
-    catch (err) { console.error('Failed to write atlas:', err); throw err; }
-  });
-
-  registry.handle('getAtlasStatus', async (_e, projectPath) => {
-    try { return await atlasManager.getStatus(projectPath); }
-    catch (err) { console.error('Failed to get atlas status:', err); throw err; }
-  });
-
-  registry.handle('getAtlasSettings', async () => settingsManager.getAtlasSettings());
-
-  registry.handle('updateAtlasSettings', async (_e, settings) => {
-    try { return settingsManager.updateAtlasSettings(settings); }
-    catch (err) { console.error('Failed to update atlas settings:', err); throw err; }
-  });
-
-  // ── Layout Presets ──
-
-  registry.handle('getLayoutPresets', async () => {
-    return layoutPresetsManager.getPresets();
-  });
-
-  registry.handle('applyLayoutPreset', async (_e, presetId) => {
-    try {
-      const preset = layoutPresetsManager.getPresetById(presetId);
-      if (!preset) {
-        console.error('Preset not found:', presetId);
-        return false;
-      }
-
-      // Validate the preset structure
-      if (!layoutPresetsManager.validateLayout(preset.structure)) {
-        console.error('Invalid preset structure:', presetId);
-        return false;
-      }
-
-      // Update split view state with preset layout
-      settingsManager.updateSplitViewState({
-        layout: preset.structure,
-        focusedPaneId: '', // Will be set by renderer
-      });
-
-      // Save the last used preset ID
-      layoutPresetsManager.saveLastUsedPreset(presetId);
-
-      return true;
-    } catch (err) {
-      console.error('Failed to apply layout preset:', err);
-      return false;
-    }
-  });
-
-  registry.handle('applyCustomLayout', async (_e, rows, cols) => {
-    try {
-      const customLayout = layoutPresetsManager.createCustomGridLayout(rows, cols);
-
-      // Validate the generated layout
-      if (!layoutPresetsManager.validateLayout(customLayout)) {
-        console.error('Invalid custom layout generated');
-        return false;
-      }
-
-      // Update split view state
-      settingsManager.updateSplitViewState({
-        layout: customLayout,
-        focusedPaneId: '', // Will be set by renderer
-      });
-
-      // Save as custom preset
-      layoutPresetsManager.saveLastUsedPreset('custom');
-
-      return true;
-    } catch (err) {
-      console.error('Failed to apply custom layout:', err);
-      return false;
-    }
-  });
-
-  registry.handle('getCurrentLayout', async () => {
-    const settings = settingsManager.getSettings();
-    if (settings.splitViewState) {
-      return settings.splitViewState.layout;
-    }
-    // Return default single pane layout
-    const { v4: uuidv4 } = require('uuid');
-    const defaultLayout: import('../shared/ipc-types').LayoutLeaf = {
-      type: 'leaf',
-      paneId: uuidv4(),
-      sessionId: null,
-    };
-    return defaultLayout;
   });
 
   // ── Git Integration ──
@@ -859,58 +599,6 @@ export function setupIPCHandlers(
     catch (err) { console.error('Failed to update worktree settings:', err); throw err; }
   });
 
-  // ── Session Playbooks ──
-
-  registry.handle('listPlaybooks', async () => playbookManager.listAll());
-  registry.handle('getPlaybook', async (_e, id) => playbookManager.get(id));
-
-  registry.handle('addPlaybook', async (_e, request) => {
-    try { return playbookManager.add(request); }
-    catch (err) { console.error('Failed to add playbook:', err); throw err; }
-  });
-
-  registry.handle('updatePlaybook', async (_e, request) => {
-    try { return playbookManager.update(request); }
-    catch (err) { console.error('Failed to update playbook:', err); throw err; }
-  });
-
-  registry.handle('deletePlaybook', async (_e, id) => {
-    try { return playbookManager.delete(id); }
-    catch (err) { console.error('Failed to delete playbook:', err); throw err; }
-  });
-
-  registry.handle('importPlaybook', async (_e, data) => {
-    try { return playbookManager.importPlaybook(data); }
-    catch (err) { console.error('Failed to import playbook:', err); throw err; }
-  });
-
-  registry.handle('exportPlaybook', async (_e, id) => {
-    try { return playbookManager.exportPlaybook(id); }
-    catch (err) { console.error('Failed to export playbook:', err); throw err; }
-  });
-
-  registry.handle('duplicatePlaybook', async (_e, id) => {
-    try { return playbookManager.duplicate(id); }
-    catch (err) { console.error('Failed to duplicate playbook:', err); throw err; }
-  });
-
-  registry.handle('runPlaybook', async (_e, request) => {
-    try { return await playbookExecutor.run(request); }
-    catch (err) { console.error('Failed to run playbook:', err); throw err; }
-  });
-
-  registry.handle('cancelPlaybook', async (_e, sessionId) => {
-    return playbookExecutor.cancel(sessionId);
-  });
-
-  registry.handle('confirmPlaybook', async (_e, sessionId) => {
-    return playbookExecutor.confirm(sessionId);
-  });
-
-  registry.handle('getPlaybookExecution', async (_e, sessionId) => {
-    return playbookExecutor.getExecution(sessionId);
-  });
-
   // ── Providers ──
 
   registry.handle('listProviders', async () => {
@@ -939,91 +627,6 @@ export function setupIPCHandlers(
       nodeVersion: process.versions.node,
       claudeVersion,
     };
-  });
-
-  // NOTE: LaunchTunnel and Session Sharing IPC handlers disabled — uncomment when integration is fixed
-  // All tunnel:* and sharing:* handlers are commented out below.
-
-  // registry.handle('tunnelList', async () => { ... });
-  // registry.handle('tunnelCreate', async (_e, request) => { ... });
-  // registry.handle('tunnelStop', async (_e, tunnelId) => { ... });
-  // registry.handle('tunnelGetInfo', async (_e, tunnelId) => { ... });
-  // registry.handle('tunnelGetLogs', async (_e, tunnelId, limit) => { ... });
-  // registry.handle('tunnelGetSettings', async () => { ... });
-  // registry.handle('tunnelUpdateSettings', async (_e, settings) => { ... });
-  // registry.handle('tunnelGetAccount', async () => { ... });
-  // registry.handle('tunnelGetUsage', async (_e, tunnelId) => { ... });
-  // registry.handle('tunnelRefresh', async () => { ... });
-  // registry.handle('tunnelDetectBinary', async () => { ... });
-  // registry.handle('tunnelValidateKey', async (_e, apiKey) => { ... });
-  // registry.handle('tunnelStopAll', async () => { ... });
-  // registry.handle('startShare', async (_e, request) => { ... });
-  // registry.handle('stopShare', async (_e, sessionId) => { ... });
-  // registry.handle('getShareInfo', async (_e, sessionId) => { ... });
-  // registry.handle('listActiveShares', async () => { ... });
-  // registry.handle('kickObserver', async (_e, sessionId, observerId) => { ... });
-  // registry.handle('grantControl', async (_e, sessionId, observerId) => { ... });
-  // registry.handle('revokeControl', async (_e, sessionId, observerId) => { ... });
-  // registry.handle('joinShare', async (_e, request) => { ... });
-  // registry.handle('leaveShare', async (_e, shareCode) => { ... });
-  // registry.handle('requestControl', async (_e, shareCode) => { ... });
-  // registry.handle('releaseControl', async (_e, shareCode) => { ... });
-  // registry.handle('getSharingSettings', async () => { ... });
-  // registry.handle('updateSharingSettings', async (_e, updates) => { ... });
-  // registry.handle('checkShareEligibility', async () => { ... });
-
-  // ── Custom Commands ──
-
-  registry.handle('listCustomCommands', async (_e, request) => {
-    return customCommandManager.listCommands(request);
-  });
-
-  registry.handle('getCustomCommand', async (_e, slug, scope, projectDir) => {
-    return customCommandManager.getCommand(slug, scope, projectDir);
-  });
-
-  registry.handle('createCustomCommand', async (_e, request) => {
-    try { return customCommandManager.createCommand(request); }
-    catch (err) { console.error('[cmd:create] Failed:', err); throw err; }
-  });
-
-  registry.handle('updateCustomCommand', async (_e, request) => {
-    try { return customCommandManager.updateCommand(request); }
-    catch (err) { console.error('[cmd:update] Failed:', err); throw err; }
-  });
-
-  registry.handle('deleteCustomCommand', async (_e, request) => {
-    try { return customCommandManager.deleteCommand(request); }
-    catch (err) { console.error('[cmd:delete] Failed:', err); throw err; }
-  });
-
-  registry.handle('validateCommandName', async (_e, name, scope, projectDir) => {
-    return customCommandManager.validateName(name, scope, projectDir);
-  });
-
-  // ── Tasks ──
-  registry.handle('listTasks', async (_e, repoPath) => {
-    return taskManager.list(repoPath);
-  });
-
-  registry.handle('addTask', async (_e, req) => {
-    return taskManager.add(req.repoPath, req.title);
-  });
-
-  registry.handle('toggleTask', async (_e, repoPath, id) => {
-    return taskManager.toggle(repoPath, id);
-  });
-
-  registry.handle('editTask', async (_e, req) => {
-    return taskManager.edit(req.repoPath, req.id, {
-      title: req.title,
-      notes: req.notes,
-    });
-  });
-
-  registry.handle('deleteTask', async (_e, repoPath, id) => {
-    await taskManager.delete(repoPath, id);
-    return true;
   });
 
   // ── Session I/O (send — fire and forget) ──
