@@ -6,7 +6,7 @@ Currently, only the latest version of OmniDesk receives security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.x.x   | :white_check_mark: |
+| 1.4.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -39,16 +39,15 @@ OmniDesk reads Claude Code CLI credentials from `~/.claude/.credentials.json` to
 - Provide session management features
 
 **Important notes:**
-- Credentials are read locally and never transmitted except to Anthropic's official API endpoints and LaunchTunnel endpoints (for tunnel/sharing features only)
+- Credentials are read locally and never transmitted except to Anthropic's official API endpoints
 - All API calls use HTTPS
 - No credentials are logged or stored by OmniDesk
-- You can disable quota monitoring in Settings if you prefer
 
 ### Data Privacy
 
 - **Session data**: Stored locally in your user data directory
 - **No telemetry**: OmniDesk does not collect or transmit usage data
-- **No third-party services**: All data stays on your machine, except official Anthropic API calls and optional LaunchTunnel API calls for tunnels and session sharing (`api.launchtunnel.dev`, `relay.launchtunnel.dev`)
+- **No third-party services**: All data stays on your machine, except official Anthropic API calls for quota and burn-rate monitoring
 
 ### Development Dependencies
 

@@ -64,7 +64,7 @@ Unsure where to begin? Look for issues labeled:
 
 ### Prerequisites
 
-- **Node.js** 18+ and npm
+- **Node.js** 20+ and npm
 - **Git** for version control
 - **Claude Code CLI** installed globally (`npm install -g @anthropic-ai/claude-code`)
 - **Code editor** - We recommend VS Code with TypeScript/ESLint extensions
@@ -116,28 +116,32 @@ npm run format
 
 ## Project Architecture
 
-OmniDesk is an Electron application with three main layers and 16 domain managers:
+OmniDesk is an Electron application with three main layers and ~7 domain managers. The renderer uses a flat **repo → session** shell (`src/renderer/components/shell/`).
 
 ### Main Process (`src/main/`)
-- **index.ts** - App lifecycle, window management
-- **cli-manager.ts** - PTY spawning, provider-aware CLI interaction
-- **session-manager.ts** - Session state management
-- **ipc-handlers.ts** - IPC communication handlers (~191 methods)
-- **quota-service.ts** - Anthropic API integration
-- **sharing-manager.ts** - Real-time session sharing via WebSocket relay
-- **providers/** - Pluggable CLI provider abstraction (Claude, Codex, etc.)
-- **\*-persistence.ts** - File-based state persistence
+- **index.ts** - App lifecycle, window management, agent-view probe
+- **cli-manager.ts** - PTY spawning, output buffering, provider-aware CLI interaction
+- **session-manager.ts** - Session state, lifecycle, model events
+- **session-pool.ts** - Pre-warmed shell pool for fast session creation
+- **ipc-handlers.ts** - IPC communication handlers (103 methods)
+- **git-manager.ts** - Git status, branches, commits, and worktree operations (backend only)
+- **quota-service.ts** - Anthropic API quota + burn-rate calculation
+- **providers/** - Pluggable CLI provider abstraction (Claude, Codex)
+- **agent-view/** - `claude agents` availability probe + cache
+- **\*-persistence.ts** - File-based state persistence (sessions, settings, checkpoints)
 
 ### Preload (`src/preload/`)
-- **index.ts** - Context bridge exposing APIs to renderer
+- **index.ts** - Context bridge, auto-derived from the IPC contract
 
 ### Renderer (`src/renderer/`)
-- **components/** - React components (Terminal, TabBar, etc.)
-- **hooks/** - Custom React hooks (useSessionManager, etc.)
+- **components/shell/** - Phase 4 shell (RepoActivityBar, SessionRail, MainView, TerminalHost, RightInspector, StatusBar, Palette, sheets, dialogs)
+- **components/** - Terminal and reusable UI components
+- **hooks/** - Custom React hooks (useSessionManager, useRepos, useProvider, etc.)
 - **utils/** - Utility functions (fuzzy search, variable resolution)
 
 ### Shared (`src/shared/`)
-- **ipc-types.ts** - TypeScript contracts for IPC communication
+- **ipc-contract.ts** - Single source of truth for all IPC methods (auto-derives the bridge + types)
+- **ipc-types.ts** - IPC payload/response types
 - **types/** - Shared type definitions
 
 **Key architectural principles:**
@@ -218,7 +222,7 @@ await window.electronAPI.createSession(name, dir);
 
 ### Current State
 
-OmniDesk has **475+ tests across 24+ test files**, using Vitest 4 with 3 workspace projects:
+OmniDesk has **334 tests across 25 test files**, using Vitest 4 with 3 workspace projects:
 
 | Project | Environment | Pattern |
 |---------|-------------|---------|
@@ -288,7 +292,7 @@ describe('fuzzySearch', () => {
 
 5. **Ensure CI passes** - Once CI is set up, all checks must pass
 
-### Keeping the Atlas Current
+### Keeping the Repo Index Current
 
 If your PR adds, removes, or renames source files:
 - Update `docs/repo-index.md` with the new file(s)

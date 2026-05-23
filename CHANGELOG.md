@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 4 shell** — a flat **repo → session** UI replacing the panel-based design: a left activity bar for switching repositories (with drag-to-group), a per-repo session rail, and a terminal host that fills the main view. **Focus** mode shows one session full-screen; **Grid** mode shows every session in a repo as live tiles, with a collapsible right inspector for per-session details.
+
+### Changed
+- Reworked keyboard shortcuts for the new shell: `Ctrl/Cmd+N` (new session), `Ctrl/Cmd+K` (command palette), `Ctrl/Cmd+Shift+K` (repo switcher), `Ctrl/Cmd+1` / `Ctrl/Cmd+2` (Focus / Grid), `Ctrl/Cmd+.` (toggle inspector).
+- The command palette is now an action launcher (new session, switch view, toggle inspector, add repo) rather than a prompt-template browser.
+- **Git, history, and checkpoints are now backend-only** — their managers, IPC, and persistence remain (they are load-bearing dependencies), but the panel UIs were removed.
+
+### Removed
+- The panel-based design and the split-view / multi-pane layout system, replaced by Focus / Grid modes.
+- UI for: the Git panel, Agent Teams (Team Panel, Task Board, Message Stream, Agent Graph), real-time session sharing (LaunchTunnel relay, share codes, observers, `omnidesk://join` deep links), the Repository Atlas Engine, Repo Tasks, custom commands, and prompt templates.
+- The `reactflow` dependency (only used by the removed Agent Graph).
+- `design.v2.*` feature flags — the redesign is now unconditional.
+
 ### Planned
 - Homebrew/Chocolatey packaging for easier installation
 - Development dependency security updates (electron v40+, vite v7+)
@@ -503,7 +517,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on suggesting changes and 
 
 ---
 
-[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/carloluisito/omnidesk/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/carloluisito/omnidesk/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/carloluisito/omnidesk/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/carloluisito/omnidesk/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/carloluisito/omnidesk/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/carloluisito/omnidesk/compare/v1.1.5...v1.2.0
+[1.1.5]: https://github.com/carloluisito/omnidesk/compare/v1.1.4...v1.1.5
+[1.1.4]: https://github.com/carloluisito/omnidesk/compare/v1.1.3...v1.1.4
+[1.1.3]: https://github.com/carloluisito/omnidesk/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/carloluisito/omnidesk/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/carloluisito/omnidesk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/carloluisito/omnidesk/compare/v1.0.5...v1.1.0
 [1.0.5]: https://github.com/carloluisito/omnidesk/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/carloluisito/omnidesk/compare/v1.0.3...v1.0.4
