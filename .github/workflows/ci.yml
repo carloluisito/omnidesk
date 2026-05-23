@@ -58,10 +58,14 @@ jobs:
   # E2E tests require Electron + node-pty native module which can't launch in CI.
   # Run locally with: bun run test:e2e
 
+  # Packaging is heavy (full electron-builder across 3 OSes) and redundant on
+  # PRs — release.yml builds and publishes installers on v* tags. Run it only on
+  # pushes to main as a packaging smoke-test, so PR CI stays fast (build + test).
   package:
     name: Package Electron App
     runs-on: ${{ matrix.os }}
     needs: [build]
+    if: github.event_name == 'push'
 
     strategy:
       matrix:
