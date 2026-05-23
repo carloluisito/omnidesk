@@ -1026,18 +1026,31 @@ export class GitManager {
 
     // Use main repo path as mutex key (all worktree ops modify shared .git/worktrees)
     return this.withMutex(request.mainRepoPath, async () => {
-      const args = ['worktree', 'add'];
-
-      if (request.isNewBranch) {
-        args.push('-b', request.branch, targetPath);
-        if (request.baseBranch) {
-          args.push(request.baseBranch);
+      const buildArgs = (): string[] => {
+        const args = ['worktree', 'add'];
+        if (request.isNewBranch) {
+          args.push('-b', request.branch, targetPath);
+          if (request.baseBranch) args.push(request.baseBranch);
+        } else {
+          args.push(targetPath, request.branch);
         }
-      } else {
-        args.push(targetPath, request.branch);
-      }
+        return args;
+      };
 
-      const result = await this.execGit(request.mainRepoPath, args);
+      let result = await this.execGit(request.mainRepoPath, buildArgs());
+
+      // Self-heal "invalid reference" by pruning stale linked-worktree records.
+      // Happens when a prior session was closed but its cleanup was cut short
+      // (app force-quit, interrupted shutdown) — `.git/worktrees/<name>/`
+      // lingers and confuses git into thinking the branch is unusable.
+      if (
+        result.exitCode !== 0 &&
+        !request.isNewBranch &&
+        /invalid reference|not a valid ref|did not match any|is not a working tree/i.test(result.stderr)
+      ) {
+        await this.execGit(request.mainRepoPath, ['worktree', 'prune']);
+        result = await this.execGit(request.mainRepoPath, buildArgs());
+      }
 
       if (result.exitCode !== 0) {
         const errorCode = this.detectWorktreeErrorCode(result.stderr);

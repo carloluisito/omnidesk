@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="#0A0B11"></rect>
+  
+  <rect x="0.5" y="0.5" width="1023" height="1023" rx="223.5" ry="223.5" stroke="rgba(255,255,255,0.05)" stroke-width="1" fill="none"></rect>
+  
+  <g filter="url(#glow)">
+    <rect x="248" y="424" width="528" height="528" rx="56" ry="56" fill="#00C9A7" opacity="0.4"></rect>
+  </g>
+  
+  <rect x="400" y="200" width="528" height="528" rx="56" ry="56" stroke="rgba(124,143,255,0.55)" stroke-width="18" fill="none"></rect>
+  
+  <rect x="328" y="312" width="528" height="528" rx="56" ry="56" stroke="#7C8FFF" stroke-width="18" fill="none"></rect>
+  
+  <rect x="248" y="424" width="528" height="528" rx="56" ry="56" fill="#00C9A7"></rect>
+  
+  <g transform="translate(0,0)">
+    <path d="M 392 620 L 472 680 L 392 740" stroke="#0A0B11" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+    <rect x="528" y="724" width="136" height="32" rx="16" fill="#0A0B11"></rect>
+  </g>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="36"></feGaussianBlur>
+    </filter>
+  </defs>
+</svg>

@@ -9,11 +9,14 @@ export type PermissionMode = 'standard' | 'skip-permissions';
  * - `'default'`              — `claude`
  * - `'bypass-permissions'`   — `claude --dangerously-skip-permissions`
  * - `'agents'`               — `claude agents` (Claude Code v2.1.139+ background-session TUI)
+ * - `'continue'`             — `claude --continue` (resume the most recent
+ *                              conversation in the session's working directory;
+ *                              Claude Code starts fresh if none exists)
  *
  * Gated on `AgentViewAvailability` for `'agents'`; the spawner falls back to
  * `'default'` if the agents mode is requested while unavailable.
  */
-export type LaunchMode = 'default' | 'bypass-permissions' | 'agents';
+export type LaunchMode = 'default' | 'bypass-permissions' | 'agents' | 'continue';
 
 // Session status
 export type SessionStatus = 'starting' | 'running' | 'exited' | 'error';
@@ -190,7 +193,7 @@ export interface AppSettings {
   sessionPoolSettings?: SessionPoolSettings;
   enableAgentTeams?: boolean;
   autoLayoutTeams?: boolean;
-  atlasSettings?: import('./types/atlas-types').AtlasSettings;
+  atlasSettings?: Record<string, unknown>;
   hasLaunchedBefore?: boolean; // Track first launch for Layout Picker
   lastUsedLayoutPresetId?: string; // Track which preset was last applied
   wizardCompleted?: boolean; // Track if welcome wizard has been completed
@@ -201,6 +204,10 @@ export interface AppSettings {
   modelPreset?: ModelPreset; // Model preset mode (default: 'balanced')
   gitSettings?: import('./types/git-types').GitSettings;
   worktreeSettings?: import('./types/git-types').WorktreeSettings;
+  // Tour persistence
+  tourDismissed?: boolean;
+  // Wave 05 — focus mode persistence
+  focusMode?: boolean;
 }
 
 // Workspace create request
@@ -229,6 +236,20 @@ export interface WorkspaceValidationResult {
 export interface SubdirectoryEntry {
   name: string;
   path: string;
+}
+
+// Git repository entry — surfaced via fs:listGitRepos.
+// A repo is a subdir (any depth, but typically depth 1) of a workspace that
+// contains a `.git` directory or file (the file form is used by git worktrees).
+export interface GitRepoEntry {
+  /** Folder name. Acts as the human-readable label. */
+  name: string;
+  /** Absolute path to the repo's working tree root. */
+  path: string;
+  /** Path of the workspace this repo lives under. */
+  workspacePath: string;
+  /** Current branch name, if cheaply derivable from .git/HEAD; otherwise undefined. */
+  branch?: string;
 }
 
 // Window state
@@ -340,12 +361,6 @@ export interface TeamRemovedEvent {
 
 // Re-export types from sub-modules for convenience
 export type {
-  PromptTemplate,
-  TemplateCreateRequest,
-  TemplateUpdateRequest,
-} from './types/prompt-templates';
-
-export type {
   HistorySessionEntry,
   HistorySearchResult,
   HistorySettings,
@@ -357,25 +372,6 @@ export type {
   CheckpointCreateRequest,
   CheckpointExportFormat,
 } from './types/checkpoint-types';
-
-export type {
-  AtlasSettings,
-  AtlasGenerateRequest,
-  AtlasGenerateResult,
-  AtlasWriteRequest,
-  AtlasWriteResult,
-  AtlasStatus,
-  AtlasScanProgress,
-  AtlasScanResult,
-  AtlasGeneratedContent,
-  InlineTag,
-  SourceFileInfo,
-  InferredDomain,
-  CrossDependency,
-  SupportedLanguage,
-  DomainSensitivity,
-  AtlasOutputLocation,
-} from './types/atlas-types';
 
 export type {
   GitFileStatus,
@@ -400,21 +396,4 @@ export type {
   WorktreeSettings,
   WorktreeErrorCode,
 } from './types/git-types';
-
-export type {
-  TunnelStatus,
-  TunnelProtocol,
-  TunnelInfo,
-  TunnelCreateRequest,
-  TunnelSettings,
-  TunnelAccountInfo,
-  TunnelUsageStats,
-  TunnelRequestLog,
-  TunnelOperationResult,
-  TunnelErrorCode,
-  TunnelCreatedEvent,
-  TunnelStoppedEvent,
-  TunnelErrorEvent,
-  TunnelOutputEvent,
-} from './types/tunnel-types';
 

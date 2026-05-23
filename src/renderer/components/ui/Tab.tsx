@@ -18,6 +18,8 @@ export interface TabData {
   permissionMode:   'standard' | 'skip-permissions';
   status:           'running' | 'exited' | 'error';
   worktreeBranch?:  string | null;
+  /** Main repo this session is rooted under (set when session was created with a worktree). */
+  mainRepoPath?:    string | null;
   providerId?:      ProviderId;
   // NOTE: Sharing disabled — LaunchTunnel integration needs fixing
   // isShared?:        boolean;
@@ -42,6 +44,10 @@ interface TabProps {
   onCancelEdit:    () => void;
   visibilityState?: 'focused' | 'visible' | 'hidden';
   checkpointCount?: number;
+  /** Wave 01 v2 design flag — when true, applies Phase 2 tab shape + accent underline + live-dot */
+  v2?:             boolean;
+  /** Whether the session is "thinking" — used for live-dot pulse in v2 */
+  liveDot?:        boolean;
 }
 
 function statusToState(status: TabData['status']): StatusDotState {
@@ -62,6 +68,8 @@ export function Tab({
   onCancelEdit,
   visibilityState = 'hidden',
   checkpointCount = 0,
+  v2 = false,
+  liveDot = false,
 }: TabProps) {
   const [isHovered, setIsHovered]   = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -121,15 +129,29 @@ export function Tab({
   // const isShared   = data.isShared ?? false;   // LaunchTunnel disabled
   const isObserver    = false; // data.isObserverTab ?? false;
 
-  // Styles
-  const tabBg       = isActive ? 'var(--surface-raised)' : 'transparent';
-  const textColor   = isActive ? 'var(--text-primary)'   : (isHovered ? 'var(--text-secondary)' : 'var(--text-tertiary)');
+  // Styles — v2 vs legacy
+  const tabBg = v2
+    ? isActive ? 'var(--v2-surface-mid)' : 'var(--v2-surface-low)'
+    : isActive ? 'var(--v2-surface-mid)' : 'transparent';
+
+  const textColor = v2
+    ? isActive ? 'var(--v2-text-primary)' : (isHovered ? 'var(--v2-text-secondary)' : 'var(--v2-text-tertiary)')
+    : isActive ? 'var(--v2-text-primary)'    : (isHovered ? 'var(--v2-text-secondary)'    : 'var(--v2-text-tertiary)');
+
   // Observer tabs use blue top border; shared host tabs use green; default uses accent
-  const topBorder   = isActive
-    ? isObserver
-      ? '1px solid var(--accent-secondary)'
-      : '1px solid var(--border-accent)'
-    : '1px solid transparent';
+  // v2: no top border — accent underline via box-shadow on the bottom instead
+  const topBorder = v2
+    ? 'none'
+    : isActive
+      ? isObserver
+        ? '1px solid var(--v2-accent-2)'
+        : '1px solid var(--v2-accent)'
+      : '1px solid transparent';
+
+  // v2: accent underline on active tab (bottom inset shadow)
+  const boxShadow = v2 && isActive
+    ? '0 -2px 0 0 var(--v2-accent) inset'
+    : undefined;
 
   return (
     <div
@@ -145,9 +167,10 @@ export function Tab({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       title={`${data.name}\n${data.workingDirectory}${checkpointCount > 0 ? `\n${checkpointCount} checkpoint${checkpointCount !== 1 ? 's' : ''}` : ''}${isDangerous ? '\nSkip permissions enabled' : ''}`}
+      className={v2 ? 'anim-tab-switch' : undefined}
       style={{
         position:      'relative',
-        height:        '28px',
+        height:        v2 ? '30px' : '28px',
         minWidth:      '120px',
         maxWidth:      '200px',
         display:       'flex',
@@ -159,13 +182,16 @@ export function Tab({
         borderLeft:    '1px solid transparent',
         borderRight:   '1px solid transparent',
         borderBottom:  'none',
-        borderRadius:  'var(--radius-sm) var(--radius-sm) 0 0',
+        borderRadius:  v2 ? 'var(--radius-md) var(--radius-md) 0 0' : 'var(--radius-sm) var(--radius-sm) 0 0',
         cursor:        isDragging ? 'grabbing' : 'pointer',
         opacity:       isExited ? 0.6 : 1,
-        transition:    'background-color var(--duration-fast) var(--ease-inout), border-color var(--duration-fast) var(--ease-inout)',
+        transition:    v2
+          ? `background-color var(--v2-duration-200) var(--v2-ease-spring), color var(--v2-duration-200) var(--v2-ease-spring)`
+          : 'background-color var(--duration-fast) var(--ease-inout), border-color var(--duration-fast) var(--ease-inout)',
         userSelect:    'none',
         fontFamily:    'var(--font-ui)',
         marginTop:     '5px',
+        boxShadow:     boxShadow,
       }}
     >
       {/* Observer tab: chain-link icon instead of provider badge */}
@@ -176,7 +202,7 @@ export function Tab({
           viewBox="0 0 15 15"
           fill="none"
           aria-hidden="true"
-          style={{ flexShrink: 0, color: isActive ? 'var(--accent-secondary)' : 'var(--text-tertiary)' }}
+          style={{ flexShrink: 0, color: isActive ? 'var(--v2-accent-2)' : 'var(--v2-text-tertiary)' }}
         >
           <path d="M6.5 10.5l-2 2a2.828 2.828 0 01-4-4l2-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           <path d="M8.5 4.5l2-2a2.828 2.828 0 014 4l-2 2"   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -209,9 +235,9 @@ export function Tab({
             minWidth:        0,
             fontSize:        'var(--text-xs)',
             fontFamily:      'var(--font-ui)',
-            color:           'var(--text-primary)',
-            backgroundColor: 'var(--surface-float)',
-            border:          '1px solid var(--border-accent)',
+            color:           'var(--v2-text-primary)',
+            backgroundColor: 'var(--v2-surface-low)',
+            border:          '1px solid var(--v2-accent)',
             borderRadius:    'var(--radius-sm)',
             padding:         '2px 4px',
             outline:         'none',
@@ -233,15 +259,36 @@ export function Tab({
           }}
         >
           {isObserver && (
-            <span style={{ color: 'var(--accent-secondary)', marginRight: '3px', fontWeight: 600 as any }}>[SHARED]</span>
+            <span style={{ color: 'var(--v2-accent-2)', marginRight: '3px', fontWeight: 600 as any }}>[SHARED]</span>
           )}
           {data.name}
         </span>
       )}
 
-      {/* Session status dot */}
+      {/* Session status dot — v2: live-dot with pulse on "thinking" sessions */}
       {!isEditing && (
-        <StatusDot status={dotState} size={6} />
+        v2 ? (
+          <span
+            aria-hidden="true"
+            className={liveDot ? 'anim-status-pulse' : undefined}
+            style={{
+              width:           '6px',
+              height:          '6px',
+              borderRadius:    'var(--radius-full)',
+              backgroundColor: liveDot
+                ? 'var(--v2-success)'
+                : data.status === 'error'
+                  ? 'var(--v2-error)'
+                  : isActive
+                    ? 'var(--v2-text-tertiary)'
+                    : 'transparent',
+              flexShrink:      0,
+              transition:      `background-color var(--v2-duration-200) var(--v2-ease-out)`,
+            }}
+          />
+        ) : (
+          <StatusDot status={dotState} size={6} />
+        )
       )}
 
       {/* Split visibility indicator (when in split view) */}
@@ -253,8 +300,8 @@ export function Tab({
             width:           '6px',
             height:          '6px',
             borderRadius:    'var(--radius-full)',
-            backgroundColor: visibilityState === 'focused' ? 'var(--accent-secondary)' : 'transparent',
-            border:          visibilityState === 'visible'  ? '1px solid var(--accent-secondary)' : 'none',
+            backgroundColor: visibilityState === 'focused' ? 'var(--v2-accent-2)' : 'transparent',
+            border:          visibilityState === 'visible'  ? '1px solid var(--v2-accent-2)' : 'none',
             flexShrink:      0,
           }}
         />
@@ -291,7 +338,7 @@ export function Tab({
           border:          'none',
           borderRadius:    'var(--radius-sm)',
           cursor:          'pointer',
-          color:           'var(--text-tertiary)',
+          color:           'var(--v2-text-tertiary)',
           opacity:         showClose ? 1 : 0,
           transition:      'opacity var(--duration-fast) var(--ease-inout), color var(--duration-fast) var(--ease-inout)',
           flexShrink:      0,
@@ -299,7 +346,7 @@ export function Tab({
           outline:         'none',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--semantic-error)'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)'; }}
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M2 2l6 6M8 2l-6 6" strokeLinecap="round" />

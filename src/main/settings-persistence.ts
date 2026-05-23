@@ -13,7 +13,6 @@ import {
   SessionPoolSettings,
   LayoutNode,
 } from '../shared/ipc-types';
-import type { AtlasSettings } from '../shared/types/atlas-types';
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
 import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
@@ -355,6 +354,18 @@ export class SettingsManager {
     return validateWorkspacePath(path, this.settings.workspaces, excludeId);
   }
 
+  /**
+   * Merge a partial AppSettings object into the current settings.
+   * Performs a shallow merge at the top level, then saves to disk.
+   * Accepts arbitrary string keys for extension settings stored as flat keys.
+   * Returns the full merged AppSettings.
+   */
+  mergeSettings(partial: Partial<AppSettings> | Record<string, unknown>): AppSettings {
+    this.settings = { ...this.settings, ...(partial as Partial<AppSettings>) };
+    saveSettings(this.settings);
+    return { ...this.settings };
+  }
+
   updateDragDropSettings(settings: Partial<DragDropSettings>): DragDropSettings {
     const defaults = getDefaultSettings();
     this.settings.dragDropSettings = {
@@ -388,21 +399,6 @@ export class SettingsManager {
   getSessionPoolSettings(): SessionPoolSettings {
     const defaults = getDefaultSettings();
     return this.settings.sessionPoolSettings || defaults.sessionPoolSettings!;
-  }
-
-  getAtlasSettings(): AtlasSettings {
-    const defaults = getDefaultSettings();
-    return this.settings.atlasSettings || defaults.atlasSettings!;
-  }
-
-  updateAtlasSettings(settings: Partial<AtlasSettings>): AtlasSettings {
-    const defaults = getDefaultSettings();
-    this.settings.atlasSettings = {
-      ...(this.settings.atlasSettings || defaults.atlasSettings!),
-      ...settings,
-    };
-    saveSettings(this.settings);
-    return this.settings.atlasSettings;
   }
 
   getEnableAgentTeams(): boolean {

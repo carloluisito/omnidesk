@@ -1,159 +1,243 @@
 /**
- * Toast — individual notification component.
+ * Toast — V2 design, unconditional.
  *
- * Types: success / info / warning / error
- * Left border color per semantic type.
- * Dismiss button on hover.
- * Slide-in / slide-out animations.
+ * 4 severities, severity rail, icon plate, optional body + action slot,
+ * pause-on-hover, .anim-toast-enter.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export type ToastType = 'success' | 'info' | 'warning' | 'error';
+/** V2 alias — same values, explicit name for v2 code paths */
+export type ToastSeverity = ToastType;
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'ghost';
+}
 
 export interface ToastData {
-  id:         string;
-  message:    string;
-  type:       ToastType;
-  duration?:  number;   /* ms; undefined = persistent */
+  id:        string;
+  /** Used by legacy callers and as fallback title in v2 */
+  message:   string;
+  type:      ToastType;
+  duration?: number;  /* ms; undefined = persistent (error is always persistent) */
+  /** V2: optional explicit title (if absent, message is used as title) */
+  title?:    string;
+  /** V2: optional body below title */
+  body?:     string;
+  /** V2: optional action button(s) */
+  actions?:  ToastAction[];
+  /** V2: render message/body in mono font */
+  mono?:     boolean;
 }
 
 interface ToastProps {
-  toast:       ToastData;
-  onDismiss:   (id: string) => void;
+  toast:     ToastData;
+  onDismiss: (id: string) => void;
 }
 
-const TYPE_CONFIG: Record<ToastType, { borderColor: string; dotColor: string; icon: React.ReactNode; ariaRole: string }> = {
+// ─── V2 severity config ────────────────────────────────────────────────────────
+
+interface V2SeverityConfig {
+  fg:       string;
+  bg:       string;
+  bd:       string;
+  ariaRole: string;
+  icon:     React.ReactNode;
+}
+
+function makeV2Icon(path: React.ReactNode, color: string) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {path}
+    </svg>
+  );
+}
+
+const V2_SEVERITY_CONFIG: Record<ToastSeverity, V2SeverityConfig> = {
   success: {
-    borderColor: 'var(--semantic-success)',
-    dotColor:    'var(--semantic-success)',
-    ariaRole:    'status',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <circle cx="7" cy="7" r="6" stroke="var(--semantic-success)" strokeWidth="1.5" fill="none" />
-        <path d="M4.5 7l2 2 3-3" stroke="var(--semantic-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    fg:       'var(--v2-success)',
+    bg:       'rgba(61,214,140,0.10)',
+    bd:       'rgba(61,214,140,0.22)',
+    ariaRole: 'status',
+    icon:     makeV2Icon(<><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></>, 'var(--v2-success)'),
   },
   info: {
-    borderColor: 'var(--accent-primary)',
-    dotColor:    'var(--accent-primary)',
-    ariaRole:    'status',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <circle cx="7" cy="7" r="6" stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" />
-        <line x1="7" y1="6" x2="7" y2="10" stroke="var(--accent-primary)" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="7" cy="4.5" r="0.75" fill="var(--accent-primary)" />
-      </svg>
-    ),
+    fg:       'var(--v2-info)',
+    bg:       'rgba(124,143,255,0.10)',
+    bd:       'rgba(124,143,255,0.22)',
+    ariaRole: 'status',
+    icon:     makeV2Icon(<><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>, 'var(--v2-info)'),
   },
   warning: {
-    borderColor: 'var(--semantic-warning)',
-    dotColor:    'var(--semantic-warning)',
-    ariaRole:    'alert',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <path d="M7 1.5L12.5 11.5H1.5L7 1.5Z" stroke="var(--semantic-warning)" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
-        <line x1="7" y1="6" x2="7" y2="9" stroke="var(--semantic-warning)" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="7" cy="10.5" r="0.75" fill="var(--semantic-warning)" />
-      </svg>
-    ),
+    fg:       'var(--v2-warning)',
+    bg:       'rgba(247,168,74,0.10)',
+    bd:       'rgba(247,168,74,0.22)',
+    ariaRole: 'alert',
+    icon:     makeV2Icon(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>, 'var(--v2-warning)'),
   },
   error: {
-    borderColor: 'var(--semantic-error)',
-    dotColor:    'var(--semantic-error)',
-    ariaRole:    'alert',
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <circle cx="7" cy="7" r="6" stroke="var(--semantic-error)" strokeWidth="1.5" fill="none" />
-        <path d="M5 5l4 4M9 5l-4 4" stroke="var(--semantic-error)" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
+    fg:       'var(--v2-error)',
+    bg:       'rgba(247,103,142,0.10)',
+    bd:       'rgba(247,103,142,0.22)',
+    ariaRole: 'alert',
+    icon:     makeV2Icon(<><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></>, 'var(--v2-error)'),
   },
 };
 
-export function Toast({ toast, onDismiss }: ToastProps) {
-  const [exiting, setExiting]      = useState(false);
-  const [hovered, setHovered]      = useState(false);
-  const [showDismiss, setShowDismiss] = useState(false);
-  const config = TYPE_CONFIG[toast.type];
+// V2 auto-dismiss: 4000ms for info/success/warning; error = never (undefined)
+export function v2DefaultDuration(type: ToastSeverity): number | undefined {
+  return type === 'error' ? undefined : 4000;
+}
+
+function V2Toast({ toast, onDismiss }: ToastProps) {
+  const cfg     = V2_SEVERITY_CONFIG[toast.type];
+  const isError = toast.type === 'error';
+
+  // Error severity never auto-dismisses
+  const duration = isError ? undefined : (toast.duration ?? v2DefaultDuration(toast.type));
+
+  const [exiting,  setExiting]  = useState(false);
+  const [hovered,  setHovered]  = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dismiss = useCallback(() => {
     setExiting(true);
-    setTimeout(() => onDismiss(toast.id), 160);
+    setTimeout(() => onDismiss(toast.id), 240);
   }, [onDismiss, toast.id]);
 
+  // Auto-dismiss with hover pause
   useEffect(() => {
-    if (!toast.duration || hovered) return;
-    const timer = setTimeout(dismiss, toast.duration);
-    return () => clearTimeout(timer);
-  }, [toast.duration, dismiss, hovered]);
+    if (!duration || hovered || exiting) return;
+    timerRef.current = setTimeout(dismiss, duration);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [duration, hovered, dismiss, exiting]);
+
+  const title = toast.title ?? toast.message;
+  const body  = toast.body;
 
   return (
     <div
-      role={config.ariaRole}
+      role={cfg.ariaRole}
       aria-live={toast.type === 'error' || toast.type === 'warning' ? 'assertive' : 'polite'}
+      className={exiting ? '' : 'anim-toast-enter'}
       style={{
-        position:        'relative',
-        display:         'flex',
-        alignItems:      'center',
-        gap:             'var(--space-2)',
-        maxWidth:        '320px',
-        minWidth:        '260px',
-        padding:         '10px 12px',
-        backgroundColor: 'var(--surface-high)',
-        border:          '1px solid var(--border-default)',
-        borderLeft:      `3px solid ${config.borderColor}`,
+        width:           380,
+        background:      'var(--v2-surface-overlay)',
         borderRadius:    'var(--radius-md)',
-        boxShadow:       'var(--shadow-md)',
-        animation:       exiting
-          ? 'toast-exit var(--duration-exit) var(--ease-in) both'
-          : 'toast-enter var(--duration-normal) var(--ease-out) both',
+        boxShadow:       'var(--shadow-lg)',
+        border:          '1px solid var(--v2-border-strong)',
+        padding:         '12px 12px 12px 12px',
+        display:         'grid',
+        gridTemplateColumns: '28px 1fr auto',
+        gap:             12,
+        alignItems:      'flex-start',
+        position:        'relative',
+        overflow:        'hidden',
+        opacity:         exiting ? 0 : 1,
+        transform:       exiting ? 'translateX(20px)' : 'translateX(0)',
+        transition:      exiting ? 'opacity 0.24s ease, transform 0.24s ease' : 'none',
         cursor:          'default',
       }}
-      onMouseEnter={() => { setHovered(true);  setShowDismiss(true); }}
-      onMouseLeave={() => { setHovered(false); setShowDismiss(false); }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {/* Icon */}
-      <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-        {config.icon}
-      </span>
+      {/* Severity rail */}
+      <div style={{
+        position:   'absolute',
+        left:       0,
+        top:        0,
+        bottom:     0,
+        width:      3,
+        background: cfg.fg,
+      }} />
 
-      {/* Message */}
-      <span
-        style={{
-          flex:       1,
+      {/* Icon plate */}
+      <div style={{
+        width:        24,
+        height:       24,
+        borderRadius: 'var(--radius-sm)',
+        background:   cfg.bg,
+        color:        cfg.fg,
+        display:      'grid',
+        placeItems:   'center',
+        border:       `1px solid ${cfg.bd}`,
+        marginLeft:   6,
+        flexShrink:   0,
+      }}>
+        {cfg.icon}
+      </div>
+
+      {/* Body */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          color:      'var(--v2-text-primary)',
+          fontWeight: 600,
           fontSize:   'var(--text-sm)',
-          fontFamily: 'var(--font-ui)',
-          color:      'var(--text-primary)',
-          lineHeight: 'var(--leading-normal)' as any,
-          wordBreak:  'break-word',
-        }}
-      >
-        {toast.message}
-      </span>
+          display:    'flex',
+          alignItems: 'center',
+          gap:        6,
+          fontFamily: toast.mono ? 'var(--font-mono)' : 'inherit',
+        }}>
+          {title}
+        </div>
+        {body && (
+          <div style={{
+            color:      'var(--v2-text-secondary)',
+            fontSize:   'var(--text-xs)',
+            marginTop:  2,
+            lineHeight: 1.55,
+            fontFamily: toast.mono ? 'var(--font-mono)' : 'inherit',
+            overflow:   'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {body}
+          </div>
+        )}
+        {toast.actions && toast.actions.length > 0 && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+            {toast.actions.map((action, i) => (
+              <button
+                key={i}
+                onClick={action.onClick}
+                style={{
+                  padding:      '3px 10px',
+                  fontSize:     10,
+                  background:   action.variant === 'primary' ? 'var(--v2-accent)' : 'var(--v2-surface-mid)',
+                  border:       `1px solid ${action.variant === 'primary' ? 'transparent' : 'var(--v2-border-default)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  color:        action.variant === 'primary' ? '#051A16' : 'var(--v2-text-secondary)',
+                  fontFamily:   'inherit',
+                  cursor:       'pointer',
+                }}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Dismiss button — visible on hover */}
+      {/* Dismiss (close) button — always visible in v2, not hover-gated */}
       <button
         onClick={dismiss}
         aria-label="Dismiss notification"
         style={{
-          flexShrink:      0,
-          width:           '20px',
-          height:          '20px',
-          display:         'flex',
-          alignItems:      'center',
-          justifyContent:  'center',
-          background:      'transparent',
-          border:          'none',
-          cursor:          'pointer',
-          color:           'var(--text-tertiary)',
-          borderRadius:    'var(--radius-sm)',
-          opacity:         showDismiss ? 1 : 0,
-          transition:      'opacity var(--duration-fast) var(--ease-inout), color var(--duration-fast) var(--ease-inout)',
-          padding:         0,
+          padding:      3,
+          color:        'var(--v2-text-tertiary)',
+          background:   'transparent',
+          border:       'none',
+          cursor:       'pointer',
+          borderRadius: 'var(--radius-sm)',
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent: 'center',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--semantic-error)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--v2-text-primary)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--v2-text-tertiary)')}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M2 2l8 8M10 2l-8 8" strokeLinecap="round" />
@@ -161,4 +245,10 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       </button>
     </div>
   );
+}
+
+// ─── Public export ─────────────────────────────────────────────────────────────
+
+export function Toast({ toast, onDismiss }: ToastProps) {
+  return <V2Toast toast={toast} onDismiss={onDismiss} />;
 }

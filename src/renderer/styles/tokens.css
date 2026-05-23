@@ -1,56 +1,177 @@
 /* ============================================================
-   OmniDesk Design Tokens — Obsidian Palette
+   OmniDesk Design Tokens — Phase 4 (prototype-aligned)
+   Source of truth: omnidesk/omnidesk-prototype/tokens.css
    Single source of truth for all CSS custom properties.
    ============================================================ */
 
 :root {
+  /* === SURFACES (5 tiers) === */
+  --surface-base:    #0A0B11;   /* Deepest: app chrome, title bar, activity bar */
+  --surface-low:     #11131C;   /* Session rail, side rails */
+  --surface-mid:     #181B28;   /* Default card / row background */
+  --surface-high:    #232739;   /* Hover & active rows, pane header strip */
+  --surface-overlay: #2A2E44;   /* Modals, popovers, command palette */
 
-  /* === SURFACE TIERS === */
-  --surface-base:       #0D0E14;   /* Deepest: app chrome, title bar, activity bar */
-  --surface-raised:     #13141C;   /* Base content area, panel backgrounds */
-  --surface-overlay:    #1A1B26;   /* Cards, dialogs, panel headers */
-  --surface-float:      #222435;   /* Hover states, selected rows, input backgrounds */
-  --surface-high:       #2A2D42;   /* Tooltips, popovers, elevated dropdowns */
-
-  /* === BORDERS === */
-  --border-subtle:      #1E2030;   /* Between surface tiers, barely visible */
-  --border-default:     #292E44;   /* Component edges, panel dividers */
-  --border-strong:      #3D4163;   /* Focus rings base, active indicators */
-  --border-accent:      #00C9A7;   /* Accent-colored borders (active tab, selected) */
-
-  /* === ACCENT / PRIMARY === */
-  --accent-primary:         #00C9A7;   /* Cyan-teal — primary action, active state, links */
-  --accent-primary-dim:     #009E84;   /* Pressed state for accent */
-  --accent-primary-muted:   #00C9A714; /* 8% opacity — accent backgrounds, chips */
-  --accent-secondary:       #7C8FFF;   /* Periwinkle blue — secondary accent, agent/team */
-  --accent-secondary-muted: #7C8FFF14;
-
-  /* === TEXT HIERARCHY === */
-  --text-primary:   #E2E4F0;   /* Headlines, active labels, important values */
-  --text-secondary: #9DA3BE;   /* Body text, descriptions, metadata */
-  --text-tertiary:  #5C6080;   /* Placeholders, disabled labels, timestamps */
-  --text-accent:    #00C9A7;   /* Accent-colored text (links, active items) */
-  --text-inverse:   #0D0E14;   /* Text on accent backgrounds */
+  /* === ACCENTS === */
+  --accent:      #00C9A7;
+  --accent-dim:  #0E7E6C;
+  --accent-2:    #7C8FFF;
+  --accent-glow: 0 0 0 1px rgba(0,201,167,.35), 0 0 24px -4px rgba(0,201,167,.45);
 
   /* === SEMANTIC === */
-  --semantic-success:       #3DD68C;
-  --semantic-success-muted: #3DD68C14;
-  --semantic-warning:       #F7A84A;
-  --semantic-warning-muted: #F7A84A14;
-  --semantic-error:         #F7678E;
-  --semantic-error-muted:   #F7678E14;
-  --semantic-info:          #7C8FFF;
-  --semantic-info-muted:    #7C8FFF14;
+  --success: #3DD68C;
+  --warning: #F7A84A;
+  --error:   #F7678E;
+  --info:    #7C8FFF;
 
-  /* === DOMAIN-SPECIFIC === */
-  --agent-lead:       #fbbf24;   /* Lead agent border & legend dot (AgentGraph) */
+  /* === TEXT HIERARCHY === */
+  --text-primary:    #E2E4F0;
+  --text-secondary:  #9DA3BE;
+  --text-tertiary:   #5C6080;
+  --text-quaternary: #3E4264;
+  --text-inverse:    #051A16;   /* On accent backgrounds */
+
+  /* === BORDERS (demoted alpha scale) === */
+  --border-subtle:  rgba(255,255,255,0.035);
+  --border-default: rgba(255,255,255,0.07);
+  --border-strong:  rgba(255,255,255,0.12);
+
+  /* === RINGS === */
+  --ring-focus-outer: var(--surface-base);
+  --ring-focus-inner: var(--accent-2);
+  --ring-error-inner: var(--error);
+  --ring-focus: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--accent-2);
+  --ring-error: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--error);
+
+  /* === SPACING (4px base) === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* === COMPONENT SIZING === */
+  --title-bar-height:      36px;
+  --activity-bar-width:    48px;
+  --rail-width:            300px;   /* Session rail */
+  --right-panel-width:     340px;   /* Optional inspector */
+  --status-bar-height:     24px;
+  --pane-header-height:    34px;
+  --dialog-width-sm:       360px;
+  --dialog-width-md:       520px;
+  --dialog-width-lg:       680px;
+  --dialog-max-height:     85vh;
+  --command-palette-width: 600px;
+  --command-palette-max-height: 480px;
+
+  /* === RADII === */
+  --radius-none: 0;
+  --radius-sm:   3px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-xl:   16px;
+  --radius-full: 999px;
+
+  /* === TYPOGRAPHY — FAMILIES === */
+  --font-sans:    'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --font-ui:      var(--font-sans);   /* Back-compat alias */
+  --font-mono-ui: var(--font-mono);   /* Back-compat alias */
+
+  /* === TYPOGRAPHY — SIZE SCALE === */
+  --text-2xs: 10px;
+  --text-xs:  11px;
+  --text-sm:  12px;
+  --text-base: 13px;
+  --text-md:  14px;
+  --text-lg:  16px;
+  --text-xl:  20px;
+  --text-2xl: 28px;
+  --text-3xl: 40px;
+
+  /* === TYPOGRAPHY — WEIGHTS === */
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* === TYPOGRAPHY — LINE HEIGHTS === */
+  --leading-tight:   1.2;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.6;
+
+  /* === TYPOGRAPHY — LETTER SPACING === */
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-widest: 0.14em;
+
+  /* === SHADOWS === */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 4px 12px -2px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 32px -8px rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.3);
+  --shadow-xl: 0 24px 56px -12px rgba(0,0,0,.65), 0 4px 8px rgba(0,0,0,.35);
+  --shadow-glow-accent: 0 0 16px rgba(0,201,167,.3);
+  --shadow-glow-error:  0 0 16px rgba(247,103,142,.3);
+
+  /* === MOTION — DURATIONS === */
+  --duration-80:  80ms;
+  --duration-120: 120ms;
+  --duration-160: 160ms;
+  --duration-200: 200ms;
+  --duration-240: 240ms;
+  --duration-300: 300ms;
+  --duration-600: 600ms;
+
+  /* Legacy aliases (back-compat) */
+  --duration-instant: var(--duration-80);
+  --duration-fast:    var(--duration-160);
+  --duration-normal:  var(--duration-200);
+  --duration-slow:    var(--duration-300);
+  --duration-enter:   var(--duration-200);
+  --duration-exit:    var(--duration-160);
+
+  /* === MOTION — EASES === */
+  --ease-out:    cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in:     cubic-bezier(0.4, 0.0, 1.0, 1);
+  --ease-in-out: cubic-bezier(0.6, 0.0, 0.2, 1);
+  --ease-inout:  var(--ease-in-out);                  /* Back-compat alias */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap:   cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* === Z-INDEX STACK === */
+  --z-base:     0;
+  --z-panel:    10;
+  --z-resize:   20;
+  --z-dropdown: 100;
+  --z-tooltip:  200;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-palette:  500;
+  --z-toast:    600;
+  --z-titlebar: 700;
+
+  /* === INTERACTIVE STATES === */
+  --state-hover:    rgba(255,255,255,0.04);
+  --state-active:   rgba(255,255,255,0.08);
+  --state-focus:    rgba(0,201,167,0.25);
+  --state-disabled: rgba(255,255,255,0.04);
 
   /* === PROVIDER BADGE COLORS === */
-  --provider-claude:  #CC8533;   /* Amber-orange */
-  --provider-codex:   #10A37F;   /* OpenAI green */
-  --provider-future:  #9DA3BE;   /* Unknown/generic */
+  --provider-claude:  #CC8533;
+  --provider-codex:   #10A37F;
+  --provider-future:  #9DA3BE;
 
-  /* === TERMINAL COLORS (xterm.js overrides) === */
+  /* === DOMAIN-SPECIFIC === */
+  --agent-lead: #fbbf24;
+
+  /* === TERMINAL COLORS (xterm.js) === */
   --term-black:         #1A1B26;
   --term-red:           #F7678E;
   --term-green:         #3DD68C;
@@ -66,126 +187,93 @@
   --term-bright-blue:   #A3B4FF;
   --term-bright-cyan:   #4DE8D0;
   --term-bright-white:  #E2E4F0;
-  --term-background:    #0D0E14;
+  --term-background:    #0A0B11;
   --term-foreground:    #C0C4D6;
   --term-cursor:        #00C9A7;
-  --term-selection:     #3D416380; /* 50% opacity */
+  --term-selection:     rgba(61,65,99,0.5);
 
-  /* === INTERACTIVE STATES === */
-  --state-hover:    #FFFFFF0A;   /* 4% white overlay */
-  --state-active:   #FFFFFF14;   /* 8% white overlay */
-  --state-focus:    #00C9A740;   /* 25% accent for focus rings */
-  --state-disabled: #FFFFFF0A;
-
-  /* === SPACING (4px base unit) === */
-  --space-1:   4px;
-  --space-2:   8px;
-  --space-3:   12px;
-  --space-4:   16px;
-  --space-5:   20px;
-  --space-6:   24px;
-  --space-8:   32px;
-  --space-10:  40px;
-  --space-12:  48px;
-  --space-16:  64px;
-
-  /* === COMPONENT SIZING === */
-  --title-bar-height:      36px;
-  --activity-bar-width:    48px;
-  --tab-bar-height:        38px;
-  --pane-header-height:    34px;
-  --status-bar-height:     24px;
-  --panel-width-default:   280px;
-  --panel-width-wide:      360px;
-  --panel-width-narrow:    240px;
-  --panel-width-min:       200px;
-  --panel-width-max:       480px;
-  --resize-handle-width:   4px;
-  --resize-handle-hitbox:  12px;
-  --dialog-width-sm:       360px;
-  --dialog-width-md:       520px;
-  --dialog-width-lg:       680px;
-  --dialog-max-height:     85vh;
-  --command-palette-width: 600px;
-  --command-palette-max-height: 480px;
-
-  /* === BORDER RADIUS === */
-  --radius-none: 0px;
-  --radius-sm:   3px;    /* Badges, tabs */
-  --radius-md:   6px;    /* Buttons, inputs, small cards */
-  --radius-lg:   10px;   /* Dialogs, panels, popovers */
-  --radius-xl:   16px;   /* Welcome wizard */
-  --radius-full: 9999px; /* Pills, status dots */
-
-  /* === SHADOWS === */
-  --shadow-sm:  0 1px 3px #00000040, 0 1px 2px #00000060;
-  --shadow-md:  0 4px 12px #00000060, 0 2px 4px #00000040;
-  --shadow-lg:  0 12px 32px #00000080, 0 4px 12px #00000060;
-  --shadow-xl:  0 24px 64px #000000A0, 0 8px 24px #00000080;
-  --shadow-glow-accent: 0 0 16px #00C9A730;
-  --shadow-glow-error:  0 0 16px #F7678E30;
-
-  /* === Z-INDEX STACK === */
-  --z-base:     0;
-  --z-panel:    10;
-  --z-resize:   20;
-  --z-dropdown: 100;
-  --z-tooltip:  200;
-  --z-overlay:  300;
-  --z-modal:    400;
-  --z-palette:  500;
-  --z-toast:    600;
-  --z-titlebar: 700;
-
-  /* === TYPOGRAPHY — FONT FAMILIES === */
-  --font-ui:      "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
-  --font-mono-ui: "JetBrains Mono", monospace;
-
-  /* === TYPOGRAPHY — SIZE SCALE (minor third 1.2) === */
-  --text-2xs:  10px;   /* Timestamps, badge text, status bar */
-  --text-xs:   11px;   /* Tab labels, panel section headers */
-  --text-sm:   12px;   /* Secondary labels, helper text, menu items */
-  --text-base: 13px;   /* Primary UI text, button labels, form fields */
-  --text-md:   14px;   /* Panel headers, dialog titles (secondary) */
-  --text-lg:   16px;   /* Dialog titles (primary), section headings */
-  --text-xl:   20px;   /* Welcome screen heading */
-  --text-2xl:  28px;   /* App name in welcome/about screen */
-  --text-3xl:  40px;   /* Welcome hero */
-
-  /* === TYPOGRAPHY — WEIGHTS === */
-  --weight-light:    300;
-  --weight-regular:  400;
-  --weight-medium:   500;
-  --weight-semibold: 600;
-  --weight-bold:     700;
-
-  /* === TYPOGRAPHY — LINE HEIGHTS === */
-  --leading-tight:   1.2;
-  --leading-normal:  1.5;
-  --leading-relaxed: 1.6;
-
-  /* === TYPOGRAPHY — LETTER SPACING === */
-  --tracking-tight:   -0.01em;
-  --tracking-normal:  0em;
-  --tracking-wide:    0.04em;
-  --tracking-widest:  0.08em;
-
-  /* === ANIMATION === */
-  --duration-instant: 80ms;
-  --duration-fast:    150ms;
-  --duration-normal:  200ms;
-  --duration-slow:    300ms;
-  --duration-enter:   200ms;
-  --duration-exit:    150ms;
-
-  --ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
-  --ease-in:     cubic-bezier(0.4, 0.0, 1.0, 1);
-  --ease-inout:  cubic-bezier(0.4, 0.0, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  /* === BREAKPOINTS (as custom properties for JS usage) === */
+  /* === BREAKPOINTS === */
   --bp-compact: 900px;
   --bp-default: 1280px;
   --bp-wide:    1600px;
+}
+
+/* ============================================================
+   Base resets & document defaults
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+::selection { background: rgba(0,201,167,.35); }
+code, kbd, .mono { font-family: var(--font-mono); }
+
+/* ============================================================
+   Legacy back-compat aliases
+   Older components reference these names. Map to the new tokens
+   so we can migrate components opportunistically without one
+   massive rename PR.
+   ============================================================ */
+:root {
+  --surface-raised: var(--surface-low);
+  --surface-float:  var(--surface-high);
+  --border-accent:  var(--accent);
+  --accent-primary:         var(--accent);
+  --accent-primary-dim:     var(--accent-dim);
+  --accent-primary-muted:   rgba(0,201,167,0.08);
+  --accent-secondary:       var(--accent-2);
+  --accent-secondary-muted: rgba(124,143,255,0.08);
+  --text-accent:            var(--accent);
+  --semantic-success:       var(--success);
+  --semantic-success-muted: rgba(61,214,140,0.08);
+  --semantic-warning:       var(--warning);
+  --semantic-warning-muted: rgba(247,168,74,0.08);
+  --semantic-error:         var(--error);
+  --semantic-error-muted:   rgba(247,103,142,0.08);
+  --semantic-info:          var(--info);
+  --semantic-info-muted:    rgba(124,143,255,0.08);
+
+  /* v2 aliases used by Wave 01-04 work — keep until those usages get folded into the prototype shell */
+  --v2-surface-base:    var(--surface-base);
+  --v2-surface-low:     var(--surface-low);
+  --v2-surface-mid:     var(--surface-mid);
+  --v2-surface-high:    var(--surface-high);
+  --v2-surface-overlay: var(--surface-overlay);
+  --v2-border-subtle:   var(--border-subtle);
+  --v2-border-default:  var(--border-default);
+  --v2-border-strong:   var(--border-strong);
+  --v2-accent:          var(--accent);
+  --v2-accent-dim:      var(--accent-dim);
+  --v2-accent-2:        var(--accent-2);
+  --v2-accent-glow:     var(--accent-glow);
+  --v2-success:         var(--success);
+  --v2-warning:         var(--warning);
+  --v2-error:           var(--error);
+  --v2-info:            var(--info);
+  --v2-text-primary:    var(--text-primary);
+  --v2-text-secondary:  var(--text-secondary);
+  --v2-text-tertiary:   var(--text-tertiary);
+  --v2-text-quaternary: var(--text-quaternary);
+  --v2-ring-focus:      var(--ring-focus);
+  --v2-ring-error:      var(--ring-error);
+  --v2-duration-80:     var(--duration-80);
+  --v2-duration-120:    var(--duration-120);
+  --v2-duration-160:    var(--duration-160);
+  --v2-duration-200:    var(--duration-200);
+  --v2-duration-240:    var(--duration-240);
+  --v2-duration-300:    var(--duration-300);
+  --v2-duration-600:    var(--duration-600);
+  --v2-ease-out:        var(--ease-out);
+  --v2-ease-in-out:     var(--ease-in-out);
+  --v2-ease-spring:     var(--ease-spring);
+  --v2-ease-snap:       var(--ease-snap);
 }

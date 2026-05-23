@@ -70,7 +70,7 @@ export function FeatureShowcase() {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-md, 14px);
           font-weight: var(--weight-medium, 500);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           margin: 0 0 var(--space-4, 16px) 0;
           text-align: center;
         }
@@ -81,7 +81,7 @@ export function FeatureShowcase() {
           overflow-x: auto;
           padding: var(--space-2, 8px) 0;
           scrollbar-width: thin;
-          scrollbar-color: var(--border-strong) var(--surface-float);
+          scrollbar-color: var(--v2-border-strong) var(--v2-surface-low);
         }
 
         .feature-showcase::-webkit-scrollbar {
@@ -89,24 +89,24 @@ export function FeatureShowcase() {
         }
 
         .feature-showcase::-webkit-scrollbar-track {
-          background: var(--surface-float);
+          background: var(--v2-surface-low);
           border-radius: var(--radius-full, 9999px);
         }
 
         .feature-showcase::-webkit-scrollbar-thumb {
-          background: var(--border-strong);
+          background: var(--v2-border-strong);
           border-radius: var(--radius-full, 9999px);
         }
 
         .feature-showcase::-webkit-scrollbar-thumb:hover {
-          background: var(--text-tertiary);
+          background: var(--v2-text-tertiary);
         }
 
         .feature-card {
           min-width: 170px;
           padding: var(--space-4, 16px);
-          background: var(--surface-raised);
-          border: 1px solid var(--border-subtle);
+          background: var(--v2-surface-mid);
+          border: 1px solid var(--v2-border-subtle);
           border-radius: var(--radius-md, 6px);
           animation: feature-fade-in 0.5s var(--ease-out, ease) backwards;
           flex-shrink: 0;
@@ -133,16 +133,16 @@ export function FeatureShowcase() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--accent-primary-muted);
+          background: rgba(0,201,167,0.14);
           border-radius: var(--radius-sm, 3px);
-          color: var(--accent-primary);
+          color: var(--v2-accent);
         }
 
         .feature-title {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-sm, 12px);
           font-weight: var(--weight-semibold, 600);
-          color: var(--text-primary);
+          color: var(--v2-text-primary);
           margin: 0 0 var(--space-1, 4px) 0;
         }
 
@@ -150,7 +150,7 @@ export function FeatureShowcase() {
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
           font-size: var(--text-xs, 11px);
           font-weight: var(--weight-regular, 400);
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           margin: 0;
           line-height: var(--leading-normal, 1.5);
         }

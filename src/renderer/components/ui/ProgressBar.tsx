@@ -24,7 +24,7 @@ interface ProgressBarProps {
 function getBarColor(pct: number): string {
   if (pct >= 80) return 'var(--semantic-error)';
   if (pct >= 60) return 'var(--semantic-warning)';
-  return 'var(--accent-primary)';
+  return 'var(--v2-accent)';
 }
 
 const indeterminateStyles = `
@@ -66,7 +66,7 @@ export function ProgressBar({
           style={{
             width:           '100%',
             height:          `${height}px`,
-            backgroundColor: 'var(--surface-float)',
+            backgroundColor: 'var(--v2-surface-low)',
             borderRadius:    'var(--radius-full)',
             overflow:        'hidden',
             position:        'relative',
@@ -80,7 +80,7 @@ export function ProgressBar({
               left:            0,
               height:          '100%',
               width:           '50%',
-              background:      'linear-gradient(90deg, transparent 0%, var(--accent-primary) 50%, transparent 100%)',
+              background:      'linear-gradient(90deg, transparent 0%, var(--v2-accent) 50%, transparent 100%)',
               borderRadius:    'var(--radius-full)',
             }}
           />
@@ -109,7 +109,7 @@ export function ProgressBar({
         style={{
           width:        '100%',
           height:       `${height}px`,
-          backgroundColor: 'var(--surface-float)',
+          backgroundColor: 'var(--v2-surface-low)',
           borderRadius:    'var(--radius-full)',
           overflow:        'hidden',
         }}

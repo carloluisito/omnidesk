@@ -3,11 +3,11 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![Version](https://img.shields.io/badge/version-1.4.1-green.svg)
-![Tests](https://img.shields.io/badge/tests-788%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-334%20passing-brightgreen.svg)
 
-> A multi-provider desktop terminal for AI coding CLIs with multi-session management, split-view layouts, real-time session sharing, and advanced productivity features.
+> A multi-provider desktop terminal for AI coding CLIs, organized around a flat **repo → session** workflow.
 
-**OmniDesk** is an Electron-based desktop application that wraps AI coding CLIs (Claude Code, Codex CLI, and more) in a feature-rich terminal interface. Manage multiple sessions simultaneously, organize your workspace with split views, share live sessions with teammates, use prompt templates, and monitor your API usage — all in one beautiful desktop app.
+**OmniDesk** is an Electron-based desktop application that wraps AI coding CLIs (Claude Code, Codex CLI, and more) in a clean, fast terminal shell. Switch repositories from a left activity bar, navigate the sessions inside each repo from a session rail, and run every session in a full xterm.js terminal — focus a single session, or view them all at once in a grid.
 
 ![Main Screen](docs/main-screen.png)
 
@@ -19,48 +19,32 @@
 <tr>
 <td width="50%">
 
-**Create Session** — Workspace-aware session creation with directory search and permission modes.
+**Grid View** — See every session in a repo at once as live tiles, then click to focus.
 
-![Create Session](docs/create-session.png)
-
-</td>
-<td width="50%">
-
-**Git Integration** — Built-in git panel with file staging, inline diffs, AI commit messages, and history.
-
-![Git Panel](docs/git-panel.png)
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**Workspace Layouts** — Choose from preset layouts or build a custom grid with up to 4 panes.
-
-![Workspace Layout](docs/work-space-layout.png)
+![Grid View](docs/grid-view.png)
 
 </td>
 <td width="50%">
 
-**Settings & Workspaces** — Configure workspaces, templates, drag-and-drop, atlas, and more.
+**New Session** — Pick a repo, provider, worktree mode, and (for Claude) a per-session launch mode.
 
-![Settings](docs/settings-workspace.png)
+![New Session](docs/new-session.png)
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-**Fuel Status Popup** — Quick glance at API quota from the toolbar.
+**Command Palette** — `Ctrl/Cmd+K` for quick actions: new session, switch view, toggle inspector, add repo.
 
-![Fuel Popup](docs/fuel-status-popup.png)
+![Command Palette](docs/command-palette.png)
 
 </td>
 <td width="50%">
 
-**Fuel Status Panel** — Detailed 5-hour and 7-day reserves with burn rate tracking.
+**Repo Switcher** — `Ctrl/Cmd+Shift+K` to jump between repositories and their sessions.
 
-![Fuel Panel](docs/fuel-status-side-panel.png)
+![Repo Switcher](docs/repo-switcher.png)
 
 </td>
 </tr>
@@ -70,89 +54,44 @@
 
 ## Features
 
+### Repo → Session Workflow
+- **Activity bar** — switch between repositories from the left rail; drag repos together to form groups
+- **Session rail** — per-repo list of sessions for fast navigation
+- **Focus & Grid modes** — focus a single session full-screen, or view all sessions in a repo as live tiles
+- **Right inspector** — collapsible panel with per-session details (provider, branch, working directory)
+
 ### Multi-Session Management
-- **Multiple Claude sessions** in tabbed interface
-- **Per-session launch mode picker** — choose between `claude`, `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at session creation time, gated by an automatic CLI availability probe
-- **Session persistence** — resume sessions after app restart
+- **Multiple concurrent sessions** per repository
 - **Named sessions** for better organization
-- **Session history** — search and export conversation logs
-- **Checkpoints** — save and restore session states
-
-### Split-View Terminal
-- **Split screen** support with up to 4 terminal panes
-- **Flexible layouts** — horizontal, vertical, and grid splits
-- **Layout picker** — preset layouts (single, 2-column, 3-column, 2x2) or custom grids
-- **Drag-and-drop** session assignment to panes
-
-### Git Integration
-- **Full git workflow** — status, staging, branches, commit, push/pull/fetch, diff, log
-- **AI commit messages** — heuristic-based conventional commits generation
-- **Real-time file watching** — status updates automatically as you work
-- **Keyboard shortcut** `Ctrl+Shift+G` and staged count badge in toolbar
-
-### Prompt Templates & Command Palette
-- **Keyboard shortcut** (`Ctrl/Cmd+Shift+P`) to launch command palette
-- **Prompt template library** for common tasks
-- **Variable substitution** — `{{clipboard}}`, `{{currentDir}}`, `{{selection}}`, etc.
-- **Custom templates** — create and edit your own
-- **Fuzzy search** for quick template access
-
-### Custom Commands
-- **User and project-scoped commands** — define reusable commands with parameters
-- **Parameter system** — string, number, boolean, select, and multiline parameter types with defaults and validation
-- **Management UI** — create, edit, delete, import/export commands from the Settings panel
-- **Command palette integration** — custom commands appear alongside prompt templates in `Ctrl+Shift+P`
-- **Secure execution** — input sanitization, path traversal protection, and size limits
-
-### Repo Tasks
-- **Per-repo todo list** backed by a plain `.omnidesk/tasks.md` file — human-readable, AI-editable, diff-friendly
-- **Side panel** with inline add, checkboxes, editable titles, and notes; completed tasks auto-sink to the bottom
-- **Quick capture overlay** — `Ctrl/Cmd+Shift+T` opens a focused input to add a task without leaving flow
-- **Live sync with the active session** — ask Claude/Codex to refine your tasks; OmniDesk watches the file and the panel updates instantly
-- **Stable task ids** — survive title edits via a sidecar `.omnidesk/tasks.meta.json` so the markdown stays clean
-
-### API Quota Monitoring
-- **Real-time quota display** — see your Claude API usage at a glance
-- **Burn rate tracking** — monitor spending over time
-- **Budget alerts** — get notified when approaching limits
-- **Fuel gauge** in toolbar with detailed popup and side panel
-
-### Agent Teams
-- **Automatic team detection** — monitors `~/.claude/teams/` for agent team activity
-- **Team Panel** — sidebar showing team hierarchy, members, and status
-- **Task Board** — Kanban-style visualization with per-team tasks
-- **Message Stream** — real-time inter-agent communication feed
-- **Agent Graph** — interactive node-based relationship visualization
-- **Auto-layout** — automatically arranges panes when teammates join
-
+- **Session persistence** — sessions are restored after an app restart
+- **Pre-warmed session pool** for fast session creation
+- **Per-session launch mode picker** (Claude) — choose between `claude`, `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at creation time, gated by an automatic CLI availability probe
 
 ### Multi-Provider Support
 - **Pluggable provider layer** — swap between Claude Code, Codex CLI, and future providers
-- **Provider selector** in session creation dialog (auto-shown when multiple providers available)
-- **Provider-specific features** — UI adapts based on provider capabilities
-- **Tab badges** — visual indicator for non-default providers (e.g., `[CX]` for Codex)
-- **Auto-detection** — providers registered automatically based on installed CLI binaries
+- **Provider selector** in the new-session sheet (shown automatically when more than one provider is available)
+- **Provider badges** on sessions to distinguish non-default providers
+- **Auto-detection** — providers register automatically based on installed CLI binaries
 
-### Real-Time Session Sharing
-- **Share live sessions** with remote teammates via LaunchTunnel relay
-- **One-click sharing** — right-click a tab to share; generates a share code and URL
-- **Read-only observers** — teammates see your terminal in real time with scrollback history
-- **Control handoff** — observers can request input control; host grants or revokes
-- **Deep links** — `omnidesk://join/<code>` opens the app directly to the join dialog
-- **Secure** — WebSocket relay with binary frame protocol, gated behind LaunchTunnel Pro
+### Worktree-Aware Sessions
+- **Create a session on a new git worktree/branch, an existing branch, or the current checkout**
+- **Background git operations** — status, branches, and worktree management run in the main process (no separate Git panel to manage)
+- **Optional cleanup** — remove the worktree/branch when you close the session
 
-### Repository Atlas Engine
-- **Automated codebase mapping** — scans files, analyzes imports, infers domain boundaries
-- **CLAUDE.md generation** — creates architectural atlas for AI tools to navigate the repo
-- **Domain-to-file index** — generates `docs/repo-index.md` with per-domain file tables
-- **Preview and approve** — review generated content before writing to disk
+### Command Palette & Repo Switcher
+- **Command palette** (`Ctrl/Cmd+K`) for quick actions — new session, switch to Focus/Grid, toggle the inspector, add a repository
+- **Repo switcher** (`Ctrl/Cmd+Shift+K`) to jump between repositories and their sessions
+
+### Quota Awareness
+- **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
 
 ### Terminal Features
 - **Full xterm.js terminal** with rich text formatting
-- **Clickable links** — URLs automatically detected
+- **Clickable links** — URLs are automatically detected and open in your browser
 - **Copy/paste support** with keyboard shortcuts
-- **Obsidian dark theme** with JetBrains Mono font
-- **Drag-and-drop** file insertion into terminal
+- **Newline insertion** — `Ctrl/Shift/Alt/Cmd+Enter` inserts a literal newline without submitting
+- **Ctrl+C guard** — a confirmation dialog prevents accidentally exiting the CLI
+- **Obsidian dark theme** with the JetBrains Mono font
 
 ---
 
@@ -167,6 +106,8 @@ Before installing OmniDesk, ensure you have:
    ```
    Or follow the [official installation guide](https://claude.ai/claude-code)
 3. **Claude API credentials** — OmniDesk reads from `~/.claude/.credentials.json` (set up by Claude CLI)
+
+> **Optional:** install the [Codex CLI](https://github.com/openai/codex) to enable the Codex provider — OmniDesk detects it automatically.
 
 ---
 
@@ -191,7 +132,7 @@ cd omnidesk
 npm install
 
 # Run in development mode
-npm run electron:watch
+npm run electron:dev
 
 # Or build for production
 npm run package
@@ -210,11 +151,12 @@ Built packages will be in the `release/` directory.
 
 ## Quick Start
 
-1. **Launch OmniDesk** from your applications menu or run `npm run electron:watch`
-2. **Create your first session** — click "+" or press `Ctrl+T`, pick a workspace and directory
-3. **Start using Claude** — type your prompt in the terminal
-4. **Try the command palette** — press `Ctrl+Shift+P` to browse prompt templates
-5. **Enable split view** — use the layout picker or click split controls in the pane header
+1. **Launch OmniDesk** from your applications menu or run `npm run electron:dev`
+2. **Add a repository** — use the **+** button on the activity bar to clone a repo or open an existing folder
+3. **Create a session** — press `Ctrl/Cmd+N` (or use the **+ New Session** affordance), pick a repo, provider, and worktree mode
+4. **Start working** — type your prompt in the terminal
+5. **Switch views** — `Ctrl/Cmd+1` for Focus (one session), `Ctrl/Cmd+2` for Grid (all sessions)
+6. **Open the command palette** — press `Ctrl/Cmd+K` for quick actions
 
 ---
 
@@ -222,14 +164,15 @@ Built packages will be in the `release/` directory.
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+T` | New Session |
-| `Ctrl+W` | Close Current Session |
-| `Ctrl+Tab` | Next Session Tab |
-| `Ctrl+Shift+Tab` | Previous Session Tab |
-| `Ctrl+Shift+P` | Open Command Palette |
-| `Ctrl+Shift+G` | Open Git Panel |
-| `Ctrl+,` | Open Settings |
+| `Ctrl/Cmd+N` | New Session |
+| `Ctrl/Cmd+K` | Command Palette |
+| `Ctrl/Cmd+Shift+K` | Repo Switcher |
+| `Ctrl/Cmd+1` | Focus View |
+| `Ctrl/Cmd+2` | Grid View |
+| `Ctrl/Cmd+.` | Toggle Right Inspector |
+| `Escape` | Close Palette / Sheets |
 | `Ctrl+C` | Session Termination Dialog |
+| `Ctrl/Shift/Alt/Cmd+Enter` | Insert newline (without submitting) |
 
 ---
 
@@ -241,20 +184,39 @@ Built packages will be in the `release/` directory.
 | Frontend | React 18 + TypeScript |
 | Terminal | xterm.js + node-pty |
 | Styling | Tailwind CSS (Obsidian theme) |
-| Graph | reactflow |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (683 tests) + Playwright |
+| Testing | Vitest 4 (334 tests) + Playwright |
 
 ---
 
-## Project Structure
+## Architecture
+
+OmniDesk uses a **3-layer pattern per domain**: Manager (main process) → Hook (renderer) → Components (renderer).
+
+```
+┌─────────────────────────────────────────────┐
+│  Main Process (Node.js)                     │
+│  ~7 managers + IPC handlers + session pool  │
+└──────────────────┬──────────────────────────┘
+                   │ IPC (103 methods)
+┌──────────────────┴──────────────────────────┐
+│  Preload (auto-derived context bridge)      │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────┴──────────────────────────┐
+│  Renderer (React 18)                        │
+│  Hooks → Shell components → Terminal        │
+└─────────────────────────────────────────────┘
+```
+
+The **IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — one entry auto-derives the channel, the preload bridge method, and the TypeScript types. A **provider abstraction** (`IProvider`) decouples CLI specifics from session management, so adding a new AI CLI is a self-contained provider.
 
 ```
 omnidesk/
 ├── src/
-│   ├── main/              # Electron main process (16 managers)
+│   ├── main/              # Electron main process (~7 managers)
 │   ├── preload/           # Context bridge (auto-derived from contract)
-│   ├── renderer/          # React app (hooks, components, utils)
+│   ├── renderer/          # React app (shell components, hooks, utils)
 │   └── shared/            # IPC contract, types, shared utilities
 ├── test/                  # Test setup and helpers
 ├── e2e/                   # Playwright E2E tests
@@ -270,12 +232,14 @@ See [docs/repo-index.md](docs/repo-index.md) for a detailed domain-to-file mappi
 
 ```bash
 npm install              # Install dependencies
-npm run electron:watch   # Dev mode with hot reload
-npm test                 # Run all 483 tests
+npm run electron:dev     # Dev mode with hot reload (renderer)
+npm test                 # Run all 334 tests
 npm run test:watch       # Watch mode
-npm run test:e2e         # E2E tests (local only)
+npm run test:e2e         # E2E tests (local only — requires a built app)
 npm run test:coverage    # Coverage report
 ```
+
+> **Note:** `npm run build` rebuilds only the renderer. The main process is built separately by `npm run build:electron`. `npm start` chains both before launching Electron — useful before running E2E tests, which load the built `dist/main/index.js`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
@@ -283,9 +247,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## Privacy & Security
 
-- **Local-first** — all session data stored on your machine
-- **No telemetry** — no usage data collected or transmitted
-- **Minimal external services** — communicates with Anthropic's API for quota, and LaunchTunnel for optional session sharing and tunnels
+- **Local-first** — all session data is stored on your machine
+- **No telemetry** — no usage data is collected or transmitted
+- **Minimal external services** — the only network calls are to Anthropic's API for quota/burn-rate data
 - **Credential security** — reads Claude CLI credentials locally, never logs or stores them
 
 For more details, see [SECURITY.md](SECURITY.md).

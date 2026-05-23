@@ -8,10 +8,11 @@ export interface UseSessionManagerReturn {
   activeSessionId: string | null;
   isLoading: boolean;
   createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode) => Promise<void>;
-  closeSession: (sessionId: string) => Promise<void>;
+  closeSession: (sessionId: string, opts?: { removeWorktree?: boolean; removeBranch?: boolean }) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
   restartSession: (sessionId: string) => Promise<void>;
+  stopSession: (sessionId: string) => Promise<void>;
   duplicateSession: (sessionId: string) => void;
   sendInput: (sessionId: string, data: string) => void;
   resizeSession: (sessionId: string, cols: number, rows: number) => void;
@@ -26,6 +27,7 @@ function sessionMetadataToTabData(metadata: SessionMetadata): TabData {
     permissionMode: metadata.permissionMode,
     status: metadata.status === 'starting' ? 'running' : metadata.status,
     worktreeBranch: metadata.worktreeInfo?.branch ?? null,
+    mainRepoPath: metadata.worktreeInfo?.mainRepoPath ?? null,
     providerId: metadata.providerId,
   };
 }
@@ -127,9 +129,14 @@ export function useSessionManager(): UseSessionManagerReturn {
     }
   }, []);
 
-  const closeSession = useCallback(async (sessionId: string) => {
+  const closeSession = useCallback(async (
+    sessionId: string,
+    opts?: { removeWorktree?: boolean; removeBranch?: boolean },
+  ) => {
     try {
-      await window.electronAPI.closeSession(sessionId);
+      // Default close = stop the CLI, preserve everything else. The user must
+      // explicitly opt-in to removing the worktree dir or deleting the branch.
+      await window.electronAPI.closeSession(sessionId, opts);
     } catch (err) {
       console.error('Failed to close session:', err);
       throw err;
@@ -159,6 +166,15 @@ export function useSessionManager(): UseSessionManagerReturn {
       await window.electronAPI.restartSession(sessionId);
     } catch (err) {
       console.error('Failed to restart session:', err);
+      throw err;
+    }
+  }, []);
+
+  const stopSession = useCallback(async (sessionId: string) => {
+    try {
+      await window.electronAPI.stopSession(sessionId);
+    } catch (err) {
+      console.error('Failed to stop session:', err);
       throw err;
     }
   }, []);
@@ -205,6 +221,7 @@ export function useSessionManager(): UseSessionManagerReturn {
     switchSession,
     renameSession,
     restartSession,
+    stopSession,
     duplicateSession,
     sendInput,
     resizeSession,

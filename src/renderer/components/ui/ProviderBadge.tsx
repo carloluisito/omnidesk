@@ -29,18 +29,18 @@ function getProviderColors(providerId?: string, muted = false): { bg: string; te
   if (providerId === 'claude') {
     return {
       bg:   `rgba(204, 133, 51, 0.${opacity})`,
-      text: muted ? 'var(--text-tertiary)' : 'var(--provider-claude)',
+      text: muted ? 'var(--v2-text-tertiary)' : 'var(--provider-claude)',
     };
   }
   if (providerId === 'codex') {
     return {
       bg:   `rgba(16, 163, 127, 0.${opacity})`,
-      text: muted ? 'var(--text-tertiary)' : 'var(--provider-codex)',
+      text: muted ? 'var(--v2-text-tertiary)' : 'var(--provider-codex)',
     };
   }
   return {
     bg:   `rgba(157, 163, 190, 0.${opacity})`,
-    text: muted ? 'var(--text-tertiary)' : 'var(--provider-future)',
+    text: muted ? 'var(--v2-text-tertiary)' : 'var(--provider-future)',
   };
 }
 

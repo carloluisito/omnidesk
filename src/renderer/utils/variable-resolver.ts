@@ -1,4 +1,9 @@
-import { VariableContext } from '../../shared/types/prompt-templates';
+interface VariableContext {
+  clipboard?: string;
+  currentDir?: string;
+  selection?: string;
+  sessionName?: string;
+}
 
 /**
  * Resolves template variables in a prompt string

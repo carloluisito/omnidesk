@@ -1,4 +1,4 @@
-// @atlas-entrypoint: IPC single source of truth — 149 methods, auto-derives preload bridge and types
+// @atlas-entrypoint: IPC single source of truth — 103 methods, auto-derives preload bridge and types
 /**
  * IPC Contract — Single source of truth for all IPC methods.
  *
@@ -17,6 +17,7 @@ import type {
   SessionInput,
   SessionResizeRequest,
   SubdirectoryEntry,
+  GitRepoEntry,
   AppSettings,
   Workspace,
   WorkspaceCreateRequest,
@@ -29,19 +30,9 @@ import type {
   SplitViewState,
   SessionPoolSettings,
   AppVersionInfo,
-  TeamInfo,
-  TeammateDetectedEvent,
-  TasksUpdatedEvent,
-  TeamRemovedEvent,
   ClaudeModel,
   ModelSwitchEvent,
 } from './ipc-types';
-
-import type {
-  PromptTemplate,
-  TemplateCreateRequest,
-  TemplateUpdateRequest,
-} from './types/prompt-templates';
 
 import type {
   HistorySessionEntry,
@@ -55,22 +46,6 @@ import type {
   CheckpointCreateRequest,
   CheckpointExportFormat,
 } from './types/checkpoint-types';
-
-import type {
-  AtlasGenerateRequest,
-  AtlasGenerateResult,
-  AtlasWriteRequest,
-  AtlasWriteResult,
-  AtlasStatus,
-  AtlasSettings,
-  AtlasScanProgress,
-} from './types/atlas-types';
-
-import type {
-  LayoutPreset,
-} from '../types/layout-presets';
-
-import type { LayoutNode } from './ipc-types';
 
 import type {
   GitStatus,
@@ -89,70 +64,10 @@ import type {
 } from './types/git-types';
 
 import type {
-  Playbook,
-  PlaybookRunRequest,
-  PlaybookCreateRequest,
-  PlaybookUpdateRequest,
-  PlaybookExportData,
-  PlaybookExecutionState,
-  PlaybookStepChangedEvent,
-  PlaybookCompletedEvent,
-  PlaybookErrorEvent,
-} from './types/playbook-types';
-
-import type {
-  TunnelInfo,
-  TunnelCreateRequest,
-  TunnelSettings,
-  TunnelAccountInfo,
-  TunnelUsageStats,
-  TunnelRequestLog,
-  TunnelOperationResult,
-  TunnelCreatedEvent,
-  TunnelStoppedEvent,
-  TunnelErrorEvent,
-  TunnelOutputEvent,
-} from './types/tunnel-types';
-
-import type {
   ProviderInfo,
   ProviderCapabilities,
   ProviderId,
 } from './types/provider-types';
-
-import type {
-  CustomCommand,
-  CommandListRequest,
-  CommandCreateRequest,
-  CommandUpdateRequest,
-  CommandDeleteRequest,
-  CommandValidation,
-  CommandScope,
-} from './types/custom-command-types';
-
-import type {
-  ShareInfo,
-  ShareOperationResult,
-  SharingSettings,
-  StartShareRequest,
-  JoinShareRequest,
-  ObserverJoinedEvent,
-  ObserverLeftEvent,
-  ControlRequestedEvent,
-  ControlGrantedEvent,
-  ControlRevokedEvent,
-  ShareStartedEvent,
-  ShareStoppedEvent,
-  ShareOutputEvent,
-  ShareMetadataEvent,
-} from './types/sharing-types';
-
-import type {
-  Task,
-  TaskAddRequest,
-  TaskEditRequest,
-  TasksChangedEvent,
-} from './types/task-types';
 
 import type { AgentViewAvailability } from './types/agent-view-types';
 
@@ -187,11 +102,12 @@ export interface EventContract<Ch extends string, Payload> {
 export interface IPCContractMap {
   // ── Session management (invoke) ──
   createSession:       InvokeContract<'session:create',    [SessionCreateRequest],               SessionMetadata>;
-  closeSession:        InvokeContract<'session:close',     [string],                             boolean>;
+  closeSession:        InvokeContract<'session:close',     [string, { removeWorktree?: boolean; removeBranch?: boolean }?], boolean>;
   switchSession:       InvokeContract<'session:switch',    [string],                             boolean>;
   renameSession:       InvokeContract<'session:rename',    [string, string],                     SessionMetadata>;
   listSessions:        InvokeContract<'session:list',      [],                                   SessionListResponse>;
   restartSession:      InvokeContract<'session:restart',   [string],                             boolean>;
+  stopSession:         InvokeContract<'session:stop',      [string],                             boolean>;
   getActiveSession:    InvokeContract<'session:getActive', [],                                   string | null>;
   revealInExplorer:    InvokeContract<'session:revealInExplorer', [string],                      boolean>;
 
@@ -202,10 +118,6 @@ export interface IPCContractMap {
 
   // ── Model switching (invoke) ──
   switchModel:         InvokeContract<'model:switch', [string, ClaudeModel], boolean>;
-
-  // ── Model History (invoke) ──
-  getModelHistory:     InvokeContract<'model:getHistory',   [string], import('../main/model-history-manager').ModelSwitchHistoryEntry[]>;
-  clearModelHistory:   InvokeContract<'model:clearHistory', [string], boolean>;
 
   // ── Window controls (send) ──
   minimizeWindow:      SendContract<'window:minimize', []>;
@@ -221,7 +133,7 @@ export interface IPCContractMap {
   // ── Session events (main→renderer) ──
   onSessionCreated:    EventContract<'session:created',  SessionMetadata>;
   onSessionClosed:     EventContract<'session:closed',   string>;
-  onSessionSwitched:   EventContract<'session:switched',  string>;
+  onSessionSwitched:   EventContract<'session:switched', string>;
   onSessionUpdated:    EventContract<'session:updated',  SessionMetadata>;
   onSessionOutput:     EventContract<'session:output',   SessionOutput>;
   onSessionExited:     EventContract<'session:exited',   SessionExitEvent>;
@@ -232,10 +144,12 @@ export interface IPCContractMap {
   showSaveDialog:      InvokeContract<'dialog:showSaveDialog',  [{ defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }], string | null>;
   writeFile:           InvokeContract<'fs:writeFile',            [string, string],                boolean>;
   listSubdirectories:  InvokeContract<'fs:listSubdirectories',   [string],                       SubdirectoryEntry[]>;
+  listGitRepos:        InvokeContract<'fs:listGitRepos',         [string],                       GitRepoEntry[]>;
   createDirectory:     InvokeContract<'fs:createDirectory',      [string],                       boolean>;
 
   // ── Settings & Workspaces (invoke) ──
   getSettings:         InvokeContract<'settings:get',            [],                              AppSettings>;
+  setSettings:         InvokeContract<'settings:set',            [Partial<AppSettings>],          AppSettings>;
   listWorkspaces:      InvokeContract<'workspace:list',          [],                              Workspace[]>;
   addWorkspace:        InvokeContract<'workspace:add',           [WorkspaceCreateRequest],        Workspace>;
   updateWorkspace:     InvokeContract<'workspace:update',        [WorkspaceUpdateRequest],        Workspace>;
@@ -253,14 +167,6 @@ export interface IPCContractMap {
   getQuota:            InvokeContract<'quota:get',        [boolean?],                            ClaudeUsageQuota | null>;
   refreshQuota:        InvokeContract<'quota:refresh',    [],                                    ClaudeUsageQuota | null>;
   getBurnRate:         InvokeContract<'burnRate:get',     [],                                    BurnRateData>;
-
-  // ── Prompt Templates (invoke) ──
-  listAllTemplates:    InvokeContract<'template:listAll',  [],                                   PromptTemplate[]>;
-  listUserTemplates:   InvokeContract<'template:listUser', [],                                   PromptTemplate[]>;
-  getTemplate:         InvokeContract<'template:get',      [string],                             PromptTemplate | null>;
-  addTemplate:         InvokeContract<'template:add',      [TemplateCreateRequest],              PromptTemplate>;
-  updateTemplate:      InvokeContract<'template:update',   [TemplateUpdateRequest],              PromptTemplate>;
-  deleteTemplate:      InvokeContract<'template:delete',   [string],                             boolean>;
 
   // ── File Drag-and-Drop (invoke) ──
   getFileInfo:         InvokeContract<'dragdrop:getFileInfo',  [string[]],                       FileInfo[]>;
@@ -290,45 +196,6 @@ export interface IPCContractMap {
   // ── Checkpoint events (main→renderer) ──
   onCheckpointCreated: EventContract<'checkpoint:created', Checkpoint>;
   onCheckpointDeleted: EventContract<'checkpoint:deleted', string>;
-
-  // ── Agent Teams (invoke) ──
-  getTeams:            InvokeContract<'teams:getAll',         [],                                 TeamInfo[]>;
-  getTeamForSession:   InvokeContract<'teams:getForSession',  [string],                           TeamInfo | null>;
-  getTeamSessions:     InvokeContract<'teams:getSessions',    [string],                           SessionMetadata[]>;
-  linkSessionToTeam:   InvokeContract<'teams:linkSession',    [string, string, string],            boolean>;
-  unlinkSessionFromTeam: InvokeContract<'teams:unlinkSession', [string],                          boolean>;
-  closeTeam:           InvokeContract<'teams:close',          [string],                           boolean>;
-  updateEnableAgentTeams: InvokeContract<'settings:updateEnableAgentTeams', [boolean],             boolean>;
-  updateAutoLayoutTeams: InvokeContract<'settings:updateAutoLayout', [boolean],                   boolean>;
-  updateUIMode:          InvokeContract<'settings:updateUIMode',     ['beginner' | 'expert'],     boolean>;
-  updateDefaultModel:    InvokeContract<'settings:updateDefaultModel', [ClaudeModel],              boolean>;
-
-  // ── Agent Teams events (main→renderer) ──
-  onTeamDetected:      EventContract<'teams:detected',        TeamInfo>;
-  onTeammateAdded:     EventContract<'teams:teammateAdded',   TeammateDetectedEvent>;
-  onTasksUpdated:      EventContract<'teams:tasksUpdated',    TasksUpdatedEvent>;
-  onTeamRemoved:       EventContract<'teams:removed',         TeamRemovedEvent>;
-
-  // ── Repository Atlas (invoke) ──
-  generateAtlas:       InvokeContract<'atlas:generate',       [AtlasGenerateRequest],             AtlasGenerateResult>;
-  writeAtlas:          InvokeContract<'atlas:write',          [AtlasWriteRequest],                AtlasWriteResult>;
-  getAtlasStatus:      InvokeContract<'atlas:getStatus',      [string],                           AtlasStatus>;
-  getAtlasSettings:    InvokeContract<'atlas:getSettings',    [],                                 AtlasSettings>;
-  updateAtlasSettings: InvokeContract<'atlas:updateSettings', [Partial<AtlasSettings>],           AtlasSettings>;
-
-  // ── Command Registry (invoke) ──
-  searchCommands:      InvokeContract<'commands:search',      [string, number?],                  import('./types/command-types').CommandSearchResult[]>;
-  getAllCommands:      InvokeContract<'commands:getAll',      [],                                 import('./types/command-types').CommandRegistryData>;
-  executeCommand:      InvokeContract<'commands:execute',     [string, any[]?],                   boolean>;
-
-  // ── Repository Atlas events (main→renderer) ──
-  onAtlasScanProgress: EventContract<'atlas:scanProgress', AtlasScanProgress>;
-
-  // ── Layout Presets (invoke) ──
-  getLayoutPresets:    InvokeContract<'layout:getPresets',    [],                                 LayoutPreset[]>;
-  applyLayoutPreset:   InvokeContract<'layout:apply',         [string],                           boolean>;
-  applyCustomLayout:   InvokeContract<'layout:applyCustom',   [number, number],                   boolean>;
-  getCurrentLayout:    InvokeContract<'layout:getCurrent',    [],                                 LayoutNode>;
 
   // ── Git Integration (invoke) ──
   getGitStatus:        InvokeContract<'git:status',          [string],                              GitStatus>;
@@ -368,105 +235,10 @@ export interface IPCContractMap {
   onWorktreeCreated:   EventContract<'git:worktreeCreated',  WorktreeInfo>;
   onWorktreeRemoved:   EventContract<'git:worktreeRemoved',  string>;
 
-  // ── Session Playbooks (invoke) ──
-  listPlaybooks:       InvokeContract<'playbook:list',        [],                                  Playbook[]>;
-  getPlaybook:         InvokeContract<'playbook:get',         [string],                            Playbook | null>;
-  addPlaybook:         InvokeContract<'playbook:add',         [PlaybookCreateRequest],             Playbook>;
-  updatePlaybook:      InvokeContract<'playbook:update',      [PlaybookUpdateRequest],             Playbook>;
-  deletePlaybook:      InvokeContract<'playbook:delete',      [string],                            boolean>;
-  importPlaybook:      InvokeContract<'playbook:import',      [PlaybookExportData],                Playbook>;
-  exportPlaybook:      InvokeContract<'playbook:export',      [string],                            PlaybookExportData>;
-  duplicatePlaybook:   InvokeContract<'playbook:duplicate',   [string],                            Playbook>;
-  runPlaybook:         InvokeContract<'playbook:run',         [PlaybookRunRequest],                PlaybookExecutionState>;
-  cancelPlaybook:      InvokeContract<'playbook:cancel',      [string],                            boolean>;
-  confirmPlaybook:     InvokeContract<'playbook:confirm',     [string],                            boolean>;
-  getPlaybookExecution: InvokeContract<'playbook:getExecution', [string],                          PlaybookExecutionState | null>;
-
-  // ── Session Playbooks events (main→renderer) ──
-  onPlaybookStepChanged: EventContract<'playbook:stepChanged', PlaybookStepChangedEvent>;
-  onPlaybookCompleted:   EventContract<'playbook:completed',   PlaybookCompletedEvent>;
-  onPlaybookError:       EventContract<'playbook:error',       PlaybookErrorEvent>;
-
-  // ── LaunchTunnel (invoke) ──
-  tunnelList:          InvokeContract<'tunnel:list',          [],                                  TunnelInfo[]>;
-  tunnelCreate:        InvokeContract<'tunnel:create',         [TunnelCreateRequest],               TunnelOperationResult>;
-  tunnelStop:          InvokeContract<'tunnel:stop',           [string],                            TunnelOperationResult>;
-  tunnelGetInfo:       InvokeContract<'tunnel:getInfo',        [string],                            TunnelInfo | null>;
-  tunnelGetLogs:       InvokeContract<'tunnel:getLogs',        [string, number?],                   TunnelRequestLog[]>;
-  tunnelGetSettings:   InvokeContract<'tunnel:getSettings',    [],                                  TunnelSettings>;
-  tunnelUpdateSettings: InvokeContract<'tunnel:updateSettings', [Partial<TunnelSettings>],          TunnelSettings>;
-  tunnelGetAccount:    InvokeContract<'tunnel:getAccount',     [],                                  TunnelAccountInfo | null>;
-  tunnelGetUsage:      InvokeContract<'tunnel:getUsage',       [string],                            TunnelUsageStats | null>;
-  tunnelRefresh:       InvokeContract<'tunnel:refresh',        [],                                  TunnelInfo[]>;
-  tunnelDetectBinary:  InvokeContract<'tunnel:detectBinary',   [],                                  boolean>;
-  tunnelValidateKey:   InvokeContract<'tunnel:validateKey',    [string],                            TunnelOperationResult>;
-  tunnelStopAll:       InvokeContract<'tunnel:stopAll',        [],                                  TunnelOperationResult>;
-
-  // ── LaunchTunnel events (main→renderer) ──
-  onTunnelCreated:     EventContract<'tunnel:created',   TunnelCreatedEvent>;
-  onTunnelStopped:     EventContract<'tunnel:stopped',   TunnelStoppedEvent>;
-  onTunnelError:       EventContract<'tunnel:error',     TunnelErrorEvent>;
-  onTunnelOutput:      EventContract<'tunnel:output',    TunnelOutputEvent>;
-
   // ── Providers (invoke) ──
   listProviders:           InvokeContract<'provider:list',         [],              ProviderInfo[]>;
   getAvailableProviders:   InvokeContract<'provider:available',    [],              ProviderInfo[]>;
   getProviderCapabilities: InvokeContract<'provider:capabilities', [ProviderId],   ProviderCapabilities>;
-
-  // ── Session Sharing — host actions (invoke) ──
-  startShare:              InvokeContract<'sharing:start',           [StartShareRequest],                      ShareInfo>;
-  stopShare:               InvokeContract<'sharing:stop',            [string],                                 ShareOperationResult>;
-  getShareInfo:            InvokeContract<'sharing:getInfo',         [string],                                 ShareInfo | null>;
-  listActiveShares:        InvokeContract<'sharing:listActive',      [],                                       ShareInfo[]>;
-  kickObserver:            InvokeContract<'sharing:kick',            [string, string],                         ShareOperationResult>;
-  grantControl:            InvokeContract<'sharing:grantControl',    [string, string],                         ShareOperationResult>;
-  revokeControl:           InvokeContract<'sharing:revokeControl',   [string, string],                         ShareOperationResult>;
-
-  // ── Session Sharing — observer actions (invoke) ──
-  joinShare:               InvokeContract<'sharing:join',            [JoinShareRequest],                       ShareOperationResult>;
-  leaveShare:              InvokeContract<'sharing:leave',           [string],                                 ShareOperationResult>;
-  requestControl:          InvokeContract<'sharing:requestControl',  [string],                                 ShareOperationResult>;
-  releaseControl:          InvokeContract<'sharing:releaseControl',  [string],                                 ShareOperationResult>;
-
-  // ── Session Sharing — settings (invoke) ──
-  getSharingSettings:      InvokeContract<'sharing:getSettings',     [],                                       SharingSettings>;
-  updateSharingSettings:   InvokeContract<'sharing:updateSettings',  [Partial<SharingSettings>],               SharingSettings>;
-
-  // ── Session Sharing — subscription check (invoke) ──
-  checkShareEligibility:   InvokeContract<'sharing:checkEligibility', [],                                      { eligible: boolean; reason?: string; plan?: string }>;
-
-  // ── Session Sharing — events (main -> renderer) ──
-  onObserverJoined:        EventContract<'sharing:observerJoined',   ObserverJoinedEvent>;
-  onObserverLeft:          EventContract<'sharing:observerLeft',      ObserverLeftEvent>;
-  onControlRequested:      EventContract<'sharing:controlRequested', ControlRequestedEvent>;
-  onControlGranted:        EventContract<'sharing:controlGranted',   ControlGrantedEvent>;
-  onControlRevoked:        EventContract<'sharing:controlRevoked',   ControlRevokedEvent>;
-  onShareStarted:          EventContract<'sharing:shareStarted',     ShareStartedEvent>;
-  onShareStopped:          EventContract<'sharing:shareStopped',     ShareStoppedEvent>;
-  onShareOutput:           EventContract<'sharing:output',           ShareOutputEvent>;
-  onShareMetadata:         EventContract<'sharing:metadata',         ShareMetadataEvent>;
-  onDeepLinkJoin:          EventContract<'sharing:deepLinkJoin',     { shareCode: string }>;
-
-  // ── Tasks (invoke) ──
-  listTasks:           InvokeContract<'task:list',        [string],                              Task[]>;
-  addTask:             InvokeContract<'task:add',         [TaskAddRequest],                      Task>;
-  toggleTask:          InvokeContract<'task:toggle',      [string, string],                      Task>;
-  editTask:            InvokeContract<'task:edit',        [TaskEditRequest],                     Task>;
-  deleteTask:          InvokeContract<'task:delete',      [string, string],                      boolean>;
-
-  // ── Tasks events (main→renderer) ──
-  onTasksChanged:      EventContract<'task:changed',      TasksChangedEvent>;
-
-  // ── Custom Commands (invoke) ──
-  listCustomCommands:  InvokeContract<'command:list',     [CommandListRequest],                  CustomCommand[]>;
-  getCustomCommand:    InvokeContract<'command:get',      [string, CommandScope, string?],       CustomCommand | null>;
-  createCustomCommand: InvokeContract<'command:create',   [CommandCreateRequest],                CustomCommand>;
-  updateCustomCommand: InvokeContract<'command:update',   [CommandUpdateRequest],                CustomCommand>;
-  deleteCustomCommand: InvokeContract<'command:delete',   [CommandDeleteRequest],                boolean>;
-  validateCommandName: InvokeContract<'command:validate', [string, CommandScope, string?],       CommandValidation>;
-
-  // ── Custom Command events (main→renderer) ──
-  onCommandsChanged:   EventContract<'command:changed',   { scope: CommandScope; commands: CustomCommand[] }>;
 
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
@@ -491,6 +263,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   renameSession:       'session:rename',
   listSessions:        'session:list',
   restartSession:      'session:restart',
+  stopSession:         'session:stop',
   getActiveSession:    'session:getActive',
   revealInExplorer:    'session:revealInExplorer',
 
@@ -501,10 +274,6 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
 
   // Model switching
   switchModel:         'model:switch',
-
-  // Model History
-  getModelHistory:     'model:getHistory',
-  clearModelHistory:   'model:clearHistory',
 
   // Window controls
   minimizeWindow:      'window:minimize',
@@ -531,10 +300,12 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   showSaveDialog:      'dialog:showSaveDialog',
   writeFile:           'fs:writeFile',
   listSubdirectories:  'fs:listSubdirectories',
+  listGitRepos:        'fs:listGitRepos',
   createDirectory:     'fs:createDirectory',
 
   // Settings & Workspaces
   getSettings:         'settings:get',
+  setSettings:         'settings:set',
   listWorkspaces:      'workspace:list',
   addWorkspace:        'workspace:add',
   updateWorkspace:     'workspace:update',
@@ -552,14 +323,6 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   getQuota:            'quota:get',
   refreshQuota:        'quota:refresh',
   getBurnRate:         'burnRate:get',
-
-  // Templates
-  listAllTemplates:    'template:listAll',
-  listUserTemplates:   'template:listUser',
-  getTemplate:         'template:get',
-  addTemplate:         'template:add',
-  updateTemplate:      'template:update',
-  deleteTemplate:      'template:delete',
 
   // Drag-Drop
   getFileInfo:         'dragdrop:getFileInfo',
@@ -589,45 +352,6 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   // Checkpoint events
   onCheckpointCreated: 'checkpoint:created',
   onCheckpointDeleted: 'checkpoint:deleted',
-
-  // Agent Teams
-  getTeams:            'teams:getAll',
-  getTeamForSession:   'teams:getForSession',
-  getTeamSessions:     'teams:getSessions',
-  linkSessionToTeam:   'teams:linkSession',
-  unlinkSessionFromTeam: 'teams:unlinkSession',
-  closeTeam:           'teams:close',
-  updateEnableAgentTeams: 'settings:updateEnableAgentTeams',
-  updateAutoLayoutTeams: 'settings:updateAutoLayout',
-  updateUIMode:          'settings:updateUIMode',
-  updateDefaultModel:    'settings:updateDefaultModel',
-
-  // Agent Teams events
-  onTeamDetected:      'teams:detected',
-  onTeammateAdded:     'teams:teammateAdded',
-  onTasksUpdated:      'teams:tasksUpdated',
-  onTeamRemoved:       'teams:removed',
-
-  // Repository Atlas
-  generateAtlas:       'atlas:generate',
-  writeAtlas:          'atlas:write',
-  getAtlasStatus:      'atlas:getStatus',
-  getAtlasSettings:    'atlas:getSettings',
-  updateAtlasSettings: 'atlas:updateSettings',
-
-  // Command Registry
-  searchCommands:      'commands:search',
-  getAllCommands:      'commands:getAll',
-  executeCommand:      'commands:execute',
-
-  // Repository Atlas events
-  onAtlasScanProgress: 'atlas:scanProgress',
-
-  // Layout Presets
-  getLayoutPresets:    'layout:getPresets',
-  applyLayoutPreset:   'layout:apply',
-  applyCustomLayout:   'layout:applyCustom',
-  getCurrentLayout:    'layout:getCurrent',
 
   // Git Integration
   getGitStatus:        'git:status',
@@ -667,97 +391,12 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onWorktreeCreated:   'git:worktreeCreated',
   onWorktreeRemoved:   'git:worktreeRemoved',
 
-  // Session Playbooks
-  listPlaybooks:       'playbook:list',
-  getPlaybook:         'playbook:get',
-  addPlaybook:         'playbook:add',
-  updatePlaybook:      'playbook:update',
-  deletePlaybook:      'playbook:delete',
-  importPlaybook:      'playbook:import',
-  exportPlaybook:      'playbook:export',
-  duplicatePlaybook:   'playbook:duplicate',
-  runPlaybook:         'playbook:run',
-  cancelPlaybook:      'playbook:cancel',
-  confirmPlaybook:     'playbook:confirm',
-  getPlaybookExecution: 'playbook:getExecution',
-  onPlaybookStepChanged: 'playbook:stepChanged',
-  onPlaybookCompleted:   'playbook:completed',
-  onPlaybookError:       'playbook:error',
-
-  // LaunchTunnel
-  tunnelList:          'tunnel:list',
-  tunnelCreate:        'tunnel:create',
-  tunnelStop:          'tunnel:stop',
-  tunnelGetInfo:       'tunnel:getInfo',
-  tunnelGetLogs:       'tunnel:getLogs',
-  tunnelGetSettings:   'tunnel:getSettings',
-  tunnelUpdateSettings: 'tunnel:updateSettings',
-  tunnelGetAccount:    'tunnel:getAccount',
-  tunnelGetUsage:      'tunnel:getUsage',
-  tunnelRefresh:       'tunnel:refresh',
-  tunnelDetectBinary:  'tunnel:detectBinary',
-  tunnelValidateKey:   'tunnel:validateKey',
-  tunnelStopAll:       'tunnel:stopAll',
-  onTunnelCreated:     'tunnel:created',
-  onTunnelStopped:     'tunnel:stopped',
-  onTunnelError:       'tunnel:error',
-  onTunnelOutput:      'tunnel:output',
 
   // Providers
   listProviders:           'provider:list',
   getAvailableProviders:   'provider:available',
   getProviderCapabilities: 'provider:capabilities',
 
-  // Session Sharing — host actions
-  startShare:              'sharing:start',
-  stopShare:               'sharing:stop',
-  getShareInfo:            'sharing:getInfo',
-  listActiveShares:        'sharing:listActive',
-  kickObserver:            'sharing:kick',
-  grantControl:            'sharing:grantControl',
-  revokeControl:           'sharing:revokeControl',
-
-  // Session Sharing — observer actions
-  joinShare:               'sharing:join',
-  leaveShare:              'sharing:leave',
-  requestControl:          'sharing:requestControl',
-  releaseControl:          'sharing:releaseControl',
-
-  // Session Sharing — settings
-  getSharingSettings:      'sharing:getSettings',
-  updateSharingSettings:   'sharing:updateSettings',
-
-  // Session Sharing — subscription check
-  checkShareEligibility:   'sharing:checkEligibility',
-
-  // Session Sharing — events
-  onObserverJoined:        'sharing:observerJoined',
-  onObserverLeft:          'sharing:observerLeft',
-  onControlRequested:      'sharing:controlRequested',
-  onControlGranted:        'sharing:controlGranted',
-  onControlRevoked:        'sharing:controlRevoked',
-  onShareStarted:          'sharing:shareStarted',
-  onShareStopped:          'sharing:shareStopped',
-  onShareOutput:           'sharing:output',
-  onShareMetadata:         'sharing:metadata',
-  onDeepLinkJoin:          'sharing:deepLinkJoin',
-
-  // Tasks
-  listTasks:           'task:list',
-  addTask:             'task:add',
-  toggleTask:          'task:toggle',
-  editTask:            'task:edit',
-  deleteTask:          'task:delete',
-  onTasksChanged:      'task:changed',
-
-  // Custom Commands
-  listCustomCommands:  'command:list',
-  getCustomCommand:    'command:get',
-  createCustomCommand: 'command:create',
-  updateCustomCommand: 'command:update',
-  deleteCustomCommand: 'command:delete',
-  validateCommandName: 'command:validate',
-  onCommandsChanged:   'command:changed',
 
   // App info
   getVersionInfo:      'app:getVersionInfo',
@@ -779,6 +418,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   renameSession:       'invoke',
   listSessions:        'invoke',
   restartSession:      'invoke',
+  stopSession:         'invoke',
   getActiveSession:    'invoke',
   revealInExplorer:    'invoke',
 
@@ -787,9 +427,6 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   sessionReady:        'send',
 
   switchModel:         'invoke',
-
-  getModelHistory:     'invoke',
-  clearModelHistory:   'invoke',
 
   minimizeWindow:      'send',
   maximizeWindow:      'send',
@@ -810,9 +447,11 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   showSaveDialog:      'invoke',
   writeFile:           'invoke',
   listSubdirectories:  'invoke',
+  listGitRepos:        'invoke',
   createDirectory:     'invoke',
 
   getSettings:         'invoke',
+  setSettings:         'invoke',
   listWorkspaces:      'invoke',
   addWorkspace:        'invoke',
   updateWorkspace:     'invoke',
@@ -827,17 +466,6 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   getQuota:            'invoke',
   refreshQuota:        'invoke',
   getBurnRate:         'invoke',
-
-  listAllTemplates:    'invoke',
-  listUserTemplates:   'invoke',
-  getTemplate:         'invoke',
-  addTemplate:         'invoke',
-  updateTemplate:      'invoke',
-  deleteTemplate:      'invoke',
-
-  searchCommands:      'invoke',
-  getAllCommands:      'invoke',
-  executeCommand:      'invoke',
 
   getFileInfo:         'invoke',
   readFileContent:     'invoke',
@@ -863,35 +491,6 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
 
   onCheckpointCreated: 'event',
   onCheckpointDeleted: 'event',
-
-  getTeams:            'invoke',
-  getTeamForSession:   'invoke',
-  getTeamSessions:     'invoke',
-  linkSessionToTeam:   'invoke',
-  unlinkSessionFromTeam: 'invoke',
-  closeTeam:           'invoke',
-  updateEnableAgentTeams: 'invoke',
-  updateAutoLayoutTeams: 'invoke',
-  updateUIMode:          'invoke',
-  updateDefaultModel:    'invoke',
-
-  onTeamDetected:      'event',
-  onTeammateAdded:     'event',
-  onTasksUpdated:      'event',
-  onTeamRemoved:       'event',
-
-  generateAtlas:       'invoke',
-  writeAtlas:          'invoke',
-  getAtlasStatus:      'invoke',
-  getAtlasSettings:    'invoke',
-  updateAtlasSettings: 'invoke',
-
-  onAtlasScanProgress: 'event',
-
-  getLayoutPresets:    'invoke',
-  applyLayoutPreset:   'invoke',
-  applyCustomLayout:   'invoke',
-  getCurrentLayout:    'invoke',
 
   // Git Integration
   getGitStatus:        'invoke',
@@ -927,97 +526,10 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onWorktreeCreated:   'event',
   onWorktreeRemoved:   'event',
 
-  // Session Playbooks
-  listPlaybooks:       'invoke',
-  getPlaybook:         'invoke',
-  addPlaybook:         'invoke',
-  updatePlaybook:      'invoke',
-  deletePlaybook:      'invoke',
-  importPlaybook:      'invoke',
-  exportPlaybook:      'invoke',
-  duplicatePlaybook:   'invoke',
-  runPlaybook:         'invoke',
-  cancelPlaybook:      'invoke',
-  confirmPlaybook:     'invoke',
-  getPlaybookExecution: 'invoke',
-  onPlaybookStepChanged: 'event',
-  onPlaybookCompleted:   'event',
-  onPlaybookError:       'event',
-
-  // LaunchTunnel
-  tunnelList:          'invoke',
-  tunnelCreate:        'invoke',
-  tunnelStop:          'invoke',
-  tunnelGetInfo:       'invoke',
-  tunnelGetLogs:       'invoke',
-  tunnelGetSettings:   'invoke',
-  tunnelUpdateSettings: 'invoke',
-  tunnelGetAccount:    'invoke',
-  tunnelGetUsage:      'invoke',
-  tunnelRefresh:       'invoke',
-  tunnelDetectBinary:  'invoke',
-  tunnelValidateKey:   'invoke',
-  tunnelStopAll:       'invoke',
-  onTunnelCreated:     'event',
-  onTunnelStopped:     'event',
-  onTunnelError:       'event',
-  onTunnelOutput:      'event',
-
   // Providers
   listProviders:           'invoke',
   getAvailableProviders:   'invoke',
   getProviderCapabilities: 'invoke',
-
-  // Session Sharing — host actions
-  startShare:              'invoke',
-  stopShare:               'invoke',
-  getShareInfo:            'invoke',
-  listActiveShares:        'invoke',
-  kickObserver:            'invoke',
-  grantControl:            'invoke',
-  revokeControl:           'invoke',
-
-  // Session Sharing — observer actions
-  joinShare:               'invoke',
-  leaveShare:              'invoke',
-  requestControl:          'invoke',
-  releaseControl:          'invoke',
-
-  // Session Sharing — settings
-  getSharingSettings:      'invoke',
-  updateSharingSettings:   'invoke',
-
-  // Session Sharing — subscription check
-  checkShareEligibility:   'invoke',
-
-  // Session Sharing — events
-  onObserverJoined:        'event',
-  onObserverLeft:          'event',
-  onControlRequested:      'event',
-  onControlGranted:        'event',
-  onControlRevoked:        'event',
-  onShareStarted:          'event',
-  onShareStopped:          'event',
-  onShareOutput:           'event',
-  onShareMetadata:         'event',
-  onDeepLinkJoin:          'event',
-
-  // Tasks
-  listTasks:           'invoke',
-  addTask:             'invoke',
-  toggleTask:          'invoke',
-  editTask:            'invoke',
-  deleteTask:          'invoke',
-  onTasksChanged:      'event',
-
-  // Custom Commands
-  listCustomCommands:  'invoke',
-  getCustomCommand:    'invoke',
-  createCustomCommand: 'invoke',
-  updateCustomCommand: 'invoke',
-  deleteCustomCommand: 'invoke',
-  validateCommandName: 'invoke',
-  onCommandsChanged:   'event',
 
   getVersionInfo:      'invoke',
 

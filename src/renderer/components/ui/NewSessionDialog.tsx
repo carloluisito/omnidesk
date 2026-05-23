@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Workspace, PermissionMode, SubdirectoryEntry, LaunchMode } from '../../../shared/ipc-types';
+import { FieldError } from './FieldError';
 import type { WorktreeCreateRequest, GitBranchInfo } from '../../../shared/types/git-types';
 import type { ProviderId } from '../../../shared/types/provider-types';
 import type { AgentViewAvailability } from '../../../shared/types/agent-view-types';
@@ -299,7 +300,7 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
   if (!isOpen) return null;
 
   return (
-    <div className={`nsd-overlay ${isAnimating ? 'visible' : ''}`} onClick={handleOverlayClick}>
+    <div data-testid="new-session-dialog" className={`nsd-overlay ${isAnimating ? 'visible' : ''}`} onClick={handleOverlayClick}>
       <div className={`nsd-dialog ${isAnimating ? 'visible' : ''}`}>
         {/* Header */}
         <div className="nsd-header">
@@ -652,10 +653,11 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
 
             {/* Actions */}
             <div className="nsd-actions">
-              <button type="button" className="nsd-btn nsd-btn-cancel" onClick={handleClose}>
+              <button data-testid="nsd-cancel" type="button" className="nsd-btn nsd-btn-cancel" onClick={handleClose}>
                 Cancel
               </button>
               <button
+                data-testid="nsd-create"
                 type="submit"
                 className={`nsd-btn nsd-btn-submit ${permissionMode === 'skip-permissions' ? 'danger' : ''}`}
                 disabled={sessionCount >= 10}
@@ -680,15 +682,10 @@ export function NewSessionDialog({ isOpen, onClose, onSubmit, sessionCount, work
             </div>
           )}
 
-          {/* Error */}
+          {/* Error — use FieldError for v2 pattern proof; legacy nsd-error div retained
+              as fallback since nsd-error CSS still works without the v2 flag */}
           {error && (
-            <div className="nsd-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 8v4m0 4h.01"/>
-              </svg>
-              {error}
-            </div>
+            <FieldError>{error}</FieldError>
           )}
         </form>
       </div>
@@ -718,8 +715,8 @@ const styles = `
   .nsd-dialog {
     width: var(--dialog-width-md, 520px);
     max-width: calc(100vw - 32px);
-    background: var(--surface-overlay);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-overlay);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     overflow: hidden;
@@ -739,14 +736,14 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     padding: 14px var(--space-5);
-    border-bottom: 1px solid var(--border-default);
-    background: var(--surface-raised);
+    border-bottom: 1px solid var(--v2-border-default);
+    background: var(--v2-surface-mid);
   }
 
   .nsd-title {
     font-size: var(--text-md);
     font-weight: var(--weight-semibold);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     margin: 0;
     font-family: var(--font-ui);
   }
@@ -760,28 +757,28 @@ const styles = `
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     cursor: pointer;
     transition: all var(--duration-fast);
   }
 
   .nsd-close:hover {
     background: var(--state-hover);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
   }
 
   /* Split Layout */
   .nsd-split {
     display: flex;
     height: 280px;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--v2-border-default);
   }
 
   /* Workspace Rail */
   .nsd-rail {
     width: 140px;
-    background: var(--surface-base);
-    border-right: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border-right: 1px solid var(--v2-border-default);
     display: flex;
     flex-direction: column;
   }
@@ -791,7 +788,7 @@ const styles = `
     font-weight: var(--weight-semibold);
     text-transform: uppercase;
     letter-spacing: var(--tracking-widest);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     padding: 12px 12px 8px;
     font-family: var(--font-ui);
   }
@@ -811,7 +808,7 @@ const styles = `
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     cursor: pointer;
     transition: all var(--duration-fast);
     text-align: left;
@@ -820,14 +817,14 @@ const styles = `
   }
 
   .nsd-workspace-tab:hover {
-    background: var(--surface-overlay);
-    border-color: var(--border-default);
+    background: var(--v2-surface-overlay);
+    border-color: var(--v2-border-default);
   }
 
   .nsd-workspace-tab.active {
-    background: var(--accent-primary-muted);
-    border-color: var(--border-accent);
-    color: var(--text-primary);
+    background: rgba(0,201,167,0.14);
+    border-color: var(--v2-accent);
+    color: var(--v2-text-primary);
   }
 
   .nsd-ws-initial {
@@ -836,18 +833,18 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-high);
+    background: var(--v2-surface-high);
     border-radius: var(--radius-sm);
     font-size: 11px;
     font-weight: var(--weight-semibold);
-    color: var(--text-accent);
+    color: var(--v2-accent);
     flex-shrink: 0;
     font-family: var(--font-mono-ui);
   }
 
   .nsd-workspace-tab.active .nsd-ws-initial {
-    background: var(--accent-primary);
-    color: var(--text-inverse);
+    background: var(--v2-accent);
+    color: #0A0B11;
   }
 
   .nsd-ws-name {
@@ -874,7 +871,7 @@ const styles = `
 
   .nsd-panel-header {
     padding: 8px;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--v2-border-default);
   }
 
   .nsd-search-wrapper {
@@ -886,7 +883,7 @@ const styles = `
   .nsd-search-icon {
     position: absolute;
     left: 10px;
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     pointer-events: none;
   }
 
@@ -894,23 +891,23 @@ const styles = `
     width: 100%;
     height: 36px;
     padding: 0 32px 0 34px;
-    background: var(--surface-overlay);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-overlay);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-md);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     transition: all var(--duration-fast);
   }
 
   .nsd-search::placeholder {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-search:focus {
     outline: none;
-    border-color: var(--border-accent);
-    background: var(--surface-base);
+    border-color: var(--v2-accent);
+    background: var(--v2-surface-base);
   }
 
   .nsd-search-clear {
@@ -924,14 +921,14 @@ const styles = `
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     cursor: pointer;
     transition: all var(--duration-fast);
   }
 
   .nsd-search-clear:hover {
     background: var(--state-hover);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
   }
 
   .nsd-search-row {
@@ -951,9 +948,9 @@ const styles = `
     align-items: center;
     justify-content: center;
     background: transparent;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-md);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     cursor: pointer;
     transition: all var(--duration-fast);
     flex-shrink: 0;
@@ -961,8 +958,8 @@ const styles = `
 
   .nsd-new-folder-btn:hover {
     background: var(--state-hover);
-    color: var(--text-accent);
-    border-color: var(--border-strong);
+    color: var(--v2-accent);
+    border-color: var(--v2-border-strong);
   }
 
   .nsd-new-folder-row {
@@ -977,22 +974,22 @@ const styles = `
     flex: 1;
     height: 32px;
     padding: 0 10px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-accent);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-accent);
     border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     transition: all var(--duration-fast);
   }
 
   .nsd-new-folder-input::placeholder {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-new-folder-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px var(--accent-primary-muted);
+    box-shadow: 0 0 0 3px rgba(0,201,167,0.14);
   }
 
   .nsd-new-folder-confirm,
@@ -1003,7 +1000,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     background: transparent;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--duration-fast);
@@ -1020,12 +1017,12 @@ const styles = `
   }
 
   .nsd-new-folder-cancel {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-new-folder-cancel:hover {
     background: var(--state-hover);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
   }
 
   .nsd-dir-list {
@@ -1041,7 +1038,7 @@ const styles = `
     justify-content: center;
     height: 100%;
     gap: 12px;
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
   }
@@ -1049,8 +1046,8 @@ const styles = `
   .nsd-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid var(--border-default);
-    border-top-color: var(--accent-primary);
+    border: 2px solid var(--v2-border-default);
+    border-top-color: var(--v2-accent);
     border-radius: 50%;
     animation: nsd-spin 0.8s linear infinite;
   }
@@ -1068,7 +1065,7 @@ const styles = `
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     cursor: pointer;
     transition: all var(--duration-fast);
     text-align: left;
@@ -1076,22 +1073,22 @@ const styles = `
   }
 
   .nsd-dir-item:hover {
-    background: var(--surface-float);
-    border-color: var(--border-default);
+    background: var(--v2-surface-low);
+    border-color: var(--v2-border-default);
   }
 
   .nsd-dir-item.selected {
-    background: var(--accent-primary-muted);
-    border-color: var(--border-accent);
+    background: rgba(0,201,167,0.14);
+    border-color: var(--v2-accent);
   }
 
   .nsd-dir-icon {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     flex-shrink: 0;
   }
 
   .nsd-dir-item.selected .nsd-dir-icon {
-    color: var(--text-accent);
+    color: var(--v2-accent);
   }
 
   .nsd-dir-name {
@@ -1105,7 +1102,7 @@ const styles = `
   .nsd-launch-mode-section,
   .nsd-provider-section {
     padding: 12px 16px;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--v2-border-default);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -1127,10 +1124,10 @@ const styles = `
     flex: 1;
     height: 32px;
     padding: 0 10px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     cursor: pointer;
@@ -1140,14 +1137,14 @@ const styles = `
   .nsd-launch-mode-select:focus,
   .nsd-provider-select:focus {
     outline: none;
-    border-color: var(--border-accent);
-    box-shadow: 0 0 0 3px var(--accent-primary-muted);
+    border-color: var(--v2-accent);
+    box-shadow: 0 0 0 3px rgba(0,201,167,0.14);
   }
 
   /* Simple Layout (no workspaces) */
   .nsd-simple {
     padding: 20px;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--v2-border-default);
   }
 
   .nsd-label {
@@ -1156,7 +1153,7 @@ const styles = `
     font-weight: var(--weight-semibold);
     text-transform: uppercase;
     letter-spacing: var(--tracking-widest);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     margin-bottom: 8px;
     font-family: var(--font-ui);
   }
@@ -1165,7 +1162,7 @@ const styles = `
     font-weight: var(--weight-normal);
     text-transform: none;
     letter-spacing: normal;
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     margin-left: 6px;
     opacity: 0.6;
   }
@@ -1179,23 +1176,23 @@ const styles = `
     flex: 1;
     height: 40px;
     padding: 0 14px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-md);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-sm);
     font-family: var(--font-ui);
     transition: all var(--duration-fast);
   }
 
   .nsd-input::placeholder {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-input:focus {
     outline: none;
-    border-color: var(--border-accent);
-    box-shadow: 0 0 0 3px var(--accent-primary-muted);
+    border-color: var(--v2-accent);
+    box-shadow: 0 0 0 3px rgba(0,201,167,0.14);
   }
 
   .nsd-browse {
@@ -1204,18 +1201,18 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-float);
-    border: 1px solid var(--border-strong);
+    background: var(--v2-surface-low);
+    border: 1px solid var(--v2-border-strong);
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     cursor: pointer;
     transition: all var(--duration-fast);
   }
 
   .nsd-browse:hover {
-    background: var(--surface-high);
-    border-color: var(--border-accent);
-    color: var(--text-accent);
+    background: var(--v2-surface-high);
+    border-color: var(--v2-accent);
+    color: var(--v2-accent);
   }
 
   /* Footer */
@@ -1224,8 +1221,8 @@ const styles = `
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: var(--surface-raised);
-    border-top: 1px solid var(--border-default);
+    background: var(--v2-surface-mid);
+    border-top: 1px solid var(--v2-border-default);
   }
 
   .nsd-permission {
@@ -1234,8 +1231,8 @@ const styles = `
 
   .nsd-perm-toggle {
     display: flex;
-    background: var(--surface-overlay);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-overlay);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-md);
     padding: 2px;
     cursor: pointer;
@@ -1253,14 +1250,14 @@ const styles = `
     border-radius: var(--radius-sm);
     font-size: var(--text-2xs);
     font-weight: var(--weight-medium);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     transition: all var(--duration-fast);
     font-family: var(--font-ui);
   }
 
   .nsd-perm-option.active {
-    background: var(--surface-high);
-    color: var(--text-primary);
+    background: var(--v2-surface-high);
+    color: var(--v2-text-primary);
   }
 
   .nsd-perm-toggle.danger .nsd-perm-option.active {
@@ -1274,9 +1271,9 @@ const styles = `
     gap: 6px;
     padding: 6px 10px;
     background: transparent;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-size: var(--text-2xs);
     font-weight: var(--weight-medium);
     font-family: var(--font-ui);
@@ -1286,11 +1283,11 @@ const styles = `
 
   .nsd-advanced-toggle:hover {
     background: var(--state-hover);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
   }
 
   .nsd-advanced-toggle.open {
-    color: var(--text-accent);
+    color: var(--v2-accent);
   }
 
   .nsd-advanced-toggle svg {
@@ -1320,23 +1317,23 @@ const styles = `
 
   .nsd-btn-cancel {
     background: transparent;
-    border: 1px solid var(--border-default);
-    color: var(--text-secondary);
+    border: 1px solid var(--v2-border-default);
+    color: var(--v2-text-secondary);
   }
 
   .nsd-btn-cancel:hover {
     background: var(--state-hover);
-    border-color: var(--border-strong);
+    border-color: var(--v2-border-strong);
   }
 
   .nsd-btn-submit {
-    background: var(--accent-primary);
+    background: var(--v2-accent);
     border: none;
-    color: var(--text-inverse);
+    color: #0A0B11;
   }
 
   .nsd-btn-submit:hover {
-    background: var(--accent-primary-dim);
+    background: var(--v2-accent-dim);
   }
 
   .nsd-btn-submit.danger {
@@ -1355,8 +1352,8 @@ const styles = `
   /* Advanced Section */
   .nsd-advanced {
     padding: 16px 20px;
-    background: var(--surface-raised);
-    border-top: 1px solid var(--border-default);
+    background: var(--v2-surface-mid);
+    border-top: 1px solid var(--v2-border-default);
     animation: nsd-slideDown 0.2s ease;
   }
 
@@ -1388,7 +1385,7 @@ const styles = `
 
   /* Worktree Section */
   .nsd-worktree-section {
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--v2-border-default);
     padding: 12px 16px;
   }
 
@@ -1409,7 +1406,7 @@ const styles = `
   .nsd-checkbox {
     width: 16px;
     height: 16px;
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--v2-border-strong);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -1421,26 +1418,26 @@ const styles = `
   .nsd-checkbox.checked {
     background: var(--semantic-success);
     border-color: var(--semantic-success);
-    color: var(--text-inverse);
+    color: #0A0B11;
   }
 
   .nsd-worktree-label {
     font-size: var(--text-xs);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     font-weight: var(--weight-medium);
     font-family: var(--font-ui);
   }
 
   .nsd-worktree-hint {
     font-size: var(--text-2xs);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-family: var(--font-ui);
   }
 
   .nsd-worktree-options {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid var(--border-default);
+    border-top: 1px solid var(--v2-border-default);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1457,14 +1454,14 @@ const styles = `
     align-items: center;
     gap: 6px;
     font-size: var(--text-xs);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     cursor: pointer;
     transition: color var(--duration-fast);
     font-family: var(--font-ui);
   }
 
   .nsd-wt-radio.active {
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
   }
 
   .nsd-wt-radio input {
@@ -1480,10 +1477,10 @@ const styles = `
   .nsd-wt-search {
     height: 32px;
     padding: 0 10px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     transition: all var(--duration-fast);
@@ -1495,15 +1492,15 @@ const styles = `
   }
 
   .nsd-wt-search::placeholder {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-wt-branch-list {
     max-height: 120px;
     overflow-y: auto;
-    border: 1px solid var(--border-default);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    background: var(--surface-base);
+    background: var(--v2-surface-base);
   }
 
   .nsd-wt-branch-item {
@@ -1511,7 +1508,7 @@ const styles = `
     padding: 6px 10px;
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     text-align: left;
@@ -1520,7 +1517,7 @@ const styles = `
   }
 
   .nsd-wt-branch-item:hover {
-    background: var(--surface-float);
+    background: var(--v2-surface-low);
   }
 
   .nsd-wt-branch-item.selected {
@@ -1531,7 +1528,7 @@ const styles = `
   .nsd-wt-no-branches {
     padding: 12px;
     text-align: center;
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
   }
@@ -1545,10 +1542,10 @@ const styles = `
   .nsd-wt-input {
     height: 32px;
     padding: 0 10px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    color: var(--text-primary);
+    color: var(--v2-text-primary);
     font-size: var(--text-xs);
     font-family: var(--font-ui);
     transition: all var(--duration-fast);
@@ -1560,7 +1557,7 @@ const styles = `
   }
 
   .nsd-wt-input::placeholder {
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
   }
 
   .nsd-wt-base-label {
@@ -1568,7 +1565,7 @@ const styles = `
     align-items: center;
     gap: 8px;
     font-size: var(--text-2xs);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     font-family: var(--font-ui);
   }
 
@@ -1576,10 +1573,10 @@ const styles = `
     flex: 1;
     height: 28px;
     padding: 0 8px;
-    background: var(--surface-base);
-    border: 1px solid var(--border-default);
+    background: var(--v2-surface-base);
+    border: 1px solid var(--v2-border-default);
     border-radius: var(--radius-sm);
-    color: var(--text-secondary);
+    color: var(--v2-text-secondary);
     font-size: var(--text-2xs);
     font-family: var(--font-ui);
   }
@@ -1592,7 +1589,7 @@ const styles = `
 
   .nsd-wt-path-label {
     font-size: var(--text-2xs);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     text-transform: uppercase;
     letter-spacing: var(--tracking-widest);
     font-family: var(--font-ui);
@@ -1600,10 +1597,10 @@ const styles = `
 
   .nsd-wt-path-value {
     padding: 6px 10px;
-    background: var(--surface-float);
+    background: var(--v2-surface-low);
     border-radius: var(--radius-sm);
     font-size: var(--text-2xs);
-    color: var(--text-tertiary);
+    color: var(--v2-text-tertiary);
     word-break: break-all;
     font-family: var(--font-mono-ui);
   }
@@ -1626,7 +1623,7 @@ const styles = `
   }
 
   .nsd-wt-branch-list::-webkit-scrollbar-thumb {
-    background: var(--border-default);
+    background: var(--v2-border-default);
     border-radius: 2px;
   }
 
@@ -1643,12 +1640,12 @@ const styles = `
 
   .nsd-workspace-list::-webkit-scrollbar-thumb,
   .nsd-dir-list::-webkit-scrollbar-thumb {
-    background: var(--border-default);
+    background: var(--v2-border-default);
     border-radius: 3px;
   }
 
   .nsd-workspace-list::-webkit-scrollbar-thumb:hover,
   .nsd-dir-list::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
+    background: var(--v2-border-strong);
   }
 `;

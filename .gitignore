@@ -38,6 +38,9 @@ Session_*.md
 .omnidesk/
 .claudedesk/
 
+# Feature-flow manual evidence (screenshots + notes per slug)
+evidence/
+
 # Test output
 coverage/
 test-results/
@@ -47,3 +50,16 @@ playwright-report/
 # Electron build artifacts
 .webpack/
 out/
+
+# Local tool state / scratch
+.brain/
+.playwright-mcp/
+.claude/settings.local.json
+.omniagency*
+omniagency.json
+
+# Throwaway QA artifacts / demo packaging
+cmp-*.png
+verify-*.png
+*.zip
+omnidesk-demo-kit/

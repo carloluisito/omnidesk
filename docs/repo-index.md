@@ -1,351 +1,256 @@
 # OmniDesk — Repository Index
 
-~180 source files | ~56,000 LOC | 17 domains (Launch Mode + Agent View added) | ~192 IPC methods | 784 tests + 4 e2e specs (post launch-mode-picker)
+~7 core managers (+ quota-service, providers/, agent-view/) | 103 IPC methods | 18 channel-prefix domains | 334 tests + 6 e2e specs
 
 ## Entrypoints
 
 | File | Role |
 |------|------|
-| `src/main/index.ts` (~420 lines) | Main process — creates window, initializes all 15 managers, wires IPC, handles `omnidesk://` deep links |
-| `src/renderer/App.tsx` (~1350 lines) | Root React component — composes all hooks, panels, and dialogs |
-| `src/shared/ipc-contract.ts` (~580 lines) | IPC single source of truth — ~191 methods, auto-derives preload bridge and types |
+| `src/main/index.ts` | Main process — creates window, initializes 7 managers, wires IPC, runs agent-view probe |
+| `src/renderer/App.tsx` | Root React component — Phase 4 shell, composes all hooks and shell components |
+| `src/shared/ipc-contract.ts` | IPC single source of truth — 103 methods, auto-derives preload bridge and types |
 
 ## IPC Infrastructure (cross-cutting)
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/shared/ipc-contract.ts` | Shared | Contract map: channel names, arg types, return types | 528 |
-| `src/shared/ipc-types.ts` | Shared | All IPC payload/response types | 355 |
-| `src/main/ipc-handlers.ts` | Main | Handler implementations for all 149 methods | ~450 |
-| `src/main/ipc-registry.ts` | Main | Typed `handle()` / `on()` wrappers for `ipcMain` | 72 |
-| `src/main/ipc-emitter.ts` | Main | Typed `emit()` wrapper for `webContents.send()` | 28 |
-| `src/preload/index.ts` | Preload | Auto-derived context bridge from contract | 54 |
+| File | Layer | Role |
+|------|-------|------|
+| `src/shared/ipc-contract.ts` | Shared | Contract map: channel names, arg types, return types (103 entries) |
+| `src/shared/ipc-types.ts` | Shared | All IPC payload/response types |
+| `src/main/ipc-handlers.ts` | Main | Handler implementations wired from all surviving managers |
+| `src/main/ipc-registry.ts` | Main | Typed `handle()` / `on()` wrappers for `ipcMain` |
+| `src/main/ipc-emitter.ts` | Main | Typed `emit()` wrapper for `webContents.send()` |
+| `src/preload/index.ts` | Preload | Auto-derived context bridge from contract |
+
+## Phase 4 Shell
+
+The renderer uses a flat repo→session model. The shell lives in `src/renderer/components/shell/`.
+
+| File | Layer | Role |
+|------|-------|------|
+| `src/renderer/App.tsx` | Renderer | Root component — composes all shell components and hooks |
+| `src/renderer/components/shell/index.ts` | Renderer | Barrel export for all shell components |
+| `src/renderer/components/shell/RepoActivityBar.tsx` | Renderer | Left activity bar — repo/group list, drag-to-group |
+| `src/renderer/components/shell/SessionRail.tsx` | Renderer | Per-repo session list — primary navigation |
+| `src/renderer/components/shell/MainView.tsx` | Renderer | Focus/Grid mode toggle and stage — hosts SessionPane/SessionTile |
+| `src/renderer/components/shell/SessionPane.tsx` | Renderer | Single-session full view (Focus mode) |
+| `src/renderer/components/shell/SessionTile.tsx` | Renderer | Compact session card for Grid mode |
+| `src/renderer/components/shell/TerminalHost.tsx` | Renderer | Off-screen terminal host — mounts all xterm instances |
+| `src/renderer/components/shell/RightInspector.tsx` | Renderer | Collapsible right panel — per-session inspector |
+| `src/renderer/components/shell/StatusBar.tsx` | Renderer | Bottom status bar |
+| `src/renderer/components/shell/TitleBar.tsx` | Renderer | In-app title bar with traffic-light controls |
+| `src/renderer/components/shell/Palette.tsx` | Renderer | Command/action palette overlay |
+| `src/renderer/components/shell/RepoSwitcher.tsx` | Renderer | Repo quick-switch UI |
+| `src/renderer/components/shell/AddRepoSheet.tsx` | Renderer | Sheet for adding a workspace/repo |
+| `src/renderer/components/shell/NewSessionSheet.tsx` | Renderer | New session form — includes launch mode picker for Claude |
+| `src/renderer/components/shell/PromptDialog.tsx` | Renderer | Generic text-input prompt dialog (used for group create/rename) |
+| `src/renderer/components/shell/CloseSessionDialog.tsx` | Renderer | Confirm-before-close dialog for sessions |
+| `src/renderer/components/shell/ContextMenu.tsx` | Renderer | Right-click context menu for shell elements |
+| `src/renderer/components/shell/P4Icon.tsx` | Renderer | Phase 4 icon component |
+| `src/renderer/components/shell/shell-utils.ts` | Renderer | Shared utilities: color helpers, status metadata, formatting |
 
 ## Sessions
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/session-manager.ts` | Main | Session CRUD, lifecycle, team metadata, model change events | 440 |
-| `src/main/cli-manager.ts` | Main | PTY spawning, output buffering, model detection | 253 |
-| `src/shared/model-detector.ts` | Shared | Parse terminal output to detect model switches | 80 |
-| `src/main/session-pool.ts` | Main | Pre-warmed shell pool for fast session creation | 277 |
-| `src/main/session-persistence.ts` | Main | Session state save/load (JSON) | 93 |
-| `src/renderer/hooks/useSessionManager.ts` | Renderer | Session CRUD hook, IPC event listeners | 199 |
-| `src/renderer/components/Terminal.tsx` | Renderer | xterm.js wrapper, Ctrl+C intercept, Claude readiness | 677 |
+IPC: `session:*`, `model:*`
 
-## Split View
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/session-manager.ts` | Main | Session CRUD, lifecycle, model change events |
+| `src/main/cli-manager.ts` | Main | PTY spawning, output buffering (16ms), model detection |
+| `src/shared/model-detector.ts` | Shared | Parse terminal output to detect model switches |
+| `src/main/session-pool.ts` | Main | Pre-warmed shell pool for fast session creation |
+| `src/main/session-persistence.ts` | Main | Session state save/load (JSON) |
+| `src/renderer/hooks/useSessionManager.ts` | Renderer | Session CRUD hook, IPC event listeners |
+| `src/renderer/hooks/useSessionPreviews.ts` | Renderer | Last-N-lines stdout snapshots + last-activity timestamps for Grid tiles |
+| `src/renderer/components/Terminal.tsx` | Renderer | xterm.js wrapper, Ctrl+C intercept, Claude readiness detection |
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/settings-persistence.ts` | Main | Split view state persistence (also workspaces, pool, atlas) | 422 |
-| `src/renderer/hooks/useSplitView.ts` | Renderer | Tree-based layout state, split/close/assign/focus | 464 |
-| `src/renderer/utils/layout-tree.ts` | Renderer | Pure tree functions extracted from useSplitView (countPanes, traverseTree, etc.) | 175 |
-| `src/renderer/components/SplitLayout.tsx` | Renderer | Recursive tree renderer with drag-to-resize | 215 |
-| `src/renderer/components/PaneHeader.tsx` | Renderer | Per-pane header with session picker and split controls | 251 |
-| `src/renderer/components/PaneSessionPicker.tsx` | Renderer | Session assignment UI for empty panes | 206 |
+## Repos / Workspaces
 
-## Agent Teams
+IPC: `workspace:*`, `fs:listGitRepos`, `fs:listSubdirectories`, `fs:createDirectory`
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/agent-team-manager.ts` | Main | fs.watch() monitoring, session linking, team lifecycle | 512 |
-| `src/shared/message-parser.ts` | Shared | Regex-based inter-agent message extraction | 119 |
-| `src/renderer/hooks/useAgentTeams.ts` | Renderer | Team state + IPC event listeners | 103 |
-| `src/renderer/hooks/useAutoTeamLayout.ts` | Renderer | Auto-split when teammates detected | 56 |
-| `src/renderer/hooks/useMessageStream.ts` | Renderer | Debounced message parsing from terminal output | 57 |
-| `src/renderer/components/TeamPanel.tsx` | Renderer | Team overview, member list, view switching | 540 |
-| `src/renderer/components/TaskBoard.tsx` | Renderer | Kanban task board (pending/in-progress/completed) | 310 |
-| `src/renderer/components/MessageStream.tsx` | Renderer | Inter-agent message timeline | 265 |
-| `src/renderer/components/AgentGraph.tsx` | Renderer | reactflow node graph of agent communication | 253 |
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/settings-persistence.ts` | Main | Workspace list persistence, settings, session pool config |
+| `src/renderer/hooks/useRepos.ts` | Renderer | Repo/workspace state — scans git subdirs, tracks open/active/grouped repos |
 
-## Templates (Command Palette)
+## Git (backend — worktree ops and repo scanning)
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/prompt-templates-manager.ts` | Main | Template CRUD, built-in + user templates | 211 |
-| `src/main/built-in-actions.ts` | Main | Default prompt templates shipped with app | 158 |
-| `src/shared/types/prompt-templates.ts` | Shared | Template type definitions | 60 |
-| `src/renderer/hooks/useCommandPalette.ts` | Renderer | Fuzzy search, selection, keyboard nav | 146 |
-| `src/renderer/components/CommandPalette.tsx` | Renderer | Searchable template picker overlay | 465 |
-| `src/renderer/components/TemplateEditor.tsx` | Renderer | Template create/edit form | 805 |
+IPC: `git:*` (22 invoke + 4 events — worktree management and status used by useRepos/session creation; no Git panel UI in the current shell)
 
-## History
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/git-manager.ts` | Main | Git command execution, status parsing, AI commit messages, file watching, worktree ops |
+| `src/shared/types/git-types.ts` | Shared | Git type definitions (status, branches, commits, diffs, operations, worktrees) |
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/history-manager.ts` | Main | Session history capture, search, export, cleanup | 801 |
-| `src/shared/types/history-types.ts` | Shared | History entry and search result types | 106 |
-| `src/renderer/hooks/useHistory.ts` | Renderer | History list, search, export, delete | 190 |
-| `src/renderer/components/HistoryPanel.tsx` | Renderer | History browser with search and export | 681 |
-| `src/renderer/components/HistoryPanel.css` | Renderer | History panel styles | 536 |
+## History (backend/persistence — no UI panel)
 
-## Checkpoints
+IPC: `history:*` (9 invoke methods)
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/checkpoint-manager.ts` | Main | Checkpoint CRUD, export (JSON/Markdown) | 356 |
-| `src/main/checkpoint-persistence.ts` | Main | Checkpoint file storage | 158 |
-| `src/shared/types/checkpoint-types.ts` | Shared | Checkpoint and export format types | 86 |
-| `src/renderer/hooks/useCheckpoints.ts` | Renderer | Checkpoint state + real-time events | 267 |
-| `src/renderer/components/CheckpointPanel.tsx` | Renderer | Checkpoint list with filter/export | 374 |
-| `src/renderer/components/ui/CheckpointDialog.tsx` | UI | Create checkpoint form | 273 |
+`HistoryManager` is a load-bearing dependency of `SessionManager` and retains full IPC and persistence. The current shell has no history browsing UI.
 
-## Quota / Budget
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/history-manager.ts` | Main | Session history capture, search, export, cleanup |
+| `src/shared/types/history-types.ts` | Shared | History entry and search result types |
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/quota-service.ts` | Main | Anthropic API quota fetching, burn rate calculation | 388 |
-| `src/renderer/hooks/useQuota.ts` | Renderer | Quota + burn rate polling | 84 |
-| `src/renderer/components/ui/BudgetPanel.tsx` | UI | Quota visualization panel | 1087 |
-| `src/renderer/components/ui/BudgetSettings.tsx` | UI | Budget configuration | 1181 |
-| `src/renderer/components/ui/FuelStatusIndicator.tsx` | UI | Always-visible fuel gauge in TabBar | 200 |
-| `src/renderer/components/ui/FuelGaugeBar.tsx` | UI | 5-segment horizontal gauge visualization | 60 |
-| `src/renderer/components/ui/FuelTooltip.tsx` | UI | Hover tooltip with quota breakdown | 150 |
+## Checkpoints (backend/persistence — no UI panel)
 
-## Drag-Drop
+IPC: `checkpoint:*` (7 invoke + 2 events)
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/file-dragdrop-handler.ts` | Main | File info resolution, content reading | 164 |
-| `src/main/file-utils.ts` | Main | File type detection, size formatting | 190 |
-| `src/renderer/hooks/useDragDrop.ts` | Renderer | Drag events, file processing | 134 |
-| `src/renderer/components/DragDropOverlay.tsx` | Renderer | Visual overlay during drag | 202 |
-| `src/renderer/components/DragDropContextMenu.tsx` | Renderer | Action picker for dropped files | 233 |
-| `src/renderer/components/DragDropSettings.tsx` | Renderer | Drag-drop configuration | 401 |
+`CheckpointManager` is a load-bearing dependency of `GitManager` and retains full IPC and persistence. The current shell has no checkpoint browsing UI.
 
-## Window & UI Shell
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/checkpoint-manager.ts` | Main | Checkpoint CRUD, export (JSON/Markdown) |
+| `src/main/checkpoint-persistence.ts` | Main | Checkpoint file storage |
+| `src/shared/types/checkpoint-types.ts` | Shared | Checkpoint and export format types |
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/renderer/components/ui/TabBar.tsx` | UI | Session tabs, toolbar buttons | 705 |
-| `src/renderer/components/ui/Tab.tsx` | UI | Individual tab with close/rename | 438 |
-| `src/renderer/components/ui/ModelBadge.tsx` | UI | Dynamic badge showing current model | 70 |
-| `src/renderer/components/ui/ModelSwitcher.tsx` | UI | Dropdown for mid-session model switching | 167 |
-| `src/renderer/components/ui/ConfirmDialog.tsx` | UI | Reusable confirmation modal | 219 |
-| `src/renderer/components/ui/ContextMenu.tsx` | UI | Right-click context menu | 205 |
-| `src/renderer/components/ui/EmptyState.tsx` | UI | No-sessions welcome screen | 116 |
-| `src/renderer/components/ui/NewSessionDialog.tsx` | UI | New session form with workspace picker | 921 |
-| `src/renderer/components/ui/SettingsDialog.tsx` | UI | Settings (workspaces, pool, templates, general, atlas) | 1916 |
-| `src/renderer/components/ui/BrandLogo.tsx` | UI | App logo SVG | 29 |
-| `src/renderer/components/ui/index.ts` | UI | Barrel export | — |
-| `src/renderer/components/AboutDialog.tsx` | Renderer | Version info and credits | 322 |
-| `src/renderer/components/TitleBarBranding.tsx` | Renderer | Title bar logo + name | 124 |
+## Quota / Burn Rate
 
-## Tasks
+IPC: `quota:*`, `burnRate:*`
 
-IPC: `task:*`
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/quota-service.ts` | Main | Anthropic API quota fetching, burn rate calculation (stateless service — called via direct imports in ipc-handlers.ts) |
+| `src/renderer/hooks/useQuota.ts` | Renderer | Quota + burn rate polling |
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/task-manager.ts` | Main | Per-repo todo list manager, fs.watch monitoring, persistence (tasks.md + tasks.meta.json) | ~305 |
-| `src/renderer/hooks/useTasks.ts` | Renderer | Task state management and IPC calls | ~62 |
-| `src/renderer/components/TaskPanel.tsx` | Renderer | Task list UI: CRUD, status filtering, prioritization | ~140 |
-| `src/renderer/components/TaskQuickCapture.tsx` | Renderer | Quick task creation overlay | ~84 |
-| `src/shared/types/task-types.ts` | Shared | Task type definitions | ~55 |
-| `src/shared/task-parser.ts` | Shared | Parse/stringify task entries to/from markdown | ~122 |
+## Drag-Drop (backend only)
 
-### Tasks Tests
+IPC: `dragdrop:*`
 
-| File | Tests | Covers |
-|------|-------|--------|
-| `src/shared/task-parser.test.ts` | 18 | Parse/stringify tasks, metadata sidecar format |
-| `src/main/task-manager.test.ts` | 25 | CRUD, fs.watch debounce, mutex serialization, persistence |
-| `src/renderer/hooks/useTasks.test.ts` | 12 | State management, IPC event listeners |
-| `src/renderer/components/TaskPanel.test.tsx` | 15 | List render, status filter, create/edit/delete, prioritize |
-| `src/renderer/components/TaskQuickCapture.test.tsx` | 10 | Input, quick capture flow, cancel |
-
-## Atlas
-
-IPC: `atlas:*`
-
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/atlas-manager.ts` | Main | Scan engine: file enumeration, import analysis, domain inference, content generation | 917 |
-| `src/renderer/hooks/useAtlas.ts` | Renderer | Atlas state management and IPC calls | 126 |
-| `src/renderer/components/AtlasPanel.tsx` | Renderer | Atlas UI: status, scanning, preview, approve | 338 |
-| `src/renderer/components/AtlasPanel.css` | Renderer | Atlas panel styles | 473 |
-| `src/shared/types/atlas-types.ts` | Shared | Atlas type definitions | 148 |
-
-## Git Integration
-
-IPC: `git:*` (30 methods — 26 invoke + 4 events)
-
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/git-manager.ts` | Main | Git command execution, status parsing, AI commit messages, file watching, worktree ops | ~800 |
-| `src/shared/types/git-types.ts` | Shared | Git type definitions (status, branches, commits, diffs, operations, worktrees) | ~170 |
-| `src/renderer/hooks/useGit.ts` | Renderer | Git state management and IPC calls (including worktree methods) | ~500 |
-| `src/renderer/hooks/useDiffViewer.ts` | Renderer | Diff viewer state: active file, keyboard nav (J/K), stage/unstage/discard | ~130 |
-| `src/renderer/utils/diff-parser.ts` | Renderer | Parse unified diff into DiffChunk[] with old/new line numbers | ~120 |
-| `src/renderer/components/GitPanel.tsx` | Renderer | Git panel: branch bar, file staging, commit history | ~900 |
-| `src/renderer/components/DiffViewer.tsx` | Renderer | Full-screen diff overlay: container, keyboard, discard confirm | ~300 |
-| `src/renderer/components/DiffFileNav.tsx` | Renderer | Diff sidebar: categorized file list (staged/unstaged/untracked/conflicted) | ~110 |
-| `src/renderer/components/DiffViewerHeader.tsx` | Renderer | Diff header: file path, status badge, stage/unstage/discard/close actions | ~80 |
-| `src/renderer/components/DiffContentArea.tsx` | Renderer | Diff rendering: dual gutter line numbers, colored add/remove/context lines | ~120 |
-| `src/renderer/components/ui/CommitDialog.tsx` | UI | Commit message editor with AI generation | ~465 |
-| `src/renderer/components/WorktreePanel.tsx` | Renderer | Worktree management panel: list, remove, prune stale | ~520 |
-| `src/renderer/components/WorktreeCleanupDialog.tsx` | Renderer | Cleanup prompt when closing managed worktree session | ~313 |
-
-## Session Playbooks
-
-IPC: `playbook:*` (15 methods — 12 invoke + 3 events)
-
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/playbook-manager.ts` | Main | Playbook CRUD, persistence, import/export, validation | ~230 |
-| `src/main/playbook-executor.ts` | Main | Execution engine: silence detection, step sequencing, confirmation gates | ~280 |
-| `src/main/built-in-playbooks.ts` | Main | 5 built-in playbooks (API endpoint, bug investigation, code review, component, refactor) | ~220 |
-| `src/shared/types/playbook-types.ts` | Shared | Playbook type definitions (variables, steps, execution state, events) | ~130 |
-| `src/renderer/hooks/usePlaybooks.ts` | Renderer | Playbook state management, IPC calls, event listeners | ~200 |
-| `src/renderer/components/PlaybookPicker.tsx` | Renderer | Modal overlay: fuzzy search, keyboard nav, category badges | ~280 |
-| `src/renderer/components/PlaybookParameterDialog.tsx` | Renderer | Dynamic form: text/multiline/select/filepath fields, step preview | ~320 |
-| `src/renderer/components/PlaybookProgressPanel.tsx` | Renderer | Bottom-docked progress bar, confirmation gates, auto-dismiss | ~230 |
-| `src/renderer/components/PlaybookPanel.tsx` | Renderer | Library browser: built-in + custom playbooks, import/export | ~350 |
-| `src/renderer/components/PlaybookEditor.tsx` | Renderer | Slide-in editor: 3 tabs (details, params, steps), variable inserter | ~700 |
-
-## LaunchTunnel
-
-IPC: `tunnel:*` (17 methods — 13 invoke + 4 events)
-
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/tunnel-manager.ts` | Main | REST API + CLI process management, settings persistence | 622 |
-| `src/shared/types/tunnel-types.ts` | Shared | Tunnel types, settings, events | 81 |
-| `src/renderer/hooks/useTunnel.ts` | Renderer | Tunnel state + IPC calls + event listeners | 267 |
-| `src/renderer/components/TunnelPanel.tsx` | Renderer | Main panel: tunnel list, create, account | 2006 |
-| `src/renderer/components/TunnelCreateDialog.tsx` | Renderer | Create tunnel form | 669 |
-| `src/renderer/components/TunnelRequestLogs.tsx` | Renderer | Request log table | 569 |
-
-## Session Sharing
-
-IPC: `sharing:*` (~23 methods — 14 invoke + 9 events including `sharing:deepLinkJoin`)
-
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/sharing-manager.ts` | Main | Host/observer WebSocket lifecycle, binary frame encoding, scrollback buffer, observer management, control handoff, settings persistence | ~600 |
-| `src/shared/types/sharing-types.ts` | Shared | All sharing type definitions: ShareInfo, ObserverInfo, ShareStatus, ObserverRole, requests, IPC events | ~130 |
-| `src/renderer/hooks/useSessionSharing.ts` | Renderer | All sharing state + IPC event subscriptions + host/observer actions | ~340 |
-| `src/renderer/components/ShareSessionDialog.tsx` | Renderer | Host share initiation dialog: code/URL display, copy buttons, password/expiry options, eligibility gate | ~380 |
-| `src/renderer/components/JoinSessionDialog.tsx` | Renderer | Observer join dialog: code/URL input, password prompt, connecting states, error display | ~300 |
-| `src/renderer/components/ShareManagementPanel.tsx` | Renderer | Side panel (320px): active share cards, observer list, kick/stop/grant-control per observer | ~320 |
-| `src/renderer/components/ObserverToolbar.tsx` | Renderer | Toolbar above observer terminal: Request/Release Control, Leave, connection status | ~200 |
-| `src/renderer/components/ObserverMetadataSidebar.tsx` | Renderer | Collapsible sidebar (280px): active tool, file path, agent status, file changes, model | ~250 |
-| `src/renderer/components/ui/ShareIndicator.tsx` | UI | Circular badge on shared tabs showing observer count; `#00C9A7` background | ~60 |
-| `src/renderer/components/ui/ControlRequestDialog.tsx` | UI | Alert dialog shown to host: observer name, Grant/Deny buttons, 30s auto-dismiss | ~120 |
-
-### Session Sharing Tests
-
-| File | Tests | Covers |
-|------|-------|--------|
-| `src/main/sharing-manager.test.ts` | ~65 | Frame encoding/decoding, extractShareCode, settings, eligibility, startShare lifecycle, stopShare, broadcastOutput, observer management, host frame handling, control lifecycle, destroy, integration tests (12.1–12.8) |
-| `src/renderer/components/ShareManagementPanel.test.tsx` | 11 | Render, empty state, share cards, stop/kick/grant/revoke buttons, observer list expand/collapse, copy code |
-| `src/renderer/components/ShareSessionDialog.test.tsx` | 9 | Creating spinner, share code/URL display, copy buttons, stop/done actions, eligibility gate, error/retry |
-| `src/renderer/components/JoinSessionDialog.test.tsx` | ~8 | Code input, password prompt, connecting state, error display, cancel |
-| `src/renderer/components/ObserverToolbar.test.tsx` | ~8 | Request/release control states, leave button, read-only/has-control visual |
-| `src/renderer/components/ObserverMetadataSidebar.test.tsx` | ~6 | Metadata display, collapse/expand |
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/file-dragdrop-handler.ts` | Main | File info resolution, content reading |
+| `src/main/file-utils.ts` | Main | File type detection, size formatting |
 
 ## Providers
 
-IPC: `provider:*` (3 methods — all invoke)
+IPC: `provider:*` (3 invoke methods)
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type (incl. optional `launchMode`) | ~22 |
-| `src/main/providers/provider-registry.ts` | Main | `ProviderRegistry`: auto-registers Claude + Codex, `get()`, `list()`, `getAvailable()` | ~42 |
-| `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building (switch on `LaunchMode`), readiness patterns, model detection, env vars, defense-in-depth fallback for `'agents'` mode via injected availability getter | ~120 |
-| `src/main/providers/codex-provider.ts` | Main | Codex CLI provider: approval-mode mapping, Codex-specific readiness + model patterns | ~86 |
-| `src/main/config-dir.ts` | Main | Centralized config dir path (`~/.omnidesk/`), migration from `~/.claudedesk/` | ~50 |
-| `src/shared/types/provider-types.ts` | Shared | `ProviderId`, `ProviderCapabilities`, `ProviderInfo` type definitions | ~18 |
-| `src/renderer/hooks/useProvider.ts` | Renderer | Provider state hook: `providers`, `availableProviders`, `getCapabilities()` | ~25 |
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type (incl. optional `launchMode`) |
+| `src/main/providers/provider-registry.ts` | Main | `ProviderRegistry`: auto-registers Claude + Codex, `get()`, `list()`, `getAvailable()` |
+| `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building (switch on `LaunchMode`), readiness patterns, model detection, env vars, defense-in-depth fallback for `'agents'` mode |
+| `src/main/providers/codex-provider.ts` | Main | Codex CLI provider: approval-mode mapping, Codex-specific readiness + model patterns |
+| `src/main/config-dir.ts` | Main | Centralized config dir path (`~/.omnidesk/`), migration from `~/.claudedesk/` |
+| `src/shared/types/provider-types.ts` | Shared | `ProviderId`, `ProviderCapabilities`, `ProviderInfo` type definitions |
+| `src/renderer/hooks/useProvider.ts` | Renderer | Provider state hook: `providers`, `availableProviders`, `getCapabilities()` |
 
 ## Launch Mode + Agent View
 
-IPC: `agentView:availability` (1 invoke method). Renderer picker lives inside `NewSessionDialog` and writes to `SessionCreateRequest.launchMode`.
+IPC: `agentView:availability` (1 invoke), `agentView:availabilityChanged` (1 event). Launch mode picker lives in `NewSessionSheet.tsx`.
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/shared/types/agent-view-types.ts` | Shared | `AgentViewAvailable` / `AgentViewUnavailable` / `AgentViewAvailability` discriminated union. Reasons: `cli-too-old`, `cli-not-found`, `disabled-by-setting`, `disabled-by-env`, `version-unparseable`, `probing` (transient initial state), `detection-failed` (IPC catch / no-args provider fallback) | ~50 |
-| `src/main/agent-view/availability.ts` | Main | `getAgentViewAvailability(cliVersion, env, settings)` pure precedence resolver | ~140 |
-| `src/main/agent-view/availability-cache.ts` | Main | Module-level cache + `getCachedAgentViewAvailability()` / `setCachedAgentViewAvailability()` | ~40 |
-| `src/main/agent-view/probe-version.ts` | Main | One-shot `claude --version` probe with 5s timeout — manual `new Promise` wrapper around `execFile` (NOT `util.promisify` — see `claude-provider.ts` test learnings) | ~35 |
-| `src/main/index.ts` `agentViewDelayedInit()` | Main | Off-critical-path probe (`setTimeout(..., 2000)`), reads `~/.claude/settings.json` (or `CLAUDE_CONFIG_DIR`), updates cache once per app lifetime | section in `index.ts` |
-| `src/renderer/hooks/useAgentViewAvailability.ts` | Renderer | One-shot fetch on mount + subscribes to `agentView:availabilityChanged` push event; if the initial fetch returns `'probing'`, stays `loading: true` until the push event delivers the final state | ~55 |
-| `src/renderer/components/ui/NewSessionDialog.tsx` `LaunchModePicker` | Renderer | Inline picker subcomponent inside the dialog. State-aware label: `(checking...)` while probing, `(unavailable)` once resolved unavailable, clean while available. Tooltip on the wrapper surfaces `"Agent View unavailable: <detail>"` | inline section ~lines 9–50 |
-| `src/shared/ipc-types.ts` `LaunchMode` | Shared | `'default' \| 'bypass-permissions' \| 'agents'` string-literal union; added as optional `launchMode?: LaunchMode` field on `SessionCreateRequest` | type def |
+| File | Layer | Role |
+|------|-------|------|
+| `src/shared/types/agent-view-types.ts` | Shared | `AgentViewAvailable` / `AgentViewUnavailable` / `AgentViewAvailability` discriminated union |
+| `src/main/agent-view/availability.ts` | Main | `getAgentViewAvailability(cliVersion, env, settings)` pure precedence resolver |
+| `src/main/agent-view/availability-cache.ts` | Main | Module-level cache + `getCachedAgentViewAvailability()` / `setCachedAgentViewAvailability()` |
+| `src/main/agent-view/probe-version.ts` | Main | One-shot `claude --version` probe with 5s timeout |
+| `src/main/index.ts` `agentViewDelayedInit()` | Main | Off-critical-path probe (`setTimeout(..., 2000)`), updates cache once per app lifetime |
+| `src/renderer/hooks/useAgentViewAvailability.ts` | Renderer | One-shot fetch on mount + subscribes to `agentView:availabilityChanged` push event |
+| `src/renderer/components/shell/NewSessionSheet.tsx` | Renderer | New session form including launch mode control (three options; agents option state-aware: checking/unavailable/available) |
+| `src/shared/ipc-types.ts` `LaunchMode` | Shared | `'default' \| 'bypass-permissions' \| 'agents'` string-literal union; added as optional `launchMode?: LaunchMode` field on `SessionCreateRequest` |
 
 External reference: https://code.claude.com/docs/en/agent-view (research-preview, requires Claude Code 2.1.139+).
 
+## Window & UI Utilities
+
+IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
+
+| File | Layer | Role |
+|------|-------|------|
+| `src/renderer/components/ui/ConfirmDialog.tsx` | UI | Reusable confirmation modal (used for Ctrl+C intercept) |
+| `src/renderer/components/ui/ToastContainer.tsx` | UI | Toast notification container |
+| `src/renderer/components/ui/Toast.tsx` | UI | Individual toast notification |
+| `src/renderer/components/ui/Tab.tsx` | UI | Session tab data type + tab component (used by shell `SessionRail`) |
+| `src/renderer/components/ui/CommitDialog.tsx` | UI | Commit message editor with AI generation (used by shell for git commit) |
+| `src/renderer/components/ui/ShareIndicator.tsx` | UI | Circular observer-count badge |
+| `src/renderer/components/ui/BrandMark.tsx` | UI | App logo mark |
+| `src/renderer/components/ui/ProviderBadge.tsx` | UI | Provider identifier badge |
+| `src/renderer/components/ui/StatusDot.tsx` | UI | Session status dot indicator |
+| `src/renderer/components/ui/ClaudeReadinessProgress.tsx` | UI | Claude startup progress indicator |
+| `src/renderer/components/ui/ProgressBar.tsx` | UI | Generic progress bar |
+| `src/renderer/components/ui/FieldError.tsx` | UI | Form field error message |
+| `src/renderer/components/ui/EmptyState.tsx` | UI | No-sessions welcome screen |
+| `src/renderer/components/ui/FeatureShowcase.tsx` | UI | Feature highlight component |
+| `src/renderer/components/ui/QuickActionCard.tsx` | UI | Quick action card for empty state |
+| `src/renderer/components/ui/RecentSessionsList.tsx` | UI | Recent sessions list for empty/welcome state |
+| `src/renderer/components/ui/WelcomeHero.tsx` | UI | Welcome hero for empty state |
+| `src/renderer/components/ui/ContextMenu.tsx` | UI | Generic context menu (used by ui/ components) |
+| `src/renderer/components/ui/NewSessionDialog.tsx` | UI | Legacy new-session dialog (retained; referenced by TabBar — currently not mounted in App.tsx) |
+| `src/renderer/components/ui/TabBar.tsx` | UI | Legacy tab bar (retained; not mounted in App.tsx — shell uses SessionRail) |
+| `src/renderer/hooks/useDrag.ts` | Renderer | Hand-rolled pointer-events drag-to-reorder hook (not currently wired to any active shell component) |
+
 ## Shared Utilities
 
-| File | Layer | Role | Lines |
-|------|-------|------|-------|
-| `src/shared/claude-detector.ts` | Shared | Detect Claude CLI readiness patterns + generic `isProviderReady()` / `findProviderOutputStart()` | ~66 |
-| `src/main/ansi-strip.ts` | Main | Strip ANSI escape codes from terminal output | 25 |
-| `src/renderer/utils/variable-resolver.ts` | Renderer | Template variable resolution (`{{clipboard}}`, etc.) | 111 |
-| `src/renderer/utils/fuzzy-search.ts` | Renderer | Fuzzy string matching for command palette | 184 |
-| `src/renderer/utils/toast.ts` | Renderer | Toast notification utility | 83 |
-| `src/renderer/styles/globals.css` | Renderer | Global styles and Tailwind imports | 244 |
-| `src/renderer/main.tsx` | Renderer | React DOM entry point | 10 |
-| `src/renderer/hooks/index.ts` | Renderer | Hooks barrel export | 3 |
+| File | Layer | Role |
+|------|-------|------|
+| `src/shared/claude-detector.ts` | Shared | Detect Claude CLI readiness patterns + generic `isProviderReady()` / `findProviderOutputStart()` |
+| `src/main/ansi-strip.ts` | Main | Strip ANSI escape codes from terminal output |
+| `src/renderer/utils/variable-resolver.ts` | Renderer | Template variable resolution (`{{clipboard}}`, etc.) |
+| `src/renderer/utils/fuzzy-search.ts` | Renderer | Fuzzy string matching |
+| `src/renderer/utils/toast.ts` | Renderer | Toast notification utility |
+| `src/renderer/utils/layout-tree.ts` | Renderer | Pure layout tree functions (countPanes, traverseTree, etc.) — retained from split-view era; still compiles and tested |
+| `src/renderer/styles/globals.css` | Renderer | Global styles — imports tokens.css, animations.css, motion.css, prototype-shell.css then Tailwind layers |
+| `src/renderer/styles/tokens.css` | Renderer | CSS custom properties (design tokens) |
+| `src/renderer/styles/animations.css` | Renderer | Animation keyframes and utilities |
+| `src/renderer/styles/motion.css` | Renderer | Wave 00 named motion gestures |
+| `src/renderer/styles/prototype-shell.css` | Renderer | Phase 4 shell CSS |
+| `src/renderer/main.tsx` | Renderer | React DOM entry point |
 
-## Testing Infrastructure (v5.1.0)
-
-475 tests | 33 test files | Vitest 4 + @testing-library/react + Playwright
+## Testing Infrastructure
 
 ### Config & Setup
 
-| File | Role | Lines |
-|------|------|-------|
-| `vitest.workspace.ts` | 3 workspace projects (shared/main/renderer) | ~35 |
-| `playwright.config.ts` | Playwright config for Electron E2E | ~15 |
-| `test/setup-main.ts` | Electron + node-pty mocks for main process tests | ~60 |
-| `test/setup-renderer.ts` | jest-dom + electronAPI reset for renderer tests | ~5 |
-| `test/helpers/electron-api-mock.ts` | Auto-derived electronAPI mock from IPC contract | ~60 |
+| File | Role |
+|------|------|
+| `vitest.workspace.ts` | 3 workspace projects (shared/main/renderer) |
+| `playwright.config.ts` | Playwright config for Electron E2E |
+| `test/setup-main.ts` | Electron + node-pty mocks for main process tests |
+| `test/setup-renderer.ts` | jest-dom + electronAPI reset for renderer tests |
+| `test/helpers/electron-api-mock.ts` | Auto-derived electronAPI mock from IPC contract |
 
-### Unit Tests (Phase 1 — pure functions)
+### Unit Tests
 
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/shared/model-detector.test.ts` | 15 | Initial/switch detection, ANSI stripping |
-| `src/shared/message-parser.test.ts` | 10 | 4 message formats, dedup, ANSI stripping |
 | `src/shared/types/provider-types.test.ts` | 7 | ProviderId, ProviderCapabilities, ProviderInfo structural tests |
 | `src/renderer/utils/variable-resolver.test.ts` | 18 | resolveVariables, extractVariables, getMissingVariables |
 | `src/renderer/utils/fuzzy-search.test.ts` | 14 | Score tiers, sorting, minScore, highlightMatches |
+| `src/renderer/utils/layout-tree.test.ts` | 33 | countPanes, traverseTree, transformTree, pruneTree, grid nodes |
 | `src/main/git-manager.test.ts` | 41 | Status parsing, branches, commit, generateMessage, detectErrorCode |
 | `src/main/providers/provider-registry.test.ts` | 9 | Auto-registration, get/list/getAvailable, error handling |
-| `src/main/providers/claude-provider.test.ts` | 28 | getId, getInfo, buildCommand permutations (incl. LaunchMode switch + agents-mode defense-in-depth), patterns, normalizeModel, env vars, no-args fallback contract |
-| `src/main/providers/codex-provider.test.ts` | 14 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel, launchMode-inertness for non-Claude provider |
-| `src/main/agent-view/availability.test.ts` | 35 | Precedence rules (env > setting > cli-not-found > version-unparseable > cli-too-old > available), reason variants, edge cases |
-| `src/main/agent-view/probe-version.test.ts` | 6 | Successful version parse, missing binary, non-zero exit, parse-unsafe output, 5s timeout, mock pattern matches existing `execFile` callback style |
+| `src/main/providers/claude-provider.test.ts` | 28 | getId, getInfo, buildCommand permutations (incl. LaunchMode switch + agents-mode defense-in-depth), patterns, normalizeModel, env vars |
+| `src/main/providers/codex-provider.test.ts` | 14 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel, launchMode-inertness |
+| `src/main/agent-view/availability.test.ts` | 35 | Precedence rules, reason variants, edge cases |
+| `src/main/agent-view/probe-version.test.ts` | 6 | Successful version parse, missing binary, non-zero exit, parse-unsafe output, 5s timeout |
 | `src/main/ipc-handlers.availability.test.ts` | 7 | Cached-and-return semantics, no-respawn on N calls, IPC wrapper, initial `'probing'` state |
-| `src/renderer/utils/layout-tree.test.ts` | 33 | countPanes, traverseTree, transformTree, pruneTree, grid nodes |
+| `src/main/quota-service.test.ts` | 13 | Quota fetching, burn rate calculation, cache |
 
-### Integration Tests (Phase 2 — mocked dependencies)
+### Integration Tests
 
 | File | Tests | Covers |
 |------|-------|--------|
-| `src/renderer/hooks/useGit.test.ts` | 8 | Status loading, staging, commit, operationInProgress |
-| `src/renderer/hooks/useSessionManager.test.ts` | 6 | CRUD, events, output subscribers |
-| `src/renderer/hooks/useSplitView.test.ts` | 9 | Layout ops, persistence, focus navigation |
+| `src/renderer/hooks/useSessionManager.test.ts` | 7 | CRUD, events, output subscribers |
+| `src/renderer/hooks/useAgentViewAvailability.test.tsx` | 6 | Initial null/loading state, stays loading when initial fetch returns `'probing'`, success path, rejection synthesizes `detection-failed`, subscribes to push event, unsubscribes on unmount |
 | `src/main/session-persistence.test.ts` | 16 | Load/save/clear, validation, atomic write |
+| `src/main/session-manager.test.ts` | 14 | Session lifecycle, history recording, model events |
 | `src/main/ipc-registry.test.ts` | 5 | handle(), on(), removeAll() |
 | `src/main/ipc-emitter.test.ts` | 3 | emit(), destroyed window guard |
 | `src/main/ipc-handlers.test.ts` | 4 | IPC handler integration |
 
-### Component Tests (Phase 3 — mocked hooks)
+### Component Tests
 
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/renderer/components/ui/TabBar.test.tsx` | 8 | Tabs render, active state, callbacks |
 | `src/renderer/components/ui/EmptyState.test.tsx` | 5 | Welcome screen, quick actions |
-| `src/renderer/components/ui/CommitDialog.test.tsx` | 11 | Form, validation, commit flow, generate |
-| `src/renderer/components/ui/NewSessionDialog.test.tsx` | 8 | Launch-mode picker: three options render, default seeded from workspace, agents available/unavailable, submit-with-each-mode passes correct `launchMode` to onSubmit (uses `vi.hoisted` for stable mock refs — see comment in file) |
-| `src/renderer/hooks/useAgentViewAvailability.test.tsx` | 6 | Initial null/loading state, stays loading when initial fetch returns `'probing'` (no polling), success path, rejection synthesizes `detection-failed`, subscribes to push event and updates state, unsubscribes on unmount |
-| `src/renderer/components/PaneHeader.test.tsx` | 10 | Name, split/close buttons, dropdown |
-| `src/renderer/components/GitPanel.test.tsx` | 13 | File sections, branch, init, status |
-| `src/renderer/components/SplitLayout.test.tsx` | 8 | Single/split/grid render, depth guard |
+| `src/renderer/components/ui/CommitDialog.test.tsx` | 11 | Form, validation, commit flow, AI message generation |
+| `src/renderer/components/ui/NewSessionDialog.test.tsx` | 8 | Launch-mode picker: three options render, default seeded from workspace, agents available/unavailable, submit-with-each-mode passes correct `launchMode` (uses `vi.hoisted` for stable mock refs) |
+| `src/renderer/components/ui/ShareIndicator.test.tsx` | 8 | Renders, count display (0/1/5/9/10+), aria-label, "9+" clamp |
 
-### E2E Tests (Phase 4 — Playwright for Electron)
+### E2E Tests (Playwright for Electron)
 
 | File | Tests | Covers |
 |------|-------|--------|
@@ -353,4 +258,5 @@ External reference: https://code.claude.com/docs/en/agent-view (research-preview
 | `e2e/session.spec.ts` | 3 | New session button, dialog |
 | `e2e/split-view.spec.ts` | 2 | Single pane default |
 | `e2e/keyboard-shortcuts.spec.ts` | 3 | Ctrl+T, Escape, settings |
-| `e2e/launch-mode-picker.spec.ts` | 2 | Picker shows three options with agents enabled (default env), picker shows agents disabled when `CLAUDE_CODE_DISABLE_AGENT_VIEW=1`. Both expand the `<select>` into a listbox before screenshotting so options are visible. Evidence: `e2e/screenshots/launch-mode-picker/03[ab]-*.png`. |
+| `e2e/launch-mode-picker.spec.ts` | 2 | Picker shows three options with agents enabled; picker shows agents disabled when `CLAUDE_CODE_DISABLE_AGENT_VIEW=1`. Evidence: `e2e/screenshots/launch-mode-picker/` |
+| `e2e/redesign-journeys.spec.ts` | — | Phase 4 shell journeys: new-session affordance, palette open/close, no-legacy guard |

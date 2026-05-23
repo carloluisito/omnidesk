@@ -5,11 +5,12 @@
  * Active tab: surface-raised bg, top accent border.
  * Inactive: transparent.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Tab, TabData } from './Tab';
 import { NewSessionDialog } from './NewSessionDialog';
 import { ContextMenu, ContextMenuPosition } from './ContextMenu';
 import { LayoutGrid } from 'lucide-react';
+import { useDrag } from '../../hooks/useDrag';
 
 import { Workspace } from '../../../shared/ipc-types';
 
@@ -85,6 +86,49 @@ export function TabBar({
   const [canScrollRight, setCanScrollRight]          = useState(false);
   const [contextMenu, setContextMenu]                = useState<{ sessionId: string; position: ContextMenuPosition } | null>(null);
   const [editingTabId, setEditingTabId]              = useState<string | null>(null);
+
+  // Drag-to-reorder tab order — maintained locally; persisted via setSettings on each reorder.
+  const [tabOrder, setTabOrder] = useState<string[]>([]);
+
+  // Keep tabOrder in sync when sessions list changes externally
+  useEffect(() => {
+    setTabOrder((prev) => {
+      const ids = sessions.map((s) => s.id);
+      // Add new sessions at end, remove deleted sessions, preserve order of existing
+      const existing = prev.filter((id) => ids.includes(id));
+      const newIds = ids.filter((id) => !prev.includes(id));
+      return [...existing, ...newIds];
+    });
+  }, [sessions]);
+
+  const orderedSessions = [...sessions].sort((a, b) => {
+    const ai = tabOrder.indexOf(a.id);
+    const bi = tabOrder.indexOf(b.id);
+    // Unordered items go to end
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  const handleTabReorder = useCallback((from: number, to: number) => {
+    setTabOrder((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      // Persist to settings (best-effort)
+      if (typeof window.electronAPI?.setSettings === 'function') {
+        // 'tabs.order' is stored as an opaque extension key; cast through unknown
+        (window.electronAPI.setSettings as (s: Record<string, unknown>) => Promise<unknown>)({ 'tabs.order': next }).catch(() => {});
+      }
+      return next;
+    });
+  }, []);
+
+  const { dragState: tabDragState, dragHandlers: tabDragHandlers } = useDrag({
+    items: orderedSessions,
+    onReorder: handleTabReorder,
+  });
 
   const isSplitActive    = paneCount > 1;
   const isDialogOpen     = externalDialogOpen ?? internalDialogOpen;
@@ -201,12 +245,13 @@ export function TabBar({
   return (
     <>
       <div
+        data-testid="tab-bar"
         role="tablist"
         aria-label="Sessions"
         style={{
           height:          'var(--tab-bar-height)',
-          backgroundColor: 'var(--surface-base)',
-          borderBottom:    '1px solid var(--border-subtle)',
+          backgroundColor: 'var(--v2-surface-low)',
+          borderBottom:    `1px solid var(--v2-border-subtle)`,
           display:         'flex',
           alignItems:      'center',
           position:        'relative',
@@ -216,6 +261,7 @@ export function TabBar({
       >
         {/* New session button */}
         <button
+          data-testid="tab-bar-new-session"
           onClick={() => setIsDialogOpen(true)}
           title="New session (Ctrl+T)"
           aria-label="New session"
@@ -230,18 +276,18 @@ export function TabBar({
             background:      'transparent',
             border:          '1px solid transparent',
             borderRadius:    'var(--radius-sm)',
-            color:           'var(--text-tertiary)',
+            color:           'var(--v2-text-tertiary)',
             cursor:          'pointer',
             flexShrink:      0,
             transition:      'color var(--duration-fast) var(--ease-inout), background-color var(--duration-fast) var(--ease-inout)',
             outline:         'none',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)';
             (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)';
             (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
           }}
         >
@@ -260,7 +306,7 @@ export function TabBar({
               top:             0,
               bottom:          0,
               width:           '24px',
-              background:      'linear-gradient(to right, var(--surface-base), transparent)',
+              background:      'linear-gradient(to right, var(--v2-surface-low), transparent)',
               pointerEvents:   'none',
               zIndex:          1,
             }}
@@ -291,7 +337,7 @@ export function TabBar({
               gap:         '2px',
             }}
           >
-            {sessions.map((session, index) => {
+            {orderedSessions.map((session, index) => {
               let visibilityState: 'focused' | 'visible' | 'hidden' = 'hidden';
               if (isSplitActive && visibleSessionIds.includes(session.id)) {
                 visibilityState = session.id === focusedSessionId ? 'focused' : 'visible';
@@ -309,21 +355,42 @@ export function TabBar({
                 }
               };
 
+              // live-dot when session is running
+              const isLive = session.status === 'running';
+              // drag visual: dragged tab is dimmed; drop gap shown via border
+              const isDragging = tabDragState.activeIndex === index;
+              const isDropTarget = tabDragState.overIndex === index && tabDragState.activeIndex !== index;
+
               return (
-                <Tab
+                <div
                   key={session.id}
-                  data={session}
-                  isActive={session.id === activeSessionId}
-                  isEditing={session.id === editingTabId}
-                  index={index}
-                  onSelect={handleTabSelect}
-                  onClose={() => onCloseSession(session.id)}
-                  onContextMenu={(pos) => handleContextMenu(session.id, pos)}
-                  onRename={(name) => handleRename(session.id, name)}
-                  onCancelEdit={() => setEditingTabId(null)}
-                  visibilityState={visibilityState}
-                  checkpointCount={checkpointCounts[session.id] || 0}
-                />
+                  style={{
+                    display:    'flex',
+                    alignItems: 'flex-end',
+                    height:     '100%',
+                    opacity:    isDragging ? 0.5 : 1,
+                    cursor:     'grab',
+                    borderLeft: isDropTarget ? '2px solid var(--v2-accent, #00C9A7)' : '2px solid transparent',
+                    transition: 'border-color 80ms ease, opacity 80ms ease',
+                  }}
+                  {...tabDragHandlers(index)}
+                >
+                  <Tab
+                    data={session}
+                    isActive={session.id === activeSessionId}
+                    isEditing={session.id === editingTabId}
+                    index={index}
+                    onSelect={handleTabSelect}
+                    onClose={() => onCloseSession(session.id)}
+                    onContextMenu={(pos) => handleContextMenu(session.id, pos)}
+                    onRename={(name) => handleRename(session.id, name)}
+                    onCancelEdit={() => setEditingTabId(null)}
+                    visibilityState={visibilityState}
+                    checkpointCount={checkpointCounts[session.id] || 0}
+                    v2={true}
+                    liveDot={isLive}
+                  />
+                </div>
               );
             })}
           </div>
@@ -339,7 +406,7 @@ export function TabBar({
               top:           0,
               bottom:        0,
               width:         '24px',
-              background:    'linear-gradient(to left, var(--surface-base), transparent)',
+              background:    'linear-gradient(to left, var(--v2-surface-low), transparent)',
               pointerEvents: 'none',
               zIndex:        1,
             }}
@@ -364,7 +431,7 @@ export function TabBar({
                 background:      showOverflow ? 'var(--state-active)' : 'transparent',
                 border:          '1px solid transparent',
                 borderRadius:    'var(--radius-sm)',
-                color:           'var(--text-tertiary)',
+                color:           'var(--v2-text-tertiary)',
                 cursor:          'pointer',
                 fontSize:        'var(--text-sm)',
                 fontFamily:      'var(--font-ui)',
@@ -373,10 +440,10 @@ export function TabBar({
                 marginRight:     'var(--space-1)',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)';
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
@@ -395,8 +462,8 @@ export function TabBar({
                   position:        'absolute',
                   top:             'calc(100% + 4px)',
                   right:           0,
-                  backgroundColor: 'var(--surface-high)',
-                  border:          '1px solid var(--border-default)',
+                  backgroundColor: 'var(--v2-surface-high)',
+                  border:          '1px solid var(--v2-border-default)',
                   borderRadius:    'var(--radius-md)',
                   boxShadow:       'var(--shadow-md)',
                   zIndex:          'var(--z-dropdown)' as any,
@@ -419,17 +486,17 @@ export function TabBar({
                       gap:             'var(--space-2)',
                       width:           '100%',
                       padding:         '6px var(--space-3)',
-                      background:      session.id === activeSessionId ? 'var(--accent-primary-muted)' : 'transparent',
+                      background:      session.id === activeSessionId ? 'rgba(0,201,167,0.14)' : 'transparent',
                       border:          'none',
                       cursor:          'pointer',
-                      color:           session.id === activeSessionId ? 'var(--text-accent)' : 'var(--text-secondary)',
+                      color:           session.id === activeSessionId ? 'var(--v2-accent)' : 'var(--v2-text-secondary)',
                       fontSize:        'var(--text-sm)',
                       fontFamily:      'var(--font-ui)',
                       textAlign:       'left',
                       transition:      'background-color var(--duration-fast) var(--ease-inout)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = session.id === activeSessionId ? 'var(--accent-primary-muted)' : 'transparent'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = session.id === activeSessionId ? 'rgba(0,201,167,0.14)' : 'transparent'; }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {session.name}
@@ -457,15 +524,15 @@ export function TabBar({
               background:      'transparent',
               border:          '1px solid transparent',
               borderRadius:    'var(--radius-sm)',
-              color:           'var(--text-tertiary)',
+              color:           'var(--v2-text-tertiary)',
               cursor:          'pointer',
               marginRight:     'var(--space-1)',
               flexShrink:      0,
               outline:         'none',
               transition:      'color var(--duration-fast) var(--ease-inout)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--state-hover)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)'; (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}
           >
             <LayoutGrid size={15} strokeWidth={1.5} aria-hidden="true" />
           </button>
@@ -486,15 +553,15 @@ export function TabBar({
               background:      'transparent',
               border:          '1px solid transparent',
               borderRadius:    'var(--radius-sm)',
-              color:           'var(--text-tertiary)',
+              color:           'var(--v2-text-tertiary)',
               cursor:          'pointer',
               marginRight:     'var(--space-1)',
               flexShrink:      0,
               outline:         'none',
               transition:      'color var(--duration-fast) var(--ease-inout)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-secondary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-secondary)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--v2-text-tertiary)'; }}
           >
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <circle cx="7.5" cy="7.5" r="6.5" />

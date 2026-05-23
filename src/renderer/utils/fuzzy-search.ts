@@ -1,7 +1,8 @@
-import type { FuzzySearchResult } from '../../shared/types/prompt-templates';
-
-// Re-export for convenience
-export type { FuzzySearchResult };
+export interface FuzzySearchResult<T> {
+  item: T;
+  score: number;
+  matches: { field: string; indices: number[] }[];
+}
 
 interface SearchableFields<T> {
   [key: string]: (item: T) => string | string[];

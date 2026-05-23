@@ -3,8 +3,6 @@ import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
-import { DragDropOverlay } from './DragDropOverlay';
-import { DragDropContextMenu } from './DragDropContextMenu';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
@@ -73,13 +71,10 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClaudeReady, setIsClaudeReady] = useState(false);
 
-  // Drag-drop state
+  // Drag-drop state (ask-mode UI retired — files are inserted immediately per settings.defaultInsertMode)
   const [isDragging, setIsDragging] = useState(false);
   const [draggedFiles, setDraggedFiles] = useState<FileInfo[]>([]);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
-  const [pendingFiles, setPendingFiles] = useState<FileInfo[]>([]);
   const [settings, setSettings] = useState<DragDropSettings | null>(null);
   const dropQueueRef = useRef<Array<{ files: FileInfo[]; mode: DragDropInsertMode }>>([]);
 
@@ -219,18 +214,13 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     if (fileInfos.length === 0) return;
 
     // Determine insert mode
-    const effectiveMode = isShiftPressed ? 'content' : settings.defaultInsertMode;
+    // The "ask" context menu is retired; treat ask as 'path' (the prior default).
+    const rawMode = isShiftPressed ? 'content' : settings.defaultInsertMode;
+    const effectiveMode: DragDropInsertMode = rawMode === 'ask' ? 'path' : rawMode;
 
-    if (effectiveMode === 'ask') {
-      // Show context menu
-      setPendingFiles(fileInfos);
-      setContextMenuPos({ x: e.clientX, y: e.clientY });
-      setShowContextMenu(true);
-    } else if (isClaudeReady) {
-      // Insert immediately
+    if (isClaudeReady) {
       insertFiles(fileInfos, effectiveMode);
     } else {
-      // Queue for later
       dropQueueRef.current.push({ files: fileInfos, mode: effectiveMode });
     }
 
@@ -270,35 +260,6 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     window.addEventListener('dragover', handleDragOverWindow);
     return () => window.removeEventListener('dragover', handleDragOverWindow);
   }, [isDragging, draggedFiles.length]);
-
-  const handleContextMenuInsertPath = useCallback(() => {
-    setShowContextMenu(false);
-    if (pendingFiles.length > 0) {
-      if (isClaudeReady) {
-        insertFiles(pendingFiles, 'path');
-      } else {
-        dropQueueRef.current.push({ files: pendingFiles, mode: 'path' });
-      }
-    }
-    setPendingFiles([]);
-  }, [pendingFiles, isClaudeReady, insertFiles]);
-
-  const handleContextMenuInsertContent = useCallback(() => {
-    setShowContextMenu(false);
-    if (pendingFiles.length > 0) {
-      if (isClaudeReady) {
-        insertFiles(pendingFiles, 'content');
-      } else {
-        dropQueueRef.current.push({ files: pendingFiles, mode: 'content' });
-      }
-    }
-    setPendingFiles([]);
-  }, [pendingFiles, isClaudeReady, insertFiles]);
-
-  const handleContextMenuCancel = useCallback(() => {
-    setShowContextMenu(false);
-    setPendingFiles([]);
-  }, []);
 
   const handleResize = useCallback(() => {
     if (fitAddonRef.current && xtermRef.current && isVisible) {
@@ -486,17 +447,28 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     }
   }, [isFocused, isVisible, handleResize]);
 
-  // Force xterm canvas repaint when terminal becomes visible (opacity 0 → 1)
+  // Refit + refresh when the terminal becomes visible after being hidden
+  // (e.g. mode switch focus ↔ grid). xterm's FitAddon needs the container
+  // to be laid out before it can read dimensions; `display: none` zeros them.
+  // We schedule TWO passes: an rAF (immediately after the next layout) and
+  // a delayed pass (catches CSS transitions). Each pass calls the full
+  // handleResize so the PTY also learns the new cols/rows.
   useEffect(() => {
-    if (isClaudeReady && xtermRef.current && fitAddonRef.current && isVisible) {
-      // Small delay to let the opacity transition start and container become visible
-      const timer = setTimeout(() => {
-        fitAddonRef.current?.fit();
-        xtermRef.current?.refresh(0, xtermRef.current.rows - 1);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isClaudeReady, isVisible]);
+    if (!isVisible || !xtermRef.current || !fitAddonRef.current) return;
+    const refit = () => {
+      try {
+        handleResizeRef.current?.();
+        const xt = xtermRef.current;
+        if (xt) xt.refresh(0, xt.rows - 1);
+      } catch { /* fitAddon throws if container is detached — safe to ignore */ }
+    };
+    const raf = requestAnimationFrame(refit);
+    const timer = window.setTimeout(refit, 100);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [isVisible]);
 
   return (
     <>
@@ -530,8 +502,8 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
               left:            0,
               right:           0,
               zIndex:          10,
-              backgroundColor: 'color-mix(in srgb, var(--surface-overlay) 88%, transparent)',
-              borderBottom:    '1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent)',
+              backgroundColor: 'color-mix(in srgb, var(--v2-surface-overlay) 88%, transparent)',
+              borderBottom:    '1px solid color-mix(in srgb, var(--v2-accent) 20%, transparent)',
               padding:         '4px var(--space-3)',
               display:         'flex',
               alignItems:      'center',
@@ -542,36 +514,20 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
             aria-live="polite"
           >
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="var(--accent-primary)" strokeWidth="1.3" fill="none" />
-              <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="var(--accent-primary)" strokeWidth="1.3" strokeLinecap="round" />
+              <rect x="2" y="5.5" width="8" height="5.5" rx="1" stroke="var(--v2-accent)" strokeWidth="1.3" fill="none" />
+              <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="var(--v2-accent)" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
             <span style={{
               fontSize:   'var(--text-xs)',
               fontFamily: '"JetBrains Mono", monospace',
-              color:      'var(--accent-primary)',
+              color:      'var(--v2-accent)',
             }}>
               Read-only — Request control to interact
             </span>
           </div>
         )}
 
-        {isVisible && isDragging && !readOnly && (
-          <DragDropOverlay
-            isVisible={true}
-            files={draggedFiles}
-            isShiftPressed={isShiftPressed}
-          />
-        )}
       </div>
-
-      <DragDropContextMenu
-        isOpen={showContextMenu}
-        position={contextMenuPos}
-        files={pendingFiles}
-        onInsertPath={handleContextMenuInsertPath}
-        onInsertContent={handleContextMenuInsertContent}
-        onCancel={handleContextMenuCancel}
-      />
 
       <ConfirmDialog
         isOpen={showCloseConfirm}
@@ -808,15 +764,15 @@ export function MultiTerminal({
           justify-content: center;
           height: 100%;
           gap: 16px;
-          color: var(--text-secondary);
+          color: var(--v2-text-secondary);
           font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
         }
 
         .loading-spinner {
           width: 32px;
           height: 32px;
-          border: 3px solid var(--border-default);
-          border-top-color: var(--accent-primary);
+          border: 3px solid var(--v2-border-default);
+          border-top-color: var(--v2-accent);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -843,12 +799,12 @@ export function MultiTerminal({
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb {
-          background-color: var(--border-strong);
+          background-color: var(--v2-border-strong);
           border-radius: 4px;
         }
 
         .xterm-viewport::-webkit-scrollbar-thumb:hover {
-          background-color: var(--text-tertiary);
+          background-color: var(--v2-text-tertiary);
         }
       `}</style>
     </div>

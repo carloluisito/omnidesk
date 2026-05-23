@@ -1,8 +1,8 @@
 /**
  * ShareIndicator — 16px circular badge showing observer count on shared tabs.
  *
- * Background: var(--accent-primary) (teal).
- * Text: var(--text-inverse) (darkest surface — contrast on teal).
+ * Background: var(--v2-accent) (teal).
+ * Text: #0A0B11 (darkest surface — contrast on teal).
  * Positioned top-right of tab icon by the parent (Tab.tsx).
  * Pulses when count > 0 to signal live sharing.
  */
@@ -24,8 +24,8 @@ export function ShareIndicator({ count }: ShareIndicatorProps) {
         width:           '16px',
         height:          '16px',
         borderRadius:    '50%',
-        backgroundColor: 'var(--accent-primary)',
-        color:           'var(--text-inverse)',
+        backgroundColor: 'var(--v2-accent)',
+        color:           '#0A0B11',
         fontSize:        '9px',
         fontFamily:      '"JetBrains Mono", monospace',
         fontWeight:      700,
@@ -40,8 +40,8 @@ export function ShareIndicator({ count }: ShareIndicatorProps) {
 
       <style>{`
         @keyframes share-pulse {
-          0%,  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--accent-primary) 60%, transparent); }
-          50%        { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 0%, transparent);   }
+          0%,  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--v2-accent) 60%, transparent); }
+          50%        { box-shadow: 0 0 0 4px color-mix(in srgb, var(--v2-accent) 0%, transparent);   }
         }
       `}</style>
     </span>

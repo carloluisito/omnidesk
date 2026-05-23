@@ -91,7 +91,7 @@ describe('useSessionManager', () => {
       await result.current.closeSession('s1');
     });
 
-    expect(api.closeSession).toHaveBeenCalledWith('s1');
+    expect(api.closeSession).toHaveBeenCalledWith('s1', undefined);
   });
 
   it('switchSession calls electronAPI.switchSession', async () => {
