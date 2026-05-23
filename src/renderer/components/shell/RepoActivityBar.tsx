@@ -131,7 +131,14 @@ export function RepoActivityBar({
   const onDragLeave = () => setDragOverTarget(null);
 
   return (
-    <nav className="p4-activity" aria-label="Repositories">
+    <nav
+      className="p4-activity"
+      aria-label="Repositories"
+      // dragend fires on the source when a drag finishes (drop OR cancel) and
+      // bubbles here, so the drop-target highlight clears even when a child's
+      // dragleave/drop is missed (a common HTML5 DnD quirk).
+      onDragEnd={() => setDragOverTarget(null)}
+    >
       {[...visibleGroupedById.values()].map(g => {
         const members = g.repoIds
           .map(rid => repos.find(r => r.id === rid))
