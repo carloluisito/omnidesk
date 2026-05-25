@@ -2,8 +2,8 @@
 export { P4Icon, type P4IconName } from './P4Icon';
 export {
   colorBg, colorFg, initials, agentLetter, agentColor,
-  STATUS_META, colorFromString, formatLastActive,
-  type RepoColor, type SessionStatus, type StatusMeta,
+  STATUS_META, colorFromString, formatLastActive, resolveSessionWorktree,
+  type RepoColor, type SessionStatus, type StatusMeta, type WorktreeRequest,
 } from './shell-utils';
 
 export { RepoActivityBar, isPathPrefix } from './RepoActivityBar';

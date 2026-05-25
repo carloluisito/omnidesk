@@ -79,6 +79,66 @@ export const colorFromString = (input: string): RepoColor => {
   return palette[Math.abs(hash) % palette.length];
 };
 
+/** Worktree creation request handed to the main process for a new session. */
+export interface WorktreeRequest {
+  mainRepoPath: string;
+  branch: string;
+  isNewBranch: boolean;
+  baseBranch?: string;
+}
+
+/** Resolve the working directory + worktree request for a new session.
+ *
+ *  Existing mode on the repo's CURRENT branch must NOT create a worktree: git
+ *  forbids a second worktree on an already-checked-out branch (it fails with
+ *  "'<branch>' is already used by worktree at ..."), and a separate worktree
+ *  would be pointless anyway. Run in the main checkout instead — exactly what
+ *  the New Session sheet previews for this case. */
+export function resolveSessionWorktree(
+  form: {
+    worktreeMode: 'new' | 'existing' | 'share' | 'current';
+    branch?: string;
+    baseBranch?: string;
+  },
+  repo: { path: string; branch?: string },
+  shareWorkingDirectory?: string | null,
+): { cwd: string; worktree?: WorktreeRequest } {
+  const mainRepoPath = repo.path;
+
+  switch (form.worktreeMode) {
+    case 'new':
+      if (form.branch) {
+        return {
+          cwd: mainRepoPath,
+          worktree: {
+            mainRepoPath,
+            branch: form.branch,
+            isNewBranch: true,
+            baseBranch: form.baseBranch || undefined,
+          },
+        };
+      }
+      return { cwd: mainRepoPath };
+
+    case 'existing':
+      if (form.branch && form.branch !== repo.branch) {
+        return {
+          cwd: mainRepoPath,
+          worktree: { mainRepoPath, branch: form.branch, isNewBranch: false },
+        };
+      }
+      // Current branch (or none picked) → run in the main checkout, no worktree.
+      return { cwd: mainRepoPath };
+
+    case 'share':
+      return { cwd: shareWorkingDirectory || mainRepoPath };
+
+    case 'current':
+    default:
+      return { cwd: mainRepoPath };
+  }
+}
+
 /** Format a Date or epoch ms as "Nh ago", "Nd ago", etc. — used in rail meta. */
 export const formatLastActive = (date: Date | number | undefined): string => {
   if (!date) return '—';
