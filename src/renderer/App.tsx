@@ -8,7 +8,7 @@ import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
   TitleBar, StatusBar,
-  sessionsForRepo, liveCount,
+  sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
 import type { ActiveSelection } from './components/shell/RepoActivityBar';
@@ -235,36 +235,19 @@ function App() {
     const repo = repos.find(r => r.id === form.repoId);
     if (!repo) throw new Error('Repository not found');
 
-    // Resolve the workingDirectory + worktree request per mode:
-    //   - new      → create a new branch (forked off baseBranch || HEAD) in its own worktree
-    //   - existing → check out an existing branch in a fresh worktree (or fall through to main if it's HEAD)
-    //   - share    → run directly in the donor session's workingDirectory (no worktree creation)
-    //   - current  → run directly in the main repo checkout
-    let worktree:
-      | { mainRepoPath: string; branch: string; isNewBranch: boolean; baseBranch?: string }
-      | undefined;
-    let cwd = repo.path;
-
-    if (form.worktreeMode === 'new' && form.branch) {
-      worktree = {
-        mainRepoPath: repo.path,
-        branch: form.branch,
-        isNewBranch: true,
-        baseBranch: form.baseBranch || undefined,
-      };
-    } else if (form.worktreeMode === 'existing' && form.branch) {
-      worktree = {
-        mainRepoPath: repo.path,
-        branch: form.branch,
-        isNewBranch: false,
-      };
-    } else if (form.worktreeMode === 'share' && form.shareSessionId) {
+    // Resolve the workingDirectory + worktree request per mode (see
+    // resolveSessionWorktree). Share mode needs the donor session's cwd, so
+    // look that up here before delegating the decision.
+    let shareWorkingDirectory: string | undefined;
+    if (form.worktreeMode === 'share' && form.shareSessionId) {
       const donor = sessions.find(s => s.id === form.shareSessionId);
       if (!donor || !donor.workingDirectory) {
         throw new Error("Couldn't find the session you're sharing with.");
       }
-      cwd = donor.workingDirectory;
+      shareWorkingDirectory = donor.workingDirectory;
     }
+
+    const { cwd, worktree } = resolveSessionWorktree(form, repo, shareWorkingDirectory);
 
     const start = async (override?: { isNewBranch: boolean } | null): Promise<void> => {
       const wt = worktree && override !== null
