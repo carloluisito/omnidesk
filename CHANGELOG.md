@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1] - 2026-05-25
+
+### Fixed
+- Starting a new session in **Existing** worktree mode on the repository's current branch no longer fails with a git error ("'main' is already used by worktree at ..."). The session now runs in the main checkout, matching what the New Session sheet previews.
+
+---
+
 ## [2.0.0] - 2026-05-23
 
 A ground-up redesign. OmniDesk is now built around a flat **repo → session** shell, and a large amount of panel-based functionality has been removed in favor of a focused terminal-orchestration experience. **This is a breaking release** for users who relied on the removed features.
