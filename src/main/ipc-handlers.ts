@@ -13,6 +13,7 @@ import { ProviderRegistry } from './providers/provider-registry';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
 import { IPCRegistry } from './ipc-registry';
+import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot } from './path-access';
 
 let registry: IPCRegistry | null = null;
 
@@ -149,6 +150,10 @@ export function setupIPCHandlers(
       title: 'Select Working Directory',
     });
     if (result.canceled || result.filePaths.length === 0) return null;
+    // The user explicitly chose this folder, so trust it (and its descendants)
+    // for subsequent fs operations even if it lives outside the home directory
+    // and isn't a registered workspace yet — e.g. repo detection during add.
+    approvePickedRoot(result.filePaths[0]);
     return result.filePaths[0];
   });
 
@@ -159,31 +164,22 @@ export function setupIPCHandlers(
       filters: options.filters,
     });
     if (result.canceled || !result.filePath) return null;
+    // The user explicitly chose this save target, so trust the exact path for a
+    // subsequent writeFile even if it's outside the home directory. Approving
+    // the file path (not its directory) keeps this to just the chosen file.
+    approvePickedRoot(result.filePath);
     return result.filePath;
   });
 
-  const normalizeForCompare = (p: string): string => {
-    const normalized = path.normalize(p);
-    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
-  };
-
-  const isPathWithin = (child: string, parent: string): boolean => {
-    const c = normalizeForCompare(child);
-    const p = normalizeForCompare(parent);
-    if (c === p) return true;
-    const parentWithSep = p.endsWith(path.sep) ? p : p + path.sep;
-    return c.startsWith(parentWithSep);
-  };
-
-  const isPathAllowed = (resolved: string): boolean => {
-    const homeDir = app.getPath('home');
-    if (isPathWithin(resolved, homeDir)) return true;
-    const workspaces = settingsManager.getWorkspaces();
-    for (const ws of workspaces) {
-      if (isPathWithin(resolved, path.resolve(ws.path))) return true;
-    }
-    return false;
-  };
+  // A path is allowed if it's under the home directory, under a registered
+  // workspace, or under a folder the user explicitly picked via a native dialog
+  // (see approvePickedRoot in browseDirectory). See ./path-access.
+  const isPathAllowed = (resolved: string): boolean =>
+    isPathAllowedAgainst(
+      resolved,
+      app.getPath('home'),
+      settingsManager.getWorkspaces().map((ws) => ws.path),
+    );
 
   registry.handle('writeFile', async (_e, filePath, content) => {
     const resolved = path.resolve(filePath);

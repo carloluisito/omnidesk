@@ -12,11 +12,11 @@ import {
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
 import type { ActiveSelection } from './components/shell/RepoActivityBar';
-import { P4Icon } from './components/shell/P4Icon';
 import { ContextMenu } from './components/shell/ContextMenu';
 import { TerminalHost } from './components/shell/TerminalHost';
 import { PromptDialog } from './components/shell/PromptDialog';
 import { CloseSessionDialog } from './components/shell/CloseSessionDialog';
+import { NonGitFolderDialog } from './components/shell/NonGitFolderDialog';
 import { useSessionManager } from './hooks/useSessionManager';
 import { useRepos } from './hooks/useRepos';
 import { useQuota } from './hooks/useQuota';
@@ -532,6 +532,14 @@ function App() {
             actions={paletteActions}
           />
         )}
+        {nonGitChoice && (
+          <NonGitFolderDialog
+            name={nonGitChoice.name}
+            onInitGit={handleInitGitAndOpen}
+            onOpenPlain={handleOpenPlainFolder}
+            onCancel={() => setNonGitChoice(null)}
+          />
+        )}
         <ToastContainer />
       </>
     );
@@ -860,55 +868,12 @@ function App() {
       )}
 
       {nonGitChoice && (
-        <div className="p4-overlay" onClick={(e) => { if (e.target === e.currentTarget) setNonGitChoice(null); }}>
-          <div className="p4-sheet" role="dialog" aria-modal="true" aria-label="Folder is not a git repository" style={{ width: 480 }}>
-            <div className="p4-sheet-head">
-              <div className="icon"><P4Icon name="folder" size={16} /></div>
-              <div>
-                <div className="t">Not a git repository</div>
-                <div className="d">
-                  <code style={{ color: 'var(--text-secondary)' }}>{nonGitChoice.name}</code> has no <code>.git</code>. How do you want to open it?
-                </div>
-              </div>
-              <button className="x" onClick={() => setNonGitChoice(null)} aria-label="Cancel">
-                <P4Icon name="x" size={14} />
-              </button>
-            </div>
-            <div className="p4-sheet-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button
-                type="button"
-                className="p4-source-card on"
-                style={{ textAlign: 'left' }}
-                onClick={handleInitGitAndOpen}
-              >
-                <span className="src-icon" style={{ background: 'rgba(0,201,167,.12)', color: 'var(--accent)' }}>
-                  <P4Icon name="git" size={14} />
-                </span>
-                <div>
-                  <div className="label">Initialize git &amp; open <span style={{ color: 'var(--accent)', fontSize: 10 }}>recommended</span></div>
-                  <div className="sub">Runs <code>git init</code>. Unlocks worktrees, branches, and isolated sessions.</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                className="p4-source-card"
-                style={{ textAlign: 'left' }}
-                onClick={handleOpenPlainFolder}
-              >
-                <span className="src-icon" style={{ background: 'var(--surface-high)', color: 'var(--text-secondary)' }}>
-                  <P4Icon name="folder" size={14} />
-                </span>
-                <div>
-                  <div className="label">Open as plain folder</div>
-                  <div className="sub">No git. Sessions just run in this folder — no worktrees or branches.</div>
-                </div>
-              </button>
-            </div>
-            <div className="p4-sheet-foot">
-              <button className="p4-btn ghost" onClick={() => setNonGitChoice(null)}>Cancel</button>
-            </div>
-          </div>
-        </div>
+        <NonGitFolderDialog
+          name={nonGitChoice.name}
+          onInitGit={handleInitGitAndOpen}
+          onOpenPlain={handleOpenPlainFolder}
+          onCancel={() => setNonGitChoice(null)}
+        />
       )}
 
       <ToastContainer />
