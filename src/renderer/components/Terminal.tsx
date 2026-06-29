@@ -7,7 +7,7 @@ import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
-import { KittyKeyboardState } from '../terminal/kitty-keyboard';
+import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
 import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
@@ -52,6 +52,7 @@ interface TerminalProps {
   isFocused: boolean; // Terminal has keyboard focus
   providerId?: ProviderId; // For provider-aware loading overlay copy
   readOnly?: boolean;  // Observer mode: disables input forwarding, shows overlay
+  getKittyFlags?: () => number;
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onReady: (sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => void;
@@ -63,7 +64,7 @@ function providerIdToName(providerId?: ProviderId): string | undefined {
   return undefined;
 }
 
-export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, onInput, onResize, onReady }: TerminalProps) {
+export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, getKittyFlags, onInput, onResize, onReady }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -363,56 +364,53 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     // Allow browser-native paste (Ctrl+V / Cmd+V / Shift+Insert) and app shortcuts
     // Without this, xterm.js consumes these keys instead of letting the app handle them
     xterm.attachCustomKeyEventHandler((e) => {
+      const flags = getKittyFlags?.() ?? 0;
+
+      // Kitty keyboard protocol active: encode and send directly, bypass xterm.
+      if (flags !== 0 && !readOnly) {
+        const encoded = encodeKittyKey(e, flags);
+        if (encoded !== null) {
+          e.preventDefault();
+          onInput(sessionId, encoded);
+          return false;
+        }
+        // encoded === null -> fall through to legacy handling below.
+      }
+
       if (e.type === 'keydown') {
         const isPaste = (e.ctrlKey || e.metaKey) && e.key === 'v';
         const isShiftInsert = e.shiftKey && e.key === 'Insert';
-
-        // Allow Ctrl+Shift+M (model cycling) to pass through to app
         const isModelCycle = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M';
 
-        // Ctrl+Shift+C: copy selected text from terminal
         const isCopy = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C';
         if (isCopy) {
           const selection = xterm.getSelection();
-          if (selection) {
-            navigator.clipboard.writeText(selection);
-          }
+          if (selection) navigator.clipboard.writeText(selection);
           return false;
         }
 
-        // Newline insertion: Ctrl+Enter, Shift+Enter, Alt+Enter, Cmd+Enter
+        // Newline insertion (legacy renderer only — Kitty path handled above).
         if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)) {
           e.preventDefault();
-          if (!readOnly) {
-            onInput(sessionId, '\n');
-          }
+          if (!readOnly) onInput(sessionId, '\n');
           return false;
         }
 
-        if (isPaste || isShiftInsert || isModelCycle) {
-          return false; // Let browser/app handle → our window event listener picks it up
-        }
+        if (isPaste || isShiftInsert || isModelCycle) return false;
       }
       return true;
     });
 
     // Handle terminal input
     xterm.onData((data) => {
-      // CRITICAL: Always intercept Ctrl+C — even in read-only/observer mode.
-      // Never forward \x03 to the PTY (it exits Claude immediately).
-      if (data === '\x03') {
-        if (!readOnly) {
-          // Host: show close confirm dialog
-          setShowCloseConfirm(true);
-        }
-        // Observer: silently swallow — do NOT forward to PTY
+      const flags = getKittyFlags?.() ?? 0;
+      // Legacy-mode Ctrl+C guard only. Under Kitty flags, Ctrl+C is CSI 99;5u
+      // already sent by the key handler and must not trigger the close dialog.
+      if (data === '\x03' && flags === 0) {
+        if (!readOnly) setShowCloseConfirm(true);
         return;
       }
-
-      // In read-only mode, discard all other input (observer watching only)
       if (readOnly) return;
-
-      // Normal input handling
       onInput(sessionId, data);
     });
 
