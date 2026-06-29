@@ -7,6 +7,7 @@ import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
+import { KittyKeyboardState } from '../terminal/kitty-keyboard';
 import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
@@ -571,10 +572,19 @@ export function MultiTerminal({
   const isReadyRef = useRef<Map<string, boolean>>(new Map());
   // Buffer for output that arrives before the terminal xterm instance is registered
   const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
+  const kittyStateRef = useRef<Map<string, KittyKeyboardState>>(new Map());
 
   // Set up output listener
   useEffect(() => {
     const cleanup = onOutput((sessionId: string, data: string) => {
+      // Kitty keyboard protocol: track flags + answer the capability query.
+      let kitty = kittyStateRef.current.get(sessionId);
+      if (!kitty) { kitty = new KittyKeyboardState(); kittyStateRef.current.set(sessionId, kitty); }
+      const reply = kitty.processOutput(data);
+      if (reply && !readOnlySessionIds.includes(sessionId)) {
+        onInput(sessionId, reply);
+      }
+
       const terminal = terminalsRef.current.get(sessionId);
       if (!terminal) {
         // Terminal not yet registered — buffer the output for later
@@ -652,7 +662,7 @@ export function MultiTerminal({
     });
 
     return cleanup;
-  }, [onOutput]);
+  }, [onOutput, onInput, readOnlySessionIds]);
 
   const handleReady = useCallback((sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => {
     terminalsRef.current.set(sessionId, terminal);
@@ -722,6 +732,7 @@ export function MultiTerminal({
         outputBuffersRef.current.delete(id);
         isReadyRef.current.delete(id);
         pendingOutputRef.current.delete(id);
+        kittyStateRef.current.delete(id);
       }
     }
   }, [sessionIds]);
@@ -743,6 +754,7 @@ export function MultiTerminal({
           onInput={onInput}
           onResize={onResize}
           onReady={handleReady}
+          getKittyFlags={() => kittyStateRef.current.get(sessionId)?.flags ?? 0}
         />
       ))}
 
