@@ -434,7 +434,14 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
       initializedRef.current = false;
     };
     // Use stable deps only — handleResize is accessed via ref to avoid
-    // re-running the entire init effect on visibility changes
+    // re-running the entire init effect on visibility changes.
+    // `getKittyFlags` and `readOnly` are read inside the handler closures but
+    // intentionally omitted from deps: getKittyFlags reads LIVE state via the
+    // stable kittyStateRef, and readOnly is effectively constant per mounted
+    // session in the current shell (observer mode is dormant — SingleTerminalSlot
+    // never passes readOnlySessionIds, so every Terminal mounts readOnly=false).
+    // If observer↔host control transfer is ever wired without a remount, switch
+    // readOnly to a ref (mirror handleResizeRef) so the handlers read it live.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, onInput, onReady]);
 

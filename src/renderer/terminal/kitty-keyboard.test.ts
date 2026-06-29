@@ -74,6 +74,14 @@ describe('KittyKeyboardState', () => {
     s.reset();
     expect(s.flags).toBe(0);
   });
+
+  it('caps the carry buffer against a pathological unterminated CSI and still recovers', () => {
+    const s = new KittyKeyboardState();
+    s.processOutput('\x1b[>' + '1'.repeat(5000)); // no final byte — must not grow carry without bound
+    // A subsequent well-formed sequence is still parsed correctly:
+    expect(s.processOutput('\x1b[>1u')).toBe('');
+    expect(s.flags).toBe(1);
+  });
 });
 
 // Minimal KeyboardEvent-like stub (jsdom provides KeyboardEvent, but we set .code too).

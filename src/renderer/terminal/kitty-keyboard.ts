@@ -5,6 +5,7 @@ export const KITTY_REPORT_ALL_KEYS = 8;
 export const KITTY_REPORT_TEXT = 16;
 
 const MAX_STACK = 16; // cap stack size (spec: cap to avoid DoS)
+const MAX_CARRY = 4096; // drop a pathologically long unterminated CSI to bound memory
 
 // Matches a complete CSI sequence: ESC [ <private> <params> <final>.
 // Private marker is one of < > = ? (optional); params are digits ; :; final is a letter or ~.
@@ -45,7 +46,10 @@ export class KittyKeyboardState {
     // Hold any trailing incomplete escape (ESC, ESC[, or ESC[<params> with no final byte).
     const tail = buf.slice(lastEnd);
     const partial = /\x1b\[?[<>=?]?[0-9;:]*$/.exec(tail);
-    this.carry = partial ? partial[0] : (tail.endsWith('\x1b') ? '\x1b' : '');
+    this.carry = partial ? partial[0] : '';
+    // A real protocol sequence is short; a multi-KB unterminated CSI is garbage —
+    // drop it so a hostile/garbled stream can't grow carry without bound.
+    if (this.carry.length > MAX_CARRY) this.carry = '';
     return response;
   }
 
