@@ -1,13 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Terminal as XTerm } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { WebLinksAddon } from 'xterm-addon-web-links';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
-import 'xterm/css/xterm.css';
+import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
 function formatPathForTerminal(filePath: string, format: PathFormat): string {
