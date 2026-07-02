@@ -207,15 +207,18 @@ export class SessionManager {
     }
 
     const model = request.model;
+    const isShell = request.kind === 'shell';
 
-    // Resolve the provider to use: explicit request > default 'claude'
-    const providerId = request.providerId ?? 'claude';
+    // Resolve the provider to use: explicit request > default 'claude'. Shell sessions have none.
+    const providerId = isShell ? undefined : (request.providerId ?? 'claude');
     let provider: IProvider | undefined;
-    try {
-      provider = this.providerRegistry?.get(providerId);
-    } catch {
-      console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
-      provider = undefined;
+    if (!isShell) {
+      try {
+        provider = this.providerRegistry?.get(providerId!);
+      } catch {
+        console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
+        provider = undefined;
+      }
     }
 
     const id = uuidv4();
@@ -228,6 +231,7 @@ export class SessionManager {
       createdAt: Date.now(),
       worktreeInfo,
       providerId,
+      kind: request.kind,
     };
 
     // Register all callbacks on a CLIManager BEFORE any async operations
@@ -284,8 +288,9 @@ export class SessionManager {
       });
     };
 
-    // Try to claim from pool first
-    const pooledSession = this.sessionPool.claim();
+    // Try to claim from pool first (agent sessions only — shells never launch claude,
+    // so the pool's launch-latency optimization does not apply).
+    const pooledSession = isShell ? null : this.sessionPool.claim();
     let cliManager: CLIManager;
 
     if (pooledSession) {
@@ -320,9 +325,14 @@ export class SessionManager {
         enableAgentTeams: this.agentTeamsGetter?.() ?? true,
         provider,
         launchMode: request.launchMode,
+        kind: request.kind,
       });
       registerCallbacks(cliManager);
-      cliManager.spawn();
+      if (isShell) {
+        cliManager.spawnShellSession();
+      } else {
+        cliManager.spawn();
+      }
     }
 
     // Update history metadata with session details

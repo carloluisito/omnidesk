@@ -94,6 +94,7 @@ vi.mock('./cli-manager', () => {
   CLIManager.prototype.write = vi.fn();
   CLIManager.prototype.resize = vi.fn();
   CLIManager.prototype.initializeSession = vi.fn().mockResolvedValue(undefined);
+  CLIManager.prototype.spawnShellSession = vi.fn().mockResolvedValue(undefined);
   return { CLIManager };
 });
 
@@ -306,5 +307,45 @@ describe('SessionManager.createSession — launchMode wiring', () => {
     expect(CLIManager).toHaveBeenCalledWith(
       expect.objectContaining({ launchMode: undefined }),
     );
+  });
+});
+
+describe('SessionManager.createSession — shell sessions', () => {
+  let manager: SessionManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    // A provider registry whose get() we can assert is NOT called for shells.
+    const registry = { get: vi.fn(() => { throw new Error('should not resolve provider for shell'); }) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('creates a shell session with kind=shell and no provider', async () => {
+    const meta = await manager.createSession({
+      workingDirectory: '/mock/home', permissionMode: 'standard', kind: 'shell',
+    });
+    expect(meta.kind).toBe('shell');
+    expect(meta.providerId).toBeUndefined();
+    expect(meta.status).toBe('running');
+  });
+
+  it('spawns via spawnShellSession, never spawn(), and never claims the pool', async () => {
+    await manager.createSession({
+      workingDirectory: '/mock/home', permissionMode: 'standard', kind: 'shell',
+    });
+    expect(CLIManager.prototype.spawnShellSession).toHaveBeenCalledTimes(1);
+    expect(CLIManager.prototype.spawn).not.toHaveBeenCalled();
+    expect(SessionPool.prototype.claim).not.toHaveBeenCalled();
+  });
+
+  it('still creates an agent session with a provider (regression)', async () => {
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+    const meta = await manager.createSession({
+      workingDirectory: '/mock/home', permissionMode: 'standard',
+    });
+    expect(meta.kind).toBeUndefined();
+    expect(meta.providerId).toBe('claude');
   });
 });
