@@ -52,7 +52,9 @@ export function SessionPane({ session, onClose, onRestart, onKill }: SessionPane
                 <P4Icon name="branch" size={10} /> {session.worktreeBranch}
               </span>
             )}
-            <span className={permClass}>{permLabel}</span>
+            {session.kind === 'shell'
+              ? <span className="p4-chip"><P4Icon name="terminal" size={10} /> Terminal</span>
+              : <span className={permClass}>{permLabel}</span>}
           </div>
         </div>
         <div className="status">

@@ -105,7 +105,13 @@ function SessionRow({
           <span className="sess-name-text">{session.name}</span>
         </div>
         <div className="sess-meta">
-          <span style={{ color: agentColor(agent), fontWeight: 600 }}>{agentLetter(agent)}</span>
+          {session.kind === 'shell' ? (
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <P4Icon name="terminal" size={10} /> shell
+            </span>
+          ) : (
+            <span style={{ color: agentColor(agent), fontWeight: 600 }}>{agentLetter(agent)}</span>
+          )}
           <span className="sep">·</span>
           {session.worktreeBranch ? (
             <>
