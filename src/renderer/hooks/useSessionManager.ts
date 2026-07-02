@@ -7,7 +7,7 @@ export interface UseSessionManagerReturn {
   sessions: TabData[];
   activeSessionId: string | null;
   isLoading: boolean;
-  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode) => Promise<void>;
+  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode, kind?: import('../../shared/ipc-types').SessionKind) => Promise<string>;
   closeSession: (sessionId: string, opts?: { removeWorktree?: boolean; removeBranch?: boolean }) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -29,6 +29,7 @@ function sessionMetadataToTabData(metadata: SessionMetadata): TabData {
     worktreeBranch: metadata.worktreeInfo?.branch ?? null,
     mainRepoPath: metadata.worktreeInfo?.mainRepoPath ?? null,
     providerId: metadata.providerId,
+    kind: metadata.kind,
   };
 }
 
@@ -108,13 +109,25 @@ export function useSessionManager(): UseSessionManagerReturn {
     worktree?: import('../../shared/types/git-types').WorktreeCreateRequest,
     providerId?: ProviderId,
     launchMode?: LaunchMode,
-  ) => {
+    kind?: import('../../shared/ipc-types').SessionKind,
+  ): Promise<string> => {
     try {
+      if (kind === 'shell') {
+        // Plain terminal: no model, provider, launch mode, or worktree.
+        const meta = await window.electronAPI.createSession({
+          name: name || undefined,
+          workingDirectory,
+          permissionMode,
+          kind: 'shell',
+        });
+        return meta.id;
+      }
+
       // Read default model from settings
       const settings = await window.electronAPI.getSettings();
       const defaultModel = settings.defaultModel || 'sonnet';
 
-      await window.electronAPI.createSession({
+      const meta = await window.electronAPI.createSession({
         name: name || undefined,
         workingDirectory,
         permissionMode,
@@ -123,6 +136,7 @@ export function useSessionManager(): UseSessionManagerReturn {
         providerId,
         launchMode,
       });
+      return meta.id;
     } catch (err) {
       console.error('Failed to create session:', err);
       throw err;
