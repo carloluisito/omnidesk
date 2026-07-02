@@ -370,5 +370,19 @@ describe('SessionManager.restartSession — shell sessions', () => {
     expect(CLIManager.prototype.spawnShellSession).toHaveBeenCalledTimes(1);
     expect(CLIManager.prototype.spawn).not.toHaveBeenCalled();
     expect(registry.get).not.toHaveBeenCalled();
+    // Verify CLIManager was constructed with kind: 'shell' during restart
+    expect(CLIManager).toHaveBeenCalledWith(expect.objectContaining({ kind: 'shell' }));
+  });
+
+  it('restarts an agent session via spawn, not spawnShellSession', async () => {
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+    const meta = await manager.createSession({ workingDirectory: '/mock/home', permissionMode: 'standard' });
+    vi.clearAllMocks();
+    const ok = await manager.restartSession(meta.id);
+    expect(ok).toBe(true);
+    expect(CLIManager.prototype.spawn).toHaveBeenCalledTimes(1);
+    expect(CLIManager.prototype.spawnShellSession).not.toHaveBeenCalled();
+    expect(registry.get).toHaveBeenCalled();
   });
 });
