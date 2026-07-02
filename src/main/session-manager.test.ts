@@ -349,3 +349,26 @@ describe('SessionManager.createSession — shell sessions', () => {
     expect(meta.providerId).toBe('claude');
   });
 });
+
+describe('SessionManager.restartSession — shell sessions', () => {
+  let manager: SessionManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  it('restarts a shell session via spawnShellSession, not spawn', async () => {
+    const registry = { get: vi.fn(() => { throw new Error('no provider for shell'); }) };
+    manager.setProviderRegistry(registry as any);
+    const meta = await manager.createSession({
+      workingDirectory: '/mock/home', permissionMode: 'standard', kind: 'shell',
+    });
+    vi.clearAllMocks(); // isolate restart calls
+    const ok = await manager.restartSession(meta.id);
+    expect(ok).toBe(true);
+    expect(CLIManager.prototype.spawnShellSession).toHaveBeenCalledTimes(1);
+    expect(CLIManager.prototype.spawn).not.toHaveBeenCalled();
+    expect(registry.get).not.toHaveBeenCalled();
+  });
+});

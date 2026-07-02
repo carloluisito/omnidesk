@@ -541,14 +541,19 @@ export class SessionManager {
       session.metadata.workingDirectory
     );
 
-    // Resolve provider from stored providerId (backward compat: missing = 'claude')
-    const restartProviderId = session.metadata.providerId ?? 'claude';
+    const isShell = session.metadata.kind === 'shell';
+
+    // Resolve provider from stored providerId (backward compat: missing = 'claude').
+    // Shell sessions have no provider.
     let restartProvider: IProvider | undefined;
-    try {
-      restartProvider = this.providerRegistry?.get(restartProviderId);
-    } catch {
-      console.warn(`[SessionManager] Provider '${restartProviderId}' not found on restart, using no provider`);
-      restartProvider = undefined;
+    if (!isShell) {
+      const restartProviderId = session.metadata.providerId ?? 'claude';
+      try {
+        restartProvider = this.providerRegistry?.get(restartProviderId);
+      } catch {
+        console.warn(`[SessionManager] Provider '${restartProviderId}' not found on restart, using no provider`);
+        restartProvider = undefined;
+      }
     }
 
     // Create new CLI manager with same options
@@ -557,6 +562,7 @@ export class SessionManager {
       permissionMode: session.metadata.permissionMode,
       enableAgentTeams: this.agentTeamsGetter?.() ?? true,
       provider: restartProvider,
+      kind: session.metadata.kind,
     });
 
     // Set up handlers
@@ -615,7 +621,11 @@ export class SessionManager {
     session.metadata.currentModel = undefined; // Clear stale model — Phase 1 will re-detect
 
     try {
-      cliManager.spawn();
+      if (isShell) {
+        cliManager.spawnShellSession();
+      } else {
+        cliManager.spawn();
+      }
       session.metadata.status = 'running';
     } catch (err) {
       session.metadata.status = 'error';
