@@ -235,6 +235,12 @@ function App() {
     const repo = repos.find(r => r.id === form.repoId);
     if (!repo) throw new Error('Repository not found');
 
+    if (form.kind === 'shell') {
+      // Plain terminal in the repo folder — no worktree, provider, or launch mode.
+      await createSession(form.name, form.workingDirectory, 'standard', undefined, undefined, undefined, 'shell');
+      return;
+    }
+
     // Resolve the workingDirectory + worktree request per mode (see
     // resolveSessionWorktree). Share mode needs the donor session's cwd, so
     // look that up here before delegating the decision.
