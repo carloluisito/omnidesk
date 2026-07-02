@@ -289,6 +289,12 @@ function App() {
     }
   }, [createSession, repos, sessions]);
 
+  const handleOpenTerminalHere = useCallback(async (_sessionId: string, workingDirectory: string, baseName: string) => {
+    // Loosely-coupled companion: a plain shell seeded to the agent's dir, then focus it.
+    const newId = await createSession(`${baseName} · shell`, workingDirectory, 'standard', undefined, undefined, undefined, 'shell');
+    await switchSession(newId);
+  }, [createSession, switchSession]);
+
   const isWin = navigator.platform.toLowerCase().includes('win');
   const normalizePath = useCallback((p: string) => {
     const s = p.replace(/\\/g, '/').replace(/\/+$/, '');
@@ -839,6 +845,15 @@ function App() {
                 label: 'Rename session…',
                 icon: 'sparkle',
                 onSelect: () => setRenameSessionPrompt({ id: s.id, current: s.name }),
+              },
+              {
+                label: 'Open terminal here',
+                icon: 'terminal',
+                onSelect: () => {
+                  if (s.workingDirectory) {
+                    void handleOpenTerminalHere(s.id, s.workingDirectory, s.name);
+                  }
+                },
               },
               {
                 label: 'Close session',
