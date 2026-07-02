@@ -19,10 +19,13 @@ Every OmniDesk session today is a shell PTY with an AI CLI (`claude`) launched i
 - **Shell picker** (PowerShell / pwsh / git-bash selection). Platform default only. Deferred to a future version.
 - Tight agent↔shell coupling (auto-open, auto-close, parent/child links).
 - Any AI features in the shell (no model, no readiness detection, no quota).
+- **Side-by-side split-pane placement.** The split-view types (`LayoutNode`, `SplitViewState`) exist in `ipc-types.ts`, but the renderer has **no** split-pane rendering — `MainView` supports only Grid and Focus modes. Building that layer is a separate feature. For v1 the companion is a normal shell session seeded to the agent's directory (see below); it is not rendered beside the agent.
 
 ## Core Concept
 
-There is exactly **one new concept: a shell session** — a session whose `kind` is `'shell'` instead of `'agent'`. "Companion" is not a separate type; it is simply a shell session placed in a split pane and seeded to the agent's directory. Everything else reuses existing infrastructure (split view, session rail, persistence, session pool).
+There is exactly **one new concept: a shell session** — a session whose `kind` is `'shell'` instead of `'agent'`. "Companion" is not a separate type; it is simply a shell session created from an agent session and seeded to that agent's working directory. Everything else reuses existing infrastructure (session rail, persistence, PTY spawn).
+
+**Note (v1 scope correction):** the companion is seeded but *not* placed side-by-side — split-pane rendering does not exist in the renderer yet (see Non-Goals). "Open terminal here" creates the seeded shell session and switches to it. Side-by-side placement lands for free once a future split-view rendering feature exists, with no change to the shell-session core.
 
 ## Architectural Decision
 
@@ -62,7 +65,7 @@ For `kind === 'agent'` (default), all of the above behave exactly as today.
 ### 4. UI
 
 - **NewSessionSheet** (`src/renderer/components/shell/NewSessionSheet.tsx`) — entry point **A**: add a **"Terminal"** choice. When selected, the provider / model / launch-mode controls are hidden (they do not apply); only a working directory is required. Submitting creates a session with `kind: 'shell'`.
-- **Split-pane action** — entry point **C**: from an agent session, an **"Open terminal here"** action creates a shell session seeded to the agent's current working directory and drops it into a **new split pane** using the existing split-view system. Loosely coupled — no lifecycle link back to the agent.
+- **"Open terminal here" action** — entry point **C**: from an agent session's context menu, this creates a shell session seeded to the agent's current working directory, then switches to it. Loosely coupled — no lifecycle link back to the agent. (v1: not rendered side-by-side; see Non-Goals. It becomes a companion pane automatically if/when split-view rendering ships.)
 - **Session rail / tiles** (`src/renderer/components/shell/`) — shell sessions render a **terminal glyph** in place of the model/quota badge. Anywhere the UI assumes a model exists, render a neutral **"Terminal"** label instead of a model name. Quota/burn-rate surfaces ignore shell sessions.
 - **Shell used:** platform default — `cmd.exe` on Windows, `$SHELL` (fallback `/bin/bash`) on Unix. This matches the existing `createPtyProcess` shell selection; no new selection logic.
 
@@ -77,7 +80,7 @@ For `kind === 'agent'` (default), all of the above behave exactly as today.
 - **Unit (main):** `CLIManager` shell spawn launches **no** provider command (`launchProviderCommand` not invoked); model detection is skipped in `bufferOutput` for shells.
 - **Unit (shared):** `SessionMetadata.kind` defaults to `'agent'` when absent; `SessionCreateRequest.kind` round-trips.
 - **Integration (renderer):** NewSessionSheet "Terminal" path creates a `kind: 'shell'` request and hides provider/model controls; Terminal Ctrl+C is passed through when `kind === 'shell'` and intercepted when `kind === 'agent'`.
-- **Manual verification** (per standing preference for visual/UX work): the split-pane companion flow (open terminal beside an agent, confirm it seeds the agent's dir and lives independently).
+- **Manual verification** (per standing preference for visual/UX work): the "Open terminal here" flow (confirm the new shell session seeds the agent's dir and lives independently), and the rail/tile terminal badge rendering.
 
 ## Risks / Notes
 
