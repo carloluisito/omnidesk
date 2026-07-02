@@ -2,7 +2,7 @@ import * as pty from 'node-pty';
 import * as os from 'os';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
-import { TerminalSize, PermissionMode, ClaudeModel, LaunchMode } from '../shared/ipc-types';
+import { TerminalSize, PermissionMode, ClaudeModel, LaunchMode, SessionKind } from '../shared/ipc-types';
 import { detectModelFromOutput } from '../shared/model-detector';
 import type { IProvider } from './providers/provider';
 
@@ -175,6 +175,8 @@ export interface CLIManagerOptions {
   provider?: IProvider;
   /** Per-session launch mode. When omitted, falls back to permissionMode-based inference. */
   launchMode?: LaunchMode;
+  /** 'shell' spawns a plain terminal (no provider launch, no model detection). Default 'agent'. */
+  kind?: SessionKind;
 }
 
 export class CLIManager {
@@ -271,6 +273,15 @@ export class CLIManager {
   async spawn(): Promise<void> {
     await this.createPtyProcess();
     this.launchProviderCommand();
+    this._isInitialized = true;
+  }
+
+  /**
+   * Create the shell PTY for a plain terminal session and mark it initialized,
+   * WITHOUT launching any provider command. Mirrors spawn() minus the CLI launch.
+   */
+  async spawnShellSession(): Promise<void> {
+    await this.createPtyProcess();
     this._isInitialized = true;
   }
 
@@ -405,47 +416,50 @@ export class CLIManager {
   private bufferOutput(data: string): void {
     this.outputBuffer += data;
 
-    // Resolve provider-specific detection options (undefined = use built-in Claude patterns)
-    const providerPatterns = this.options.provider
-      ? this.options.provider.getModelDetectionPatterns()
-      : undefined;
-    const providerNormalizer = this.options.provider
-      ? (raw: string) => this.options.provider!.normalizeModel(raw)
-      : undefined;
+    // Shell sessions run no AI CLI — there is no model to detect.
+    if (this.options.kind !== 'shell') {
+      // Resolve provider-specific detection options (undefined = use built-in Claude patterns)
+      const providerPatterns = this.options.provider
+        ? this.options.provider.getModelDetectionPatterns()
+        : undefined;
+      const providerNormalizer = this.options.provider
+        ? (raw: string) => this.options.provider!.normalizeModel(raw)
+        : undefined;
 
-    // Phase 1: Initial detection (try on each chunk, give up after 8KB)
-    if (!this.initialDetectionDone) {
-      this.initialDetectionBuffer += data;
-      const result = detectModelFromOutput(this.initialDetectionBuffer, true, providerPatterns, providerNormalizer);
-      if (result.model) {
-        this.safeLog('[ModelDetect] Phase 1 detected:', result.model, '(bufLen:', this.initialDetectionBuffer.length, ')');
-        this.currentModel = result.model;
-        if (this.modelChangeCallback) {
-          this.modelChangeCallback(result.model);
+      // Phase 1: Initial detection (try on each chunk, give up after 8KB)
+      if (!this.initialDetectionDone) {
+        this.initialDetectionBuffer += data;
+        const result = detectModelFromOutput(this.initialDetectionBuffer, true, providerPatterns, providerNormalizer);
+        if (result.model) {
+          this.safeLog('[ModelDetect] Phase 1 detected:', result.model, '(bufLen:', this.initialDetectionBuffer.length, ')');
+          this.currentModel = result.model;
+          if (this.modelChangeCallback) {
+            this.modelChangeCallback(result.model);
+          }
+          this.initialDetectionDone = true;
+          this.initialDetectionBuffer = '';
+        } else if (this.initialDetectionBuffer.length > 8192) {
+          this.safeLog('[ModelDetect] Phase 1 gave up after 8KB');
+          this.initialDetectionDone = true;
+          this.initialDetectionBuffer = '';
         }
-        this.initialDetectionDone = true;
-        this.initialDetectionBuffer = '';
-      } else if (this.initialDetectionBuffer.length > 8192) {
-        this.safeLog('[ModelDetect] Phase 1 gave up after 8KB');
-        this.initialDetectionDone = true;
-        this.initialDetectionBuffer = '';
       }
-    }
 
-    // Phase 2: Switch detection (rolling buffer to handle PTY fragmentation)
-    else {
-      this.switchDetectionBuffer += data;
-      // Keep only last 512 bytes to prevent unbounded growth
-      if (this.switchDetectionBuffer.length > 512) {
-        this.switchDetectionBuffer = this.switchDetectionBuffer.slice(-512);
-      }
-      const result = detectModelFromOutput(this.switchDetectionBuffer, false, providerPatterns, providerNormalizer);
-      if (result.model && result.model !== this.currentModel) {
-        this.safeLog('[ModelDetect] Phase 2 detected:', result.model, '(was:', this.currentModel, ')');
-        this.currentModel = result.model;
-        this.switchDetectionBuffer = ''; // Reset after successful detection
-        if (this.modelChangeCallback) {
-          this.modelChangeCallback(result.model);
+      // Phase 2: Switch detection (rolling buffer to handle PTY fragmentation)
+      else {
+        this.switchDetectionBuffer += data;
+        // Keep only last 512 bytes to prevent unbounded growth
+        if (this.switchDetectionBuffer.length > 512) {
+          this.switchDetectionBuffer = this.switchDetectionBuffer.slice(-512);
+        }
+        const result = detectModelFromOutput(this.switchDetectionBuffer, false, providerPatterns, providerNormalizer);
+        if (result.model && result.model !== this.currentModel) {
+          this.safeLog('[ModelDetect] Phase 2 detected:', result.model, '(was:', this.currentModel, ')');
+          this.currentModel = result.model;
+          this.switchDetectionBuffer = ''; // Reset after successful detection
+          if (this.modelChangeCallback) {
+            this.modelChangeCallback(result.model);
+          }
         }
       }
     }
