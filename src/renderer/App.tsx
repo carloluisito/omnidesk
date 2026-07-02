@@ -427,6 +427,15 @@ function App() {
     return m;
   }, [sessions]);
 
+  // ─── Session kind map for the terminal host ───────────────────
+  const sessionKindMap = useMemo(() => {
+    const m: Record<string, 'agent' | 'shell'> = {};
+    for (const s of sessions) {
+      if (s.kind) m[s.id] = s.kind;
+    }
+    return m;
+  }, [sessions]);
+
   // ─── Native folder picker, used by AddRepoSheet "Browse…" ────
   const handlePickFolder = useCallback(async (): Promise<string | null> => {
     try {
@@ -553,6 +562,7 @@ function App() {
       sessionIds={sessions.map(s => s.id)}
       focusedSessionId={activeSessionId}
       sessionProviderMap={sessionProviderMap}
+      sessionKindMap={sessionKindMap}
       onInput={sendInput}
       onResize={resizeSession}
       onOutput={onOutput}

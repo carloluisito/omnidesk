@@ -8,6 +8,8 @@ import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../.
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
 import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
+import { shouldShowCloseDialog, isNewlineChord } from '../terminal/shell-key-rules';
+import type { SessionKind } from '../../shared/ipc-types';
 import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
@@ -51,6 +53,7 @@ interface TerminalProps {
   isVisible: boolean; // Terminal is displayed in a pane
   isFocused: boolean; // Terminal has keyboard focus
   providerId?: ProviderId; // For provider-aware loading overlay copy
+  kind?: SessionKind; // 'shell' disables Claude-specific key handling & readiness
   readOnly?: boolean;  // Observer mode: disables input forwarding, shows overlay
   getKittyFlags?: () => number;
   onInput: (sessionId: string, data: string) => void;
@@ -64,7 +67,7 @@ function providerIdToName(providerId?: ProviderId): string | undefined {
   return undefined;
 }
 
-export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, getKittyFlags, onInput, onResize, onReady }: TerminalProps) {
+export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, readOnly = false, getKittyFlags, onInput, onResize, onReady }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -302,6 +305,11 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     return () => clearTimeout(timeout);
   }, [isClaudeReady]);
 
+  // Shell sessions have no AI CLI to wait for — ready as soon as the PTY is up.
+  useEffect(() => {
+    if (kind === 'shell') setIsClaudeReady(true);
+  }, [kind]);
+
   // Initialize terminal
   useEffect(() => {
     if (!terminalRef.current || initializedRef.current) return;
@@ -389,8 +397,8 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
           return false;
         }
 
-        // Newline insertion (legacy renderer only — Kitty path handled above).
-        if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)) {
+        // Newline insertion (legacy renderer only — Kitty path handled above; agent sessions only).
+        if (isNewlineChord(e, kind)) {
           e.preventDefault();
           if (!readOnly) onInput(sessionId, '\n');
           return false;
@@ -404,9 +412,9 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     // Handle terminal input
     xterm.onData((data) => {
       const flags = getKittyFlags?.() ?? 0;
-      // Legacy-mode Ctrl+C guard only. Under Kitty flags, Ctrl+C is CSI 99;5u
-      // already sent by the key handler and must not trigger the close dialog.
-      if (data === '\x03' && flags === 0) {
+      // Close-confirm interception (agent sessions, legacy mode only). Shell
+      // sessions let Ctrl+C pass through to interrupt the running command.
+      if (shouldShowCloseDialog(data, flags, kind)) {
         if (!readOnly) setShowCloseConfirm(true);
         return;
       }
@@ -555,6 +563,7 @@ interface MultiTerminalProps {
   visibleSessionIds: string[]; // Sessions displayed in panes
   focusedSessionId: string | null; // Session with keyboard focus
   sessionProviderMap?: Record<string, ProviderId>; // sessionId → providerId for loading overlay
+  sessionKindMap?: Record<string, SessionKind>; // sessionId → kind for behavior gating
   readOnlySessionIds?: string[]; // Sessions in read-only (observer) mode
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
@@ -566,6 +575,7 @@ export function MultiTerminal({
   visibleSessionIds,
   focusedSessionId,
   sessionProviderMap,
+  sessionKindMap,
   readOnlySessionIds = [],
   onInput,
   onResize,
@@ -755,6 +765,7 @@ export function MultiTerminal({
           isVisible={visibleSessionIds.includes(sessionId)}
           isFocused={sessionId === focusedSessionId}
           providerId={sessionProviderMap?.[sessionId]}
+          kind={sessionKindMap?.[sessionId]}
           readOnly={readOnlySessionIds.includes(sessionId)}
           onInput={onInput}
           onResize={onResize}

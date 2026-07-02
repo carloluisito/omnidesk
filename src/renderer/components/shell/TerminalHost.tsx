@@ -52,6 +52,7 @@ interface TerminalHostProps {
   sessionIds: string[];
   focusedSessionId: string | null;
   sessionProviderMap: Record<string, ProviderId>;
+  sessionKindMap?: Record<string, 'agent' | 'shell'>;
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onOutput: (callback: (sessionId: string, data: string) => void) => () => void;
@@ -65,6 +66,7 @@ export function TerminalHost({
   sessionIds,
   focusedSessionId,
   sessionProviderMap,
+  sessionKindMap,
   onInput,
   onResize,
   onOutput,
@@ -207,6 +209,7 @@ export function TerminalHost({
                 sessionId={sid}
                 isFocused={sid === focusedSessionId && !!slot}
                 providerId={sessionProviderMap[sid]}
+                kind={sessionKindMap?.[sid]}
                 onInput={onInput}
                 onResize={onResize}
                 onOutput={onOutput}
@@ -227,6 +230,7 @@ interface SingleTerminalSlotProps {
   sessionId: string;
   isFocused: boolean;
   providerId?: ProviderId;
+  kind?: 'agent' | 'shell';
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onOutput: (callback: (sessionId: string, data: string) => void) => () => void;
@@ -236,6 +240,7 @@ function SingleTerminalSlot({
   sessionId,
   isFocused,
   providerId,
+  kind,
   onInput,
   onResize,
   onOutput,
@@ -246,12 +251,17 @@ function SingleTerminalSlot({
     () => providerId ? { [sessionId]: providerId } : {},
     [sessionId, providerId],
   );
+  const kindMap = useMemo(
+    () => kind ? { [sessionId]: kind } : {},
+    [sessionId, kind],
+  );
   return (
     <MultiTerminal
       sessionIds={sessionIds}
       visibleSessionIds={visible}
       focusedSessionId={isFocused ? sessionId : null}
       sessionProviderMap={providerMap}
+      sessionKindMap={kindMap}
       onInput={onInput}
       onResize={onResize}
       onOutput={onOutput}
