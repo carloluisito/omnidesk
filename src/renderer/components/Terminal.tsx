@@ -1,13 +1,14 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Terminal as XTerm } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { WebLinksAddon } from 'xterm-addon-web-links';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
-import 'xterm/css/xterm.css';
+import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
+import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
 function formatPathForTerminal(filePath: string, format: PathFormat): string {
@@ -51,6 +52,7 @@ interface TerminalProps {
   isFocused: boolean; // Terminal has keyboard focus
   providerId?: ProviderId; // For provider-aware loading overlay copy
   readOnly?: boolean;  // Observer mode: disables input forwarding, shows overlay
+  getKittyFlags?: () => number;
   onInput: (sessionId: string, data: string) => void;
   onResize: (sessionId: string, cols: number, rows: number) => void;
   onReady: (sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => void;
@@ -62,7 +64,7 @@ function providerIdToName(providerId?: ProviderId): string | undefined {
   return undefined;
 }
 
-export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, onInput, onResize, onReady }: TerminalProps) {
+export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly = false, getKittyFlags, onInput, onResize, onReady }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -362,56 +364,53 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
     // Allow browser-native paste (Ctrl+V / Cmd+V / Shift+Insert) and app shortcuts
     // Without this, xterm.js consumes these keys instead of letting the app handle them
     xterm.attachCustomKeyEventHandler((e) => {
+      const flags = getKittyFlags?.() ?? 0;
+
+      // Kitty keyboard protocol active: encode and send directly, bypass xterm.
+      if (flags !== 0 && !readOnly) {
+        const encoded = encodeKittyKey(e, flags);
+        if (encoded !== null) {
+          e.preventDefault();
+          onInput(sessionId, encoded);
+          return false;
+        }
+        // encoded === null -> fall through to legacy handling below.
+      }
+
       if (e.type === 'keydown') {
         const isPaste = (e.ctrlKey || e.metaKey) && e.key === 'v';
         const isShiftInsert = e.shiftKey && e.key === 'Insert';
-
-        // Allow Ctrl+Shift+M (model cycling) to pass through to app
         const isModelCycle = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M';
 
-        // Ctrl+Shift+C: copy selected text from terminal
         const isCopy = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C';
         if (isCopy) {
           const selection = xterm.getSelection();
-          if (selection) {
-            navigator.clipboard.writeText(selection);
-          }
+          if (selection) navigator.clipboard.writeText(selection);
           return false;
         }
 
-        // Newline insertion: Ctrl+Enter, Shift+Enter, Alt+Enter, Cmd+Enter
+        // Newline insertion (legacy renderer only — Kitty path handled above).
         if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)) {
           e.preventDefault();
-          if (!readOnly) {
-            onInput(sessionId, '\n');
-          }
+          if (!readOnly) onInput(sessionId, '\n');
           return false;
         }
 
-        if (isPaste || isShiftInsert || isModelCycle) {
-          return false; // Let browser/app handle → our window event listener picks it up
-        }
+        if (isPaste || isShiftInsert || isModelCycle) return false;
       }
       return true;
     });
 
     // Handle terminal input
     xterm.onData((data) => {
-      // CRITICAL: Always intercept Ctrl+C — even in read-only/observer mode.
-      // Never forward \x03 to the PTY (it exits Claude immediately).
-      if (data === '\x03') {
-        if (!readOnly) {
-          // Host: show close confirm dialog
-          setShowCloseConfirm(true);
-        }
-        // Observer: silently swallow — do NOT forward to PTY
+      const flags = getKittyFlags?.() ?? 0;
+      // Legacy-mode Ctrl+C guard only. Under Kitty flags, Ctrl+C is CSI 99;5u
+      // already sent by the key handler and must not trigger the close dialog.
+      if (data === '\x03' && flags === 0) {
+        if (!readOnly) setShowCloseConfirm(true);
         return;
       }
-
-      // In read-only mode, discard all other input (observer watching only)
       if (readOnly) return;
-
-      // Normal input handling
       onInput(sessionId, data);
     });
 
@@ -435,7 +434,14 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, readOnly
       initializedRef.current = false;
     };
     // Use stable deps only — handleResize is accessed via ref to avoid
-    // re-running the entire init effect on visibility changes
+    // re-running the entire init effect on visibility changes.
+    // `getKittyFlags` and `readOnly` are read inside the handler closures but
+    // intentionally omitted from deps: getKittyFlags reads LIVE state via the
+    // stable kittyStateRef, and readOnly is effectively constant per mounted
+    // session in the current shell (observer mode is dormant — SingleTerminalSlot
+    // never passes readOnlySessionIds, so every Terminal mounts readOnly=false).
+    // If observer↔host control transfer is ever wired without a remount, switch
+    // readOnly to a ref (mirror handleResizeRef) so the handlers read it live.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, onInput, onReady]);
 
@@ -571,10 +577,19 @@ export function MultiTerminal({
   const isReadyRef = useRef<Map<string, boolean>>(new Map());
   // Buffer for output that arrives before the terminal xterm instance is registered
   const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
+  const kittyStateRef = useRef<Map<string, KittyKeyboardState>>(new Map());
 
   // Set up output listener
   useEffect(() => {
     const cleanup = onOutput((sessionId: string, data: string) => {
+      // Kitty keyboard protocol: track flags + answer the capability query.
+      let kitty = kittyStateRef.current.get(sessionId);
+      if (!kitty) { kitty = new KittyKeyboardState(); kittyStateRef.current.set(sessionId, kitty); }
+      const reply = kitty.processOutput(data);
+      if (reply && !readOnlySessionIds.includes(sessionId)) {
+        onInput(sessionId, reply);
+      }
+
       const terminal = terminalsRef.current.get(sessionId);
       if (!terminal) {
         // Terminal not yet registered — buffer the output for later
@@ -652,7 +667,7 @@ export function MultiTerminal({
     });
 
     return cleanup;
-  }, [onOutput]);
+  }, [onOutput, onInput, readOnlySessionIds]);
 
   const handleReady = useCallback((sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => {
     terminalsRef.current.set(sessionId, terminal);
@@ -722,6 +737,7 @@ export function MultiTerminal({
         outputBuffersRef.current.delete(id);
         isReadyRef.current.delete(id);
         pendingOutputRef.current.delete(id);
+        kittyStateRef.current.delete(id);
       }
     }
   }, [sessionIds]);
@@ -743,6 +759,7 @@ export function MultiTerminal({
           onInput={onInput}
           onResize={onResize}
           onReady={handleReady}
+          getKittyFlags={() => kittyStateRef.current.get(sessionId)?.flags ?? 0}
         />
       ))}
 
