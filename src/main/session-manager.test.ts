@@ -385,4 +385,42 @@ describe('SessionManager.restartSession — shell sessions', () => {
     expect(CLIManager.prototype.spawnShellSession).not.toHaveBeenCalled();
     expect(registry.get).toHaveBeenCalled();
   });
+
+  it('restored shell session (kind=shell loaded from persistence) restarts via spawnShellSession, not spawn', async () => {
+    // Simulate what happens after an app restart: loadSessionState returns a shell session
+    // whose kind was persisted. The manager restores it via initialize(), then the auto-restart
+    // or explicit restart must route to spawnShellSession — not spawn() — regardless of whether
+    // the session was created in-process or loaded from disk.
+    const { loadSessionState } = await import('./session-persistence');
+    vi.mocked(loadSessionState).mockReturnValueOnce({
+      version: 1,
+      sessions: [
+        {
+          id: 'persisted-shell-id',
+          name: 'Shell',
+          workingDirectory: '/mock/home',
+          permissionMode: 'standard',
+          status: 'exited',
+          createdAt: 1000,
+          kind: 'shell',
+        },
+      ],
+      activeSessionId: 'persisted-shell-id',
+      lastModified: Date.now(),
+    });
+
+    const registry = { get: vi.fn(() => { throw new Error('no provider for shell'); }) };
+    manager.setProviderRegistry(registry as any);
+
+    // Calling initialize() loads the persisted shell session into memory
+    manager.initialize();
+
+    vi.clearAllMocks(); // isolate restart from initialize setup
+
+    const ok = await manager.restartSession('persisted-shell-id');
+    expect(ok).toBe(true);
+    expect(CLIManager.prototype.spawnShellSession).toHaveBeenCalledTimes(1);
+    expect(CLIManager.prototype.spawn).not.toHaveBeenCalled();
+    expect(registry.get).not.toHaveBeenCalled();
+  });
 });
