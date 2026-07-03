@@ -2,8 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-2.0.0-green.svg)
-![Tests](https://img.shields.io/badge/tests-334%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-2.1.0-green.svg)
+![Tests](https://img.shields.io/badge/tests-391%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs, organized around a flat **repo → session** workflow.
 
@@ -26,7 +26,7 @@
 </td>
 <td width="50%">
 
-**New Session** — Pick a repo, provider, worktree mode, and (for Claude) a per-session launch mode.
+**New Session** — Pick a repo, a session type (agent or terminal), provider, worktree mode, and (for Claude) a per-session launch mode.
 
 ![New Session](docs/new-session.png)
 
@@ -66,6 +66,7 @@
 - **Session persistence** — sessions are restored after an app restart
 - **Pre-warmed session pool** for fast session creation
 - **Per-session launch mode picker** (Claude) — choose between `claude`, `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at creation time, gated by an automatic CLI availability probe
+- **Plain terminal sessions** — pick the **Terminal** session type to run an ordinary shell (no AI CLI) for `git`, builds, and everyday commands. Create one standalone, or spawn one seeded to an agent's working directory via **Open terminal here** on the session context menu
 
 ### Multi-Provider Support
 - **Pluggable provider layer** — swap between Claude Code, Codex CLI, and future providers
@@ -74,6 +75,7 @@
 - **Auto-detection** — providers register automatically based on installed CLI binaries
 
 ### Worktree-Aware Sessions
+- **Open any folder** — add a git repository or a plain (non-git) folder; when the folder isn't a repo, OmniDesk offers to initialize git
 - **Create a session on a new git worktree/branch, an existing branch, or the current checkout**
 - **Background git operations** — status, branches, and worktree management run in the main process (no separate Git panel to manage)
 - **Optional cleanup** — remove the worktree/branch when you close the session
@@ -89,8 +91,9 @@
 - **Full xterm.js terminal** with rich text formatting
 - **Clickable links** — URLs are automatically detected and open in your browser
 - **Copy/paste support** with keyboard shortcuts
-- **Newline insertion** — `Ctrl/Shift/Alt/Cmd+Enter` inserts a literal newline without submitting
-- **Ctrl+C guard** — a confirmation dialog prevents accidentally exiting the CLI
+- **Newline insertion** — in agent sessions, `Ctrl/Shift/Alt/Cmd+Enter` inserts a literal newline without submitting
+- **Ctrl+C guard** — in agent sessions, a confirmation dialog prevents accidentally exiting the CLI; in plain terminal sessions, `Ctrl+C` passes straight through to interrupt the running command
+- **Kitty keyboard protocol** — accurate key/modifier encoding, negotiated automatically when the running CLI requests it
 - **Obsidian dark theme** with the JetBrains Mono font
 
 ---

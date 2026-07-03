@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-07-04
+
+### Added
+- **Shell sessions** — a new plain-terminal session type that runs an ordinary shell (`cmd.exe` on Windows, your login shell on macOS/Linux) with no AI CLI. Choose the **Terminal** type in the New Session sheet to create one standalone, or use **Open terminal here** on an agent session's context menu to spawn a shell seeded to that agent's working directory. In a shell session, `Ctrl+C` passes through to interrupt the running command; agent sessions keep the close-confirm guard.
+- **Kitty keyboard protocol support** — the terminal negotiates and speaks the Kitty keyboard protocol when the running CLI requests it, giving accurate modifier and key encoding.
+- **Open non-git folders** — add a plain folder that isn't a git repository; OmniDesk offers to initialize git when the folder isn't already a repo.
+
+### Changed
+- Migrated the terminal renderer from `xterm` to `@xterm/xterm` 5.5.
+
+---
+
 ## [2.0.1] - 2026-05-25
 
 ### Fixed
