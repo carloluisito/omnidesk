@@ -49,6 +49,8 @@ export function saveSessionState(
       currentModel: session.currentModel,
       // providerId is optional; missing on load defaults to 'claude' (backward compat)
       ...(session.providerId !== undefined ? { providerId: session.providerId } : {}),
+      // kind is optional; missing on load defaults to 'agent' (backward compat)
+      ...(session.kind !== undefined ? { kind: session.kind } : {}),
     })),
     activeSessionId,
     lastModified: Date.now(),

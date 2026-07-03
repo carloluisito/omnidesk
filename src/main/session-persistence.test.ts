@@ -179,6 +179,44 @@ describe('session-persistence', () => {
       // Should not throw
       expect(() => saveSessionState([], null)).not.toThrow();
     });
+
+    it('round-trip: shell session kind is preserved; legacy session without kind omits it', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+
+      const shellSession = {
+        id: 'shell-1',
+        name: 'Shell',
+        workingDirectory: '/home/user',
+        permissionMode: 'standard' as const,
+        status: 'running' as const,
+        createdAt: 1000,
+        exitCode: undefined,
+        currentModel: undefined,
+        kind: 'shell' as const,
+      };
+      const legacySession = {
+        id: 'agent-1',
+        name: 'Agent',
+        workingDirectory: '/home/user',
+        permissionMode: 'standard' as const,
+        status: 'running' as const,
+        createdAt: 2000,
+        exitCode: undefined,
+        currentModel: undefined,
+        // kind intentionally absent — legacy agent session
+      };
+
+      saveSessionState([shellSession, legacySession as any], 'shell-1');
+
+      const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
+      const parsed = JSON.parse(writtenJson);
+
+      // Shell session must carry kind through the whitelist
+      expect(parsed.sessions[0].kind).toBe('shell');
+
+      // Legacy agent session must NOT have kind key (backward-compat: undefined => agent)
+      expect(Object.prototype.hasOwnProperty.call(parsed.sessions[1], 'kind')).toBe(false);
+    });
   });
 
   describe('clearSessionState', () => {

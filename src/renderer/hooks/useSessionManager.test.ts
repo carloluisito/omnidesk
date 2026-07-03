@@ -171,3 +171,29 @@ describe('useSessionManager', () => {
     expect(cb2).toHaveBeenCalledWith('s1', 'hello');
   });
 });
+
+describe('useSessionManager.createSession — shell', () => {
+  beforeEach(() => {
+    const api = getElectronAPI();
+    api.getSettings = vi.fn().mockResolvedValue({ defaultModel: 'sonnet' });
+    api.createSession = vi.fn().mockResolvedValue({ id: 'new-shell-id' });
+    (window as any).electronAPI = api;
+  });
+
+  it('sends a shell request without model/provider/launchMode and returns the id', async () => {
+    const { result } = renderHook(() => useSessionManager());
+    let id: string | undefined;
+    await act(async () => {
+      id = await result.current.createSession(
+        'my term', '/repo', 'standard', undefined, undefined, undefined, 'shell',
+      );
+    });
+    expect(id).toBe('new-shell-id');
+    const arg = (window.electronAPI.createSession as any).mock.calls[0][0];
+    expect(arg.kind).toBe('shell');
+    expect(arg.model).toBeUndefined();
+    expect(arg.providerId).toBeUndefined();
+    expect(arg.launchMode).toBeUndefined();
+    expect(arg.worktree).toBeUndefined();
+  });
+});

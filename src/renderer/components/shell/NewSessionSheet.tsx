@@ -6,7 +6,7 @@ import { colorBg, colorFg, type RepoColor } from './shell-utils';
 import { sessionsForRepo, liveCount } from './SessionRail';
 import type { Repo } from '../../hooks/useRepos';
 import type { TabData } from '../ui/Tab';
-import type { LaunchMode, PermissionMode } from '../../../shared/ipc-types';
+import type { LaunchMode, PermissionMode, SessionKind } from '../../../shared/ipc-types';
 import type { GitBranchInfo } from '../../../shared/types/git-types';
 import type { ProviderId } from '../../../shared/types/provider-types';
 
@@ -32,6 +32,8 @@ export interface NewSessionForm {
   baseBranch?: string;
   /** Share mode only: id of the session whose worktree the new session joins. */
   shareSessionId?: string;
+  /** Session kind: 'agent' (default) or 'shell' (plain terminal). */
+  kind: SessionKind;
 }
 
 interface NewSessionSheetProps {
@@ -57,6 +59,7 @@ export function NewSessionSheet({
 }: NewSessionSheetProps) {
   const [repoId, setRepoId] = useState<string>(activeRepoId ?? repos[0]?.id ?? '');
   const [name, setName] = useState('');
+  const [sessionType, setSessionType] = useState<'agent' | 'shell'>('agent');
   const [agent, setAgent] = useState<ProviderId>('claude');
   const [launchMode, setLaunchMode] = useState<LaunchMode>('default');
   const [worktreeMode, setWorktreeMode] = useState<WorktreeMode>('new');
@@ -157,34 +160,36 @@ export function NewSessionSheet({
     repo.path;
   const disabled =
     submitting ||
-    (worktreeMode === 'existing' && !branch) ||
-    (worktreeMode === 'share' && !sharedSession);
+    (sessionType === 'agent' && worktreeMode === 'existing' && !branch) ||
+    (sessionType === 'agent' && worktreeMode === 'share' && !sharedSession);
 
   const submit = async () => {
     if (disabled || !repo) return;
     setSubmitting(true);
     setError(null);
     try {
+      const isShell = sessionType === 'shell';
       const permissionMode: PermissionMode =
         launchMode === 'bypass-permissions' ? 'skip-permissions' : 'standard';
       await onCreate({
-        name: name || 'New session',
+        name: name || (isShell ? 'Terminal' : 'New session'),
         repoId: repo.id,
-        workingDirectory: worktreePathPreview,
+        workingDirectory: isShell ? repo.path : worktreePathPreview,
         agent,
-        launchMode,
-        permissionMode,
-        worktreeMode,
-        branch:
+        launchMode: isShell ? 'default' : launchMode,
+        permissionMode: isShell ? 'standard' : permissionMode,
+        worktreeMode: isShell ? 'current' : worktreeMode,
+        kind: isShell ? 'shell' : 'agent',
+        branch: isShell ? undefined :
           worktreeMode === 'new'      ? derivedSlug :
           worktreeMode === 'existing' ? branch :
           worktreeMode === 'share'    ? sharedSession?.worktreeBranch ?? undefined :
           undefined,
-        baseBranch:
+        baseBranch: isShell ? undefined :
           worktreeMode === 'new' && baseBranch && baseBranch !== currentBranchName
             ? baseBranch
             : undefined,
-        shareSessionId:
+        shareSessionId: isShell ? undefined :
           worktreeMode === 'share' ? shareSessionId : undefined,
       });
       onClose();
@@ -283,8 +288,33 @@ export function NewSessionSheet({
             <div className="help">Leave blank to auto-name from the first prompt.</div>
           </div>
 
+          {/* Session type */}
+          <div className="p4-form-row" style={{ marginBottom: 12 }}>
+            <label>Type</label>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--surface-mid)', padding: 2, borderRadius: 6 }}>
+              {(['agent', 'shell'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setSessionType(t)}
+                  className="p4-btn"
+                  style={{
+                    flex: 1, justifyContent: 'center',
+                    background: sessionType === t ? 'var(--surface-high)' : 'transparent',
+                    border: 0,
+                    gap: 4,
+                    color: sessionType === t ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {t === 'shell' && <P4Icon name="terminal" size={12} />}
+                  {t === 'agent' ? 'Agent' : 'Terminal'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Worktree mode — git repos only. Plain folders run in the folder. */}
-          {!repo.isGit ? (
+          {sessionType === 'agent' && (!repo.isGit ? (
             <div className="p4-form-row" style={{ marginTop: 12, marginBottom: 0 }}>
               <label>Working directory</label>
               <div className="help" style={{ marginTop: 0 }}>
@@ -447,9 +477,10 @@ export function NewSessionSheet({
             </div>
           )}
           </>
-          )}
+          ))}
 
           {/* Agent + Launch mode */}
+          {sessionType === 'agent' && (
           <div className="p4-form-grid" style={{ marginTop: 12 }}>
             <div className="p4-form-row" style={{ marginBottom: 0 }}>
               <label>Agent</label>
@@ -535,6 +566,7 @@ export function NewSessionSheet({
               </div>
             </div>
           </div>
+          )}
 
           {error && (
             <div style={{

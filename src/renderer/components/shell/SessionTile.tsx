@@ -72,7 +72,13 @@ export function SessionTile({
       <div ref={slotRef} className="p4-tile-preview p4-tile-slot" aria-hidden="true" />
 
       <div className="p4-tile-foot">
-        <span style={{ color: agentColor(agent), fontWeight: 600 }}>{agentLetter(agent)}</span>
+        {session.kind === 'shell' ? (
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <P4Icon name="terminal" size={9} style={{ verticalAlign: -1 }} /> shell
+          </span>
+        ) : (
+          <span style={{ color: agentColor(agent), fontWeight: 600 }}>{agentLetter(agent)}</span>
+        )}
         {session.worktreeBranch && (
           <>
             <span style={{ color: 'var(--text-quaternary)' }}>·</span>

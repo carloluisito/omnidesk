@@ -207,15 +207,18 @@ export class SessionManager {
     }
 
     const model = request.model;
+    const isShell = request.kind === 'shell';
 
-    // Resolve the provider to use: explicit request > default 'claude'
-    const providerId = request.providerId ?? 'claude';
+    // Resolve the provider to use: explicit request > default 'claude'. Shell sessions have none.
+    const providerId = isShell ? undefined : (request.providerId ?? 'claude');
     let provider: IProvider | undefined;
-    try {
-      provider = this.providerRegistry?.get(providerId);
-    } catch {
-      console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
-      provider = undefined;
+    if (!isShell) {
+      try {
+        provider = this.providerRegistry?.get(providerId!);
+      } catch {
+        console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
+        provider = undefined;
+      }
     }
 
     const id = uuidv4();
@@ -228,6 +231,7 @@ export class SessionManager {
       createdAt: Date.now(),
       worktreeInfo,
       providerId,
+      kind: request.kind,
     };
 
     // Register all callbacks on a CLIManager BEFORE any async operations
@@ -284,8 +288,9 @@ export class SessionManager {
       });
     };
 
-    // Try to claim from pool first
-    const pooledSession = this.sessionPool.claim();
+    // Try to claim from pool first (agent sessions only — shells never launch claude,
+    // so the pool's launch-latency optimization does not apply).
+    const pooledSession = isShell ? null : this.sessionPool.claim();
     let cliManager: CLIManager;
 
     if (pooledSession) {
@@ -320,9 +325,14 @@ export class SessionManager {
         enableAgentTeams: this.agentTeamsGetter?.() ?? true,
         provider,
         launchMode: request.launchMode,
+        kind: request.kind,
       });
       registerCallbacks(cliManager);
-      cliManager.spawn();
+      if (isShell) {
+        cliManager.spawnShellSession();
+      } else {
+        cliManager.spawn();
+      }
     }
 
     // Update history metadata with session details
@@ -531,14 +541,19 @@ export class SessionManager {
       session.metadata.workingDirectory
     );
 
-    // Resolve provider from stored providerId (backward compat: missing = 'claude')
-    const restartProviderId = session.metadata.providerId ?? 'claude';
+    const isShell = session.metadata.kind === 'shell';
+
+    // Resolve provider from stored providerId (backward compat: missing = 'claude').
+    // Shell sessions have no provider.
     let restartProvider: IProvider | undefined;
-    try {
-      restartProvider = this.providerRegistry?.get(restartProviderId);
-    } catch {
-      console.warn(`[SessionManager] Provider '${restartProviderId}' not found on restart, using no provider`);
-      restartProvider = undefined;
+    if (!isShell) {
+      const restartProviderId = session.metadata.providerId ?? 'claude';
+      try {
+        restartProvider = this.providerRegistry?.get(restartProviderId);
+      } catch {
+        console.warn(`[SessionManager] Provider '${restartProviderId}' not found on restart, using no provider`);
+        restartProvider = undefined;
+      }
     }
 
     // Create new CLI manager with same options
@@ -547,6 +562,7 @@ export class SessionManager {
       permissionMode: session.metadata.permissionMode,
       enableAgentTeams: this.agentTeamsGetter?.() ?? true,
       provider: restartProvider,
+      kind: session.metadata.kind,
     });
 
     // Set up handlers
@@ -605,7 +621,11 @@ export class SessionManager {
     session.metadata.currentModel = undefined; // Clear stale model — Phase 1 will re-detect
 
     try {
-      cliManager.spawn();
+      if (isShell) {
+        cliManager.spawnShellSession();
+      } else {
+        cliManager.spawn();
+      }
       session.metadata.status = 'running';
     } catch (err) {
       session.metadata.status = 'error';

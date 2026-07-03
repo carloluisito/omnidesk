@@ -21,6 +21,7 @@ export interface TabData {
   /** Main repo this session is rooted under (set when session was created with a worktree). */
   mainRepoPath?:    string | null;
   providerId?:      ProviderId;
+  kind?:            'agent' | 'shell';
   // NOTE: Sharing disabled — LaunchTunnel integration needs fixing
   // isShared?:        boolean;
   // isObserverTab?:   boolean;

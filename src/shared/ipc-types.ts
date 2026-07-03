@@ -3,6 +3,10 @@ import type { ProviderId } from './types/provider-types';
 // Permission mode for sessions
 export type PermissionMode = 'standard' | 'skip-permissions';
 
+/** Whether a session runs an AI CLI ('agent') or is a plain terminal ('shell').
+ *  Absent on persisted sessions from before this feature — treat as 'agent'. */
+export type SessionKind = 'agent' | 'shell';
+
 /**
  * The launch mode for a new session — drives which `claude` invocation runs in the PTY.
  *
@@ -36,6 +40,7 @@ export interface SessionCreateRequest {
   worktree?: import('./types/git-types').WorktreeCreateRequest;
   providerId?: ProviderId; // Provider to use (defaults to 'claude')
   launchMode?: LaunchMode; // Per-session launch mode (Claude-specific; other providers ignore this field)
+  kind?: SessionKind; // 'shell' spawns a plain terminal with no AI CLI (default 'agent')
 }
 
 // Session metadata
@@ -54,6 +59,7 @@ export interface SessionMetadata {
   currentModel?: ClaudeModel | null; // null = not yet detected
   worktreeInfo?: import('./types/git-types').WorktreeInfo;
   providerId?: ProviderId; // Provider backing this session (defaults to 'claude')
+  kind?: SessionKind; // undefined treated as 'agent' for back-compat
 }
 
 // Session list response

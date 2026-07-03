@@ -235,6 +235,12 @@ function App() {
     const repo = repos.find(r => r.id === form.repoId);
     if (!repo) throw new Error('Repository not found');
 
+    if (form.kind === 'shell') {
+      // Plain terminal in the repo folder — no worktree, provider, or launch mode.
+      await createSession(form.name, form.workingDirectory, 'standard', undefined, undefined, undefined, 'shell');
+      return;
+    }
+
     // Resolve the workingDirectory + worktree request per mode (see
     // resolveSessionWorktree). Share mode needs the donor session's cwd, so
     // look that up here before delegating the decision.
@@ -282,6 +288,12 @@ function App() {
       }
     }
   }, [createSession, repos, sessions]);
+
+  const handleOpenTerminalHere = useCallback(async (_sessionId: string, workingDirectory: string, baseName: string) => {
+    // Loosely-coupled companion: a plain shell seeded to the agent's dir, then focus it.
+    const newId = await createSession(`${baseName} · shell`, workingDirectory, 'standard', undefined, undefined, undefined, 'shell');
+    await switchSession(newId);
+  }, [createSession, switchSession]);
 
   const isWin = navigator.platform.toLowerCase().includes('win');
   const normalizePath = useCallback((p: string) => {
@@ -427,6 +439,15 @@ function App() {
     return m;
   }, [sessions]);
 
+  // ─── Session kind map for the terminal host ───────────────────
+  const sessionKindMap = useMemo(() => {
+    const m: Record<string, 'agent' | 'shell'> = {};
+    for (const s of sessions) {
+      if (s.kind) m[s.id] = s.kind;
+    }
+    return m;
+  }, [sessions]);
+
   // ─── Native folder picker, used by AddRepoSheet "Browse…" ────
   const handlePickFolder = useCallback(async (): Promise<string | null> => {
     try {
@@ -553,6 +574,7 @@ function App() {
       sessionIds={sessions.map(s => s.id)}
       focusedSessionId={activeSessionId}
       sessionProviderMap={sessionProviderMap}
+      sessionKindMap={sessionKindMap}
       onInput={sendInput}
       onResize={resizeSession}
       onOutput={onOutput}
@@ -823,6 +845,15 @@ function App() {
                 label: 'Rename session…',
                 icon: 'sparkle',
                 onSelect: () => setRenameSessionPrompt({ id: s.id, current: s.name }),
+              },
+              {
+                label: 'Open terminal here',
+                icon: 'terminal',
+                onSelect: () => {
+                  if (s.workingDirectory) {
+                    void handleOpenTerminalHere(s.id, s.workingDirectory, s.name);
+                  }
+                },
               },
               {
                 label: 'Close session',
