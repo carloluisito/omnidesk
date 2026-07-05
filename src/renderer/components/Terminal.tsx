@@ -8,7 +8,7 @@ import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../.
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
 import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
-import { shouldShowCloseDialog, isNewlineChord } from '../terminal/shell-key-rules';
+import { shouldShowCloseDialog, isNewlineChord, isOutputReady } from '../terminal/shell-key-rules';
 import type { SessionKind } from '../../shared/ipc-types';
 import '@xterm/xterm/css/xterm.css';
 
@@ -588,6 +588,11 @@ export function MultiTerminal({
   // Buffer for output that arrives before the terminal xterm instance is registered
   const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
   const kittyStateRef = useRef<Map<string, KittyKeyboardState>>(new Map());
+  // Latest sessionKindMap, read via ref so the onOutput/handleReady closures
+  // (whose deps don't include the prop) never see a stale map for a session
+  // created after they were memoized.
+  const sessionKindMapRef = useRef(sessionKindMap);
+  sessionKindMapRef.current = sessionKindMap;
 
   // Set up output listener
   useEffect(() => {
@@ -609,11 +614,12 @@ export function MultiTerminal({
         return;
       }
 
-      // Check if Claude is already detected as ready for this session
-      const isReady = isReadyRef.current.get(sessionId);
+      // Shell sessions bypass Claude-readiness gating; agent output stays
+      // buffered until Claude's welcome box is detected (isOutputReady).
+      const isReady = isOutputReady(isReadyRef.current.get(sessionId), sessionKindMapRef.current?.[sessionId]);
 
       if (isReady) {
-        // Claude is ready, write directly to terminal
+        // Ready (or a shell) — write directly to terminal
         terminal.write(data);
       } else {
         // Buffer the output and check for Claude patterns
@@ -689,7 +695,7 @@ export function MultiTerminal({
       pendingOutputRef.current.delete(sessionId);
       for (const data of pending) {
         // Re-process through the same output pipeline
-        const isReady = isReadyRef.current.get(sessionId);
+        const isReady = isOutputReady(isReadyRef.current.get(sessionId), sessionKindMapRef.current?.[sessionId]);
         if (isReady) {
           terminal.write(data);
         } else {

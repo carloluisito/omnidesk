@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldShowCloseDialog, isNewlineChord } from './shell-key-rules';
+import { shouldShowCloseDialog, isNewlineChord, isOutputReady } from './shell-key-rules';
 
 describe('shouldShowCloseDialog', () => {
   it('intercepts Ctrl+C for agent sessions in legacy mode', () => {
@@ -28,5 +28,20 @@ describe('isNewlineChord', () => {
   it('is not a chord without a modifier or non-Enter keys', () => {
     expect(isNewlineChord(enter({}), 'agent')).toBe(false);
     expect(isNewlineChord({ key: 'a', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }, 'agent')).toBe(false);
+  });
+});
+
+describe('isOutputReady', () => {
+  // Agent sessions gate output on Claude-readiness detection (isReady). Shell
+  // sessions have no Claude welcome box to wait for, so their PTY output must
+  // render immediately regardless of the readiness flag.
+  it('mirrors the readiness flag for agent sessions', () => {
+    expect(isOutputReady(true, 'agent')).toBe(true);
+    expect(isOutputReady(false, 'agent')).toBe(false);
+    expect(isOutputReady(undefined, undefined)).toBe(false); // agent, not yet ready
+  });
+  it('is always ready for shell sessions, even before the readiness flag is set', () => {
+    expect(isOutputReady(false, 'shell')).toBe(true);
+    expect(isOutputReady(undefined, 'shell')).toBe(true);
   });
 });
