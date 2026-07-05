@@ -10,6 +10,17 @@ export function shouldShowCloseDialog(
   return data === '\x03' && kittyFlags === 0 && kind !== 'shell';
 }
 
+/** Whether PTY output should be written straight to the terminal instead of
+ *  being held in the Claude-readiness buffer. Agent sessions gate output until
+ *  Claude's welcome box is detected (`isReady`); shell sessions have no such
+ *  box to wait for, so their output is always ready to render. */
+export function isOutputReady(
+  isReady: boolean | undefined,
+  kind: SessionKind | undefined,
+): boolean {
+  return isReady === true || kind === 'shell';
+}
+
 /** Ctrl/Shift/Alt/Cmd+Enter inserts a literal newline — a Claude-input
  *  affordance. Shell sessions want a real Enter, so this is agent-only. */
 export function isNewlineChord(
