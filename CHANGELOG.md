@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2026-07-06
+
+### Fixed
+- **Shell (Terminal) sessions now render their output.** A plain terminal opened as a blank pane — its shell prompt and command output were held back by the Claude-readiness output buffer, which waits for a Claude welcome box that a shell never produces. Shell output now renders immediately.
+
+---
+
 ## [2.1.0] - 2026-07-04
 
 ### Added
