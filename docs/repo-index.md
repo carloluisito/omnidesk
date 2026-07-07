@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 108 IPC methods | 19 channel-prefix domains | 422 tests across 39 files + 6 e2e specs
+~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 108 IPC methods | 19 channel-prefix domains | 433 tests across 40 files + 6 e2e specs
 
 ## Entrypoints
 

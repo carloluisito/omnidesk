@@ -29,6 +29,7 @@ const LOGIN_HTML = `<!doctype html><html><head><meta name="viewport" content="wi
 export class RemoteAccessServer {
   private server: http.Server | null = null;
   private wss: WebSocketServer | null = null;
+  private boundPort: number | null = null;
 
   constructor(private opts: RemoteServerOptions) {}
 
@@ -36,8 +37,10 @@ export class RemoteAccessServer {
     return this.server !== null;
   }
 
+  /** The actual listening port. When configured with port 0 the OS assigns one,
+   *  so we read it back after listen rather than echoing the requested value. */
   getPort(): number {
-    return this.opts.port;
+    return this.boundPort ?? this.opts.port;
   }
 
   start(): Promise<void> {
@@ -66,6 +69,8 @@ export class RemoteAccessServer {
         reject(err);
       });
       server.listen(this.opts.port, '127.0.0.1', () => {
+        const addr = server.address();
+        if (addr && typeof addr === 'object') this.boundPort = addr.port;
         this.server = server;
         resolve();
       });
