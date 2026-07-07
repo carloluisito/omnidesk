@@ -47,6 +47,10 @@ export class SessionManager {
   private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
   private outputSubscribers: Map<string, Set<(data: string) => void>> = new Map();
   private providerRegistry: ProviderRegistry | null = null;
+  /** Rolling per-session raw output buffer, replayed to clients that attach
+   *  mid-session (e.g. a phone joining, or a renderer reload). Bounded. */
+  private scrollback: Map<string, string> = new Map();
+  private readonly SCROLLBACK_MAX = 256 * 1024;
   /** In-flight worktree/branch cleanup promises. Awaited on app quit so the
    *  user-initiated close→quit sequence doesn't leave a half-cleaned repo. */
   private pendingCleanups: Set<Promise<void>> = new Set();
@@ -95,6 +99,22 @@ export class SessionManager {
 
   setMainWindow(window: BrowserWindow): void {
     this.emitter = new IPCEmitter(window);
+  }
+
+  /** Append raw output to a session's rolling scrollback buffer, capped at
+   *  SCROLLBACK_MAX bytes (oldest bytes dropped). */
+  appendScrollback(sessionId: string, data: string): void {
+    const prev = this.scrollback.get(sessionId) ?? '';
+    let next = prev + data;
+    if (next.length > this.SCROLLBACK_MAX) {
+      next = next.slice(next.length - this.SCROLLBACK_MAX);
+    }
+    this.scrollback.set(sessionId, next);
+  }
+
+  /** Current buffered scrollback for a session, or '' if unknown. */
+  getSessionScrollback(sessionId: string): string {
+    return this.scrollback.get(sessionId) ?? '';
   }
 
   initialize(): void {
@@ -260,6 +280,7 @@ export class SessionManager {
       });
 
       mgr.onOutput((data: string) => {
+        this.appendScrollback(id, data);
         const output: SessionOutput = { sessionId: id, data };
         this.emitter?.emit('onSessionOutput', output);
         this.notifyOutputSubscribers(id, data);
@@ -440,6 +461,7 @@ export class SessionManager {
 
     // Remove session
     this.sessions.delete(sessionId);
+    this.scrollback.delete(sessionId);
 
     // Update active session if needed
     if (this.activeSessionId === sessionId) {

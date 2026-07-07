@@ -100,6 +100,10 @@ export function setupIPCHandlers(
     }
   });
 
+  registry.handle('getSessionScrollback', async (_e, sessionId) => {
+    return sessionManager.getSessionScrollback(sessionId);
+  });
+
   // ── Model switching ──
 
   registry.handle('switchModel', async (_e, sessionId, model) => {

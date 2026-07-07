@@ -110,6 +110,7 @@ export interface IPCContractMap {
   stopSession:         InvokeContract<'session:stop',      [string],                             boolean>;
   getActiveSession:    InvokeContract<'session:getActive', [],                                   string | null>;
   revealInExplorer:    InvokeContract<'session:revealInExplorer', [string],                      boolean>;
+  getSessionScrollback: InvokeContract<'session:scrollback', [string],                           string>;
 
   // ── Session I/O (send — fire-and-forget) ──
   sendSessionInput:    SendContract<'session:input',  [SessionInput]>;
@@ -266,6 +267,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   stopSession:         'session:stop',
   getActiveSession:    'session:getActive',
   revealInExplorer:    'session:revealInExplorer',
+  getSessionScrollback: 'session:scrollback',
 
   // Session I/O
   sendSessionInput:    'session:input',
@@ -421,6 +423,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   stopSession:         'invoke',
   getActiveSession:    'invoke',
   revealInExplorer:    'invoke',
+  getSessionScrollback: 'invoke',
 
   sendSessionInput:    'send',
   resizeSession:       'send',
