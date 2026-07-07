@@ -1,0 +1,48 @@
+import { describe, it, expect } from 'vitest';
+import { RemoteAuth } from './remote-auth';
+
+describe('RemoteAuth', () => {
+  it('generates a non-trivial token', () => {
+    const a = new RemoteAuth();
+    expect(a.getToken().length).toBeGreaterThanOrEqual(24);
+  });
+
+  it('verifies the correct token and rejects others', () => {
+    const a = new RemoteAuth();
+    expect(a.verify(a.getToken())).toBe(true);
+    expect(a.verify('wrong')).toBe(false);
+    expect(a.verify('')).toBe(false);
+  });
+
+  it('regenerate invalidates the old token', () => {
+    const a = new RemoteAuth();
+    const old = a.getToken();
+    const next = a.regenerate();
+    expect(next).not.toBe(old);
+    expect(a.verify(old)).toBe(false);
+    expect(a.verify(next)).toBe(true);
+  });
+
+  it('validates a cookie header carrying the token', () => {
+    const a = new RemoteAuth();
+    const header = `foo=bar; ${RemoteAuth.COOKIE}=${a.getToken()}; baz=1`;
+    expect(a.cookieValid(header)).toBe(true);
+    expect(a.cookieValid(`${RemoteAuth.COOKIE}=nope`)).toBe(false);
+    expect(a.cookieValid(undefined)).toBe(false);
+  });
+
+  it('builds a Secure cookie only when secure=true', () => {
+    const a = new RemoteAuth();
+    expect(a.buildSetCookie(true)).toContain('Secure');
+    expect(a.buildSetCookie(false)).not.toContain('Secure');
+    expect(a.buildSetCookie(true)).toContain('HttpOnly');
+    expect(a.buildSetCookie(true)).toContain('SameSite=Strict');
+  });
+
+  it('rate limits after the max attempts within the window', () => {
+    const a = new RemoteAuth();
+    for (let i = 0; i < 10; i++) expect(a.rateLimited('1.2.3.4')).toBe(false);
+    expect(a.rateLimited('1.2.3.4')).toBe(true);
+    expect(a.rateLimited('9.9.9.9')).toBe(false);
+  });
+});
