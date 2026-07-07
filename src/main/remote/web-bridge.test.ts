@@ -20,6 +20,10 @@ describe('generateWebBridgeScript', () => {
     expect(script).toContain('resizeSession');
   });
 
+  it('sets the remote-client flag so the renderer replays scrollback', () => {
+    expect(script).toContain('window.__OMNIDESK_REMOTE__ = true');
+  });
+
   it('is a self-contained IIFE with no module syntax', () => {
     expect(script.trim().startsWith('(function(){')).toBe(true);
     expect(script.trim().endsWith('})();')).toBe(true);

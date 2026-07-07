@@ -55,6 +55,9 @@ export function generateWebBridgeScript(
   api.sendSessionInput = function(sessionId, data){ sendMsg('sendSessionInput', [{ sessionId: sessionId, data: data }]); };
   api.resizeSession = function(sessionId, cols, rows){ sendMsg('resizeSession', [{ sessionId: sessionId, cols: cols, rows: rows }]); };
 
+  // Flag so the renderer knows it is a remote (cold-attach) client and should
+  // replay server-side scrollback when a terminal mounts. Not set in Electron.
+  window.__OMNIDESK_REMOTE__ = true;
   window.electronAPI = api;
   connect();
 })();`;

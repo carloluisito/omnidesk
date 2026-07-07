@@ -689,6 +689,19 @@ export function MultiTerminal({
     terminalsRef.current.set(sessionId, terminal);
     claudeReadyCallbacksRef.current.set(sessionId, checkClaudeReady);
 
+    // Remote (web) clients are cold attaches: they never witnessed earlier
+    // output, so replay the server-side scrollback to reconstruct the terminal.
+    // Desktop is skipped — it receives output live from session creation, so
+    // replaying would double-write. Written before the pending flush so the
+    // history precedes any bytes that arrived since this client connected.
+    if ((window as unknown as { __OMNIDESK_REMOTE__?: boolean }).__OMNIDESK_REMOTE__) {
+      window.electronAPI.getSessionScrollback(sessionId).then((backlog) => {
+        if (backlog) {
+          terminal.write(backlog);
+        }
+      }).catch(() => { /* best-effort replay */ });
+    }
+
     // Flush any output that arrived before the terminal was registered
     const pending = pendingOutputRef.current.get(sessionId);
     if (pending && pending.length > 0) {
