@@ -24,6 +24,8 @@ type SendKeys = {
 export class IPCRegistry {
   private handlers: string[] = [];
   private listeners: Array<{ channel: string; fn: (...args: unknown[]) => void }> = [];
+  private invokeHandlers = new Map<string, (event: unknown, ...args: unknown[]) => unknown>();
+  private sendHandlers = new Map<string, (event: unknown, ...args: unknown[]) => void>();
 
   /**
    * Register an ipcMain.handle() for an invoke-kind method.
@@ -38,6 +40,7 @@ export class IPCRegistry {
     const channel = ch[key];
     ipcMain.handle(channel, handler as Parameters<typeof ipcMain.handle>[1]);
     this.handlers.push(channel);
+    this.invokeHandlers.set(key as string, handler as (event: unknown, ...args: unknown[]) => unknown);
   }
 
   /**
@@ -54,6 +57,32 @@ export class IPCRegistry {
     const fn = handler as (...args: unknown[]) => void;
     ipcMain.on(channel, fn);
     this.listeners.push({ channel, fn });
+    this.sendHandlers.set(key as string, handler as (event: unknown, ...args: unknown[]) => void);
+  }
+
+  /**
+   * Invoke an 'invoke'-kind handler directly, bypassing ipcMain.
+   *
+   * Used by the remote WebSocket router so a browser client hits the exact
+   * same handler an Electron renderer would. A synthetic event stands in for
+   * IpcMainInvokeEvent — verified safe because no handler reads event.sender.
+   */
+  async invokeMethod(method: string, args: unknown[]): Promise<unknown> {
+    const fn = this.invokeHandlers.get(method);
+    if (!fn) throw new Error(`No invoke handler registered for '${method}'`);
+    const syntheticEvent = { sender: null, __remote: true };
+    return await fn(syntheticEvent, ...args);
+  }
+
+  /**
+   * Dispatch a 'send'-kind handler directly, bypassing ipcMain.
+   * Fire-and-forget; unknown methods are ignored.
+   */
+  sendMethod(method: string, args: unknown[]): void {
+    const fn = this.sendHandlers.get(method);
+    if (!fn) return;
+    const syntheticEvent = { __remote: true };
+    fn(syntheticEvent, ...args);
   }
 
   /**
@@ -68,5 +97,7 @@ export class IPCRegistry {
     }
     this.handlers = [];
     this.listeners = [];
+    this.invokeHandlers.clear();
+    this.sendHandlers.clear();
   }
 }
