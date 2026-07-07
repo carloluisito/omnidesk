@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar,
+  TitleBar, StatusBar, RemoteAccessPanel,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
@@ -125,6 +125,7 @@ function App() {
   const [showNewSession, setShowNewSession] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showRemote, setShowRemote] = useState(false);
   // Pending close confirmation. null while no prompt is open.
   const [confirmClose, setConfirmClose] = useState<{ id: string; name: string } | null>(null);
   const [confirmCloseRepo, setConfirmCloseRepo] = useState<{
@@ -395,11 +396,12 @@ function App() {
         if (showPalette)    setShowPalette(false);
         if (showNewSession) setShowNewSession(false);
         if (showAddRepo)    setShowAddRepo(false);
+        if (showRemote)     setShowRemote(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showNewSession, showAddRepo]);
+  }, [showPalette, showNewSession, showAddRepo, showRemote]);
 
   // ─── Palette actions ─────────────────────────────────────────
   const paletteActions: PaletteAction[] = useMemo(() => [
@@ -427,6 +429,11 @@ function App() {
       id: 'add-repo', icon: 'folder', title: 'Add repository…',
       sub: 'Clone from URL or open an existing folder',
       run: () => { setShowPalette(false); setShowAddRepo(true); },
+    },
+    {
+      id: 'remote', icon: 'tunnel', title: 'Remote access…',
+      sub: 'Reach OmniDesk from a browser over a tunnel',
+      run: () => { setShowPalette(false); setShowRemote(true); },
     },
   ], []);
 
@@ -553,6 +560,7 @@ function App() {
             actions={paletteActions}
           />
         )}
+        {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
             name={nonGitChoice.name}
@@ -724,6 +732,8 @@ function App() {
           actions={paletteActions}
         />
       )}
+
+      {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
 
       {confirmClose && (() => {
         const target = sessions.find(s => s.id === confirmClose.id);
