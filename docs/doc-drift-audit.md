@@ -89,3 +89,15 @@ The docs are broadly aligned with the code on the big structural claims — the 
 4. **repo-index refresh** — add the 8 missing test files, the `terminal/` dir, and `NonGitFolderDialog`.
 5. **CLAUDE.md edits** — the 5 checkboxes above (all mechanical, no human decision needed).
 6. **Low-severity wording** — manager count in CLAUDE.md, PowerShell `\r` tip, agent-teams env-var note.
+
+---
+
+## Addendum: README ↔ code feature audit (applied 2026-07-08)
+
+Second pass — verify every README feature/shortcut claim against the actually-mounted code (static, no app run). Most claims verified accurate (shortcuts `App.tsx:382-402`; links `Terminal.tsx:362-367`; Kitty `Terminal.tsx:379,600-603`; inspector fields `RightInspector.tsx:51-77`; provider auto-detect `claude-provider.ts:51-54` / `codex-provider.ts:32-35`; packaging `electron-builder.yml:5,20-46`). Three drifts found and fixed:
+
+- [x] **Privacy claim understated network calls** — README said "the only network calls are to Anthropic's API." Reworded to include GitHub update checks (`ipc-handlers.ts:674-682`, `electron-builder.yml:48-51`) and git remotes (`git-manager.ts:675`). "No telemetry" verified (no analytics endpoints found).
+- [x] **Provider selector claim overstated** — README said the selector is "shown automatically when more than one provider is available," but `NewSessionSheet.tsx:483-505` renders a hardcoded, unconditional Claude/Codex toggle and never consults provider availability. Reworded README to match actual behavior (doc fix, not code change). **Latent code gap for later:** the new-session UI ignores the registry's `provider:available` detection — gating the toggle on `useProvider` availability would be the "intended" behavior.
+- [x] **CLAUDE.md Design Language hexes stale** — claimed `bg #0D0E14` / `border #292E44`; actual is `--surface-base: #0A0B11` (`tokens.css:9`) and `rgba(255,255,255,0.035–0.12)` borders (`tokens.css:35-37`). Accent/danger were correct. Fixed.
+
+**Not statically verifiable:** runtime rendering/visual correctness (needs the app running); README "macOS 10.13+" / "Linux libxtst6/libnss3" (Electron 28 runtime facts, confirm against Electron's support matrix).

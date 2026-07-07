@@ -129,7 +129,7 @@ npm run test:ci             # CI mode (coverage + JUnit XML)
 
 ## Design Language
 
-Dark theme (Obsidian): bg `#0D0E14`, accent `#00C9A7`, danger `#F7678E`, border `#292E44`
+Dark theme (Obsidian): surface base `#0A0B11`, accent `#00C9A7`, danger `#F7678E`, borders `rgba(255,255,255,0.035–0.12)` (subtle/default/strong). See `src/renderer/styles/tokens.css` for the full token set.
 Font: JetBrains Mono. Monospace everywhere.
 Design tokens defined in `src/renderer/styles/tokens.css`.
 `globals.css` imports `tokens.css`, `animations.css`, `motion.css`, and `prototype-shell.css` (the Phase 4 shell's own CSS). `App.tsx` imports `tokens.css` and `animations.css` directly before mounting.

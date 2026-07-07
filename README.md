@@ -70,7 +70,7 @@
 
 ### Multi-Provider Support
 - **Pluggable provider layer** — swap between Claude Code, Codex CLI, and future providers
-- **Provider selector** in the new-session sheet (shown automatically when more than one provider is available)
+- **Provider selector** in the new-session sheet — choose Claude or Codex for each agent session
 - **Provider badges** on sessions to distinguish non-default providers
 - **Auto-detection** — providers register automatically based on installed CLI binaries
 
@@ -252,7 +252,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 - **Local-first** — all session data is stored on your machine
 - **No telemetry** — no usage data is collected or transmitted
-- **Minimal external services** — the only network calls are to Anthropic's API for quota/burn-rate data
+- **Minimal external services** — network calls are limited to: Anthropic's API (quota/burn-rate), GitHub (app update checks via `electron-updater`), and your configured git remotes (clone/fetch/push). Nothing else is contacted.
 - **Credential security** — reads Claude CLI credentials locally, never logs or stores them
 
 For more details, see [SECURITY.md](SECURITY.md).
