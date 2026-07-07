@@ -2,7 +2,9 @@ import { app, BrowserWindow, dialog, shell } from 'electron';
 import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SubdirectoryEntry, GitRepoEntry } from '../shared/ipc-types';
+import type { SubdirectoryEntry, GitRepoEntry, RemoteAccessStatus } from '../shared/ipc-types';
+import type { RemoteAccessServer } from './remote/remote-access-server';
+import type { RemoteAuth } from './remote/remote-auth';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
@@ -16,6 +18,20 @@ import { IPCRegistry } from './ipc-registry';
 import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot } from './path-access';
 
 let registry: IPCRegistry | null = null;
+let remoteServerRef: RemoteAccessServer | null = null;
+let remoteAuthRef: RemoteAuth | null = null;
+
+/** Expose the active registry so the remote WS router can dispatch to the
+ *  same handlers. Returns null before setupIPCHandlers runs. */
+export function getRegistry(): IPCRegistry | null {
+  return registry;
+}
+
+/** Inject the remote access server after it is constructed (it depends on the
+ *  registry created inside setupIPCHandlers, so it cannot be a constructor arg). */
+export function setRemoteServer(server: RemoteAccessServer): void {
+  remoteServerRef = server;
+}
 
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
@@ -26,10 +42,13 @@ export function setupIPCHandlers(
   sessionPool: SessionPool,
   gitManager: GitManager,
   providerRegistry: ProviderRegistry,
+  remoteAuth: RemoteAuth,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
   checkpointManager.setMainWindow(mainWindow);
+
+  remoteAuthRef = remoteAuth;
 
   registry = new IPCRegistry();
 
@@ -629,6 +648,41 @@ export function setupIPCHandlers(
     };
   });
 
+  // ── Remote access ──
+
+  const buildRemoteStatus = (): RemoteAccessStatus => {
+    const port = remoteServerRef?.getPort() ?? settingsManager.getRemoteAccessPort();
+    return {
+      enabled: remoteServerRef?.isRunning() ?? false,
+      port,
+      token: remoteAuthRef?.getToken() ?? '',
+      url: `http://localhost:${port}`,
+    };
+  };
+
+  registry.handle('getRemoteStatus', async () => buildRemoteStatus());
+
+  registry.handle('enableRemoteAccess', async () => {
+    if (remoteServerRef && !remoteServerRef.isRunning()) {
+      await remoteServerRef.start();
+      settingsManager.setRemoteAccessEnabled(true);
+    }
+    return buildRemoteStatus();
+  });
+
+  registry.handle('disableRemoteAccess', async () => {
+    if (remoteServerRef && remoteServerRef.isRunning()) {
+      await remoteServerRef.stop();
+      settingsManager.setRemoteAccessEnabled(false);
+    }
+    return buildRemoteStatus();
+  });
+
+  registry.handle('regenerateRemoteToken', async () => {
+    remoteAuthRef?.regenerate();
+    return buildRemoteStatus();
+  });
+
   // ── Session I/O (send — fire and forget) ──
 
   registry.on('sendSessionInput', (_e, input) => {
@@ -695,6 +749,8 @@ export function setupIPCHandlers(
 }
 
 export function removeIPCHandlers(): void {
+  remoteServerRef = null;
+  remoteAuthRef = null;
   if (registry) {
     registry.removeAll();
     registry = null;

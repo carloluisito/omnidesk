@@ -214,6 +214,23 @@ export interface AppSettings {
   tourDismissed?: boolean;
   // Wave 05 — focus mode persistence
   focusMode?: boolean;
+  // Remote access (serve OmniDesk over a tunnel)
+  remoteAccess?: RemoteAccessSettings;
+}
+
+// Remote access persisted settings
+export interface RemoteAccessSettings {
+  enabled: boolean;
+  port: number;
+}
+
+// Remote access runtime status (returned by remote:* IPC)
+export interface RemoteAccessStatus {
+  enabled: boolean;
+  port: number;
+  token: string;
+  /** Local address the server binds; the public address is the user's tunnel. */
+  url: string;
 }
 
 // Workspace create request

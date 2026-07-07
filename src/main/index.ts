@@ -14,7 +14,11 @@ import { ProviderRegistry } from './providers/provider-registry';
 import { probeClaudeVersion } from './agent-view/probe-version';
 import { getAgentViewAvailability } from './agent-view/availability';
 import { setCachedAgentViewAvailability } from './agent-view/availability-cache';
-import { setupIPCHandlers, removeIPCHandlers } from './ipc-handlers';
+import { setupIPCHandlers, removeIPCHandlers, getRegistry, setRemoteServer } from './ipc-handlers';
+import { RemoteAccessServer } from './remote/remote-access-server';
+import { RemoteAuth } from './remote/remote-auth';
+import { ClientHub } from './remote/client-hub';
+import { registerRemoteBroadcaster } from './ipc-emitter';
 import { WindowState } from '../shared/ipc-types';
 
 // Prevent EPIPE crashes when stdout/stderr pipe breaks (e.g., renderer window closes while PTY is active)
@@ -33,6 +37,7 @@ let historyManager: HistoryManager | null = null;
 let checkpointManager: CheckpointManager | null = null;
 let gitManager: GitManager | null = null;
 let providerRegistry: ProviderRegistry | null = null;
+let remoteServer: RemoteAccessServer | null = null;
 
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
 
@@ -201,6 +206,13 @@ function createWindow(): void {
   providerRegistry = new ProviderRegistry();
   sessionManager.setProviderRegistry(providerRegistry);
 
+  // Remote access collaborators. The server binds 127.0.0.1 only and is off
+  // until explicitly enabled; the user exposes it via a tunnel. Events fan out
+  // to all connected web clients through the ClientHub broadcaster.
+  const remoteAuth = new RemoteAuth();
+  const clientHub = new ClientHub();
+  registerRemoteBroadcaster((channel, payload) => clientHub.broadcast(channel, payload));
+
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
     mainWindow,
@@ -211,7 +223,30 @@ function createWindow(): void {
     sessionPool,
     gitManager,
     providerRegistry,
+    remoteAuth,
   );
+
+  // Construct the remote server now that the IPC registry exists, then inject
+  // it back into the handlers so the remote:* IPC methods can drive it.
+  const registryRef = getRegistry();
+  if (registryRef) {
+    remoteServer = new RemoteAccessServer({
+      port: settingsManager.getRemoteAccessPort(),
+      rendererDir: path.join(__dirname, '../renderer'),
+      registry: registryRef,
+      auth: remoteAuth,
+      hub: clientHub,
+    });
+    setRemoteServer(remoteServer);
+  }
+
+  // Auto-start remote access if it was enabled last run (delayed off the
+  // critical path, mirroring the session pool init).
+  setTimeout(() => {
+    if (settingsManager?.getRemoteAccessEnabled() && remoteServer && !remoteServer.isRunning()) {
+      remoteServer.start().catch((e) => console.error('[remote] auto-start failed:', e));
+    }
+  }, 3000);
 
   // Initialize pool (delayed, async)
   setTimeout(() => {
@@ -258,6 +293,11 @@ function createWindow(): void {
   });
 
   mainWindow.on('closed', () => {
+    registerRemoteBroadcaster(null);
+    if (remoteServer) {
+      remoteServer.stop().catch(() => {});
+      remoteServer = null;
+    }
     removeIPCHandlers();
     if (gitManager) {
       gitManager.destroy();

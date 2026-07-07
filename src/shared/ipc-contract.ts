@@ -32,6 +32,7 @@ import type {
   AppVersionInfo,
   ClaudeModel,
   ModelSwitchEvent,
+  RemoteAccessStatus,
 } from './ipc-types';
 
 import type {
@@ -241,6 +242,12 @@ export interface IPCContractMap {
   getAvailableProviders:   InvokeContract<'provider:available',    [],              ProviderInfo[]>;
   getProviderCapabilities: InvokeContract<'provider:capabilities', [ProviderId],   ProviderCapabilities>;
 
+  // ── Remote access (invoke) ──
+  getRemoteStatus:       InvokeContract<'remote:getStatus',        [],        RemoteAccessStatus>;
+  enableRemoteAccess:    InvokeContract<'remote:enable',           [number?], RemoteAccessStatus>;
+  disableRemoteAccess:   InvokeContract<'remote:disable',          [],        RemoteAccessStatus>;
+  regenerateRemoteToken: InvokeContract<'remote:regenerateToken',  [],        RemoteAccessStatus>;
+
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
 
@@ -400,6 +407,12 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   getProviderCapabilities: 'provider:capabilities',
 
 
+  // Remote access
+  getRemoteStatus:       'remote:getStatus',
+  enableRemoteAccess:    'remote:enable',
+  disableRemoteAccess:   'remote:disable',
+  regenerateRemoteToken: 'remote:regenerateToken',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 
@@ -533,6 +546,11 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   listProviders:           'invoke',
   getAvailableProviders:   'invoke',
   getProviderCapabilities: 'invoke',
+
+  getRemoteStatus:       'invoke',
+  enableRemoteAccess:    'invoke',
+  disableRemoteAccess:   'invoke',
+  regenerateRemoteToken: 'invoke',
 
   getVersionInfo:      'invoke',
 

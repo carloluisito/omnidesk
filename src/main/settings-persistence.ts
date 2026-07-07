@@ -53,6 +53,10 @@ function getDefaultSettings(): AppSettings {
     enableAgentTeams: true,
     defaultModel: 'sonnet',
     modelPreset: 'balanced',
+    remoteAccess: {
+      enabled: false,
+      port: 8420,
+    },
   };
 }
 
@@ -407,6 +411,20 @@ export class SettingsManager {
 
   updateEnableAgentTeams(enabled: boolean): void {
     this.settings.enableAgentTeams = enabled;
+    saveSettings(this.settings);
+  }
+
+  getRemoteAccessEnabled(): boolean {
+    return this.settings.remoteAccess?.enabled === true;
+  }
+
+  getRemoteAccessPort(): number {
+    return this.settings.remoteAccess?.port ?? 8420;
+  }
+
+  setRemoteAccessEnabled(enabled: boolean): void {
+    const port = this.getRemoteAccessPort();
+    this.settings.remoteAccess = { enabled, port };
     saveSettings(this.settings);
   }
 
