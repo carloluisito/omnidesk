@@ -17,7 +17,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS
 │  Main Process (Node.js)                     │
 │  ~7 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (103 methods)
+                   │ IPC (108 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
@@ -30,7 +30,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS
 
 **3-layer pattern per domain:** Manager (main) → Hook (renderer) → Components (renderer)
 
-**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 103 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
+**IPC contract** (`src/shared/ipc-contract.ts`) is the single source of truth — 108 methods. The preload bridge and `ElectronAPI` type are auto-derived from it.
 
 **Provider abstraction**: `IProvider` interface (`src/main/providers/`) decouples CLI specifics from session management. `CLIManager` delegates to the active provider for command building, environment variables, and model detection. Default provider is Claude.
 
@@ -51,6 +51,7 @@ Electron 28 | React 18 | TypeScript | xterm.js | node-pty | Tailwind CSS
 | Settings | settings-persistence | — | ipc-types.ts | `settings:*` |
 | Providers | provider-registry, claude-provider, codex-provider | useProvider | types/provider-types.ts | `provider:*` |
 | Agent View | agent-view/availability, agent-view/availability-cache, agent-view/probe-version | useAgentViewAvailability | types/agent-view-types.ts | `agentView:availability`, `agentView:availabilityChanged` |
+| Remote | remote/remote-access-server, remote/ws-router, remote/client-hub, remote/remote-auth, remote/web-bridge, remote/http-util | useRemoteAccess, RemoteAccessPanel | ipc-types.ts (`RemoteAccessStatus`, `RemoteAccessSettings`) | `remote:*`, `session:scrollback` |
 | Window | index.ts | ConfirmDialog, ToastContainer | ipc-types.ts | `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*` |
 
 ## Adding a New IPC Method
@@ -87,6 +88,7 @@ Example: The **Providers** domain uses `src/main/providers/` with `IProvider` in
 - **Launch mode picker**: `NewSessionSheet` (in `src/renderer/components/shell/NewSessionSheet.tsx`) shows a launch mode control when the Claude provider is selected, with three options driven by `LaunchMode = 'default' | 'bypass-permissions' | 'agents'` (`src/shared/ipc-types.ts`). Selection rides on the optional `SessionCreateRequest.launchMode`; `ClaudeProvider.buildCommand` switches on it. The default selection comes from the workspace's `defaultPermissionMode` (`'skip-permissions'` → seeds `'bypass-permissions'`). Codex sessions ignore the field. Defense-in-depth: `ClaudeProvider` reads the live availability cache and downgrades `'agents'` → `'default'` with a warning if availability is `'unavailable'`.
 - **Agent View availability**: `claude agents` mode is gated by a one-shot main-process probe of `claude --version` plus `~/.claude/settings.json.disableAgentView` and `CLAUDE_CODE_DISABLE_AGENT_VIEW` kill switches (`src/main/agent-view/`). The probe runs in a `setTimeout(..., 2000)` block off the synchronous `createWindow` critical path (lesson from a prior aborted feature). Result is held in a module-level cache (`availability-cache.ts`), exposed via `agentView:availability` IPC (one-shot fetch on sheet open), and pushed to the renderer via `agentView:availabilityChanged` event once the probe completes. The `useAgentViewAvailability` hook does a **one-shot fetch on mount** then **subscribes to `onAgentViewAvailabilityChanged`**; if the initial fetch returns `reason: 'probing'` the hook stays `loading: true` until the push event delivers the final state. Reason variants: `'cli-not-found'`, `'cli-too-old'`, `'version-unparseable'`, `'disabled-by-setting'`, `'disabled-by-env'`, `'probing'` (transient initial cache state — internal sentinel, never exposed to picker consumers), `'detection-failed'` (renderer-side IPC catch + the no-args ClaudeProvider fallback getter).
 - **Agent teams CLI capability**: The `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` environment variable is injected by `ClaudeProvider` (`claude-provider.ts:120`) when the setting is enabled, and also set directly in `cli-manager.ts:334`. This is independent of any team-visualization UI (which was removed). The env-var injection is the only surviving part of the agent-teams feature.
+- **Remote access** (`src/main/remote/`): serves the built renderer + an IPC-over-WebSocket bridge so the same React UI runs in a browser. `RemoteAccessServer` binds **`127.0.0.1` only** (default port **8420**, configurable, **never 9876**) and is **off by default** — the user exposes it via a tunnel (Cloudflare/Tailscale/ngrok) and OmniDesk enforces its own token (`RemoteAuth`: cookie + WS-upgrade check, constant-time compare, rate limit). The browser bridge (`web-bridge.ts`, generated from `channels`+`contractKinds`) implements `window.electronAPI` over WS; `WsRouter` dispatches `invoke`/`send` frames to the same `IPCRegistry.invokeMethod`/`sendMethod` handlers Electron uses. Main→renderer events fan out to every client via `ClientHub` through the `IPCEmitter` broadcaster hook (`registerRemoteBroadcaster`). A bounded per-session scrollback ring buffer in `SessionManager` is replayed on attach via `getSessionScrollback` — the renderer calls it in `Terminal.tsx handleReady` **only when `window.__OMNIDESK_REMOTE__` is set** (cold web attach), so the desktop, which sees output live from creation, never double-writes. Controlled by `remote:*` IPC + the `RemoteAccessPanel` (Cmd+K → "Remote access…").
 
 ## Testing
 

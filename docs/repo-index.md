@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~7 core managers (+ quota-service, providers/, agent-view/) | 103 IPC methods | 18 channel-prefix domains | 393 tests across 33 files + 6 e2e specs
+~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 108 IPC methods | 19 channel-prefix domains | 422 tests across 39 files + 6 e2e specs
 
 ## Entrypoints
 
@@ -155,6 +155,25 @@ IPC: `agentView:availability` (1 invoke), `agentView:availabilityChanged` (1 eve
 | `src/shared/ipc-types.ts` `LaunchMode` | Shared | `'default' \| 'bypass-permissions' \| 'agents'` string-literal union; added as optional `launchMode?: LaunchMode` field on `SessionCreateRequest` |
 
 External reference: https://code.claude.com/docs/en/agent-view (research-preview, requires Claude Code 2.1.139+).
+
+## Remote Access
+
+Serves the built renderer + an IPC-over-WebSocket bridge so the same React UI runs in a browser reached via a tunnel. Server binds `127.0.0.1` only (default port 8420, never 9876), off by default. IPC: `remote:getStatus` / `remote:enable` / `remote:disable` / `remote:regenerateToken` (4 invoke) + `session:scrollback` (1 invoke).
+
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/remote/remote-access-server.ts` | Main | HTTP server: static `dist/renderer`, injected web bridge, token auth endpoints, WS upgrade. `start()` / `stop()` / `isRunning()` / `getPort()` |
+| `src/main/remote/ws-router.ts` | Main | `handleWsMessage()` — dispatches `invoke`/`send` frames to `IPCRegistry` |
+| `src/main/remote/client-hub.ts` | Main | `ClientHub` — tracks WS clients, `broadcast(channel, payload)` |
+| `src/main/remote/remote-auth.ts` | Main | `RemoteAuth` — token gen, constant-time verify, cookie, rate limit |
+| `src/main/remote/web-bridge.ts` | Main | `generateWebBridgeScript(channels, kinds)` — browser `window.electronAPI` over WS; sets `window.__OMNIDESK_REMOTE__` |
+| `src/main/remote/http-util.ts` | Main | `injectBridgeScript()`, `mimeFor()` pure helpers |
+| `src/main/ipc-registry.ts` | Main | `invokeMethod()` / `sendMethod()` — direct handler dispatch for the WS router |
+| `src/main/ipc-emitter.ts` | Main | `registerRemoteBroadcaster()` — fans emitted events to `ClientHub` |
+| `src/main/session-manager.ts` | Main | Per-session scrollback ring buffer + `getSessionScrollback()` |
+| `src/renderer/hooks/useRemoteAccess.ts` | Renderer | `status`/`enable`/`disable`/`regenerate`/`refresh` |
+| `src/renderer/components/shell/RemoteAccessPanel.tsx` | Renderer | Toggle + URL/token/copy/regenerate + tunnel hint (Cmd+K → "Remote access…") |
+| `src/shared/ipc-types.ts` `RemoteAccessStatus` / `RemoteAccessSettings` | Shared | Status DTO + persisted `{ enabled, port }` |
 
 ## Window & UI Utilities
 
