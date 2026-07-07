@@ -102,15 +102,12 @@ npm run build
 # Package for current platform
 npm run package
 
-# Run tests (when available)
+# Run tests
 npm test
-
-# Lint code
-npm run lint
-
-# Format code (if configured)
-npm run format
 ```
+
+> **Note:** There is no `lint` or `format` script — the project relies on TypeScript's
+> compiler (`strict` mode) for static checking rather than ESLint/Prettier.
 
 ---
 
@@ -222,7 +219,7 @@ await window.electronAPI.createSession(name, dir);
 
 ### Current State
 
-OmniDesk has **334 tests across 25 test files**, using Vitest 4 with 3 workspace projects:
+OmniDesk has **393 tests across 33 test files**, using Vitest 4 with 3 workspace projects:
 
 | Project | Environment | Pattern |
 |---------|-------------|---------|
@@ -433,7 +430,6 @@ Fixes #456
 1. **Don't use Node.js APIs in renderer** - Use IPC to communicate with main process
 2. **Don't forget to clean up** - Remove event listeners in `useEffect` cleanup
 3. **Escape Windows paths** - Use `.replace(/\\/g, '\\\\')` for PowerShell
-4. **PowerShell line endings** - Use `\r`, not `\n`
 
 ---
 

@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~7 core managers (+ quota-service, providers/, agent-view/) | 103 IPC methods | 18 channel-prefix domains | 334 tests + 6 e2e specs
+~7 core managers (+ quota-service, providers/, agent-view/) | 103 IPC methods | 18 channel-prefix domains | 393 tests across 33 files + 6 e2e specs
 
 ## Entrypoints
 
@@ -44,6 +44,7 @@ The renderer uses a flat repo→session model. The shell lives in `src/renderer/
 | `src/renderer/components/shell/NewSessionSheet.tsx` | Renderer | New session form — includes launch mode picker for Claude |
 | `src/renderer/components/shell/PromptDialog.tsx` | Renderer | Generic text-input prompt dialog (used for group create/rename) |
 | `src/renderer/components/shell/CloseSessionDialog.tsx` | Renderer | Confirm-before-close dialog for sessions |
+| `src/renderer/components/shell/NonGitFolderDialog.tsx` | Renderer | Prompt to initialize git when adding a non-git folder |
 | `src/renderer/components/shell/ContextMenu.tsx` | Renderer | Right-click context menu for shell elements |
 | `src/renderer/components/shell/P4Icon.tsx` | Renderer | Phase 4 icon component |
 | `src/renderer/components/shell/shell-utils.ts` | Renderer | Shared utilities: color helpers, status metadata, formatting |
@@ -62,6 +63,8 @@ IPC: `session:*`, `model:*`
 | `src/renderer/hooks/useSessionManager.ts` | Renderer | Session CRUD hook, IPC event listeners |
 | `src/renderer/hooks/useSessionPreviews.ts` | Renderer | Last-N-lines stdout snapshots + last-activity timestamps for Grid tiles |
 | `src/renderer/components/Terminal.tsx` | Renderer | xterm.js wrapper, Ctrl+C intercept, Claude readiness detection |
+| `src/renderer/terminal/kitty-keyboard.ts` | Renderer | Kitty keyboard protocol negotiation + key/modifier encoding |
+| `src/renderer/terminal/shell-key-rules.ts` | Renderer | Plain-shell key mapping (incl. Ctrl+C pass-through) |
 
 ## Repos / Workspaces
 
@@ -227,15 +230,21 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 | `src/main/agent-view/probe-version.test.ts` | 6 | Successful version parse, missing binary, non-zero exit, parse-unsafe output, 5s timeout |
 | `src/main/ipc-handlers.availability.test.ts` | 7 | Cached-and-return semantics, no-respawn on N calls, IPC wrapper, initial `'probing'` state |
 | `src/main/quota-service.test.ts` | 13 | Quota fetching, burn rate calculation, cache |
+| `src/main/cli-manager.test.ts` | 2 | PTY spawn wiring, agent-teams env var injection |
+| `src/main/path-access.test.ts` | 6 | Home + workspace path allow-listing, Windows normalization |
+| `src/shared/session-kind.test.ts` | 2 | `SessionKind` type-level guards (agent vs shell) |
+| `src/renderer/components/shell/shell-utils.test.ts` | 5 | Color helpers, status metadata, formatting |
+| `src/renderer/terminal/kitty-keyboard.test.ts` | 23 | Kitty protocol negotiation + key/modifier encoding |
+| `src/renderer/terminal/shell-key-rules.test.ts` | 8 | Plain-shell key mapping incl. Ctrl+C pass-through |
 
 ### Integration Tests
 
 | File | Tests | Covers |
 |------|-------|--------|
-| `src/renderer/hooks/useSessionManager.test.ts` | 7 | CRUD, events, output subscribers |
+| `src/renderer/hooks/useSessionManager.test.ts` | 8 | CRUD, events, output subscribers |
 | `src/renderer/hooks/useAgentViewAvailability.test.tsx` | 6 | Initial null/loading state, stays loading when initial fetch returns `'probing'`, success path, rejection synthesizes `detection-failed`, subscribes to push event, unsubscribes on unmount |
-| `src/main/session-persistence.test.ts` | 16 | Load/save/clear, validation, atomic write |
-| `src/main/session-manager.test.ts` | 14 | Session lifecycle, history recording, model events |
+| `src/main/session-persistence.test.ts` | 17 | Load/save/clear, validation, atomic write |
+| `src/main/session-manager.test.ts` | 20 | Session lifecycle, history recording, model events |
 | `src/main/ipc-registry.test.ts` | 5 | handle(), on(), removeAll() |
 | `src/main/ipc-emitter.test.ts` | 3 | emit(), destroyed window guard |
 | `src/main/ipc-handlers.test.ts` | 4 | IPC handler integration |
@@ -244,8 +253,10 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 
 | File | Tests | Covers |
 |------|-------|--------|
-| `src/renderer/components/ui/TabBar.test.tsx` | 8 | Tabs render, active state, callbacks |
+| `src/renderer/components/ui/TabBar.test.tsx` | 7 | Tabs render, active state, callbacks |
 | `src/renderer/components/ui/EmptyState.test.tsx` | 5 | Welcome screen, quick actions |
+| `src/renderer/components/shell/NewSessionSheet.test.tsx` | 1 | Shell-form submit passes kind=shell + repo path |
+| `src/renderer/components/shell/NonGitFolderDialog.test.tsx` | 4 | Renders options, fires onInitGit on initialize-git click |
 | `src/renderer/components/ui/CommitDialog.test.tsx` | 11 | Form, validation, commit flow, AI message generation |
 | `src/renderer/components/ui/NewSessionDialog.test.tsx` | 8 | Launch-mode picker: three options render, default seeded from workspace, agents available/unavailable, submit-with-each-mode passes correct `launchMode` (uses `vi.hoisted` for stable mock refs) |
 | `src/renderer/components/ui/ShareIndicator.test.tsx` | 8 | Renders, count display (0/1/5/9/10+), aria-label, "9+" clamp |

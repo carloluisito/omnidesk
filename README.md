@@ -188,7 +188,7 @@ Built packages will be in the `release/` directory.
 | Terminal | xterm.js + node-pty |
 | Styling | Tailwind CSS (Obsidian theme) |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (334 tests) + Playwright |
+| Testing | Vitest 4 (393 tests) + Playwright |
 
 ---
 
@@ -236,7 +236,7 @@ See [docs/repo-index.md](docs/repo-index.md) for a detailed domain-to-file mappi
 ```bash
 npm install              # Install dependencies
 npm run electron:dev     # Dev mode with hot reload (renderer)
-npm test                 # Run all 334 tests
+npm test                 # Run all 393 tests
 npm run test:watch       # Watch mode
 npm run test:e2e         # E2E tests (local only — requires a built app)
 npm run test:coverage    # Coverage report
