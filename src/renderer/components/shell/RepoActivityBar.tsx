@@ -59,6 +59,7 @@ export interface RepoActivityBarProps {
   onAddRepoToGroup: (groupId: string, repoId: string) => void;
   onRequestRenameGroup: (groupId: string) => void;
   onRequestUngroup: (groupId: string) => void;
+  onOpenRemote?: () => void;                // open the Remote Access panel
 }
 
 // Track which group icons are expanded inline.
@@ -88,6 +89,7 @@ export function RepoActivityBar({
   onAddRepoToGroup,
   onRequestRenameGroup,
   onRequestUngroup,
+  onOpenRemote,
 }: RepoActivityBarProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => readExpanded());
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -248,6 +250,17 @@ export function RepoActivityBar({
       </button>
 
       <div className="p4-ab-spacer" />
+
+      {onOpenRemote && (
+        <button
+          className="p4-ab p4-ab-add"
+          title="Remote access — reach OmniDesk from a browser over a tunnel"
+          aria-label="Remote access"
+          onClick={onOpenRemote}
+        >
+          <P4Icon name="tunnel" />
+        </button>
+      )}
 
       {groupMenu && (() => {
         const g = groups.find(x => x.id === groupMenu.groupId);

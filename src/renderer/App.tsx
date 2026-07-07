@@ -491,6 +491,7 @@ function App() {
               dissolveGroup(gid);
               if (activeGroupId === gid) setActiveGroupId(null);
             }}
+            onOpenRemote={() => setShowRemote(true)}
           />
           <div style={{
             gridColumn: '2', gridRow: '2',
@@ -625,6 +626,7 @@ function App() {
             dissolveGroup(gid);
             if (activeGroupId === gid) setActiveGroupId(null);
           }}
+          onOpenRemote={() => setShowRemote(true)}
         />
 
         {activeRepo && (
