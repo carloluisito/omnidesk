@@ -1,7 +1,8 @@
-.mdrawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 30; }
+/* Above TerminalHost's terminal overlay (z 1) and the mobile key bar (z 40). */
+.mdrawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
 .mdrawer-panel {
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 31;
-  width: min(300px, 82vw);
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 51;
+  width: min(320px, 85vw);
   display: flex; flex-direction: column; gap: 4px;
   padding: env(safe-area-inset-top) 8px 8px;
   background: var(--v2-surface-high, #14151d);
@@ -10,12 +11,36 @@
   animation: mdrawer-in 0.18s ease;
 }
 @keyframes mdrawer-in { from { transform: translateX(-100%); } to { transform: none; } }
-.mdrawer-repo { padding: 10px; color: var(--v2-text-tertiary, #6b7089); font-size: 12px; }
-.mdrawer-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
-.mdrawer-item, .mdrawer-new, .mdrawer-remote {
+
+.mdrawer-title { padding: 10px 12px 4px; color: var(--v2-text-tertiary, #6b7089); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.mdrawer-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; -webkit-overflow-scrolling: touch; }
+.mdrawer-group { margin-bottom: 6px; }
+
+/* Project header row — tappable to switch the active project. */
+.mdrawer-project {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; text-align: left;
+  min-height: 44px; padding: 0 12px; border: none; border-radius: 8px;
+  background: transparent; color: var(--v2-text-primary, #E2E4F0);
+  font-size: 14px; font-weight: 600;
+}
+.mdrawer-project.active { background: var(--v2-surface-mid, #262935); }
+.mdrawer-project.active .mdrawer-project-name { color: var(--v2-accent, #00C9A7); }
+.mdrawer-project-static { font-weight: 600; color: var(--v2-text-tertiary, #6b7089); }
+.mdrawer-project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdrawer-count {
+  flex: 0 0 auto; min-width: 20px; text-align: center;
+  font-size: 11px; color: var(--v2-text-tertiary, #6b7089);
+  background: var(--v2-surface-mid, #262935); border-radius: 10px; padding: 2px 6px;
+}
+
+/* Session rows — indented beneath their project. */
+.mdrawer-item, .mdrawer-new, .mdrawer-open, .mdrawer-remote {
   display: block; width: 100%; text-align: left;
   min-height: 44px; padding: 0 12px; border: none; border-radius: 8px;
   background: transparent; color: var(--v2-text-secondary, #C0C4D6); font-size: 14px;
 }
+.mdrawer-item { padding-left: 24px; }
 .mdrawer-item.active { background: var(--v2-surface-mid, #262935); color: var(--v2-text-primary, #E2E4F0); }
-.mdrawer-remote { color: var(--v2-accent, #00C9A7); }
+.mdrawer-empty { padding: 12px; color: var(--v2-text-tertiary, #6b7089); font-size: 13px; }
+.mdrawer-open, .mdrawer-remote { color: var(--v2-accent, #00C9A7); }

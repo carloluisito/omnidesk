@@ -21,3 +21,11 @@
   background: transparent;
   color: var(--v2-accent, #00C9A7);
 }
+.ms-secondary {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--v2-border-default, rgba(255,255,255,0.08));
+  background: transparent;
+  color: var(--v2-text-secondary, #C0C4D6);
+}

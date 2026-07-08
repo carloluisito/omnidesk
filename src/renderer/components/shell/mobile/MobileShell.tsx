@@ -14,8 +14,9 @@ export function MobileShell(props: MobileShellProps) {
   if (!activeRepo) {
     return (
       <div className="ms-shell ms-empty">
-        <p>No repository open.</p>
-        <button className="ms-primary" onClick={props.onOpenRemote}>Remote access…</button>
+        <p>No project open.</p>
+        <button className="ms-primary" onClick={props.onAddRepo}>+ Open project</button>
+        <button className="ms-secondary" onClick={props.onOpenRemote}>Remote access…</button>
       </div>
     );
   }

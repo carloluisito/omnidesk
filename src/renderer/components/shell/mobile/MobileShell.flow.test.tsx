@@ -9,11 +9,19 @@ describe('MobileShell flow', () => {
     const onSelectSession = vi.fn();
     render(
       <MobileShell
-        repos={[]} activeRepo={{ id: 'r1', name: 'demo' } as any}
-        sessions={[{ id: 's1', name: 'work' }, { id: 's2', name: 'build' }] as any}
+        repos={[{ id: 'r1', name: 'demo', path: '/demo' }] as any}
+        activeRepo={{ id: 'r1', name: 'demo', path: '/demo' } as any}
+        sessions={[
+          { id: 's1', name: 'work', mainRepoPath: '/demo', workingDirectory: '/demo' },
+          { id: 's2', name: 'build', mainRepoPath: '/demo', workingDirectory: '/demo' },
+        ] as any}
         activeSessionId="s1"
         onSelectSession={onSelectSession}
-        onCloseSession={() => {}} onNewSession={() => {}} onOpenRemote={() => {}}
+        onSelectRepo={() => {}}
+        onCloseSession={() => {}}
+        onNewSession={() => {}}
+        onAddRepo={() => {}}
+        onOpenRemote={() => {}}
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /open navigation/i }));
