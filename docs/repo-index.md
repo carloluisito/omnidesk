@@ -171,6 +171,12 @@ Serves the built renderer + an IPC-over-WebSocket bridge so the same React UI ru
 | `src/main/remote/tunnel-manager.ts` | Main | `TunnelManager` — spawns cloudflared, `parseTunnelUrl()`, single-PID stop; `findCloudflared()` |
 | `src/main/remote/tunnel-controller.ts` | Main | Composes detect + download + one TunnelManager; `start`/`stop`/`status`/`install`/`isInstalled` |
 | `src/main/remote/cloudflared-install.ts` | Main | `cloudflaredAssetName()` + consented `downloadCloudflared()` |
+| `src/main/remote/http-util.ts` | Main | `injectRemoteHead()` (bridge + PWA head tags), `buildManifest()`, `mimeFor()` |
+| `src/renderer/public/sw.js` | Renderer (static) | PWA service worker — cache-first hashed assets, network-only auth/nav |
+| `src/renderer/public/icons/*.png` | Renderer (static) | PWA icons (192/512/maskable/apple-touch), generated |
+| `scripts/gen-pwa-icons.mjs` | Build script | Generates PWA icons from `resources/icon.png` (`npm run gen:pwa-icons`) |
+
+Remote also serves an **auth-gated** `/manifest.webmanifest` (token in `start_url`); the access token is persisted in `settings.remoteAccess.token` with a `Max-Age` cookie so installed PWAs survive restarts.
 | `src/main/ipc-registry.ts` | Main | `invokeMethod()` / `sendMethod()` — direct handler dispatch for the WS router |
 | `src/main/ipc-emitter.ts` | Main | `registerRemoteBroadcaster()` — fans emitted events to `ClientHub` |
 | `src/main/session-manager.ts` | Main | Per-session scrollback ring buffer + `getSessionScrollback()` |
