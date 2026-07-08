@@ -17,6 +17,22 @@ describe('injectRemoteHead', () => {
   });
 });
 
+describe('injectRemoteHead viewport override', () => {
+  const html = '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body></body></html>';
+  it('rewrites the viewport for safe-areas and keyboard reflow', () => {
+    const out = injectRemoteHead(html);
+    expect(out).toContain('viewport-fit=cover');
+    expect(out).toContain('interactive-widget=resizes-content');
+    // Only one viewport meta remains.
+    expect(out.match(/name="viewport"/g)?.length).toBe(1);
+  });
+  it('still injects the bridge script and manifest link', () => {
+    const out = injectRemoteHead(html);
+    expect(out).toContain('/__omnidesk/web-bridge.js');
+    expect(out).toContain('rel="manifest"');
+  });
+});
+
 describe('buildManifest', () => {
   it('is a standalone manifest with the token embedded in start_url', () => {
     const m = JSON.parse(buildManifest('tok+en/1'));
