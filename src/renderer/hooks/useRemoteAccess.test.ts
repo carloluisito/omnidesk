@@ -3,11 +3,15 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { getElectronAPI } from '../../../test/helpers/electron-api-mock';
 import { useRemoteAccess } from './useRemoteAccess';
 
-const status = (over: Partial<import('../../shared/ipc-types').RemoteAccessStatus> = {}) => ({
+const status = (
+  over: Partial<import('../../shared/ipc-types').RemoteAccessStatus> = {},
+): import('../../shared/ipc-types').RemoteAccessStatus => ({
   enabled: false,
   port: 8420,
   token: 't',
   url: 'http://localhost:8420',
+  tunnel: { state: 'off' },
+  cloudflaredInstalled: true,
   ...over,
 });
 
@@ -31,6 +35,18 @@ describe('useRemoteAccess', () => {
     });
     expect(api.enableRemoteAccess).toHaveBeenCalled();
     expect(result.current.status?.enabled).toBe(true);
+  });
+
+  it('install calls the IPC and updates status', async () => {
+    const api = getElectronAPI();
+    api.getRemoteStatus = vi.fn().mockResolvedValue(status({ cloudflaredInstalled: false }));
+    api.installTunnel = vi.fn().mockResolvedValue(status({ cloudflaredInstalled: true, tunnel: { state: 'running', url: 'https://x.trycloudflare.com' } }));
+    const { result } = renderHook(() => useRemoteAccess());
+    await waitFor(() => expect(result.current.status?.cloudflaredInstalled).toBe(false));
+    await act(async () => { await result.current.install(); });
+    expect(api.installTunnel).toHaveBeenCalled();
+    expect(result.current.status?.cloudflaredInstalled).toBe(true);
+    expect(result.current.status?.tunnel.state).toBe('running');
   });
 
   it('regenerate swaps the token', async () => {

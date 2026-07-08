@@ -27,6 +27,8 @@ export function useRemoteAccess() {
     void refresh();
   }, [refresh]);
 
+  const [installing, setInstalling] = useState(false);
+
   const enable = useCallback(async () => {
     try {
       setStatus(await window.electronAPI.enableRemoteAccess());
@@ -44,5 +46,17 @@ export function useRemoteAccess() {
     setStatus(await window.electronAPI.regenerateRemoteToken());
   }, []);
 
-  return { status, loading, error, enable, disable, regenerate, refresh };
+  const install = useCallback(async () => {
+    setInstalling(true);
+    setError(null);
+    try {
+      setStatus(await window.electronAPI.installTunnel());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInstalling(false);
+    }
+  }, []);
+
+  return { status, loading, error, installing, enable, disable, regenerate, install, refresh };
 }

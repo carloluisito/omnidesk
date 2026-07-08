@@ -1,6 +1,8 @@
-// @atlas-entrypoint: Remote Access panel — enable/disable the tunnel-served
-// remote UI, show the local URL + access token, regenerate the token.
-import { useState } from 'react';
+// @atlas-entrypoint: Remote Access panel — one-click managed tunnel. Enable
+// starts the local server + a cloudflared tunnel; the panel shows the public
+// link and a QR whose URL embeds the token (one scan → signed in on a phone).
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { P4Icon } from './P4Icon';
 import { useRemoteAccess } from '../../hooks/useRemoteAccess';
 
@@ -9,13 +11,30 @@ interface RemoteAccessPanelProps {
 }
 
 export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
-  const { status, loading, error, enable, disable, regenerate } = useRemoteAccess();
+  const { status, loading, error, installing, enable, disable, regenerate, install } = useRemoteAccess();
   const [busy, setBusy] = useState(false);
-  const [revealToken, setRevealToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
 
   const enabled = status?.enabled ?? false;
-  const port = status?.port ?? 8420;
+  const tunnel = status?.tunnel;
+  const publicUrl = tunnel?.state === 'running' ? tunnel.url : undefined;
+
+  // One-tap link: opening it sets the auth cookie and redirects to a clean URL.
+  const shareLink =
+    publicUrl && status ? `${publicUrl}/?token=${encodeURIComponent(status.token)}` : null;
+
+  useEffect(() => {
+    if (!shareLink) {
+      setQr(null);
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(shareLink, { width: 200, margin: 1 })
+      .then((url) => { if (alive) setQr(url); })
+      .catch(() => { if (alive) setQr(null); });
+    return () => { alive = false; };
+  }, [shareLink]);
 
   const copy = async (label: string, value: string) => {
     try {
@@ -44,7 +63,7 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
           <div className="icon"><P4Icon name="tunnel" size={16} /></div>
           <div>
             <div className="t">Remote access</div>
-            <div className="d">Reach this OmniDesk from any browser over a tunnel.</div>
+            <div className="d">Reach this OmniDesk from any browser — no terminal needed.</div>
           </div>
           <button className="x" onClick={onClose} aria-label="Close">
             <P4Icon name="x" size={14} />
@@ -63,15 +82,11 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
                   </div>
                   <div className="d">
                     {enabled
-                      ? 'The local server is running. Expose it with a tunnel to reach it from elsewhere.'
-                      : 'Turn on to start the local server. It binds 127.0.0.1 only — nothing is public until you run a tunnel.'}
+                      ? 'A private tunnel makes this OmniDesk reachable from your phone or another computer.'
+                      : 'Turn on to start a secure tunnel. Nothing is exposed until you do.'}
                   </div>
                 </div>
-                <button
-                  className={enabled ? 'p4-btn' : 'p4-btn primary'}
-                  disabled={busy}
-                  onClick={toggle}
-                >
+                <button className={enabled ? 'p4-btn' : 'p4-btn primary'} disabled={busy} onClick={toggle}>
                   {busy ? '…' : enabled ? 'Turn off' : 'Turn on'}
                 </button>
               </div>
@@ -84,8 +99,51 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
 
               {enabled && status && (
                 <>
+                  {/* Tunnel status → public link + QR, or install/error handling. */}
+                  {tunnel?.state === 'starting' && (
+                    <div className="p4-form-row"><span className="d">Starting tunnel… this can take a few seconds.</span></div>
+                  )}
+
+                  {tunnel?.state === 'running' && shareLink && (
+                    <>
+                      <div className="p4-form-row">
+                        <label className="d">Open on your phone — scan this (you'll be signed in automatically):</label>
+                        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 8 }}>
+                          {qr && <img src={qr} alt="Remote access QR code" width={160} height={160} style={{ borderRadius: 8, background: '#fff', padding: 6 }} />}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <code style={{ display: 'block', wordBreak: 'break-all' }}>{publicUrl}</code>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                              <button className="p4-btn" onClick={() => copy('link', shareLink)}>
+                                {copied === 'link' ? 'Copied' : 'Copy sign-in link'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {tunnel?.state === 'error' && (
+                    <div className="p4-form-row">
+                      <span className="d" style={{ color: 'var(--danger, #F7678E)' }}>
+                        Tunnel didn’t start{tunnel.error ? `: ${tunnel.error}` : '.'}
+                      </span>
+                      {!status.cloudflaredInstalled && (
+                        <div style={{ marginTop: 8 }}>
+                          <button className="p4-btn primary" disabled={installing} onClick={() => install()}>
+                            {installing ? 'Downloading…' : 'Download cloudflared'}
+                          </button>
+                          <span className="d" style={{ marginLeft: 8 }}>
+                            One-time ~30&nbsp;MB download of Cloudflare’s tunnel tool.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Local (same-network) access + token, always available when on. */}
                   <div className="p4-form-row">
-                    <label className="d">Local address</label>
+                    <label className="d">Local address (same machine / LAN)</label>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <code style={{ flex: 1, wordBreak: 'break-all' }}>{status.url}</code>
                       <button className="p4-btn" onClick={() => copy('url', status.url)}>
@@ -97,12 +155,7 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
                   <div className="p4-form-row">
                     <label className="d">Access token</label>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <code style={{ flex: 1, wordBreak: 'break-all' }}>
-                        {revealToken ? status.token : '•'.repeat(Math.min(status.token.length, 24))}
-                      </code>
-                      <button className="p4-btn" onClick={() => setRevealToken((v) => !v)}>
-                        {revealToken ? 'Hide' : 'Reveal'}
-                      </button>
+                      <code style={{ flex: 1, wordBreak: 'break-all' }}>{status.token}</code>
                       <button className="p4-btn" onClick={() => copy('token', status.token)}>
                         {copied === 'token' ? 'Copied' : 'Copy'}
                       </button>
@@ -110,20 +163,9 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
                   </div>
 
                   <div className="p4-form-row">
-                    <span className="d">
-                      Expose it with a tunnel, then open the tunnel URL and paste the token:
-                    </span>
-                    <code style={{ display: 'block', marginTop: 4, wordBreak: 'break-all' }}>
-                      cloudflared tunnel --url http://localhost:{port}
-                    </code>
-                  </div>
-
-                  <div className="p4-form-row">
-                    <button className="p4-btn" onClick={() => regenerate()}>
-                      Regenerate token
-                    </button>
+                    <button className="p4-btn" onClick={() => regenerate()}>Regenerate token</button>
                     <span className="d" style={{ marginLeft: 8 }}>
-                      Invalidates the current token; connected clients must re-authenticate.
+                      Invalidates the current token; connected devices must sign in again.
                     </span>
                   </div>
                 </>
