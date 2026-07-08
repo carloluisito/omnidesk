@@ -121,6 +121,8 @@ Before installing OmniDesk, ensure you have:
 
 > **Optional:** install the [Codex CLI](https://github.com/openai/codex) to enable the Codex provider — OmniDesk detects it automatically.
 
+> **Remote Access (optional):** no extra install needed — OmniDesk offers to download `cloudflared` for you when you start the managed tunnel. Requires an internet connection for the Cloudflare tunnel. If you run from source, launch via `npm start` (not a dev command) so the built UI exists for the remote server to serve.
+
 ---
 
 ## Installation
