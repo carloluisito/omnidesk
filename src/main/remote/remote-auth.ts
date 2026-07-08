@@ -54,6 +54,7 @@ export class RemoteAuth {
       'HttpOnly',
       'SameSite=Strict',
       'Path=/',
+      'Max-Age=31536000', // persist ~1yr so an installed PWA stays signed in across launches
     ];
     if (secure) parts.push('Secure');
     return parts.join('; ');

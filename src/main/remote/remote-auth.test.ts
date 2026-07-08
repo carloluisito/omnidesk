@@ -39,6 +39,17 @@ describe('RemoteAuth', () => {
     expect(a.buildSetCookie(true)).toContain('SameSite=Strict');
   });
 
+  it('builds a persistent cookie with Max-Age', () => {
+    const a = new RemoteAuth();
+    expect(a.buildSetCookie(true)).toMatch(/Max-Age=\d+/);
+  });
+
+  it('uses a provided (persisted) token instead of generating one', () => {
+    const a = new RemoteAuth('persisted-token-123');
+    expect(a.getToken()).toBe('persisted-token-123');
+    expect(a.verify('persisted-token-123')).toBe(true);
+  });
+
   it('rate limits after the max attempts within the window', () => {
     const a = new RemoteAuth();
     for (let i = 0; i < 10; i++) expect(a.rateLimited('1.2.3.4')).toBe(false);

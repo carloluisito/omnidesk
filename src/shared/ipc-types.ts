@@ -222,6 +222,8 @@ export interface AppSettings {
 export interface RemoteAccessSettings {
   enabled: boolean;
   port: number;
+  /** Persisted access token so installed PWAs / saved QRs stay valid across launches. */
+  token?: string;
 }
 
 export type RemoteTunnelState = 'off' | 'starting' | 'running' | 'error';
