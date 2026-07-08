@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.1] - 2026-07-09
+
+### Added
+- **Switch projects and sessions from your phone.** The mobile drawer now lists your open projects with their sessions grouped beneath — tap a project to switch to it, tap any session (in any project) to jump straight to it, and open a new project without leaving the phone.
+
+### Fixed
+- **Mobile drawer rendered behind the terminal.** The slide-out drawer was clipped to a thin strip because the terminal painted over it; it now opens as a full-height panel over the session.
+
+---
+
 ## [2.3.0] - 2026-07-09
 
 ### Added
