@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 108 IPC methods | 19 channel-prefix domains | 433 tests across 40 files + 6 e2e specs
+~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 109 IPC methods | 19 channel-prefix domains | 446 tests across 42 files + 6 e2e specs
 
 ## Entrypoints
 
@@ -168,6 +168,9 @@ Serves the built renderer + an IPC-over-WebSocket bridge so the same React UI ru
 | `src/main/remote/remote-auth.ts` | Main | `RemoteAuth` — token gen, constant-time verify, cookie, rate limit |
 | `src/main/remote/web-bridge.ts` | Main | `generateWebBridgeScript(channels, kinds)` — browser `window.electronAPI` over WS; sets `window.__OMNIDESK_REMOTE__` |
 | `src/main/remote/http-util.ts` | Main | `injectBridgeScript()`, `mimeFor()` pure helpers |
+| `src/main/remote/tunnel-manager.ts` | Main | `TunnelManager` — spawns cloudflared, `parseTunnelUrl()`, single-PID stop; `findCloudflared()` |
+| `src/main/remote/tunnel-controller.ts` | Main | Composes detect + download + one TunnelManager; `start`/`stop`/`status`/`install`/`isInstalled` |
+| `src/main/remote/cloudflared-install.ts` | Main | `cloudflaredAssetName()` + consented `downloadCloudflared()` |
 | `src/main/ipc-registry.ts` | Main | `invokeMethod()` / `sendMethod()` — direct handler dispatch for the WS router |
 | `src/main/ipc-emitter.ts` | Main | `registerRemoteBroadcaster()` — fans emitted events to `ClientHub` |
 | `src/main/session-manager.ts` | Main | Per-session scrollback ring buffer + `getSessionScrollback()` |
