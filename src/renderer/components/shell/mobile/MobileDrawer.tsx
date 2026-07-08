@@ -14,11 +14,17 @@ export function MobileDrawer(props: Props) {
   const pickSession = (id: string) => { onSelectSession(id); onClose(); };
   const pickRepo = (id: string) => { onSelectRepo(id); onClose(); };
 
-  // Group sessions under each open project. Any session that doesn't match a
-  // listed project (e.g. its repo was closed) falls into "Other" so it stays
-  // reachable — the whole point of this drawer is that nothing is stranded.
-  const grouped = repos.map(r => ({ repo: r, repoSessions: sessionsForRepo(r, sessions) }));
-  const claimed = new Set(grouped.flatMap(g => g.repoSessions.map(s => s.id)));
+  // Group sessions under each open project, claiming each session exactly once.
+  // (sessionBelongsToRepo can match nested repo paths, so a session could
+  // otherwise appear under two headers — claim-as-we-go dedups across groups.)
+  const claimed = new Set<string>();
+  const grouped = repos.map(r => {
+    const repoSessions = sessionsForRepo(r, sessions).filter(s => !claimed.has(s.id));
+    repoSessions.forEach(s => claimed.add(s.id));
+    return { repo: r, repoSessions };
+  });
+  // Any session not matched by a listed project (rare — e.g. a path mismatch)
+  // stays reachable under "Other" so nothing is stranded.
   const orphans = sessions.filter(s => !claimed.has(s.id));
 
   return (

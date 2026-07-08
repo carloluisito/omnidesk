@@ -16,8 +16,9 @@ describe('MobileShell', () => {
     render(<MobileShell {...baseProps} />);
     expect(screen.getByText('work')).toBeInTheDocument();
   });
-  it('renders an empty state when no repo is active', () => {
+  it('renders an empty state (with Open project) when no repo is active', () => {
     render(<MobileShell {...baseProps} activeRepo={null} sessions={[]} activeSessionId={null} />);
-    expect(screen.getByText(/no repository/i)).toBeInTheDocument();
+    expect(screen.getByText(/no project open/i)).toBeInTheDocument();
+    expect(screen.getByText(/open project/i)).toBeInTheDocument();
   });
 });

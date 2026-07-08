@@ -25,6 +25,7 @@ import { useSessionPreviews } from './hooks/useSessionPreviews';
 import { useTouchMode } from './hooks/useTouchMode';
 import { MobileKeyBar } from './components/shell/mobile/MobileKeyBar';
 import { MobileShell } from './components/shell/mobile/MobileShell';
+import { repoIdForSession } from './components/shell/mobile/nav-utils';
 import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
@@ -192,14 +193,14 @@ function App() {
   // active before switching. (The desktop rail is repo-scoped, so its
   // handleSelectSession never needs this.)
   const handleMobileSelectSession = useCallback((id: string) => {
-    const owner = repos.find(r => sessionsForRepo(r, sessions).some(s => s.id === id));
-    if (owner && owner.id !== activeRepoId) {
-      setActiveRepoId(owner.id);
+    const ownerId = repoIdForSession(visibleRepos, sessions, id);
+    if (ownerId && ownerId !== activeRepoId) {
+      setActiveRepoId(ownerId);
       setActiveGroupId(null);
     }
     switchSession(id);
     setMode('focus');
-  }, [repos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
+  }, [visibleRepos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
 
   const handleCloseRepo = useCallback((id: string) => {
     const target = repos.find(r => r.id === id);
@@ -628,7 +629,7 @@ function App() {
     >
       {touchMode ? (
         <MobileShell
-          repos={repos}
+          repos={visibleRepos}
           activeRepo={activeRepo}
           sessions={sessions}
           activeSessionId={activeSessionId}

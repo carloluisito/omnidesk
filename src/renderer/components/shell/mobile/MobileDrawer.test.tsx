@@ -60,7 +60,10 @@ describe('MobileDrawer', () => {
 
   it('keeps sessions whose project is not open reachable under "Other sessions"', () => {
     const p = mk();
-    p.repos = [{ id: 'r1', name: 'demo', path: '/demo' }] as any; // r2 (api) closed
+    // App feeds the drawer only "open" projects (visibleRepos). Dropping r2 here
+    // stands in for a project that isn't in that open set but still has a live
+    // session — that session must not vanish.
+    p.repos = [{ id: 'r1', name: 'demo', path: '/demo' }] as any;
     render(<MobileDrawer {...p} />);
     expect(screen.getByText('Other sessions')).toBeInTheDocument();
     fireEvent.click(screen.getByText('tests'));
