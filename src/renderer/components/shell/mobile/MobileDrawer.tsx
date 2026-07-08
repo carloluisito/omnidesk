@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { sessionsForRepo } from '../SessionRail';
 import type { MobileShellProps } from './types';
 import './MobileDrawer.css';
@@ -27,7 +28,10 @@ export function MobileDrawer(props: Props) {
   // stays reachable under "Other" so nothing is stranded.
   const orphans = sessions.filter(s => !claimed.has(s.id));
 
-  return (
+  // Portal to <body>: the drawer must escape MobileShell's stacking context,
+  // which sits *below* TerminalHost's fixed terminal overlay — otherwise the
+  // terminal paints on top of the drawer.
+  return createPortal(
     <>
       <div className="mdrawer-backdrop" onClick={onClose} />
       <nav className="mdrawer-panel" aria-label="Projects and sessions">
@@ -82,6 +86,7 @@ export function MobileDrawer(props: Props) {
         <button className="mdrawer-open" onClick={() => { onAddRepo(); onClose(); }}>+ Open project</button>
         <button className="mdrawer-remote" onClick={() => { onOpenRemote(); onClose(); }}>Remote access…</button>
       </nav>
-    </>
+    </>,
+    document.body,
   );
 }

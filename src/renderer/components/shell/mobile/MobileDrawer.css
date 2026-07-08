@@ -1,6 +1,7 @@
-.mdrawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 30; }
+/* Above TerminalHost's terminal overlay (z 1) and the mobile key bar (z 40). */
+.mdrawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
 .mdrawer-panel {
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 31;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 51;
   width: min(320px, 85vw);
   display: flex; flex-direction: column; gap: 4px;
   padding: env(safe-area-inset-top) 8px 8px;
