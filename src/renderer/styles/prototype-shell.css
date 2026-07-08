@@ -1056,3 +1056,64 @@ kbd.p4-kbd {
   .p4-right { display: none; }
   .p4-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Mobile: activity bar + session rail collapse into a sliding drawer so the
+   remote web client is usable on a phone. Desktop (>768px) is unaffected. */
+.p4-mobile-nav-toggle { display: none; }
+.p4-mobile-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  .p4-shell,
+  .p4-shell.with-right,
+  .p4-shell.no-rail,
+  .p4-shell.no-rail.with-right {
+    grid-template-columns: 1fr;
+    grid-template-rows: 40px 1fr 24px;
+  }
+  .p4-titlebar  { grid-column: 1; }
+  .p4-main      { grid-column: 1; grid-row: 2; }
+  .p4-statusbar { grid-column: 1; }
+  .p4-right     { display: none; }
+
+  /* Activity bar (48px) + rail slide in together from the left. */
+  .p4-ab,
+  .p4-rail {
+    position: fixed;
+    top: 40px;
+    bottom: 24px;
+    z-index: 60;
+    transform: translateX(-110%);
+    transition: transform 0.2s ease;
+  }
+  .p4-ab   { left: 0;    width: 48px; }
+  .p4-rail { left: 48px; width: min(280px, 74vw); }
+  .p4-shell.nav-open .p4-ab,
+  .p4-shell.nav-open .p4-rail { transform: translateX(0); }
+
+  .p4-mobile-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 4px;
+    left: 6px;
+    z-index: 70;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default, rgba(255,255,255,0.08));
+    background: var(--surface-raised, #14151d);
+    color: var(--text-primary, #e6e6e6);
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  .p4-shell.nav-open .p4-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 40px 0 24px 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 55;
+  }
+  /* Push the title bar content clear of the fixed toggle button. */
+  .p4-titlebar { padding-left: 44px; }
+}

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar,
+  TitleBar, StatusBar, RemoteAccessPanel, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
@@ -125,6 +125,8 @@ function App() {
   const [showNewSession, setShowNewSession] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showRemote, setShowRemote] = useState(false);
+  const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
   // Pending close confirmation. null while no prompt is open.
   const [confirmClose, setConfirmClose] = useState<{ id: string; name: string } | null>(null);
   const [confirmCloseRepo, setConfirmCloseRepo] = useState<{
@@ -395,11 +397,12 @@ function App() {
         if (showPalette)    setShowPalette(false);
         if (showNewSession) setShowNewSession(false);
         if (showAddRepo)    setShowAddRepo(false);
+        if (showRemote)     setShowRemote(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showNewSession, showAddRepo]);
+  }, [showPalette, showNewSession, showAddRepo, showRemote]);
 
   // ─── Palette actions ─────────────────────────────────────────
   const paletteActions: PaletteAction[] = useMemo(() => [
@@ -427,6 +430,11 @@ function App() {
       id: 'add-repo', icon: 'folder', title: 'Add repository…',
       sub: 'Clone from URL or open an existing folder',
       run: () => { setShowPalette(false); setShowAddRepo(true); },
+    },
+    {
+      id: 'remote', icon: 'tunnel', title: 'Remote access…',
+      sub: 'Reach OmniDesk from a browser over a tunnel',
+      run: () => { setShowPalette(false); setShowRemote(true); },
     },
   ], []);
 
@@ -483,6 +491,7 @@ function App() {
               dissolveGroup(gid);
               if (activeGroupId === gid) setActiveGroupId(null);
             }}
+            onOpenRemote={() => setShowRemote(true)}
           />
           <div style={{
             gridColumn: '2', gridRow: '2',
@@ -553,6 +562,7 @@ function App() {
             actions={paletteActions}
           />
         )}
+        {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
             name={nonGitChoice.name}
@@ -567,7 +577,7 @@ function App() {
   }
 
   // ─── Main shell ──────────────────────────────────────────────
-  const shellClass = 'p4-shell' + (showRightPanel ? ' with-right' : '');
+  const shellClass = 'p4-shell' + (showRightPanel ? ' with-right' : '') + (navOpen ? ' nav-open' : '');
 
   return (
     <TerminalHost
@@ -586,6 +596,16 @@ function App() {
     >
       <div className={shellClass}>
         <TitleBar />
+
+        {/* Mobile: hamburger toggles the activity-bar + rail drawer. Hidden >768px. */}
+        <button
+          className="p4-mobile-nav-toggle"
+          aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+          onClick={() => setNavOpen(v => !v)}
+        >
+          <P4Icon name={navOpen ? 'x' : 'layers'} size={16} />
+        </button>
+        <div className="p4-mobile-backdrop" onClick={() => setNavOpen(false)} />
 
         <RepoActivityBar
           repos={visibleRepos}
@@ -606,6 +626,7 @@ function App() {
             dissolveGroup(gid);
             if (activeGroupId === gid) setActiveGroupId(null);
           }}
+          onOpenRemote={() => setShowRemote(true)}
         />
 
         {activeRepo && (
@@ -616,7 +637,7 @@ function App() {
             activeSessionId={activeSessionId}
             query={railQuery}
             setQuery={setRailQuery}
-            onSelectSession={handleSelectSession}
+            onSelectSession={(id) => { handleSelectSession(id); setNavOpen(false); }}
             onCloseSession={handleCloseSession}
             onSessionContextMenu={(id, x, y) => setSessionMenu({ id, x, y })}
             onNewSession={() => setShowNewSession(true)}
@@ -724,6 +745,8 @@ function App() {
           actions={paletteActions}
         />
       )}
+
+      {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
 
       {confirmClose && (() => {
         const target = sessions.find(s => s.id === confirmClose.id);

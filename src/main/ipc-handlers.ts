@@ -2,7 +2,10 @@ import { app, BrowserWindow, dialog, shell } from 'electron';
 import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SubdirectoryEntry, GitRepoEntry } from '../shared/ipc-types';
+import type { SubdirectoryEntry, GitRepoEntry, RemoteAccessStatus } from '../shared/ipc-types';
+import type { RemoteAccessServer } from './remote/remote-access-server';
+import type { RemoteAuth } from './remote/remote-auth';
+import type { TunnelController } from './remote/tunnel-controller';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
@@ -16,6 +19,26 @@ import { IPCRegistry } from './ipc-registry';
 import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot } from './path-access';
 
 let registry: IPCRegistry | null = null;
+let remoteServerRef: RemoteAccessServer | null = null;
+let remoteAuthRef: RemoteAuth | null = null;
+let remoteTunnelRef: TunnelController | null = null;
+
+/** Expose the active registry so the remote WS router can dispatch to the
+ *  same handlers. Returns null before setupIPCHandlers runs. */
+export function getRegistry(): IPCRegistry | null {
+  return registry;
+}
+
+/** Inject the remote access server after it is constructed (it depends on the
+ *  registry created inside setupIPCHandlers, so it cannot be a constructor arg). */
+export function setRemoteServer(server: RemoteAccessServer): void {
+  remoteServerRef = server;
+}
+
+/** Inject the managed-tunnel controller. */
+export function setRemoteTunnel(controller: TunnelController): void {
+  remoteTunnelRef = controller;
+}
 
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
@@ -26,10 +49,13 @@ export function setupIPCHandlers(
   sessionPool: SessionPool,
   gitManager: GitManager,
   providerRegistry: ProviderRegistry,
+  remoteAuth: RemoteAuth,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
   checkpointManager.setMainWindow(mainWindow);
+
+  remoteAuthRef = remoteAuth;
 
   registry = new IPCRegistry();
 
@@ -98,6 +124,10 @@ export function setupIPCHandlers(
       console.error('[revealInExplorer] Failed:', err);
       return false;
     }
+  });
+
+  registry.handle('getSessionScrollback', async (_e, sessionId) => {
+    return sessionManager.getSessionScrollback(sessionId);
   });
 
   // ── Model switching ──
@@ -625,6 +655,64 @@ export function setupIPCHandlers(
     };
   });
 
+  // ── Remote access ──
+
+  const buildRemoteStatus = async (): Promise<RemoteAccessStatus> => {
+    const port = remoteServerRef?.getPort() ?? settingsManager.getRemoteAccessPort();
+    const tunnel = remoteTunnelRef?.status() ?? { state: 'off' as const };
+    const cloudflaredInstalled = remoteTunnelRef ? await remoteTunnelRef.isInstalled() : false;
+    return {
+      enabled: remoteServerRef?.isRunning() ?? false,
+      port,
+      token: remoteAuthRef?.getToken() ?? '',
+      url: `http://localhost:${port}`,
+      tunnel: { state: tunnel.state, url: tunnel.url, error: tunnel.error },
+      cloudflaredInstalled,
+    };
+  };
+
+  registry.handle('getRemoteStatus', async () => buildRemoteStatus());
+
+  registry.handle('enableRemoteAccess', async () => {
+    if (remoteServerRef && !remoteServerRef.isRunning()) {
+      await remoteServerRef.start();
+      settingsManager.setRemoteAccessEnabled(true);
+    }
+    // Best-effort: start the managed tunnel so the app is reachable from a
+    // browser without a manual terminal step. Tunnel failure does not block the
+    // local server — the panel surfaces the tunnel error / install prompt.
+    if (remoteTunnelRef && remoteServerRef) {
+      await remoteTunnelRef.start(remoteServerRef.getPort());
+    }
+    return buildRemoteStatus();
+  });
+
+  registry.handle('disableRemoteAccess', async () => {
+    await remoteTunnelRef?.stop();
+    if (remoteServerRef && remoteServerRef.isRunning()) {
+      await remoteServerRef.stop();
+      settingsManager.setRemoteAccessEnabled(false);
+    }
+    return buildRemoteStatus();
+  });
+
+  registry.handle('regenerateRemoteToken', async () => {
+    remoteAuthRef?.regenerate();
+    return buildRemoteStatus();
+  });
+
+  registry.handle('installTunnel', async () => {
+    if (remoteTunnelRef) {
+      await remoteTunnelRef.install();
+      // If the server is already up, bring the tunnel online now that the
+      // binary exists.
+      if (remoteServerRef?.isRunning()) {
+        await remoteTunnelRef.start(remoteServerRef.getPort());
+      }
+    }
+    return buildRemoteStatus();
+  });
+
   // ── Session I/O (send — fire and forget) ──
 
   registry.on('sendSessionInput', (_e, input) => {
@@ -691,6 +779,9 @@ export function setupIPCHandlers(
 }
 
 export function removeIPCHandlers(): void {
+  remoteServerRef = null;
+  remoteAuthRef = null;
+  remoteTunnelRef = null;
   if (registry) {
     registry.removeAll();
     registry = null;

@@ -1,0 +1,66 @@
+import { useCallback, useEffect, useState } from 'react';
+import type { RemoteAccessStatus } from '../../shared/ipc-types';
+
+/**
+ * Renderer-side controller for the remote access server. Loads status on mount
+ * and exposes enable/disable/regenerate/refresh, each returning the updated
+ * status from the main process.
+ */
+export function useRemoteAccess() {
+  const [status, setStatus] = useState<RemoteAccessStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const s = await window.electronAPI.getRemoteStatus();
+      setStatus(s);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    // Poll while the panel is open so tunnel state (starting → running/error)
+    // stays live rather than showing a stale snapshot.
+    const id = setInterval(() => { void refresh(); }, 3000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  const [installing, setInstalling] = useState(false);
+
+  const enable = useCallback(async () => {
+    try {
+      setStatus(await window.electronAPI.enableRemoteAccess());
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const disable = useCallback(async () => {
+    setStatus(await window.electronAPI.disableRemoteAccess());
+  }, []);
+
+  const regenerate = useCallback(async () => {
+    setStatus(await window.electronAPI.regenerateRemoteToken());
+  }, []);
+
+  const install = useCallback(async () => {
+    setInstalling(true);
+    setError(null);
+    try {
+      setStatus(await window.electronAPI.installTunnel());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInstalling(false);
+    }
+  }, []);
+
+  return { status, loading, error, installing, enable, disable, regenerate, install, refresh };
+}

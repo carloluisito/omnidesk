@@ -20,3 +20,4 @@ export { Palette, type PaletteAction } from './Palette';
 export { RightInspector } from './RightInspector';
 export { TitleBar } from './TitleBar';
 export { StatusBar } from './StatusBar';
+export { RemoteAccessPanel } from './RemoteAccessPanel';

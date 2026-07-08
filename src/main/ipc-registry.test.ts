@@ -73,3 +73,35 @@ describe('IPCRegistry', () => {
     expect(ipcMain.removeHandler).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('IPCRegistry direct invocation', () => {
+  it('invokeMethod calls the same handler and returns its value', async () => {
+    const reg = new IPCRegistry();
+    reg.handle('getActiveSession', async () => 'sess-1');
+    await expect(reg.invokeMethod('getActiveSession', [])).resolves.toBe('sess-1');
+  });
+
+  it('invokeMethod forwards args in order', async () => {
+    const reg = new IPCRegistry();
+    reg.handle('switchSession', async (_e, id) => `switched:${id}` as unknown as boolean);
+    await expect(reg.invokeMethod('switchSession', ['abc'])).resolves.toBe('switched:abc');
+  });
+
+  it('invokeMethod rejects for an unknown method', async () => {
+    const reg = new IPCRegistry();
+    await expect(reg.invokeMethod('nope', [])).rejects.toThrow();
+  });
+
+  it('sendMethod calls the same fire-and-forget handler', () => {
+    const reg = new IPCRegistry();
+    const spy = vi.fn();
+    reg.on('sessionReady', (_e, id) => spy(id));
+    reg.sendMethod('sessionReady', ['xyz']);
+    expect(spy).toHaveBeenCalledWith('xyz');
+  });
+
+  it('sendMethod ignores an unknown method', () => {
+    const reg = new IPCRegistry();
+    expect(() => reg.sendMethod('unknown', [])).not.toThrow();
+  });
+});

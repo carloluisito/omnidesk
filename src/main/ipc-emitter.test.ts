@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserWindow } from 'electron';
-import { IPCEmitter } from './ipc-emitter';
+import { IPCEmitter, registerRemoteBroadcaster } from './ipc-emitter';
 import { channels } from '../shared/ipc-contract';
 
 function createMockWindow() {
@@ -56,5 +56,22 @@ describe('IPCEmitter', () => {
       channels.onSessionCreated,
       payload
     );
+  });
+});
+
+describe('IPCEmitter remote broadcaster', () => {
+  it('forwards emitted events to the registered broadcaster', () => {
+    const send = vi.fn();
+    const fakeWindow = { isDestroyed: () => false, webContents: { send } } as unknown as BrowserWindow;
+    const received: Array<[string, unknown]> = [];
+    registerRemoteBroadcaster((channel, payload) => received.push([channel, payload]));
+
+    const emitter = new IPCEmitter(fakeWindow);
+    emitter.emit('onSessionClosed', 'sess-42');
+
+    expect(send).toHaveBeenCalledWith('session:closed', 'sess-42');
+    expect(received).toContainEqual(['session:closed', 'sess-42']);
+
+    registerRemoteBroadcaster(null); // reset for other tests
   });
 });

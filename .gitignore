@@ -37,6 +37,7 @@ Session_*.md
 # Internal development docs
 .omnidesk/
 .claudedesk/
+docs/superpowers/
 
 # Feature-flow manual evidence (screenshots + notes per slug)
 evidence/

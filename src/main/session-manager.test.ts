@@ -424,3 +424,32 @@ describe('SessionManager.restartSession — shell sessions', () => {
     expect(registry.get).not.toHaveBeenCalled();
   });
 });
+
+describe('SessionManager scrollback buffer', () => {
+  let manager: SessionManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  it('returns empty string for an unknown session', () => {
+    expect(manager.getSessionScrollback('missing')).toBe('');
+  });
+
+  it('appends output and returns the accumulated buffer', () => {
+    manager.appendScrollback('s1', 'hello ');
+    manager.appendScrollback('s1', 'world');
+    expect(manager.getSessionScrollback('s1')).toBe('hello world');
+  });
+
+  it('caps the buffer at the max size, keeping the newest bytes', () => {
+    manager.appendScrollback('s1', 'OLD');
+    const big = 'x'.repeat(300 * 1024);
+    manager.appendScrollback('s1', big);
+    const buf = manager.getSessionScrollback('s1');
+    expect(buf.length).toBeLessThanOrEqual(256 * 1024);
+    expect(buf.endsWith('x')).toBe(true);
+    expect(buf.includes('OLD')).toBe(false);
+  });
+});
