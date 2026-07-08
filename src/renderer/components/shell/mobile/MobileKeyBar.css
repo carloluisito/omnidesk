@@ -16,12 +16,12 @@
   min-width: 44px;   /* ≥44px touch target */
   height: 44px;
   flex: 0 0 auto;
-  border: 1px solid var(--v2-border, rgba(255,255,255,0.08));
+  border: 1px solid var(--v2-border-default, rgba(255,255,255,0.08));
   border-radius: 8px;
-  background: var(--v2-surface-raised, #1b1d27);
+  background: var(--v2-surface-high, #1b1d27);
   color: var(--v2-text-secondary, #C0C4D6);
   font-size: 15px;
 }
-.mkb-key:active { background: var(--v2-surface-active, #262935); }
+.mkb-key:active { background: var(--v2-surface-mid, #262935); }
 .mkb-key:disabled { opacity: 0.4; }
 .mkb-armed { border-color: var(--v2-accent, #00C9A7); color: var(--v2-accent, #00C9A7); }
