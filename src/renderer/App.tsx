@@ -24,6 +24,7 @@ import { useAgentViewAvailability } from './hooks/useAgentViewAvailability';
 import { useSessionPreviews } from './hooks/useSessionPreviews';
 import { useTouchMode } from './hooks/useTouchMode';
 import { MobileKeyBar } from './components/shell/mobile/MobileKeyBar';
+import { MobileShell } from './components/shell/mobile/MobileShell';
 import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
@@ -484,7 +485,8 @@ function App() {
   }, []);
 
   // ─── Empty-state: no active repo (either nothing added, or all sessions closed)
-  if (!activeRepo) {
+  // Touch mode skips this desktop-only empty state — MobileShell renders its own.
+  if (!activeRepo && !touchMode) {
     const hasActive = reposWithSessions.length > 0;
     return (
       <>
@@ -611,6 +613,18 @@ function App() {
         if (id !== activeSessionId) void switchSession(id);
       }}
     >
+      {touchMode ? (
+        <MobileShell
+          repos={repos}
+          activeRepo={activeRepo}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={handleSelectSession}
+          onCloseSession={handleCloseSession}
+          onNewSession={() => setShowNewSession(true)}
+          onOpenRemote={() => setShowRemote(true)}
+        />
+      ) : (
       <div className={shellClass}>
         <TitleBar />
 
@@ -707,6 +721,7 @@ function App() {
           onOpenOtherReposLive={() => setRepoSwitcher({ anchorRect: null })}
         />
       </div>
+      )}
 
       {touchMode && activeSessionId && <MobileKeyBar onKey={dispatchMobileKey} />}
 
