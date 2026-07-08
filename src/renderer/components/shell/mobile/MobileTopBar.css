@@ -1,0 +1,22 @@
+.mtb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px;
+  padding-top: env(safe-area-inset-top); /* clears the notch/status bar */
+  background: var(--v2-surface-high, #14151d);
+  border-bottom: 1px solid var(--v2-border-default, rgba(255,255,255,0.08));
+  font-family: "JetBrains Mono", monospace;
+}
+.mtb-btn {
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  border: none; background: transparent;
+  color: var(--v2-text-secondary, #C0C4D6);
+}
+.mtb-title {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--v2-text-primary, #E2E4F0); font-size: 14px; text-align: center;
+}
