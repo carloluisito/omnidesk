@@ -1,5 +1,6 @@
 import { spawn, execFile, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 export type TunnelState = 'off' | 'starting' | 'running' | 'error';
@@ -88,8 +89,13 @@ export class TunnelManager {
         settle();
       };
 
+      // Run with an EMPTY config so we don't inherit the user's global
+      // ~/.cloudflared/config.yml (named tunnel + ingress catch-all), which
+      // otherwise returns HTTP 404 for our quick-tunnel hostname.
       const child = this.spawner(this.bin, [
         'tunnel',
+        '--config',
+        emptyCloudflaredConfig(),
         '--url',
         `http://localhost:${port}`,
         '--no-autoupdate',
@@ -164,6 +170,21 @@ export class TunnelManager {
       }
     }
   }
+}
+
+/**
+ * Path to an empty cloudflared config, created on demand. Passing this via
+ * --config isolates our quick tunnel from the user's global ~/.cloudflared
+ * config (whose ingress rules / catch-all would otherwise hijack the request).
+ */
+export function emptyCloudflaredConfig(): string {
+  const p = path.join(os.tmpdir(), 'omnidesk-cloudflared-empty.yml');
+  try {
+    if (!fs.existsSync(p)) fs.writeFileSync(p, '');
+  } catch {
+    /* best-effort; cloudflared tolerates a missing --config target */
+  }
+  return p;
 }
 
 /** Last ~2 non-empty log lines, for surfacing cloudflared failures. */

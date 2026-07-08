@@ -41,6 +41,18 @@ describe('TunnelManager', () => {
     expect(mgr.isRunning()).toBe(true);
   });
 
+  it('passes an isolating --config so the user global cloudflared config is ignored', async () => {
+    const child = fakeChild();
+    let capturedArgs: string[] = [];
+    const mgr = new TunnelManager('cloudflared', (_cmd, args) => { capturedArgs = args; return child as never; });
+    const p = mgr.start(8420, 1000, 30);
+    child.stderr.emit('data', 'https://iso-config-1.trycloudflare.com');
+    await p;
+    const cfgIdx = capturedArgs.indexOf('--config');
+    expect(cfgIdx).toBeGreaterThanOrEqual(0);
+    expect(capturedArgs[cfgIdx + 1]).toMatch(/omnidesk-cloudflared-empty\.yml$/);
+  });
+
   it('falls back to running after the grace period when only the URL is seen', async () => {
     const child = fakeChild();
     const mgr = new TunnelManager('cloudflared', () => child as never);
