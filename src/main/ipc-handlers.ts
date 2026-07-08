@@ -698,6 +698,7 @@ export function setupIPCHandlers(
 
   registry.handle('regenerateRemoteToken', async () => {
     remoteAuthRef?.regenerate();
+    if (remoteAuthRef) settingsManager.setRemoteAccessToken(remoteAuthRef.getToken());
     return buildRemoteStatus();
   });
 

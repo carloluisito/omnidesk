@@ -120,6 +120,11 @@ export function RemoteAccessPanel({ onClose }: RemoteAccessPanelProps) {
                           </div>
                         </div>
                       </div>
+                      <div className="p4-form-row">
+                        <span className="d">
+                          Tip: on your phone, open the link → browser menu → <strong>Add to Home Screen / Install</strong> to get an app icon that opens full-screen.
+                        </span>
+                      </div>
                     </>
                   )}
 

@@ -24,6 +24,11 @@ describe('generateWebBridgeScript', () => {
     expect(script).toContain('window.__OMNIDESK_REMOTE__ = true');
   });
 
+  it('registers the PWA service worker', () => {
+    expect(script).toContain("'serviceWorker' in navigator");
+    expect(script).toContain("register('/sw.js')");
+  });
+
   it('is a self-contained IIFE with no module syntax', () => {
     expect(script.trim().startsWith('(function(){')).toBe(true);
     expect(script.trim().endsWith('})();')).toBe(true);

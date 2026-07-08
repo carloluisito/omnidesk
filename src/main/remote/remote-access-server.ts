@@ -7,7 +7,7 @@ import { RemoteAuth } from './remote-auth';
 import { ClientHub } from './client-hub';
 import { generateWebBridgeScript } from './web-bridge';
 import { handleWsMessage } from './ws-router';
-import { injectBridgeScript, mimeFor } from './http-util';
+import { injectRemoteHead, buildManifest, mimeFor } from './http-util';
 import { channels, contractKinds } from '../../shared/ipc-contract';
 
 export interface RemoteServerOptions {
@@ -178,6 +178,12 @@ export class RemoteAccessServer {
       return;
     }
 
+    // PWA manifest — served only to an authed session (start_url carries the token).
+    if (url.pathname === '/manifest.webmanifest') {
+      res.writeHead(200, { 'Content-Type': 'application/manifest+json' }).end(buildManifest(auth.getToken()));
+      return;
+    }
+
     // Dev: proxy to the Vite dev server (dist/renderer is stale/empty in dev).
     if (this.opts.devServerUrl) {
       await this.proxyToDev(url, res);
@@ -207,13 +213,13 @@ export class RemoteAccessServer {
             );
             return;
           }
-          res.writeHead(200, { 'Content-Type': 'text/html' }).end(injectBridgeScript(html.toString()));
+          res.writeHead(200, { 'Content-Type': 'text/html' }).end(injectRemoteHead(html.toString()));
         });
         return;
       }
       const ext = path.extname(filePath);
       if (ext === '.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html' }).end(injectBridgeScript(data.toString()));
+        res.writeHead(200, { 'Content-Type': 'text/html' }).end(injectRemoteHead(data.toString()));
       } else {
         res.writeHead(200, { 'Content-Type': mimeFor(ext) }).end(data);
       }
@@ -229,7 +235,7 @@ export class RemoteAccessServer {
       const ct = upstream.headers.get('content-type') ?? 'application/octet-stream';
       if (ct.includes('text/html')) {
         const html = await upstream.text();
-        res.writeHead(upstream.status, { 'Content-Type': 'text/html' }).end(injectBridgeScript(html));
+        res.writeHead(upstream.status, { 'Content-Type': 'text/html' }).end(injectRemoteHead(html));
       } else {
         const body = Buffer.from(await upstream.arrayBuffer());
         res.writeHead(upstream.status, { 'Content-Type': ct }).end(body);

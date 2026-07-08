@@ -116,6 +116,18 @@ describe('RemoteAccessServer (integration)', () => {
     expect(await res.text()).toContain('Access token');
   });
 
+  it('serves the PWA manifest only when authenticated, with the token in start_url', async () => {
+    const noAuth = await fetch(`${base}/manifest.webmanifest`, { redirect: 'manual' });
+    expect(await noAuth.text()).toContain('Access token'); // login page, not the manifest
+
+    const cookie = `${RemoteAuth.COOKIE}=${auth.getToken()}`;
+    const res = await fetch(`${base}/manifest.webmanifest`, { headers: { Cookie: cookie } });
+    expect(res.headers.get('content-type')).toContain('application/manifest+json');
+    const m = await res.json();
+    expect(m.display).toBe('standalone');
+    expect(m.start_url).toContain(`token=${encodeURIComponent(auth.getToken())}`);
+  });
+
   it('rejects a WebSocket upgrade without a valid cookie', async () => {
     await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(`ws://127.0.0.1:${server.getPort()}/__omnidesk/ws`);

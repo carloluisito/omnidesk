@@ -424,7 +424,19 @@ export class SettingsManager {
 
   setRemoteAccessEnabled(enabled: boolean): void {
     const port = this.getRemoteAccessPort();
-    this.settings.remoteAccess = { enabled, port };
+    const token = this.getRemoteAccessToken();
+    this.settings.remoteAccess = { enabled, port, token };
+    saveSettings(this.settings);
+  }
+
+  getRemoteAccessToken(): string | undefined {
+    return this.settings.remoteAccess?.token;
+  }
+
+  setRemoteAccessToken(token: string): void {
+    const port = this.getRemoteAccessPort();
+    const enabled = this.getRemoteAccessEnabled();
+    this.settings.remoteAccess = { enabled, port, token };
     saveSettings(this.settings);
   }
 

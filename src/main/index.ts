@@ -212,7 +212,9 @@ function createWindow(): void {
   // Remote access collaborators. The server binds 127.0.0.1 only and is off
   // until explicitly enabled; the user exposes it via a tunnel. Events fan out
   // to all connected web clients through the ClientHub broadcaster.
-  const remoteAuth = new RemoteAuth();
+  const persistedToken = settingsManager.getRemoteAccessToken();
+  const remoteAuth = new RemoteAuth(persistedToken);
+  if (!persistedToken) settingsManager.setRemoteAccessToken(remoteAuth.getToken());
   const clientHub = new ClientHub();
   registerRemoteBroadcaster((channel, payload) => clientHub.broadcast(channel, payload));
 

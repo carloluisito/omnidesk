@@ -15,6 +15,7 @@
     "electron:dev": "concurrently \"vite\" \"npm run electron:watch\"",
     "electron:watch": "tsc -p tsconfig.main.json && electron .",
     "start": "npm run build && npm run build:electron && electron .",
+    "gen:pwa-icons": "node scripts/gen-pwa-icons.mjs",
     "package": "npm run build && npm run build:electron && electron-builder",
     "package:win": "npm run package -- --win",
     "package:mac": "npm run package -- --mac",
