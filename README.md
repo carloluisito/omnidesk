@@ -87,6 +87,14 @@
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
 
+### Remote Access
+- **Reach OmniDesk from any browser** — the same UI runs on your phone, tablet, or another computer, driving your live sessions
+- **One-click managed tunnel** — OmniDesk runs a Cloudflare tunnel for you (auto-downloads `cloudflared` on request); no manual terminal setup
+- **Live mirror** — output fans out to every connected device; type a prompt anywhere and it shows up everywhere, with terminal history replayed on connect
+- **Token-secured** — binds `127.0.0.1` only and enforces its own access token (cookie + WebSocket check); off by default
+- **One-scan sign-in + installable PWA** — a QR whose link embeds the token signs you in on one scan, and you can **Add to Home Screen / Install** for a full-screen app that stays signed in across launches
+- Open it from the activity-bar tunnel button or `Ctrl/Cmd+K → "Remote access…"`
+
 ### Terminal Features
 - **Full xterm.js terminal** with rich text formatting
 - **Clickable links** — URLs are automatically detected and open in your browser

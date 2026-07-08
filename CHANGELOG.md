@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-07-09
+
+### Added
+- **Remote access.** Reach OmniDesk from any browser — your phone, tablet, or another computer — and drive your live sessions. OmniDesk serves its own UI over a **one-click managed Cloudflare tunnel** (offers to download `cloudflared` for you), enforces its own access token, and binds to `127.0.0.1` only. Session output mirrors live to every connected device, and terminal history replays when a device connects mid-session. Off by default — open it from the activity-bar tunnel button or `Ctrl/Cmd+K → "Remote access…"`.
+- **Installable PWA.** Scan the QR to sign in on one tap, then **Add to Home Screen / Install** for a full-screen app with its own icon. The access token is now persistent, so an installed app (or saved QR) stays signed in across OmniDesk restarts; a "Regenerate token" button rotates it on demand.
+
+### Changed
+- Documentation refreshed across README, CONTRIBUTING, the repo index, and CLAUDE.md.
+
+---
+
 ## [2.1.1] - 2026-07-06
 
 ### Fixed
