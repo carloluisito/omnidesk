@@ -29,15 +29,36 @@ function fakeChild() {
 }
 
 describe('TunnelManager', () => {
-  it('resolves running with the URL parsed from stderr', async () => {
+  it('resolves running once cloudflared reports the connection is registered', async () => {
     const child = fakeChild();
     const mgr = new TunnelManager('cloudflared', () => child as never);
-    const p = mgr.start(8420, 1000);
-    child.stderr.emit('data', Buffer.from('INF https://happy-sky-99.trycloudflare.com ready'));
+    const p = mgr.start(8420, 1000, 5000);
+    child.stderr.emit('data', Buffer.from('INF |  https://happy-sky-99.trycloudflare.com  |'));
+    child.stderr.emit('data', Buffer.from('INF Registered tunnel connection connIndex=0'));
     const status = await p;
     expect(status.state).toBe('running');
     expect(status.url).toBe('https://happy-sky-99.trycloudflare.com');
     expect(mgr.isRunning()).toBe(true);
+  });
+
+  it('falls back to running after the grace period when only the URL is seen', async () => {
+    const child = fakeChild();
+    const mgr = new TunnelManager('cloudflared', () => child as never);
+    const p = mgr.start(8420, 2000, 30); // 30ms grace
+    child.stderr.emit('data', Buffer.from('https://grace-fallback-7.trycloudflare.com'));
+    const status = await p;
+    expect(status.state).toBe('running');
+    expect(status.url).toBe('https://grace-fallback-7.trycloudflare.com');
+  });
+
+  it('errors when the URL prints but the tunnel never connects', async () => {
+    const child = fakeChild();
+    const mgr = new TunnelManager('cloudflared', () => child as never);
+    const p = mgr.start(8420, 40, 5000); // URL seen, no connect, short overall timeout
+    child.stderr.emit('data', Buffer.from('https://never-connects-3.trycloudflare.com'));
+    const status = await p;
+    expect(status.state).toBe('error');
+    expect(status.error).toContain('never connected');
   });
 
   it('resolves error when the process exits before a URL appears', async () => {
@@ -63,8 +84,9 @@ describe('TunnelManager', () => {
   it('stop kills the single spawned child and resets state', async () => {
     const child = fakeChild();
     const mgr = new TunnelManager('cloudflared', () => child as never);
-    const p = mgr.start(8420, 1000);
+    const p = mgr.start(8420, 1000, 5000);
     child.stderr.emit('data', 'https://x-y-z.trycloudflare.com');
+    child.stderr.emit('data', 'Registered tunnel connection connIndex=0');
     await p;
     await mgr.stop();
     expect(child.kill).toHaveBeenCalledTimes(1);

@@ -26,11 +26,18 @@ type Spawner = (cmd: string, args: string[]) => ChildProcess;
  * for the public URL to appear in its output, and stops exactly the one child
  * it started (never a bulk/port kill — honours the process-safety rule).
  */
+/** cloudflared logs this once the tunnel is actually connected to the edge and
+ *  the hostname is live in DNS. We wait for it before declaring 'running' —
+ *  the URL is printed several seconds earlier, before DNS resolves. */
+const CONNECTED_RE = /registered tunnel connection|connection registered|each tunnel connection/i;
+
 export class TunnelManager {
   private child: ChildProcess | null = null;
   private state: TunnelState = 'off';
   private url?: string;
   private error?: string;
+  private logTail = '';
+  private stopping = false;
 
   constructor(
     private bin: string,
@@ -45,22 +52,40 @@ export class TunnelManager {
     return this.state === 'running' || this.state === 'starting';
   }
 
-  /** Start the tunnel for the given local port. Resolves once the public URL is
-   *  known, the process exits, errors, or the timeout elapses. */
-  start(port: number, timeoutMs = 25_000): Promise<TunnelStatus> {
+  /**
+   * Start the tunnel for the given local port. Resolves 'running' only once the
+   * tunnel is actually connected (the URL is live in DNS), not merely when the
+   * URL is printed. `graceMs` is a fallback: if the URL appears but no explicit
+   * connection line is seen (cloudflared log format varies by version), we
+   * declare running after this delay rather than hanging.
+   */
+  start(port: number, timeoutMs = 25_000, graceMs = 6_000): Promise<TunnelStatus> {
     if (this.child) return Promise.resolve(this.status());
 
     this.state = 'starting';
     this.url = undefined;
     this.error = undefined;
+    this.logTail = '';
+    this.stopping = false;
 
     return new Promise((resolve) => {
       let settled = false;
+      let pendingUrl: string | null = null;
+      let graceTimer: NodeJS.Timeout | null = null;
+
       const settle = () => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        if (graceTimer) clearTimeout(graceTimer);
         resolve(this.status());
+      };
+
+      const goRunning = (url: string) => {
+        if (settled) return;
+        this.url = url;
+        this.state = 'running';
+        settle();
       };
 
       const child = this.spawner(this.bin, [
@@ -71,13 +96,21 @@ export class TunnelManager {
       ]);
       this.child = child;
 
-      // cloudflared prints the quick-tunnel URL to stderr; watch both streams.
+      // cloudflared prints the quick-tunnel URL and status to stderr; watch both.
       const onData = (buf: Buffer | string) => {
-        const url = parseTunnelUrl(buf.toString());
-        if (url && this.state === 'starting') {
-          this.url = url;
-          this.state = 'running';
-          settle();
+        this.logTail = (this.logTail + buf.toString()).slice(-4000);
+        if (!pendingUrl) {
+          const url = parseTunnelUrl(this.logTail);
+          if (url) {
+            pendingUrl = url;
+            // Fallback: if no explicit "connected" line arrives, accept the URL
+            // after a grace period so we don't hang on an unknown log format.
+            graceTimer = setTimeout(() => goRunning(url), graceMs);
+          }
+        }
+        // Prefer the real connection signal — means the hostname is live in DNS.
+        if (pendingUrl && CONNECTED_RE.test(this.logTail)) {
+          goRunning(pendingUrl);
         }
       };
       child.stdout?.on('data', onData);
@@ -92,19 +125,24 @@ export class TunnelManager {
 
       child.on('exit', (code) => {
         this.child = null;
-        if (this.state !== 'running') {
+        if (this.state === 'running') {
+          this.state = this.stopping ? 'off' : 'error';
+          if (!this.stopping) this.error = `cloudflared exited unexpectedly (code ${code ?? 'unknown'})`;
+          this.url = this.stopping ? undefined : this.url;
+        } else if (!this.stopping) {
           this.state = 'error';
-          this.error = this.error ?? `cloudflared exited (code ${code ?? 'unknown'})`;
+          this.error = this.error ?? `cloudflared exited before the tunnel connected. ${tail(this.logTail)}`;
         } else {
           this.state = 'off';
-          this.url = undefined;
         }
         settle();
       });
 
       const timer = setTimeout(() => {
         this.state = 'error';
-        this.error = 'Timed out waiting for the tunnel URL. Is cloudflared able to reach the internet?';
+        this.error = pendingUrl
+          ? 'Tunnel URL was printed but never connected to Cloudflare. Check your network/firewall.'
+          : `Timed out starting cloudflared. ${tail(this.logTail)}`;
         settle();
       }, timeoutMs);
     });
@@ -113,6 +151,7 @@ export class TunnelManager {
   /** Stop the single child process we spawned. */
   async stop(): Promise<void> {
     const c = this.child;
+    this.stopping = true;
     this.child = null;
     this.state = 'off';
     this.url = undefined;
@@ -125,6 +164,12 @@ export class TunnelManager {
       }
     }
   }
+}
+
+/** Last ~2 non-empty log lines, for surfacing cloudflared failures. */
+function tail(log: string): string {
+  const lines = log.split('\n').map((l) => l.trim()).filter(Boolean);
+  return lines.slice(-2).join(' | ');
 }
 
 /**

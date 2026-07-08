@@ -25,6 +25,10 @@ export function useRemoteAccess() {
 
   useEffect(() => {
     void refresh();
+    // Poll while the panel is open so tunnel state (starting → running/error)
+    // stays live rather than showing a stale snapshot.
+    const id = setInterval(() => { void refresh(); }, 3000);
+    return () => clearInterval(id);
   }, [refresh]);
 
   const [installing, setInstalling] = useState(false);
