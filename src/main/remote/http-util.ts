@@ -66,6 +66,7 @@ export function buildManifest(token: string): string {
     short_name: 'OmniDesk',
     start_url: `/?token=${encodeURIComponent(token)}`,
     scope: '/',
+    id: '/',
     display: 'standalone',
     orientation: 'any',
     theme_color: '#0A0B11',
@@ -73,6 +74,7 @@ export function buildManifest(token: string): string {
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
       { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   });

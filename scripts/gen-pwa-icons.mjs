@@ -36,5 +36,6 @@ await plain(192, 'icon-192.png');
 await plain(512, 'icon-512.png');
 await plain(180, 'apple-touch-icon-180.png');
 await maskable(512, 'icon-maskable-512.png');
+await maskable(192, 'icon-maskable-192.png');
 
 console.log('PWA icons generated in', OUT);

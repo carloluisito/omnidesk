@@ -44,6 +44,14 @@ describe('buildManifest', () => {
   });
 });
 
+describe('buildManifest', () => {
+  it('has a stable id and a maskable-192 icon', () => {
+    const m = JSON.parse(buildManifest('tok'));
+    expect(m.id).toBe('/');
+    expect(m.icons.some((i: any) => i.sizes === '192x192' && i.purpose === 'maskable')).toBe(true);
+  });
+});
+
 describe('mimeFor', () => {
   it('maps common extensions', () => {
     expect(mimeFor('.js')).toBe('text/javascript');
