@@ -239,6 +239,8 @@ function createWindow(): void {
       registry: registryRef,
       auth: remoteAuth,
       hub: clientHub,
+      // In dev the built renderer is stale/empty; proxy to the Vite dev server.
+      devServerUrl: isDev ? 'http://localhost:9742' : undefined,
     });
     setRemoteServer(remoteServer);
     remoteTunnel = new TunnelController(managedCloudflaredPath(app.getPath('userData')));

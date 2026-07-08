@@ -16,6 +16,10 @@ export interface RemoteServerOptions {
   registry: IPCRegistry;
   auth: RemoteAuth;
   hub: ClientHub;
+  /** In dev, the Vite dev-server origin (e.g. http://localhost:9742). When set,
+   *  authed requests are proxied there instead of served from rendererDir —
+   *  otherwise dist/renderer is stale/empty in dev and every page 404s. */
+  devServerUrl?: string;
 }
 
 const LOGIN_HTML = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>OmniDesk Remote</title><style>body{font-family:system-ui,sans-serif;background:#0A0B11;color:#e6e6e6;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}form{display:flex;flex-direction:column;gap:12px;width:min(320px,90vw)}h2{margin:0 0 8px}input{padding:10px;border-radius:8px;border:1px solid #333;background:#14151d;color:#fff}button{padding:10px;border-radius:8px;border:0;background:#00C9A7;color:#03211c;font-weight:600;cursor:pointer}</style></head><body><form method="POST" action="/__omnidesk/auth"><h2>OmniDesk Remote</h2><input name="token" type="password" placeholder="Access token" autofocus autocomplete="off" /><button type="submit">Connect</button></form></body></html>`;
@@ -72,6 +76,13 @@ export class RemoteAccessServer {
         const addr = server.address();
         if (addr && typeof addr === 'object') this.boundPort = addr.port;
         this.server = server;
+        const source = this.opts.devServerUrl
+          ? `dev proxy → ${this.opts.devServerUrl}`
+          : this.opts.rendererDir;
+        console.log(`[remote] listening on 127.0.0.1:${this.getPort()} — serving ${source}`);
+        if (!this.opts.devServerUrl && !fs.existsSync(path.join(this.opts.rendererDir, 'index.html'))) {
+          console.warn(`[remote] WARNING: no index.html at ${this.opts.rendererDir}. Run a production build (npm run build) or launch via npm start.`);
+        }
         resolve();
       });
     });
@@ -150,7 +161,14 @@ export class RemoteAccessServer {
       return;
     }
 
-    // Serve the SPA. '/' → injected index.html; asset paths → file; unknown → index (SPA fallback).
+    // Dev: proxy to the Vite dev server (dist/renderer is stale/empty in dev).
+    if (this.opts.devServerUrl) {
+      await this.proxyToDev(url, res);
+      return;
+    }
+
+    // Prod: serve the built SPA. '/' → injected index.html; assets → file;
+    // unknown → index (SPA fallback).
     const rel = url.pathname === '/' ? '/index.html' : url.pathname;
     const safeRel = path.normalize(rel).replace(/^(\.\.[/\\])+/, '');
     const rendererDir = path.resolve(this.opts.rendererDir);
@@ -166,7 +184,10 @@ export class RemoteAccessServer {
         // SPA fallback: serve injected index.html for client-side routes.
         fs.readFile(path.join(rendererDir, 'index.html'), (e2, html) => {
           if (e2) {
-            res.writeHead(404).end('Not found');
+            console.error(`[remote] renderer not found at ${rendererDir} (requested ${url.pathname})`);
+            res.writeHead(500, { 'Content-Type': 'text/html' }).end(
+              `<h1>OmniDesk renderer build not found</h1><p>The remote server expected the built UI at <code>${rendererDir}</code> but it isn't there.</p><p>Launch OmniDesk with <code>npm start</code> (production build), not a dev command.</p>`,
+            );
             return;
           }
           res.writeHead(200, { 'Content-Type': 'text/html' }).end(injectBridgeScript(html.toString()));
@@ -180,5 +201,26 @@ export class RemoteAccessServer {
         res.writeHead(200, { 'Content-Type': mimeFor(ext) }).end(data);
       }
     });
+  }
+
+  /** Proxy an authed request to the Vite dev server, injecting the bridge into
+   *  HTML responses so window.electronAPI exists over the WebSocket. */
+  private async proxyToDev(url: URL, res: http.ServerResponse): Promise<void> {
+    const target = this.opts.devServerUrl!.replace(/\/$/, '') + url.pathname + url.search;
+    try {
+      const upstream = await fetch(target, { headers: { accept: '*/*' } });
+      const ct = upstream.headers.get('content-type') ?? 'application/octet-stream';
+      if (ct.includes('text/html')) {
+        const html = await upstream.text();
+        res.writeHead(upstream.status, { 'Content-Type': 'text/html' }).end(injectBridgeScript(html));
+      } else {
+        const body = Buffer.from(await upstream.arrayBuffer());
+        res.writeHead(upstream.status, { 'Content-Type': ct }).end(body);
+      }
+    } catch (e) {
+      res.writeHead(502, { 'Content-Type': 'text/html' }).end(
+        `<h1>Dev server unreachable</h1><p>Remote access is running in dev mode and proxies to <code>${this.opts.devServerUrl}</code>, which didn't respond (${(e as Error).message}).</p><p>Start the Vite dev server, or launch via <code>npm start</code> for a production build.</p>`,
+      );
+    }
   }
 }

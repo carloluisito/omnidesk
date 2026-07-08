@@ -89,6 +89,24 @@ describe('RemoteAccessServer (integration)', () => {
     expect(html).toContain('/__omnidesk/web-bridge.js');
   });
 
+  it('redirects a valid ?token= link to a clean URL with a cookie (QR sign-in)', async () => {
+    const res = await fetch(`${base}/?token=${encodeURIComponent(auth.getToken())}`, {
+      redirect: 'manual',
+      headers: { 'x-forwarded-proto': 'https' },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/');
+    const cookie = res.headers.get('set-cookie') ?? '';
+    expect(cookie).toContain(RemoteAuth.COOKIE);
+    expect(cookie).toContain('Secure'); // https tunnel → Secure cookie
+  });
+
+  it('shows the login page (not 404) for a bad ?token=', async () => {
+    const res = await fetch(`${base}/?token=nope`, { redirect: 'manual' });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('Access token');
+  });
+
   it('rejects a WebSocket upgrade without a valid cookie', async () => {
     await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(`ws://127.0.0.1:${server.getPort()}/__omnidesk/ws`);
