@@ -523,7 +523,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
 
       <div
         ref={terminalRef}
-        className="terminal"
+        className={'terminal' + (touchMode ? ' touch' : '')}
         aria-readonly={readOnly || undefined}
         style={{
           display:  isVisible ? 'block' : 'none',
@@ -865,6 +865,9 @@ export function MultiTerminal({
 
         .xterm-viewport {
           overflow-y: auto !important;
+        }
+
+        .terminal.touch .xterm-viewport {
           touch-action: pan-y;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
