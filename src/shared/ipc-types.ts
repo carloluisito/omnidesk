@@ -224,13 +224,19 @@ export interface RemoteAccessSettings {
   port: number;
 }
 
+export type RemoteTunnelState = 'off' | 'starting' | 'running' | 'error';
+
 // Remote access runtime status (returned by remote:* IPC)
 export interface RemoteAccessStatus {
   enabled: boolean;
   port: number;
   token: string;
-  /** Local address the server binds; the public address is the user's tunnel. */
+  /** Local address the server binds; the public address is the tunnel below. */
   url: string;
+  /** Managed cloudflared tunnel state + public URL (when running). */
+  tunnel: { state: RemoteTunnelState; url?: string; error?: string };
+  /** Whether a usable cloudflared binary was found (PATH or managed copy). */
+  cloudflaredInstalled: boolean;
 }
 
 // Workspace create request

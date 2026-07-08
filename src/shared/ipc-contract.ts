@@ -247,6 +247,7 @@ export interface IPCContractMap {
   enableRemoteAccess:    InvokeContract<'remote:enable',           [number?], RemoteAccessStatus>;
   disableRemoteAccess:   InvokeContract<'remote:disable',          [],        RemoteAccessStatus>;
   regenerateRemoteToken: InvokeContract<'remote:regenerateToken',  [],        RemoteAccessStatus>;
+  installTunnel:         InvokeContract<'remote:installTunnel',    [],        RemoteAccessStatus>;
 
   // ── App info (invoke) ──
   getVersionInfo:      InvokeContract<'app:getVersionInfo', [],                                  AppVersionInfo>;
@@ -412,6 +413,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   enableRemoteAccess:    'remote:enable',
   disableRemoteAccess:   'remote:disable',
   regenerateRemoteToken: 'remote:regenerateToken',
+  installTunnel:         'remote:installTunnel',
 
   // App info
   getVersionInfo:      'app:getVersionInfo',
@@ -551,6 +553,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   enableRemoteAccess:    'invoke',
   disableRemoteAccess:   'invoke',
   regenerateRemoteToken: 'invoke',
+  installTunnel:         'invoke',
 
   getVersionInfo:      'invoke',
 

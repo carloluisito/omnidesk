@@ -14,10 +14,12 @@ import { ProviderRegistry } from './providers/provider-registry';
 import { probeClaudeVersion } from './agent-view/probe-version';
 import { getAgentViewAvailability } from './agent-view/availability';
 import { setCachedAgentViewAvailability } from './agent-view/availability-cache';
-import { setupIPCHandlers, removeIPCHandlers, getRegistry, setRemoteServer } from './ipc-handlers';
+import { setupIPCHandlers, removeIPCHandlers, getRegistry, setRemoteServer, setRemoteTunnel } from './ipc-handlers';
 import { RemoteAccessServer } from './remote/remote-access-server';
 import { RemoteAuth } from './remote/remote-auth';
 import { ClientHub } from './remote/client-hub';
+import { TunnelController } from './remote/tunnel-controller';
+import { managedCloudflaredPath } from './remote/tunnel-manager';
 import { registerRemoteBroadcaster } from './ipc-emitter';
 import { WindowState } from '../shared/ipc-types';
 
@@ -38,6 +40,7 @@ let checkpointManager: CheckpointManager | null = null;
 let gitManager: GitManager | null = null;
 let providerRegistry: ProviderRegistry | null = null;
 let remoteServer: RemoteAccessServer | null = null;
+let remoteTunnel: TunnelController | null = null;
 
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
 
@@ -238,13 +241,17 @@ function createWindow(): void {
       hub: clientHub,
     });
     setRemoteServer(remoteServer);
+    remoteTunnel = new TunnelController(managedCloudflaredPath(app.getPath('userData')));
+    setRemoteTunnel(remoteTunnel);
   }
 
   // Auto-start remote access if it was enabled last run (delayed off the
   // critical path, mirroring the session pool init).
   setTimeout(() => {
     if (settingsManager?.getRemoteAccessEnabled() && remoteServer && !remoteServer.isRunning()) {
-      remoteServer.start().catch((e) => console.error('[remote] auto-start failed:', e));
+      remoteServer.start()
+        .then(() => remoteTunnel?.start(remoteServer!.getPort()))
+        .catch((e) => console.error('[remote] auto-start failed:', e));
     }
   }, 3000);
 
@@ -294,6 +301,10 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     registerRemoteBroadcaster(null);
+    if (remoteTunnel) {
+      remoteTunnel.stop().catch(() => {});
+      remoteTunnel = null;
+    }
     if (remoteServer) {
       remoteServer.stop().catch(() => {});
       remoteServer = null;
