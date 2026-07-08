@@ -114,6 +114,23 @@ export class RemoteAccessServer {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const auth = this.opts.auth;
 
+    // Health/diagnostics (public, no secrets) — confirms which build & mode is
+    // actually running. Visit http://localhost:<port>/__omnidesk/health.
+    if (url.pathname === '/__omnidesk/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(
+        JSON.stringify({
+          ok: true,
+          build: 'remote-devproxy-1',
+          mode: this.opts.devServerUrl ? 'dev' : 'prod',
+          devServerUrl: this.opts.devServerUrl ?? null,
+          rendererIndexExists: this.opts.devServerUrl
+            ? null
+            : fs.existsSync(path.join(this.opts.rendererDir, 'index.html')),
+        }),
+      );
+      return;
+    }
+
     // Bridge script is public (contains no secrets) so it can load pre-auth.
     if (url.pathname === '/__omnidesk/web-bridge.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });

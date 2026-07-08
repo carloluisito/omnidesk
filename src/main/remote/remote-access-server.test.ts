@@ -56,6 +56,15 @@ describe('RemoteAccessServer (integration)', () => {
     expect(html).not.toContain('OMNIDESK_TEST_BODY');
   });
 
+  it('serves a health endpoint reporting build + mode', async () => {
+    const res = await fetch(`${base}/__omnidesk/health`);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.build).toBe('remote-devproxy-1');
+    expect(body.mode).toBe('prod'); // this test runs without devServerUrl
+    expect(body.rendererIndexExists).toBe(true);
+  });
+
   it('serves the web bridge script pre-auth', async () => {
     const res = await fetch(`${base}/__omnidesk/web-bridge.js`);
     const js = await res.text();
