@@ -93,6 +93,7 @@
 - **Live mirror** — output fans out to every connected device; type a prompt anywhere and it shows up everywhere, with terminal history replayed on connect
 - **Token-secured** — binds `127.0.0.1` only and enforces its own access token (cookie + WebSocket check); off by default
 - **One-scan sign-in + installable PWA** — a QR whose link embeds the token signs you in on one scan, and you can **Add to Home Screen / Install** for a full-screen app that stays signed in across launches
+- **Built for touch** — on a phone the UI switches to a focused mobile layout (session drawer + full-screen terminal); tapping the terminal raises the keyboard, and an on-screen key bar sends Esc, Tab, Ctrl-combos, arrows, and newline so you can actually work from a phone
 - Open it from the activity-bar tunnel button or `Ctrl/Cmd+K → "Remote access…"`
 
 ### Terminal Features

@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-07-09
+
+### Added
+- **Mobile-ready remote access.** Opened on a phone, OmniDesk now switches to a focused mobile layout — a session drawer over a full-screen terminal — instead of the cramped desktop panels. Tapping the terminal raises the soft keyboard, and an on-screen key bar sends the keys a CLI needs but a touch keyboard lacks: Esc, Tab, sticky Ctrl (e.g. `Ctrl+C`), arrows, newline, common symbols, and paste. The view reflows as the keyboard opens so your prompt stays visible.
+- **PWA safe-area + icon polish.** The installed app respects device safe areas (notch / home indicator) via `viewport-fit=cover`, reflows for the on-screen keyboard, and ships a maskable 192px icon.
+
+### Changed
+- The desktop app is unchanged — the mobile experience activates only for remote browser/PWA clients on a touch device.
+
+---
+
 ## [2.2.0] - 2026-07-09
 
 ### Added
