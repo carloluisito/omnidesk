@@ -188,6 +188,19 @@ function App() {
     setMode('focus');
   }, [switchSession]);
 
+  // Mobile drawer: a session tap can cross projects, so make the session's repo
+  // active before switching. (The desktop rail is repo-scoped, so its
+  // handleSelectSession never needs this.)
+  const handleMobileSelectSession = useCallback((id: string) => {
+    const owner = repos.find(r => sessionsForRepo(r, sessions).some(s => s.id === id));
+    if (owner && owner.id !== activeRepoId) {
+      setActiveRepoId(owner.id);
+      setActiveGroupId(null);
+    }
+    switchSession(id);
+    setMode('focus');
+  }, [repos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
+
   const handleCloseRepo = useCallback((id: string) => {
     const target = repos.find(r => r.id === id);
     if (!target) return;
@@ -619,9 +632,11 @@ function App() {
           activeRepo={activeRepo}
           sessions={sessions}
           activeSessionId={activeSessionId}
-          onSelectSession={handleSelectSession}
+          onSelectSession={handleMobileSelectSession}
+          onSelectRepo={handleSelectRepo}
           onCloseSession={handleCloseSession}
           onNewSession={() => setShowNewSession(true)}
+          onAddRepo={() => setShowAddRepo(true)}
           onOpenRemote={() => setShowRemote(true)}
         />
       ) : (

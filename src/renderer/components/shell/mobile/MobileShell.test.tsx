@@ -7,7 +7,8 @@ const baseProps = {
   repos: [], activeRepo: { id: 'r1', name: 'demo' } as any,
   sessions: [{ id: 's1', name: 'work' }] as any,
   activeSessionId: 's1',
-  onSelectSession: noop, onCloseSession: noop, onNewSession: noop, onOpenRemote: noop,
+  onSelectSession: noop, onSelectRepo: noop, onCloseSession: noop,
+  onNewSession: noop, onAddRepo: noop, onOpenRemote: noop,
 };
 
 describe('MobileShell', () => {
