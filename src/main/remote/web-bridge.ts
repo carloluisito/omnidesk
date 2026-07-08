@@ -58,6 +58,8 @@ export function generateWebBridgeScript(
   // Flag so the renderer knows it is a remote (cold-attach) client and should
   // replay server-side scrollback when a terminal mounts. Not set in Electron.
   window.__OMNIDESK_REMOTE__ = true;
+  // Register the PWA service worker (remote client only; never in Electron).
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(function(){}); }
   window.electronAPI = api;
   connect();
 })();`;
