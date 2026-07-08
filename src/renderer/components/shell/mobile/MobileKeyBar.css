@@ -1,0 +1,27 @@
+.mkb {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--v2-surface-overlay, #14151d);
+  border-top: 1px solid var(--v2-border-strong, rgba(255,255,255,0.12));
+  padding-bottom: env(safe-area-inset-bottom); /* clears the home indicator */
+  font-family: "JetBrains Mono", monospace;
+  touch-action: manipulation; /* no 300ms tap delay / double-tap zoom */
+}
+.mkb-row { display: flex; gap: 4px; padding: 6px; overflow-x: auto; }
+.mkb-key {
+  min-width: 44px;   /* ≥44px touch target */
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid var(--v2-border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  background: var(--v2-surface-raised, #1b1d27);
+  color: var(--v2-text-secondary, #C0C4D6);
+  font-size: 15px;
+}
+.mkb-key:active { background: var(--v2-surface-active, #262935); }
+.mkb-key:disabled { opacity: 0.4; }
+.mkb-armed { border-color: var(--v2-accent, #00C9A7); color: var(--v2-accent, #00C9A7); }
