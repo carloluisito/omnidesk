@@ -22,6 +22,10 @@ import { useRepos } from './hooks/useRepos';
 import { useQuota } from './hooks/useQuota';
 import { useAgentViewAvailability } from './hooks/useAgentViewAvailability';
 import { useSessionPreviews } from './hooks/useSessionPreviews';
+import { useTouchMode } from './hooks/useTouchMode';
+import { MobileKeyBar } from './components/shell/mobile/MobileKeyBar';
+import { MobileShell } from './components/shell/mobile/MobileShell';
+import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { showToast } from './utils/toast';
@@ -127,6 +131,7 @@ function App() {
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
   const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
+  const touchMode = useTouchMode();
   // Pending close confirmation. null while no prompt is open.
   const [confirmClose, setConfirmClose] = useState<{ id: string; name: string } | null>(null);
   const [confirmCloseRepo, setConfirmCloseRepo] = useState<{
@@ -456,6 +461,19 @@ function App() {
     return m;
   }, [sessions]);
 
+  // Key-bar dispatch: identical close-dialog rule to the terminal's onData
+  // handler, so agent Ctrl+C opens the confirm dialog instead of killing Claude.
+  const dispatchMobileKey = useCallback((bytes: string) => {
+    if (!activeSessionId) return;
+    const kind = sessionKindMap[activeSessionId];
+    if (shouldShowCloseDialog(bytes, 0, kind)) {
+      const s = sessions.find(x => x.id === activeSessionId);
+      if (s) setConfirmClose({ id: s.id, name: s.name });
+      return;
+    }
+    sendInput(activeSessionId, bytes);
+  }, [activeSessionId, sessionKindMap, sessions, sendInput]);
+
   // ─── Native folder picker, used by AddRepoSheet "Browse…" ────
   const handlePickFolder = useCallback(async (): Promise<string | null> => {
     try {
@@ -467,7 +485,8 @@ function App() {
   }, []);
 
   // ─── Empty-state: no active repo (either nothing added, or all sessions closed)
-  if (!activeRepo) {
+  // Touch mode skips this desktop-only empty state — MobileShell renders its own.
+  if (!activeRepo && !touchMode) {
     const hasActive = reposWithSessions.length > 0;
     return (
       <>
@@ -594,6 +613,18 @@ function App() {
         if (id !== activeSessionId) void switchSession(id);
       }}
     >
+      {touchMode ? (
+        <MobileShell
+          repos={repos}
+          activeRepo={activeRepo}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={handleSelectSession}
+          onCloseSession={handleCloseSession}
+          onNewSession={() => setShowNewSession(true)}
+          onOpenRemote={() => setShowRemote(true)}
+        />
+      ) : (
       <div className={shellClass}>
         <TitleBar />
 
@@ -690,6 +721,9 @@ function App() {
           onOpenOtherReposLive={() => setRepoSwitcher({ anchorRect: null })}
         />
       </div>
+      )}
+
+      {touchMode && activeSessionId && <MobileKeyBar onKey={dispatchMobileKey} />}
 
       {repoSwitcher && (
         <RepoSwitcher

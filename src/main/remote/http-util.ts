@@ -33,12 +33,26 @@ const HEAD_TAGS = [
   '<meta name="theme-color" content="#0A0B11">',
 ].join('\n  ');
 
-/** Inject the bridge script + PWA head tags before </head> (prepend if absent). */
+// Remote clients need a notch-aware viewport that also reflows when the mobile
+// keyboard opens. Desktop index.html is untouched — this runs only on served HTML.
+const REMOTE_VIEWPORT =
+  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">';
+
+/**
+ * Inject the bridge script + PWA head tags before </head> (prepend if absent),
+ * and rewrite the viewport meta for safe-areas + keyboard reflow on remote clients.
+ */
 export function injectRemoteHead(html: string): string {
-  if (html.includes('</head>')) {
-    return html.replace('</head>', `  ${HEAD_TAGS}\n</head>`);
+  // Replace any existing viewport meta with the remote-optimized one.
+  const withViewport = html.replace(
+    /<meta\s+name="viewport"[^>]*>/i,
+    REMOTE_VIEWPORT,
+  );
+  const base = withViewport.includes('name="viewport"') ? withViewport : REMOTE_VIEWPORT + withViewport;
+  if (base.includes('</head>')) {
+    return base.replace('</head>', `  ${HEAD_TAGS}\n</head>`);
   }
-  return HEAD_TAGS + html;
+  return HEAD_TAGS + base;
 }
 
 /**
@@ -52,6 +66,7 @@ export function buildManifest(token: string): string {
     short_name: 'OmniDesk',
     start_url: `/?token=${encodeURIComponent(token)}`,
     scope: '/',
+    id: '/',
     display: 'standalone',
     orientation: 'any',
     theme_color: '#0A0B11',
@@ -59,6 +74,7 @@ export function buildManifest(token: string): string {
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
       { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   });

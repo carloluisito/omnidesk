@@ -10,6 +10,7 @@ import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from
 import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
 import { shouldShowCloseDialog, isNewlineChord, isOutputReady } from '../terminal/shell-key-rules';
 import type { SessionKind } from '../../shared/ipc-types';
+import { useTouchMode } from '../hooks/useTouchMode';
 import '@xterm/xterm/css/xterm.css';
 
 // Utility function to format paths for terminal (renderer-side implementation)
@@ -68,6 +69,7 @@ function providerIdToName(providerId?: ProviderId): string | undefined {
 }
 
 export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, readOnly = false, getKittyFlags, onInput, onResize, onReady }: TerminalProps) {
+  const touchMode = useTouchMode();
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -340,7 +342,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
         brightWhite:         '#E2E4F0',  // --term-bright-white
       },
       fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, monospace',
-      fontSize: 14,
+      fontSize: touchMode ? 15 : 14,
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
@@ -368,6 +370,18 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
 
     // Open terminal in container
     xterm.open(terminalRef.current);
+
+    // Mobile soft-keyboard support: xterm's own helper textarea is the real
+    // input element. Give it the attributes a touch keyboard needs; focusing it
+    // (via the container onClick, a user gesture) then raises the keyboard.
+    if (touchMode && xterm.textarea) {
+      const ta = xterm.textarea;
+      ta.setAttribute('inputmode', 'text');
+      ta.setAttribute('enterkeyhint', 'send');
+      ta.setAttribute('autocapitalize', 'off');
+      ta.setAttribute('autocorrect', 'off');
+      ta.setAttribute('spellcheck', 'false');
+    }
 
     // Allow browser-native paste (Ctrl+V / Cmd+V / Shift+Insert) and app shortcuts
     // Without this, xterm.js consumes these keys instead of letting the app handle them
@@ -484,6 +498,22 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
     };
   }, [isVisible]);
 
+  // Mobile: when the soft keyboard opens it shrinks the visual viewport. Refit
+  // so the prompt stays visible above the keyboard. ResizeObserver/window.resize
+  // don't reliably fire for a visualViewport-only change, so listen explicitly.
+  useEffect(() => {
+    if (!touchMode) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onChange = () => {
+      handleResizeRef.current?.();
+      xtermRef.current?.scrollToBottom();
+    };
+    vv.addEventListener('resize', onChange);
+    vv.addEventListener('scroll', onChange);
+    return () => { vv.removeEventListener('resize', onChange); vv.removeEventListener('scroll', onChange); };
+  }, [touchMode]);
+
   return (
     <>
       <ClaudeReadinessProgress
@@ -493,7 +523,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
 
       <div
         ref={terminalRef}
-        className="terminal"
+        className={'terminal' + (touchMode ? ' touch' : '')}
         aria-readonly={readOnly || undefined}
         style={{
           display:  isVisible ? 'block' : 'none',
@@ -835,6 +865,12 @@ export function MultiTerminal({
 
         .xterm-viewport {
           overflow-y: auto !important;
+        }
+
+        .terminal.touch .xterm-viewport {
+          touch-action: pan-y;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
         }
 
         .xterm-viewport::-webkit-scrollbar {

@@ -17,6 +17,22 @@ describe('injectRemoteHead', () => {
   });
 });
 
+describe('injectRemoteHead viewport override', () => {
+  const html = '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body></body></html>';
+  it('rewrites the viewport for safe-areas and keyboard reflow', () => {
+    const out = injectRemoteHead(html);
+    expect(out).toContain('viewport-fit=cover');
+    expect(out).toContain('interactive-widget=resizes-content');
+    // Only one viewport meta remains.
+    expect(out.match(/name="viewport"/g)?.length).toBe(1);
+  });
+  it('still injects the bridge script and manifest link', () => {
+    const out = injectRemoteHead(html);
+    expect(out).toContain('/__omnidesk/web-bridge.js');
+    expect(out).toContain('rel="manifest"');
+  });
+});
+
 describe('buildManifest', () => {
   it('is a standalone manifest with the token embedded in start_url', () => {
     const m = JSON.parse(buildManifest('tok+en/1'));
@@ -25,6 +41,14 @@ describe('buildManifest', () => {
     expect(m.scope).toBe('/');
     expect(m.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);
     expect(m.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true);
+  });
+});
+
+describe('buildManifest', () => {
+  it('has a stable id and a maskable-192 icon', () => {
+    const m = JSON.parse(buildManifest('tok'));
+    expect(m.id).toBe('/');
+    expect(m.icons.some((i: any) => i.sizes === '192x192' && i.purpose === 'maskable')).toBe(true);
   });
 });
 

@@ -1,0 +1,23 @@
+.ms-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--v2-surface-base, #0A0B11);
+}
+.ms-terminal { flex: 1 1 auto; min-height: 0; position: relative; }
+.ms-empty {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4, 16px);
+  color: var(--v2-text-secondary, #C0C4D6);
+  font-family: "JetBrains Mono", monospace;
+}
+.ms-primary {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--v2-accent, #00C9A7);
+  background: transparent;
+  color: var(--v2-accent, #00C9A7);
+}
