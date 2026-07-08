@@ -1,16 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { injectBridgeScript, mimeFor } from './http-util';
+import { injectRemoteHead, buildManifest, mimeFor } from './http-util';
 
-describe('injectBridgeScript', () => {
-  it('inserts the bridge script tag before </head>', () => {
-    const out = injectBridgeScript('<html><head><title>x</title></head><body></body></html>');
+describe('injectRemoteHead', () => {
+  it('injects the bridge script + manifest link + apple meta before </head>', () => {
+    const out = injectRemoteHead('<html><head><title>x</title></head><body></body></html>');
     expect(out).toContain('/__omnidesk/web-bridge.js');
-    expect(out.indexOf('/__omnidesk/web-bridge.js')).toBeLessThan(out.indexOf('</head>'));
+    expect(out).toContain('rel="manifest"');
+    expect(out).toContain('apple-mobile-web-app-capable');
+    expect(out).toContain('name="theme-color"');
+    expect(out.indexOf('rel="manifest"')).toBeLessThan(out.indexOf('</head>'));
   });
 
-  it('prepends the tag when there is no head', () => {
-    const out = injectBridgeScript('<body>hi</body>');
+  it('prepends the tags when there is no head', () => {
+    const out = injectRemoteHead('<body>hi</body>');
     expect(out.startsWith('<script')).toBe(true);
+  });
+});
+
+describe('buildManifest', () => {
+  it('is a standalone manifest with the token embedded in start_url', () => {
+    const m = JSON.parse(buildManifest('tok+en/1'));
+    expect(m.display).toBe('standalone');
+    expect(m.start_url).toBe('/?token=tok%2Ben%2F1');
+    expect(m.scope).toBe('/');
+    expect(m.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true);
+    expect(m.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true);
   });
 });
 
