@@ -6,6 +6,7 @@ import type { SubdirectoryEntry, GitRepoEntry, RemoteAccessStatus } from '../sha
 import type { RemoteAccessServer } from './remote/remote-access-server';
 import type { RemoteAuth } from './remote/remote-auth';
 import type { TunnelController } from './remote/tunnel-controller';
+import type { STTManager } from './stt/stt-manager';
 import { SessionManager } from './session-manager';
 import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
@@ -50,6 +51,7 @@ export function setupIPCHandlers(
   gitManager: GitManager,
   providerRegistry: ProviderRegistry,
   remoteAuth: RemoteAuth,
+  sttManager: STTManager,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
@@ -311,6 +313,12 @@ export function setupIPCHandlers(
   registry.handle('getSettings', async () => settingsManager.getSettings());
   registry.handle('setSettings', async (_e, partial) => settingsManager.mergeSettings(partial as Record<string, unknown>));
   registry.handle('listWorkspaces', async () => settingsManager.getWorkspaces());
+
+  // ── Speech-to-text ──
+  registry.handle('getSTTStatus', async () => sttManager.getStatus());
+  registry.handle('downloadSTTModel', async () => sttManager.downloadModel());
+  registry.handle('transcribeSpeech', async (_e, req) => sttManager.transcribe(req.pcm, req.language));
+  registry.handle('cancelTranscribe', async () => { sttManager.cancel(); });
 
   registry.handle('addWorkspace', async (_e, request) => {
     try { return settingsManager.addWorkspace(request); }
