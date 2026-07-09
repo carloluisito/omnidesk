@@ -95,8 +95,10 @@ export class STTManager {
       const text = await engine.transcribe(pcm, language ?? this.deps.getSettings().language);
       return { text };
     } catch (e) {
-      this.engineError = e instanceof Error ? e.message : String(e);
-      this.emit();
+      if (this.busyToken === token) { // ignore errors from a call the user already cancelled
+        this.engineError = e instanceof Error ? e.message : String(e);
+        this.emit();
+      }
       throw e;
     } finally {
       if (this.busyToken === token) this.busy = false; // don't clear busy set by a newer call

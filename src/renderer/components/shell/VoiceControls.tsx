@@ -21,7 +21,8 @@ function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
 
 export function VoiceControls({ sessionId: _sessionId, enabled, readOnly, hotkey, onInject }: VoiceControlsProps) {
   const stt = useSTT();
-  const active = enabled && !readOnly;
+  const isRemote = !!(window as unknown as { __OMNIDESK_REMOTE__?: boolean }).__OMNIDESK_REMOTE__;
+  const active = enabled && !readOnly && !isRemote;
 
   const submit = useCallback((text: string) => {
     if (text.trim()) onInject(text);

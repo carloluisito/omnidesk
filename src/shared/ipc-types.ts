@@ -279,11 +279,6 @@ export interface STTTranscribeResult {
   text: string;
 }
 
-export interface STTModelDownloadProgress {
-  receivedBytes: number;
-  totalBytes: number;
-}
-
 // Workspace create request
 export interface WorkspaceCreateRequest {
   name: string;

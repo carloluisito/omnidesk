@@ -8,6 +8,5 @@ describe('STT contract', () => {
     expect(channels.downloadSTTModel).toBe('stt:downloadModel');
     expect(channels.cancelTranscribe).toBe('stt:cancel');
     expect(channels.onSTTStatusChanged).toBe('stt:statusChanged');
-    expect(channels.onSTTModelDownloadProgress).toBe('stt:modelDownloadProgress');
   });
 });

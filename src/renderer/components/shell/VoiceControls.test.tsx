@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { VoiceControls } from './VoiceControls';
 
@@ -36,5 +36,17 @@ describe('VoiceControls', () => {
   it('renders nothing when disabled', () => {
     const { container } = render(<VoiceControls sessionId="s1" enabled={false} readOnly={false} hotkey="x" onInject={vi.fn()} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  describe('remote runtime', () => {
+    afterEach(() => {
+      delete (window as any).__OMNIDESK_REMOTE__;
+    });
+
+    it('renders nothing on the remote/mobile web bridge even when enabled', () => {
+      (window as any).__OMNIDESK_REMOTE__ = true;
+      const { container } = render(<VoiceControls sessionId="s1" enabled readOnly={false} hotkey="Ctrl+Shift+Space" onInject={vi.fn()} />);
+      expect(container.firstChild).toBeNull();
+    });
   });
 });

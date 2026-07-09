@@ -36,7 +36,6 @@ import type {
   STTStatus,
   STTTranscribeRequest,
   STTTranscribeResult,
-  STTModelDownloadProgress,
 } from './ipc-types';
 
 import type {
@@ -269,7 +268,6 @@ export interface IPCContractMap {
   cancelTranscribe:   InvokeContract<'stt:cancel',        [],                      void>;
 
   // ── Speech-to-text (events) ──
-  onSTTModelDownloadProgress: EventContract<'stt:modelDownloadProgress', STTModelDownloadProgress>;
   onSTTStatusChanged:         EventContract<'stt:statusChanged',         STTStatus>;
 }
 
@@ -434,7 +432,6 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   downloadSTTModel:           'stt:downloadModel',
   transcribeSpeech:           'stt:transcribe',
   cancelTranscribe:           'stt:cancel',
-  onSTTModelDownloadProgress: 'stt:modelDownloadProgress',
   onSTTStatusChanged:         'stt:statusChanged',
 
   // App info
@@ -586,7 +583,6 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   downloadSTTModel:           'invoke',
   transcribeSpeech:           'invoke',
   cancelTranscribe:           'invoke',
-  onSTTModelDownloadProgress: 'event',
   onSTTStatusChanged:         'event',
 };
 

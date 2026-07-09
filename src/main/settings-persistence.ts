@@ -527,16 +527,6 @@ export class SettingsManager {
     return this.settings.stt || defaults.stt!;
   }
 
-  mergeSTTSettings(partial: Partial<STTSettings>): STTSettings {
-    const next = {
-      ...this.getSTTSettings(),
-      ...partial,
-    };
-    this.settings.stt = next;
-    saveSettings(this.settings);
-    return next;
-  }
-
   private getValidationErrorMessage(error: string): string {
     switch (error) {
       case 'NOT_FOUND':
