@@ -33,6 +33,10 @@ import type {
   ClaudeModel,
   ModelSwitchEvent,
   RemoteAccessStatus,
+  STTStatus,
+  STTTranscribeRequest,
+  STTTranscribeResult,
+  STTModelDownloadProgress,
 } from './ipc-types';
 
 import type {
@@ -257,6 +261,16 @@ export interface IPCContractMap {
 
   // ── Agent View availability event (main→renderer) ──
   onAgentViewAvailabilityChanged: EventContract<'agentView:availabilityChanged', AgentViewAvailability>;
+
+  // ── Speech-to-text (invoke) ──
+  getSTTStatus:       InvokeContract<'stt:status',        [],                      STTStatus>;
+  downloadSTTModel:   InvokeContract<'stt:downloadModel', [],                      STTStatus>;
+  transcribeSpeech:   InvokeContract<'stt:transcribe',    [STTTranscribeRequest],  STTTranscribeResult>;
+  cancelTranscribe:   InvokeContract<'stt:cancel',        [],                      void>;
+
+  // ── Speech-to-text (events) ──
+  onSTTModelDownloadProgress: EventContract<'stt:modelDownloadProgress', STTModelDownloadProgress>;
+  onSTTStatusChanged:         EventContract<'stt:statusChanged',         STTStatus>;
 }
 
 // ─── Runtime channel map ────────────────────────────────────────────
@@ -415,6 +429,14 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   regenerateRemoteToken: 'remote:regenerateToken',
   installTunnel:         'remote:installTunnel',
 
+  // Speech-to-text
+  getSTTStatus:               'stt:status',
+  downloadSTTModel:           'stt:downloadModel',
+  transcribeSpeech:           'stt:transcribe',
+  cancelTranscribe:           'stt:cancel',
+  onSTTModelDownloadProgress: 'stt:modelDownloadProgress',
+  onSTTStatusChanged:         'stt:statusChanged',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 
@@ -559,6 +581,13 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
 
   getAgentViewAvailability: 'invoke',
   onAgentViewAvailabilityChanged: 'event',
+
+  getSTTStatus:               'invoke',
+  downloadSTTModel:           'invoke',
+  transcribeSpeech:           'invoke',
+  cancelTranscribe:           'invoke',
+  onSTTModelDownloadProgress: 'event',
+  onSTTStatusChanged:         'event',
 };
 
 // ─── Derived ElectronAPI type ───────────────────────────────────────

@@ -216,6 +216,7 @@ export interface AppSettings {
   focusMode?: boolean;
   // Remote access (serve OmniDesk over a tunnel)
   remoteAccess?: RemoteAccessSettings;
+  stt?: STTSettings;
 }
 
 // Remote access persisted settings
@@ -239,6 +240,48 @@ export interface RemoteAccessStatus {
   tunnel: { state: RemoteTunnelState; url?: string; error?: string };
   /** Whether a usable cloudflared binary was found (PATH or managed copy). */
   cloudflaredInstalled: boolean;
+}
+
+// ── Speech-to-text (STT) ──
+export type STTModel = 'tiny.en' | 'base.en' | 'small.en';
+
+export type STTAvailabilityReason =
+  | 'ready'                 // model present + engine healthy
+  | 'disabled'              // STTSettings.enabled === false
+  | 'model-missing'         // enabled but no model file yet
+  | 'downloading'           // model download in progress
+  | 'unsupported-platform'  // no prebuilt binding for this platform/arch
+  | 'engine-error';         // binding failed to load / repeated crash
+
+export interface STTStatus {
+  available: boolean;              // true only when reason === 'ready'
+  reason: STTAvailabilityReason;
+  model: STTModel;
+  modelPresent: boolean;
+  downloadProgress?: number;       // 0..1, only while reason === 'downloading'
+  error?: string;
+}
+
+export interface STTSettings {
+  enabled: boolean;                // default false (opt-in)
+  model: STTModel;                 // default 'base.en'
+  hotkey: string;                  // default 'Ctrl+Shift+Space'
+  language: 'auto' | 'en';         // default 'en'
+}
+
+/** 16 kHz mono Int16 LE PCM samples for one utterance. */
+export interface STTTranscribeRequest {
+  pcm: ArrayBuffer;
+  language?: 'auto' | 'en';
+}
+
+export interface STTTranscribeResult {
+  text: string;
+}
+
+export interface STTModelDownloadProgress {
+  receivedBytes: number;
+  totalBytes: number;
 }
 
 // Workspace create request
