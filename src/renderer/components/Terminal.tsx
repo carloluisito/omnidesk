@@ -3,6 +3,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { VoiceControls } from './shell/VoiceControls';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
@@ -77,6 +78,8 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
   const handleResizeRef = useRef<() => void>(() => {});
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClaudeReady, setIsClaudeReady] = useState(false);
+  const [sttEnabled, setSttEnabled] = useState(false);
+  const [sttHotkey, setSttHotkey] = useState('Ctrl+Shift+Space');
 
   // Drag-drop state (ask-mode UI retired — files are inserted immediately per settings.defaultInsertMode)
   const [isDragging, setIsDragging] = useState(false);
@@ -93,6 +96,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
         if (appSettings.dragDropSettings) {
           setSettings(appSettings.dragDropSettings);
         }
+        if (appSettings.stt) { setSttEnabled(appSettings.stt.enabled); setSttHotkey(appSettings.stt.hotkey); }
       } catch (err) {
         console.error('Failed to load drag-drop settings:', err);
       }
@@ -571,6 +575,15 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
           </div>
         )}
 
+        {isVisible && (
+          <VoiceControls
+            sessionId={sessionId}
+            enabled={sttEnabled}
+            readOnly={readOnly}
+            hotkey={sttHotkey}
+            onInject={(text) => xtermRef.current?.paste(text)}
+          />
+        )}
       </div>
 
       <ConfirmDialog
