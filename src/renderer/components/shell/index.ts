@@ -21,3 +21,4 @@ export { RightInspector } from './RightInspector';
 export { TitleBar } from './TitleBar';
 export { StatusBar } from './StatusBar';
 export { RemoteAccessPanel } from './RemoteAccessPanel';
+export { VoiceSettingsPanel } from './VoiceSettingsPanel';
