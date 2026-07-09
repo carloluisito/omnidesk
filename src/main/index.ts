@@ -293,7 +293,7 @@ function createWindow(): void {
 
   // Warm the STT engine off the synchronous critical path (loads the model if
   // already cached; no-op if voice is disabled or the model isn't downloaded).
-  setTimeout(() => { void sttManager.warmUp(); }, 3000);
+  setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed()) void sttManager.warmUp(); }, 3000);
 
   // Run history cleanup on startup
   historyManager.runCleanup().catch(err => {
