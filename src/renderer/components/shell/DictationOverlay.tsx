@@ -1,0 +1,76 @@
+import { useEffect, useRef } from 'react';
+import type { STTPhase } from '../../hooks/useSTT';
+
+interface DictationOverlayProps {
+  phase: STTPhase;
+  transcript: string;
+  error: string | null;
+  downloadProgress?: number;
+  onChange: (t: string) => void;
+  onSubmit: (t: string) => void;
+  onDiscard: () => void;
+  onRetry: () => void;
+}
+
+export function DictationOverlay({
+  phase, transcript, error, downloadProgress, onChange, onSubmit, onDiscard, onRetry,
+}: DictationOverlayProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { if (phase === 'review') ref.current?.focus(); }, [phase]);
+
+  if (phase === 'idle') return null;
+
+  const wrap = {
+    position: 'absolute', bottom: 'var(--space-4)', left: '50%', transform: 'translateX(-50%)',
+    zIndex: 20, minWidth: '340px', maxWidth: '70%',
+    background: 'color-mix(in srgb, var(--v2-surface-overlay) 94%, transparent)',
+    border: '1px solid var(--v2-border-default)', borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-3)', fontFamily: '"JetBrains Mono", monospace',
+    color: 'var(--v2-text-primary)', boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.4))',
+  } as const;
+
+  const label = (text: string, color = 'var(--v2-accent)') => (
+    <span style={{ fontSize: 'var(--text-xs)', color }}>{text}</span>
+  );
+
+  return (
+    <div style={wrap} role="dialog" aria-label="Voice dictation">
+      {phase === 'recording' && label('● Listening… release to transcribe', 'var(--term-red, #F7678E)')}
+      {phase === 'permission' && label('Requesting microphone…')}
+      {phase === 'transcribing' && label('Transcribing…')}
+      {phase === 'error' && (
+        <div>
+          {label(error ?? 'Something went wrong', 'var(--v2-danger, #F7678E)')}
+          <button onClick={onRetry} style={{ marginLeft: 'var(--space-2)' }}>Retry</button>
+        </div>
+      )}
+      {typeof downloadProgress === 'number' && phase !== 'review' &&
+        label(`Downloading model… ${Math.round(downloadProgress * 100)}%`)}
+      {phase === 'review' && (
+        <>
+          <textarea
+            ref={ref}
+            value={transcript}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(transcript); }
+              if (e.key === 'Escape') { e.preventDefault(); onDiscard(); }
+            }}
+            rows={2}
+            style={{
+              width: '100%', background: 'var(--v2-surface-base, #0D0E14)',
+              color: 'var(--v2-text-primary)', border: '1px solid var(--v2-border-subtle)',
+              borderRadius: 'var(--radius-sm)', padding: 'var(--space-2)',
+              fontFamily: 'inherit', fontSize: 'var(--text-sm)', resize: 'none',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', justifyContent: 'flex-end' }}>
+            <button onClick={onDiscard}>Discard (Esc)</button>
+            <button onClick={onRetry}>Re-record</button>
+            <button onClick={() => onSubmit(transcript)}>Send (Enter)</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
