@@ -32,4 +32,11 @@ describe('DictationOverlay', () => {
     fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' });
     expect(onDiscard).toHaveBeenCalled();
   });
+
+  it('review: Shift+Enter does NOT submit (allows newline)', () => {
+    const onSubmit = vi.fn();
+    render(<DictationOverlay phase="review" {...base} transcript="hello" onSubmit={onSubmit} />);
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', shiftKey: true });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

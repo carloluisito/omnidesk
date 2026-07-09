@@ -20,6 +20,18 @@ export function DictationOverlay({
 
   if (phase === 'idle') return null;
 
+  const btn = {
+    fontFamily: 'inherit',
+    fontSize: 'var(--text-xs)',
+    padding: 'var(--space-1) var(--space-2)',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--v2-border-default)',
+    background: 'var(--v2-surface-base, #0D0E14)',
+    color: 'var(--v2-text-primary)',
+    cursor: 'pointer',
+  } as const;
+  const btnPrimary = { ...btn, border: '1px solid var(--v2-accent)', color: 'var(--v2-accent)' } as const;
+
   const wrap = {
     position: 'absolute', bottom: 'var(--space-4)', left: '50%', transform: 'translateX(-50%)',
     zIndex: 20, minWidth: '340px', maxWidth: '70%',
@@ -40,8 +52,8 @@ export function DictationOverlay({
       {phase === 'transcribing' && label('Transcribing…')}
       {phase === 'error' && (
         <div>
-          {label(error ?? 'Something went wrong', 'var(--v2-danger, #F7678E)')}
-          <button onClick={onRetry} style={{ marginLeft: 'var(--space-2)' }}>Retry</button>
+          {label(error ?? 'Something went wrong', 'var(--v2-error, #F7678E)')}
+          <button type="button" onClick={onRetry} style={{ ...btn, marginLeft: 'var(--space-2)' }}>Retry</button>
         </div>
       )}
       {typeof downloadProgress === 'number' && phase !== 'review' &&
@@ -65,9 +77,9 @@ export function DictationOverlay({
             }}
           />
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', justifyContent: 'flex-end' }}>
-            <button onClick={onDiscard}>Discard (Esc)</button>
-            <button onClick={onRetry}>Re-record</button>
-            <button onClick={() => onSubmit(transcript)}>Send (Enter)</button>
+            <button type="button" onClick={onDiscard} style={btn}>Discard (Esc)</button>
+            <button type="button" onClick={onRetry} style={btn}>Re-record</button>
+            <button type="button" onClick={() => onSubmit(transcript)} style={btnPrimary}>Send (Enter)</button>
           </div>
         </>
       )}
