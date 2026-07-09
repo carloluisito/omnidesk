@@ -64,7 +64,9 @@ export class PcmRecorder {
     const resampled = resampleLinear(mono, this.inRate, TARGET_RATE);
     const int16 = floatToInt16(resampled);
     this.dispose();
-    return int16.buffer;
+    // floatToInt16 allocates a fresh Int16Array, so its backing store is a real
+    // ArrayBuffer (never SharedArrayBuffer); the cast narrows ArrayBufferLike.
+    return int16.buffer as ArrayBuffer;
   }
 
   dispose(): void {
