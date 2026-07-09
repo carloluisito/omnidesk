@@ -39,6 +39,7 @@ interface Deps {
 export class STTManager {
   private engine: EngineHandle | null = null;
   private busy = false;
+  private busyToken = 0;
   private downloading = false;
   private engineError?: string;
 
@@ -64,6 +65,7 @@ export class STTManager {
   }
 
   async downloadModel(): Promise<STTStatus> {
+    this.engineError = undefined;
     if (this.downloading) return this.getStatus();
     const s = this.deps.getSettings();
     this.downloading = true;
@@ -82,9 +84,11 @@ export class STTManager {
 
   async transcribe(pcm: ArrayBuffer, language?: 'auto' | 'en'): Promise<STTTranscribeResult> {
     if (this.busy) throw new Error('STT busy: a transcription is already in progress');
+    this.engineError = undefined; // a fresh attempt clears a prior engine error (enables respawn recovery)
     const status = this.getStatus();
     if (!status.available) throw new Error(`STT not available: ${status.reason}`);
     this.busy = true;
+    const token = ++this.busyToken;
     try {
       const engine = this.ensureEngine();
       await engine.ensureLoaded(modelIdFor(this.deps.getSettings().model));
@@ -95,19 +99,21 @@ export class STTManager {
       this.emit();
       throw e;
     } finally {
-      this.busy = false;
+      if (this.busyToken === token) this.busy = false; // don't clear busy set by a newer call
     }
   }
 
   cancel(): void {
+    this.busyToken++; // invalidate any in-flight transcribe's busy release
+    this.busy = false;
     if (this.engine) {
       this.engine.stop();
       this.engine = null;
-      this.busy = false;
     }
   }
 
   async warmUp(): Promise<void> {
+    this.engineError = undefined;
     if (this.getStatus().reason !== 'ready') return;
     try {
       await this.ensureEngine().ensureLoaded(modelIdFor(this.deps.getSettings().model));

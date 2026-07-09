@@ -69,4 +69,44 @@ describe('STTManager', () => {
     m.shutdown();
     expect(engine.stop).toHaveBeenCalledTimes(1);
   });
+
+  it('cancel stops the engine; a later transcribe uses a fresh engine', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sttm-'));
+    const cacheDir = modelCacheDir(dir, 'base.en');
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, 'config.json'), '{}');
+    const engines: EngineHandle[] = [];
+    const m = new STTManager({
+      getSettings: () => ({ enabled: true, model: 'base.en', hotkey: 'x', language: 'en' }),
+      modelsDir: dir,
+      engineFactory: () => { const e = fakeEngine('t'); engines.push(e); return e; },
+    });
+    await m.transcribe(new Int16Array([0]).buffer);
+    m.cancel();
+    expect(engines[0].stop).toHaveBeenCalledTimes(1);
+    await m.transcribe(new Int16Array([0]).buffer);
+    expect(engines.length).toBe(2);
+  });
+
+  it('recovers on a later transcribe after an engine error', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sttm-'));
+    const cacheDir = modelCacheDir(dir, 'base.en');
+    fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, 'config.json'), '{}');
+    const engine = fakeEngine('recovered');
+    let call = 0;
+    (engine.transcribe as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      call++;
+      return call === 1 ? Promise.reject(new Error('boom')) : Promise.resolve('recovered');
+    });
+    const m = new STTManager({
+      getSettings: () => ({ enabled: true, model: 'base.en', hotkey: 'x', language: 'en' }),
+      modelsDir: dir,
+      engineFactory: () => engine,
+    });
+    await expect(m.transcribe(new Int16Array([0]).buffer)).rejects.toThrow(/boom/);
+    expect(m.getStatus()).toMatchObject({ reason: 'engine-error' });
+    await expect(m.transcribe(new Int16Array([0]).buffer)).resolves.toEqual({ text: 'recovered' });
+    expect(m.getStatus()).toMatchObject({ reason: 'ready' });
+  });
 });

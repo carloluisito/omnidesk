@@ -15,6 +15,7 @@ export function createUtilityEngine(modelsDir: string): EngineHandle {
   let nextId = 1;
   const pending = new Map<number, { resolve: (t: string) => void; reject: (e: Error) => void }>();
   let loadWaiter: { resolve: () => void; reject: (e: Error) => void } | null = null;
+  let loadPromise: Promise<void> | null = null;
 
   function spawn(): void {
     child = utilityProcess.fork(path.join(__dirname, 'stt-engine.worker.js'), [], {
@@ -45,23 +46,32 @@ export function createUtilityEngine(modelsDir: string): EngineHandle {
       pending.clear();
       loadWaiter?.reject(new Error('STT engine exited'));
       loadWaiter = null;
+      loadPromise = null;
     });
   }
 
   return {
     async ensureLoaded(modelRef: string): Promise<void> {
-      if (!child) {
-        spawn();
-        loaded = false;
-      }
+      if (!child) { spawn(); loaded = false; loadedRef = ''; }
       if (loaded && loadedRef === modelRef) return;
-      await new Promise<void>((resolve, reject) => {
+      // Serialize concurrent loads — a shared loadWaiter must never be overwritten.
+      while (loadPromise) {
+        await loadPromise;
+        if (loaded && loadedRef === modelRef) return;
+      }
+      loadPromise = new Promise<void>((resolve, reject) => {
         loadWaiter = { resolve, reject };
         (child as UtilityProcess).postMessage({ type: 'load', modelPath: modelRef } as WorkerIn);
       });
-      loadedRef = modelRef;
+      try {
+        await loadPromise;
+        loadedRef = modelRef;
+      } finally {
+        loadPromise = null;
+      }
     },
     transcribe(pcm: ArrayBuffer, language: string): Promise<string> {
+      if (!child) return Promise.reject(new Error('STT engine exited'));
       const id = nextId++;
       return new Promise<string>((resolve, reject) => {
         pending.set(id, { resolve, reject });
