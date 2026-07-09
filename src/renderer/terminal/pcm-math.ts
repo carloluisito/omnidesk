@@ -1,5 +1,6 @@
 /** Average N channel buffers (equal length) into one mono buffer. */
 export function downmixToMono(channels: Float32Array[]): Float32Array {
+  if (channels.length === 0) return new Float32Array(0);
   if (channels.length === 1) return channels[0];
   const len = channels[0].length;
   const out = new Float32Array(len);
