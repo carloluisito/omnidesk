@@ -1,4 +1,4 @@
-import { downmixToMono, resampleLinear, floatToInt16 } from './pcm-math';
+import { downmixToMono, resampleLinear, floatToInt16 } from '../../shared/pcm-math';
 
 const TARGET_RATE = 16000;
 
