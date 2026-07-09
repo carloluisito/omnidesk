@@ -24,26 +24,56 @@ export function isModelPresent(destDir: string, model: STTModel): boolean {
   try { return fs.statSync(modelPath(destDir, model)).size > 0; } catch { return false; }
 }
 
-function get(url: string, onData: (chunk: Buffer) => void, onTotal: (n: number) => void, redirects = 5): Promise<void> {
+function fetchToFile(
+  url: string,
+  dest: string,
+  expectedSha: string,
+  onProgress: ((received: number, total: number) => void) | undefined,
+  redirects = 5,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (redirects < 0) return reject(new Error('Too many redirects'));
+    if (redirects < 0) { reject(new Error('Too many redirects')); return; }
     https.get(url, (res) => {
       const status = res.statusCode ?? 0;
       if (status >= 300 && status < 400 && res.headers.location) {
         res.resume();
-        get(res.headers.location, onData, onTotal, redirects - 1).then(resolve, reject);
+        fetchToFile(res.headers.location, dest, expectedSha, onProgress, redirects - 1).then(resolve, reject);
         return;
       }
-      if (status !== 200) { res.resume(); return reject(new Error(`Download failed (HTTP ${status})`)); }
-      onTotal(Number(res.headers['content-length'] ?? 0));
-      res.on('data', onData);
-      res.on('end', resolve);
-      res.on('error', reject);
+      if (status !== 200) { res.resume(); reject(new Error(`Download failed (HTTP ${status})`)); return; }
+
+      const total = Number(res.headers['content-length'] ?? 0);
+      let received = 0;
+      const tmp = `${dest}.download`;
+      const file = fs.createWriteStream(tmp);
+      const hash = crypto.createHash('sha256');
+
+      // Any stream error must reject (an unhandled write-stream 'error' would
+      // otherwise throw as an uncaught exception and can crash the main process).
+      // Destroy the write stream BEFORE removing the temp file — on Windows,
+      // deleting a file with an open handle fails and leaks the .download temp.
+      const fail = (e: Error) => { file.destroy(); fs.rm(tmp, { force: true }, () => reject(e)); };
+
+      res.on('data', (chunk: Buffer) => { hash.update(chunk); received += chunk.length; onProgress?.(received, total); });
+      res.on('error', fail);
+      file.on('error', fail);
+      res.pipe(file); // pipe handles backpressure
+
+      file.on('finish', () => {
+        file.close(() => {
+          const actual = hash.digest('hex');
+          if (expectedSha && !expectedSha.startsWith('PLACEHOLDER') && actual !== expectedSha) {
+            fs.rm(tmp, { force: true }, () => reject(new Error(`Checksum mismatch for ${dest}`)));
+            return;
+          }
+          try { fs.renameSync(tmp, dest); resolve(); }
+          catch (e) { reject(e as Error); }
+        });
+      });
     }).on('error', reject);
   });
 }
 
-/** Download a ggml model into destDir with progress + checksum verification. */
 export async function downloadModel(
   model: STTModel,
   destDir: string,
@@ -51,28 +81,6 @@ export async function downloadModel(
 ): Promise<string> {
   fs.mkdirSync(destDir, { recursive: true });
   const finalPath = modelPath(destDir, model);
-  const tmp = `${finalPath}.download`;
-  const file = fs.createWriteStream(tmp);
-  const hash = crypto.createHash('sha256');
-  let received = 0, total = 0;
-
-  try {
-    await get(
-      modelUrl(model),
-      (chunk) => { file.write(chunk); hash.update(chunk); received += chunk.length; onProgress?.(received, total); },
-      (n) => { total = n; },
-    );
-    await new Promise<void>((res, rej) => file.end((e?: Error) => (e ? rej(e) : res())));
-
-    const expected = modelSha256(model);
-    const actual = hash.digest('hex');
-    if (expected && !expected.startsWith('PLACEHOLDER') && actual !== expected) {
-      throw new Error(`Checksum mismatch for ${model}`);
-    }
-    fs.renameSync(tmp, finalPath);
-    return finalPath;
-  } catch (e) {
-    fs.rm(tmp, { force: true }, () => { /* noop */ });
-    throw e;
-  }
+  await fetchToFile(modelUrl(model), finalPath, modelSha256(model), onProgress);
+  return finalPath;
 }
