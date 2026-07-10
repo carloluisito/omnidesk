@@ -192,6 +192,13 @@ export class CLIManager {
   private options: CLIManagerOptions;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
+  // Deferred provider launch: the CLI (e.g. `claude`) is launched only once the
+  // renderer reports the real terminal size, so it never paints its startup UI
+  // at the default 80×24 and then reflows garbled. See armDeferredLaunch().
+  private launchDeferred: boolean = false;
+  private providerLaunched: boolean = false;
+  private launchTimer: NodeJS.Timeout | null = null;
+  private readonly LAUNCH_FALLBACK_MS = 500; // launch anyway if no resize arrives
   private currentModel: ClaudeModel | null = null;
   private initialDetectionBuffer: string = '';
   private initialDetectionDone: boolean = false;
@@ -259,10 +266,10 @@ export class CLIManager {
       this.write(`cd '${escapedDir}'\r`);
     }
 
-    this.launchProviderCommand();
+    this.armDeferredLaunch();
     this._isInitialized = true;
 
-    // Wait for Claude to launch
+    // Brief settle for the pool shell before the (deferred) provider launch.
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
@@ -272,8 +279,34 @@ export class CLIManager {
    */
   async spawn(): Promise<void> {
     await this.createPtyProcess();
-    this.launchProviderCommand();
+    this.armDeferredLaunch();
     this._isInitialized = true;
+  }
+
+  /**
+   * Arm a deferred provider launch. Rather than running `claude` immediately
+   * into the default 80×24 PTY, we wait for the renderer's first resize (which
+   * carries the real terminal dimensions) and launch then — so the CLI renders
+   * its startup UI at the correct width instead of painting at 80 cols and
+   * leaving a garbled frame until the user manually resizes the window.
+   *
+   * A fallback timer launches anyway if no resize arrives (e.g. the pane is
+   * hidden at create time), preserving the previous behaviour as a floor.
+   */
+  private armDeferredLaunch(): void {
+    this.launchDeferred = true;
+    this.launchTimer = setTimeout(() => this.launchProviderCommandOnce(), this.LAUNCH_FALLBACK_MS);
+  }
+
+  /** Launch the provider command exactly once; cancels the fallback timer. */
+  private launchProviderCommandOnce(): void {
+    if (!this.launchDeferred || this.providerLaunched) return;
+    this.providerLaunched = true;
+    if (this.launchTimer) {
+      clearTimeout(this.launchTimer);
+      this.launchTimer = null;
+    }
+    this.launchProviderCommand();
   }
 
   /**
@@ -534,12 +567,20 @@ export class CLIManager {
   resize(size: TerminalSize): void {
     if (this.ptyProcess && this._isRunning) {
       this.ptyProcess.resize(size.cols, size.rows);
+      // The first real resize releases the deferred provider launch, so the CLI
+      // starts at the correct dimensions. Idempotent for later resizes and a
+      // no-op for shell sessions (which never arm a deferred launch).
+      this.launchProviderCommandOnce();
     }
   }
 
   destroy(): void {
     this._isRunning = false;
     this._isInitialized = false;
+    if (this.launchTimer) {
+      clearTimeout(this.launchTimer);
+      this.launchTimer = null;
+    }
     if (this.flushTimeout) {
       clearTimeout(this.flushTimeout);
       this.flushTimeout = null;
