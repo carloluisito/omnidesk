@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { KEY_BYTES, ctrlByte, stickyCtrlReducer } from '../../../terminal/mobile-keys';
 import './MobileKeyBar.css';
 
@@ -24,6 +24,19 @@ export function MobileKeyBar({ onKey }: { onKey: (bytes: string) => void }) {
   const [ctrl, dispatch] = useReducer(stickyCtrlReducer, { armed: false });
   const [showSymbols, setShowSymbols] = useState(false);
   const [bottom, setBottom] = useState(0);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  // Publish the bar's occupied height (incl. safe-area padding) so the terminal
+  // slot can reserve room for it and not paint content behind the bar. Height
+  // only changes when the symbols row toggles, so republish on that.
+  useLayoutEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    document.documentElement.style.setProperty('--omni-keybar-h', `${el.offsetHeight}px`);
+  }, [showSymbols]);
+  useEffect(() => () => {
+    document.documentElement.style.removeProperty('--omni-keybar-h');
+  }, []);
 
   // Sit directly above the soft keyboard: on iOS the layout viewport does not
   // shrink, so translate up by the keyboard's occluded height from visualViewport.
@@ -57,7 +70,7 @@ export function MobileKeyBar({ onKey }: { onKey: (bytes: string) => void }) {
   };
 
   return (
-    <div className="mkb" style={{ bottom }} role="toolbar" aria-label="Terminal keys">
+    <div ref={barRef} className="mkb" style={{ bottom }} role="toolbar" aria-label="Terminal keys">
       {showSymbols && (
         <div className="mkb-row mkb-symbols">
           {SYMBOLS.map(s => (
