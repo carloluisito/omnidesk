@@ -9,6 +9,7 @@ import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
 import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
 import { shouldShowCloseDialog, isNewlineChord, isOutputReady } from '../terminal/shell-key-rules';
+import { takeScrollLines, TOUCH_SCROLL_THRESHOLD_PX } from '../terminal/touch-scroll';
 import type { SessionKind } from '../../shared/ipc-types';
 import { useTouchMode } from '../hooks/useTouchMode';
 import '@xterm/xterm/css/xterm.css';
@@ -512,6 +513,75 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
     vv.addEventListener('resize', onChange);
     vv.addEventListener('scroll', onChange);
     return () => { vv.removeEventListener('resize', onChange); vv.removeEventListener('scroll', onChange); };
+  }, [touchMode]);
+
+  // Mobile: xterm only scrolls the viewport on touch-drag when the program has
+  // NOT enabled mouse tracking. Agentic CLIs (Claude, Codex) turn mouse tracking
+  // ON, so xterm forwards touches as mouse input and the scrollback can't be
+  // reached by finger. Drive scrollback ourselves for those sessions. When mouse
+  // tracking is off we leave xterm's own handling alone (no double-scroll).
+  useEffect(() => {
+    if (!touchMode) return;
+    const el = terminalRef.current;
+    if (!el) return;
+
+    let lastY = 0;
+    let startY = 0;
+    let accumPx = 0;
+    let engaged = false; // crossed the tap→scroll threshold this gesture
+    let active = false;  // this session needs our custom handling
+
+    const rowPx = (): number => {
+      const x = xtermRef.current;
+      const box = x?.element?.getBoundingClientRect();
+      return box && x && x.rows > 0 ? box.height / x.rows : 18;
+    };
+
+    const onStart = (e: TouchEvent) => {
+      const x = xtermRef.current;
+      active =
+        !!x &&
+        e.touches.length === 1 &&
+        x.modes.mouseTrackingMode !== 'none' &&
+        x.buffer.active.type === 'normal';
+      if (!active) return;
+      startY = lastY = e.touches[0].clientY;
+      accumPx = 0;
+      engaged = false;
+    };
+
+    const onMove = (e: TouchEvent) => {
+      const x = xtermRef.current;
+      if (!active || !x || e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      if (!engaged) {
+        // Wait until the finger has clearly moved before hijacking, so taps
+        // (which fire synthesized clicks the CLI needs) still get through.
+        if (Math.abs(y - startY) < TOUCH_SCROLL_THRESHOLD_PX) { lastY = y; return; }
+        engaged = true;
+        lastY = y;
+      }
+      accumPx += lastY - y; // finger up (y↓) => positive => scroll toward newest
+      lastY = y;
+      const { lines, remainderPx } = takeScrollLines(accumPx, rowPx());
+      accumPx = remainderPx;
+      if (lines !== 0) x.scrollLines(lines);
+      e.preventDefault();  // stop page rubber-band + mouse-event synthesis
+      e.stopPropagation();
+    };
+
+    const onEnd = () => { active = false; engaged = false; };
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    el.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
   }, [touchMode]);
 
   return (
