@@ -11,6 +11,22 @@
   font-family: "JetBrains Mono", monospace;
   touch-action: manipulation; /* no 300ms tap delay / double-tap zoom */
 }
+/* Collapse handle: a thin full-width tap strip. When collapsed, it's all that
+   remains, reclaiming the key rows' space for the terminal. */
+.mkb-handle {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 26px;
+  border: none; background: transparent;
+  color: var(--v2-text-tertiary, #6b7089);
+  touch-action: manipulation;
+}
+.mkb-collapsed .mkb-handle { height: 34px; } /* bigger target when it stands alone */
+.mkb-handle-icon {
+  display: block; min-width: 44px; text-align: center;
+  font-size: 13px; line-height: 1;
+}
+.mkb-handle:active { color: var(--v2-text-secondary, #C0C4D6); }
+
 .mkb-row { display: flex; gap: 4px; padding: 6px; overflow-x: auto; }
 .mkb-key {
   min-width: 44px;   /* ≥44px touch target */

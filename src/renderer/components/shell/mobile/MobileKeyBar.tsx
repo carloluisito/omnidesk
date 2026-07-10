@@ -19,24 +19,39 @@ const PRIMARY: KeyDef[] = [
 const SYMBOLS = ['|', '~', '/', '-'];
 // Ctrl-armed letters exposed for one-tap combos (e.g. Ctrl+C).
 const CTRL_LETTERS = ['c', 'd', 'z', 'l'];
+// Remember the collapsed choice across launches (nice for an installed PWA).
+const COLLAPSED_KEY = 'omnidesk.mkb.collapsed';
 
 export function MobileKeyBar({ onKey }: { onKey: (bytes: string) => void }) {
   const [ctrl, dispatch] = useReducer(stickyCtrlReducer, { armed: false });
   const [showSymbols, setShowSymbols] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSED_KEY) === '1'; } catch { return false; }
+  });
   const [bottom, setBottom] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
 
   // Publish the bar's occupied height (incl. safe-area padding) so the terminal
-  // slot can reserve room for it and not paint content behind the bar. Height
-  // only changes when the symbols row toggles, so republish on that.
+  // slot can reserve room for it and not paint content behind the bar. Republish
+  // whenever the height can change: symbols row toggle, or collapse/expand.
   useLayoutEffect(() => {
     const el = barRef.current;
     if (!el) return;
     document.documentElement.style.setProperty('--omni-keybar-h', `${el.offsetHeight}px`);
-  }, [showSymbols]);
+  }, [showSymbols, collapsed]);
   useEffect(() => () => {
     document.documentElement.style.removeProperty('--omni-keybar-h');
   }, []);
+
+  // Persist the collapsed choice.
+  useEffect(() => {
+    try { localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0'); } catch { /* ignore */ }
+  }, [collapsed]);
+
+  const toggleCollapsed = () => setCollapsed(c => {
+    if (!c) setShowSymbols(false); // collapsing also folds the symbols row away
+    return !c;
+  });
 
   // Sit directly above the soft keyboard: on iOS the layout viewport does not
   // shrink, so translate up by the keyboard's occluded height from visualViewport.
@@ -70,7 +85,23 @@ export function MobileKeyBar({ onKey }: { onKey: (bytes: string) => void }) {
   };
 
   return (
-    <div ref={barRef} className="mkb" style={{ bottom }} role="toolbar" aria-label="Terminal keys">
+    <div
+      ref={barRef}
+      className={'mkb' + (collapsed ? ' mkb-collapsed' : '')}
+      style={{ bottom }}
+      role="toolbar"
+      aria-label="Terminal keys"
+    >
+      <button
+        className="mkb-handle"
+        aria-label={collapsed ? 'Show keys' : 'Hide keys'}
+        aria-expanded={!collapsed}
+        onClick={toggleCollapsed}
+      >
+        <span className="mkb-handle-icon" aria-hidden="true">{collapsed ? '▴' : '▾'}</span>
+      </button>
+      {!collapsed && (
+      <>
       {showSymbols && (
         <div className="mkb-row mkb-symbols">
           {SYMBOLS.map(s => (
@@ -106,6 +137,8 @@ export function MobileKeyBar({ onKey }: { onKey: (bytes: string) => void }) {
           {showSymbols ? '×' : '···'}
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
