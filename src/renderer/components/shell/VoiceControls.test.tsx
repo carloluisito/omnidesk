@@ -1,30 +1,71 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { VoiceControls } from './VoiceControls';
+import { STT_OPEN_SETTINGS_EVENT } from '../../stt-ui';
 
-vi.mock('../../hooks/useSTT', () => {
-  let handlers: any = {};
+// Controllable useSTT mock.
+let mockState: any;
+vi.mock('../../hooks/useSTT', () => ({
+  useSTT: () => mockState,
+}));
+
+function baseState(over: any = {}) {
+  const react = require('react');
+  const [phase, setPhase] = react.useState('idle');
   return {
-    useSTT: () => {
-      const react = require('react');
-      const [phase, setPhase] = react.useState('idle');
-      handlers = {
-        phase, transcript: 'run tests', error: null, status: { available: true, reason: 'ready' },
-        beginRecording: vi.fn(async () => setPhase('recording')),
-        endRecording: vi.fn(async () => setPhase('review')),
-        cancel: vi.fn(() => setPhase('idle')),
-        setTranscript: vi.fn(), downloadModel: vi.fn(), refreshStatus: vi.fn(),
-      };
-      return handlers;
-    },
+    phase, transcript: 'run tests', error: null,
+    status: { available: false, reason: 'disabled', model: 'base.en', modelPresent: false },
+    settings: { enabled: false, model: 'base.en', hotkey: 'Ctrl+Shift+Space', language: 'en', showButton: true },
+    beginRecording: vi.fn(async () => setPhase('recording')),
+    endRecording: vi.fn(async () => setPhase('review')),
+    cancel: vi.fn(() => setPhase('idle')),
+    setTranscript: vi.fn(), downloadModel: vi.fn(), refreshStatus: vi.fn(), hideButton: vi.fn(),
+    ...over,
   };
-});
+}
+
+afterEach(() => { delete (window as any).__OMNIDESK_REMOTE__; });
 
 describe('VoiceControls', () => {
-  it('hold on the mic button starts recording; release transcribes; submit injects', async () => {
+  it('is hidden when showButton is false', () => {
+    function W() { mockState = baseState({ settings: { showButton: false, enabled: false, model: 'base.en', hotkey: 'x', language: 'en' } }); return <VoiceControls readOnly={false} onInject={vi.fn()} />; }
+    const { container } = render(<W />);
+    expect(container.querySelector('button')).toBeNull();
+  });
+
+  it('is hidden in read-only sessions', () => {
+    function W() { mockState = baseState(); return <VoiceControls readOnly={true} onInject={vi.fn()} />; }
+    const { container } = render(<W />);
+    expect(container.querySelector('button')).toBeNull();
+  });
+
+  it('is hidden on the remote bridge', () => {
+    (window as any).__OMNIDESK_REMOTE__ = true;
+    function W() { mockState = baseState(); return <VoiceControls readOnly={false} onInject={vi.fn()} />; }
+    const { container } = render(<W />);
+    expect(container.querySelector('button')).toBeNull();
+  });
+
+  it('when NOT ready, clicking the mic dispatches the open-settings event (does not record)', () => {
+    const beginRecording = vi.fn();
+    const openHandler = vi.fn();
+    window.addEventListener(STT_OPEN_SETTINGS_EVENT, openHandler);
+    function W() { mockState = baseState({ beginRecording }); return <VoiceControls readOnly={false} onInject={vi.fn()} />; }
+    render(<W />);
+    fireEvent.click(screen.getByRole('button', { name: /voice|dictate|microphone/i }));
+    expect(openHandler).toHaveBeenCalled();
+    expect(beginRecording).not.toHaveBeenCalled();
+    window.removeEventListener(STT_OPEN_SETTINGS_EVENT, openHandler);
+  });
+
+  it('when ready, hold → record → release → review → Enter injects', async () => {
     const onInject = vi.fn();
-    render(<VoiceControls sessionId="s1" enabled readOnly={false} hotkey="Ctrl+Shift+Space" onInject={onInject} />);
-    const mic = screen.getByRole('button', { name: /dictate|microphone|voice/i });
+    function W() {
+      mockState = baseState({ status: { available: true, reason: 'ready', model: 'base.en', modelPresent: true } });
+      return <VoiceControls readOnly={false} onInject={onInject} />;
+    }
+    render(<W />);
+    const mic = screen.getByRole('button', { name: /voice|dictate|microphone/i });
     fireEvent.mouseDown(mic);
     await waitFor(() => expect(screen.getByText(/listening/i)).toBeInTheDocument());
     fireEvent.mouseUp(mic);
@@ -33,20 +74,11 @@ describe('VoiceControls', () => {
     expect(onInject).toHaveBeenCalledWith('run tests');
   });
 
-  it('renders nothing when disabled', () => {
-    const { container } = render(<VoiceControls sessionId="s1" enabled={false} readOnly={false} hotkey="x" onInject={vi.fn()} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  describe('remote runtime', () => {
-    afterEach(() => {
-      delete (window as any).__OMNIDESK_REMOTE__;
-    });
-
-    it('renders nothing on the remote/mobile web bridge even when enabled', () => {
-      (window as any).__OMNIDESK_REMOTE__ = true;
-      const { container } = render(<VoiceControls sessionId="s1" enabled readOnly={false} hotkey="Ctrl+Shift+Space" onInject={vi.fn()} />);
-      expect(container.firstChild).toBeNull();
-    });
+  it('right-click hides the button', () => {
+    const hideButton = vi.fn();
+    function W() { mockState = baseState({ hideButton }); return <VoiceControls readOnly={false} onInject={vi.fn()} />; }
+    render(<W />);
+    fireEvent.contextMenu(screen.getByRole('button', { name: /voice|dictate|microphone/i }));
+    expect(hideButton).toHaveBeenCalled();
   });
 });
