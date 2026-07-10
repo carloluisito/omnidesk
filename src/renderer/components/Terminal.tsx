@@ -499,6 +499,33 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
     };
   }, [isVisible]);
 
+  // Refit once the CLI is ready. On cold start the provider CLI launches and
+  // paints its full-screen UI before it installs a SIGWINCH handler, so the
+  // resizes fired during startup (init + the isVisible passes above) can be
+  // missed — leaving the CLI drawn at stale rows (input floating mid-screen
+  // with blank space below) until the user manually resizes or reselects the
+  // session. Re-firing handleResize here — the same path a session switch uses
+  // to fix it — sends a resize the now-ready CLI honors, forcing a clean
+  // repaint at the true viewport size. Two passes catch late layout/font
+  // settling. Gated on isVisible so a background session doesn't fit to a
+  // zero-sized (display:none) container.
+  useEffect(() => {
+    if (!isClaudeReady || !isVisible || !xtermRef.current || !fitAddonRef.current) return;
+    const refit = () => {
+      try {
+        handleResizeRef.current?.();
+        const xt = xtermRef.current;
+        if (xt) xt.refresh(0, xt.rows - 1);
+      } catch { /* fitAddon throws if container is detached — safe to ignore */ }
+    };
+    const raf = requestAnimationFrame(refit);
+    const timer = window.setTimeout(refit, 250);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [isClaudeReady, isVisible]);
+
   // Mobile: when the soft keyboard opens it shrinks the visual viewport. Refit
   // so the prompt stays visible above the keyboard. ResizeObserver/window.resize
   // don't reliably fire for a visualViewport-only change, so listen explicitly.
