@@ -32,6 +32,7 @@ import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { showToast } from './utils/toast';
 import iconDarkUrl from './assets/logo/icon-dark.svg';
 import type { PermissionMode } from '../shared/ipc-types';
+import { STT_OPEN_SETTINGS_EVENT } from './stt-ui';
 
 function App() {
   // ─── Core state ──────────────────────────────────────────────
@@ -424,6 +425,12 @@ function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showPalette, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
+
+  useEffect(() => {
+    const open = () => setShowVoiceSettings(true);
+    window.addEventListener(STT_OPEN_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(STT_OPEN_SETTINGS_EVENT, open);
+  }, []);
 
   // ─── Palette actions ─────────────────────────────────────────
   const paletteActions: PaletteAction[] = useMemo(() => [

@@ -79,8 +79,6 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
   const handleResizeRef = useRef<() => void>(() => {});
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClaudeReady, setIsClaudeReady] = useState(false);
-  const [sttEnabled, setSttEnabled] = useState(false);
-  const [sttHotkey, setSttHotkey] = useState('Ctrl+Shift+Space');
   // Tracks whether this session's PTY has exited, so a later restart can re-run
   // the correct-size startup handshake (the Terminal is mount-stable and is not
   // remounted on restart). See the restart effect below.
@@ -101,7 +99,6 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
         if (appSettings.dragDropSettings) {
           setSettings(appSettings.dragDropSettings);
         }
-        if (appSettings.stt) { setSttEnabled(appSettings.stt.enabled); setSttHotkey(appSettings.stt.hotkey); }
       } catch (err) {
         console.error('Failed to load drag-drop settings:', err);
       }
@@ -708,10 +705,7 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
 
         {isVisible && (
           <VoiceControls
-            sessionId={sessionId}
-            enabled={sttEnabled}
             readOnly={readOnly}
-            hotkey={sttHotkey}
             onInject={(text) => xtermRef.current?.paste(text)}
           />
         )}
