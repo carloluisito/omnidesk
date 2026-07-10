@@ -2,9 +2,16 @@
 
 Multi-provider Electron desktop application for AI coding CLIs. Organizes work around a flat repo→session model: an activity bar for switching repositories, a session rail for navigating sessions within a repo, and a terminal host that fills the main view. Supports Claude Code, Codex CLI, and future providers via a pluggable provider abstraction layer.
 
-## Workflow Rule
+## Workflow Rules
 
 **Always run the `requirements-clarifier` agent (via the Task tool) on the user's initial prompt before planning or implementing.** This ensures requirements are analyzed, ambiguities are surfaced, and acceptance criteria are established before any work begins. Skip only for trivial tasks (typo fixes, single-line changes, or purely informational questions).
+
+**Always start new work on a fresh branch cut from an up-to-date `main`.** For any new feature, issue, or bug fix, before writing code:
+1. `git fetch origin` (pull the latest `main` first — never branch from a stale local `main`).
+2. Create the working branch off the freshly-fetched `main`: `git checkout -b <type>/<short-desc> origin/main` (e.g. `fix/terminal-initial-size-garble`, `feat/session-search`).
+3. Do all work for that item on this one branch, then open a PR against `main`.
+
+Never commit work directly to `main`, and never build a fix on top of an unrelated feature branch — if you're already on another branch with uncommitted changes, stash them, branch from `origin/main`, then restore. Skip only when the user explicitly asks to work on the current branch.
 
 ## Tech Stack
 
