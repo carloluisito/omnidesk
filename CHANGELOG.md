@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.2] - 2026-07-10
+
+### Fixed
+- **Garbled terminal on session startup.** New sessions launched into a fixed 80×24 terminal before the real window size was known, so the CLI's opening screen could appear garbled or sized wrong until a manual resize. The CLI now launches at the true terminal size from the first frame.
+- **Terminal stuck at stale rows.** On a cold start the CLI could stay drawn at the wrong height — input floating mid-screen with blank space below — until you manually resized or reselected the session. It now repaints at the correct size once ready, and restarting a session runs the same correct-size startup as a fresh one.
+- **Mobile layout overlap.** On phones, the top bar could sit under the status bar and the terminal could run beneath the on-screen key bar; both now stay clear.
+
+### Changed
+- Documentation refreshed (README remote-access prerequisites and contributor workflow notes).
+
+---
+
 ## [2.3.1] - 2026-07-09
 
 ### Added
