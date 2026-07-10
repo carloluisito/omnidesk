@@ -131,8 +131,10 @@ describe('useSTT', () => {
     const { result } = renderHook(() => useSTT());
     await waitFor(() => expect(result.current.settings).not.toBeNull());
     const callsBefore = getSettings.mock.calls.length;
+    const statusCallsBefore = (window.electronAPI.getSTTStatus as any).mock.calls.length;
     await act(async () => { window.dispatchEvent(new Event(STT_SETTINGS_CHANGED_EVENT)); });
     await waitFor(() => expect(getSettings.mock.calls.length).toBeGreaterThan(callsBefore));
+    await waitFor(() => expect((window.electronAPI.getSTTStatus as any).mock.calls.length).toBeGreaterThan(statusCallsBefore));
   });
 
   it('hideButton persists showButton:false and dispatches the changed event', async () => {
@@ -143,13 +145,21 @@ describe('useSTT', () => {
     (window.electronAPI.setSettings as any) = setSettings;
     const dispatched = vi.fn();
     window.addEventListener(STT_SETTINGS_CHANGED_EVENT, dispatched);
-    const { result } = renderHook(() => useSTT());
-    await waitFor(() => expect(result.current.settings).not.toBeNull());
-    await act(async () => { result.current.hideButton(); });
-    await waitFor(() => expect(setSettings).toHaveBeenCalled());
-    const arg = setSettings.mock.calls[0][0];
-    expect(arg.stt.showButton).toBe(false);
-    await waitFor(() => expect(dispatched).toHaveBeenCalled());
-    window.removeEventListener(STT_SETTINGS_CHANGED_EVENT, dispatched);
+    try {
+      const { result } = renderHook(() => useSTT());
+      await waitFor(() => expect(result.current.settings).not.toBeNull());
+      await act(async () => { result.current.hideButton(); });
+      await waitFor(() => expect(setSettings).toHaveBeenCalled());
+      const arg = setSettings.mock.calls[0][0];
+      expect(arg.stt.showButton).toBe(false);
+      // The other stt fields must survive — hideButton writes the FULL object, no clobber.
+      expect(arg.stt.model).toBe('base.en');
+      expect(arg.stt.enabled).toBe(true);
+      expect(arg.stt.hotkey).toBe('x');
+      expect(arg.stt.language).toBe('en');
+      await waitFor(() => expect(dispatched).toHaveBeenCalled());
+    } finally {
+      window.removeEventListener(STT_SETTINGS_CHANGED_EVENT, dispatched);
+    }
   });
 });
