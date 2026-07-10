@@ -2,7 +2,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 48px;
+  /* border-box is global, so the safe-area padding must be ADDED to the height —
+     otherwise the notch inset eats the 48px content box and the buttons render
+     squished up under the translucent status bar (unreachable). */
+  height: calc(48px + env(safe-area-inset-top));
   padding: 0 8px;
   padding-top: env(safe-area-inset-top); /* clears the notch/status bar */
   background: var(--v2-surface-high, #14151d);

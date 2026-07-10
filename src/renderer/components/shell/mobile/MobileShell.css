@@ -5,7 +5,15 @@
   flex-direction: column;
   background: var(--v2-surface-base, #0A0B11);
 }
-.ms-terminal { flex: 1 1 auto; min-height: 0; position: relative; }
+/* Reserve room for the fixed MobileKeyBar so the xterm's bottom rows (the live
+   prompt / TUI input) aren't painted behind it. The bar publishes its measured
+   height to --omni-keybar-h; 56px is the resting fallback before it mounts. */
+.ms-terminal {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  margin-bottom: var(--omni-keybar-h, 56px);
+}
 .ms-empty {
   align-items: center;
   justify-content: center;
