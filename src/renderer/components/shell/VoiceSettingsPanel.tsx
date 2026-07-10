@@ -4,8 +4,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import type { STTSettings, STTStatus, STTModel } from '../../../shared/ipc-types';
+import { DEFAULT_STT_SETTINGS, STT_SETTINGS_CHANGED_EVENT } from '../../stt-ui';
 
-const DEFAULTS: STTSettings = { enabled: false, model: 'base.en', hotkey: 'Ctrl+Shift+Space', language: 'en' };
+const DEFAULTS = DEFAULT_STT_SETTINGS;
 
 interface VoiceSettingsPanelProps {
   onClose: () => void;
@@ -36,7 +37,7 @@ export function VoiceSettingsPanel({ onClose }: VoiceSettingsPanelProps) {
     setStt((prev) => {
       const next = { ...(prev ?? DEFAULTS), ...partial };
       void window.electronAPI.setSettings({ stt: next })
-        .then(() => window.electronAPI.getSTTStatus())
+        .then(() => { window.dispatchEvent(new Event(STT_SETTINGS_CHANGED_EVENT)); return window.electronAPI.getSTTStatus(); })
         .then((s) => setStatus(s))
         .catch(() => { /* noop */ });
       return next;
@@ -105,6 +106,17 @@ export function VoiceSettingsPanel({ onClose }: VoiceSettingsPanelProps) {
           <div className="p4-form-row">
             <label className="d">Push-to-talk hotkey</label>
             <code>{stt.hotkey}</code>
+          </div>
+
+          <div className="p4-form-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <label className="d" htmlFor="voice-show-button">Show voice button in the terminal</label>
+            <input
+              id="voice-show-button"
+              type="checkbox"
+              aria-label="Show voice button"
+              checked={stt.showButton}
+              onChange={(e) => update({ showButton: e.target.checked })}
+            />
           </div>
 
           <div className="p4-form-row">
