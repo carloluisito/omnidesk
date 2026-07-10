@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSTT } from './useSTT';
 import { PcmRecorder } from '../terminal/pcm-recorder';
+import { STT_SETTINGS_CHANGED_EVENT } from '../stt-ui';
 
 // `start`/`stop`/`dispose` on the real PcmRecorder are class fields (assigned per-instance
 // in the constructor), not prototype methods. Reassigning `PcmRecorder.prototype.start`
@@ -44,6 +45,8 @@ beforeEach(() => {
     downloadSTTModel: vi.fn(),
     cancelTranscribe: vi.fn().mockResolvedValue(undefined),
     onSTTStatusChanged: vi.fn().mockReturnValue(() => {}),
+    getSettings: vi.fn().mockResolvedValue({ stt: null }),
+    setSettings: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -111,5 +114,42 @@ describe('useSTT', () => {
     await act(async () => { await result.current.beginRecording(); });
     expect(result.current.phase).toBe('error');
     expect(result.current.error).toBeTruthy();
+  });
+
+  it('fetches STT settings on mount and exposes them', async () => {
+    (window.electronAPI.getSettings as any) = vi.fn().mockResolvedValue({
+      stt: { enabled: true, model: 'base.en', hotkey: 'Ctrl+Shift+Space', language: 'en', showButton: true },
+    });
+    const { result } = renderHook(() => useSTT());
+    await waitFor(() => expect(result.current.settings?.enabled).toBe(true));
+    expect(result.current.settings?.showButton).toBe(true);
+  });
+
+  it('refetches settings + status on the settings-changed event', async () => {
+    const getSettings = vi.fn().mockResolvedValue({ stt: { enabled: false, model: 'base.en', hotkey: 'x', language: 'en', showButton: true } });
+    (window.electronAPI.getSettings as any) = getSettings;
+    const { result } = renderHook(() => useSTT());
+    await waitFor(() => expect(result.current.settings).not.toBeNull());
+    const callsBefore = getSettings.mock.calls.length;
+    await act(async () => { window.dispatchEvent(new Event(STT_SETTINGS_CHANGED_EVENT)); });
+    await waitFor(() => expect(getSettings.mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it('hideButton persists showButton:false and dispatches the changed event', async () => {
+    (window.electronAPI.getSettings as any) = vi.fn().mockResolvedValue({
+      stt: { enabled: true, model: 'base.en', hotkey: 'x', language: 'en', showButton: true },
+    });
+    const setSettings = vi.fn().mockResolvedValue(undefined);
+    (window.electronAPI.setSettings as any) = setSettings;
+    const dispatched = vi.fn();
+    window.addEventListener(STT_SETTINGS_CHANGED_EVENT, dispatched);
+    const { result } = renderHook(() => useSTT());
+    await waitFor(() => expect(result.current.settings).not.toBeNull());
+    await act(async () => { result.current.hideButton(); });
+    await waitFor(() => expect(setSettings).toHaveBeenCalled());
+    const arg = setSettings.mock.calls[0][0];
+    expect(arg.stt.showButton).toBe(false);
+    await waitFor(() => expect(dispatched).toHaveBeenCalled());
+    window.removeEventListener(STT_SETTINGS_CHANGED_EVENT, dispatched);
   });
 });

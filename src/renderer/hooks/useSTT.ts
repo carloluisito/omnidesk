@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { STTStatus } from '../../shared/ipc-types';
+import type { STTSettings, STTStatus } from '../../shared/ipc-types';
 import { PcmRecorder } from '../terminal/pcm-recorder';
+import { DEFAULT_STT_SETTINGS, STT_SETTINGS_CHANGED_EVENT } from '../stt-ui';
 
 export type STTPhase = 'idle' | 'permission' | 'recording' | 'transcribing' | 'review' | 'error';
 
@@ -9,6 +10,7 @@ export function useSTT() {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<STTStatus | null>(null);
+  const [settings, setSettingsState] = useState<STTSettings | null>(null);
   const recorderRef = useRef<PcmRecorder | null>(null);
   // Bumped on cancel and on each new recording; async continuations compare
   // the generation they started with and bail if it changed (cancel/restart),
@@ -19,11 +21,25 @@ export function useSTT() {
     try { setStatus(await window.electronAPI.getSTTStatus()); } catch { /* noop */ }
   }, []);
 
+  const refreshSettings = useCallback(async () => {
+    try {
+      const app = await window.electronAPI.getSettings();
+      setSettingsState(app.stt ?? DEFAULT_STT_SETTINGS);
+    } catch { /* noop */ }
+  }, []);
+
   useEffect(() => {
     void refreshStatus();
+    void refreshSettings();
     const off = window.electronAPI.onSTTStatusChanged((s) => setStatus(s));
-    return off;
-  }, [refreshStatus]);
+    // A settings change anywhere (panel, hideButton) refreshes every instance.
+    const onChanged = () => { void refreshSettings(); void refreshStatus(); };
+    window.addEventListener(STT_SETTINGS_CHANGED_EVENT, onChanged);
+    return () => {
+      off?.();
+      window.removeEventListener(STT_SETTINGS_CHANGED_EVENT, onChanged);
+    };
+  }, [refreshStatus, refreshSettings]);
 
   const beginRecording = useCallback(async () => {
     setError(null);
@@ -80,5 +96,17 @@ export function useSTT() {
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   }, []);
 
-  return { phase, transcript, error, status, beginRecording, endRecording, cancel, setTranscript, downloadModel, refreshStatus };
+  const hideButton = useCallback(async () => {
+    try {
+      const app = await window.electronAPI.getSettings();
+      const current = app.stt ?? DEFAULT_STT_SETTINGS;
+      await window.electronAPI.setSettings({ stt: { ...current, showButton: false } });
+      window.dispatchEvent(new Event(STT_SETTINGS_CHANGED_EVENT));
+    } catch { /* noop */ }
+  }, []);
+
+  return {
+    phase, transcript, error, status, settings,
+    beginRecording, endRecording, cancel, setTranscript, downloadModel, refreshStatus, hideButton,
+  };
 }
