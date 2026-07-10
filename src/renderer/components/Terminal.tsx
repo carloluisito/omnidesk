@@ -78,6 +78,10 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
   const handleResizeRef = useRef<() => void>(() => {});
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClaudeReady, setIsClaudeReady] = useState(false);
+  // Tracks whether this session's PTY has exited, so a later restart can re-run
+  // the correct-size startup handshake (the Terminal is mount-stable and is not
+  // remounted on restart). See the restart effect below.
+  const wasExitedRef = useRef(false);
 
   // Drag-drop state (ask-mode UI retired — files are inserted immediately per settings.defaultInsertMode)
   const [isDragging, setIsDragging] = useState(false);
@@ -498,6 +502,63 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
       window.clearTimeout(timer);
     };
   }, [isVisible]);
+
+  // Refit once the CLI is ready. On cold start the provider CLI launches and
+  // paints its full-screen UI before it installs a SIGWINCH handler, so the
+  // resizes fired during startup (init + the isVisible passes above) can be
+  // missed — leaving the CLI drawn at stale rows (input floating mid-screen
+  // with blank space below) until the user manually resizes or reselects the
+  // session. Re-firing handleResize here — the same path a session switch uses
+  // to fix it — sends a resize the now-ready CLI honors, forcing a clean
+  // repaint at the true viewport size. Two passes catch late layout/font
+  // settling. Gated on isVisible so a background session doesn't fit to a
+  // zero-sized (display:none) container.
+  useEffect(() => {
+    if (!isClaudeReady || !isVisible || !xtermRef.current || !fitAddonRef.current) return;
+    const refit = () => {
+      try {
+        handleResizeRef.current?.();
+        const xt = xtermRef.current;
+        if (xt) xt.refresh(0, xt.rows - 1);
+      } catch { /* fitAddon throws if container is detached — safe to ignore */ }
+    };
+    const raf = requestAnimationFrame(refit);
+    const timer = window.setTimeout(refit, 250);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [isClaudeReady, isVisible]);
+
+  // Restart handling. The Terminal is mount-stable — restarting a session spawns
+  // a fresh PTY but reuses this same component and xterm, so the startup
+  // handshake that a new session runs on mount (initial fit → releases the
+  // deferred CLI launch at the true size → readiness → refit) never re-runs.
+  // Without this, a restarted CLI launches at the fallback 80×24 and stays
+  // garbled until a manual resize. Re-run the handshake on the exit→running
+  // transition: reset readiness (re-shows the loading overlay and re-arms
+  // detection) on exit, then re-fit once the new PTY is running so its deferred
+  // launch starts at the correct dimensions. Skipped for shell sessions, whose
+  // readiness is kind-driven, not CLI-launch-driven.
+  useEffect(() => {
+    if (kind === 'shell') return;
+    const offExited = window.electronAPI.onSessionExited((evt) => {
+      if (evt.sessionId !== sessionId) return;
+      wasExitedRef.current = true;
+      setIsClaudeReady(false);
+    });
+    const offUpdated = window.electronAPI.onSessionUpdated((meta) => {
+      if (meta.id !== sessionId || !wasExitedRef.current) return;
+      if (meta.status === 'running') {
+        wasExitedRef.current = false;
+        // New PTY is up — fit so the deferred launch starts at the real size.
+        // If this lands before the PTY is ready it's a harmless no-op; the
+        // deferred-launch fallback and the readiness refit still correct it.
+        handleResizeRef.current?.();
+      }
+    });
+    return () => { offExited(); offUpdated(); };
+  }, [sessionId, kind]);
 
   // Mobile: when the soft keyboard opens it shrinks the visual viewport. Refit
   // so the prompt stays visible above the keyboard. ResizeObserver/window.resize
