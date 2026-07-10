@@ -63,6 +63,7 @@ function getDefaultSettings(): AppSettings {
       model: 'base.en',
       hotkey: 'Ctrl+Shift+Space',
       language: 'en',
+      showButton: true,
     },
   };
 }

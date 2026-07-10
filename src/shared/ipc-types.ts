@@ -267,6 +267,7 @@ export interface STTSettings {
   model: STTModel;                 // default 'base.en'
   hotkey: string;                  // default 'Ctrl+Shift+Space'
   language: 'auto' | 'en';         // default 'en'
+  showButton: boolean;             // default true
 }
 
 /** 16 kHz mono Int16 LE PCM samples for one utterance. */
