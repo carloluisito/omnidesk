@@ -47,7 +47,7 @@ export function DictationOverlay({
 
   return (
     <div style={wrap} role="dialog" aria-label="Voice dictation">
-      {phase === 'recording' && label('● Listening… release to transcribe', 'var(--term-red, #F7678E)')}
+      {phase === 'recording' && label('● Recording… click the mic to stop', 'var(--term-red, #F7678E)')}
       {phase === 'permission' && label('Requesting microphone…')}
       {phase === 'transcribing' && label('Transcribing…')}
       {phase === 'error' && (

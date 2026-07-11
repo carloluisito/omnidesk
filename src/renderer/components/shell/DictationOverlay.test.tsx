@@ -13,9 +13,9 @@ describe('DictationOverlay', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows a listening indicator while recording', () => {
+  it('shows a recording indicator while recording', () => {
     render(<DictationOverlay phase="recording" {...base} />);
-    expect(screen.getByText(/listening/i)).toBeInTheDocument();
+    expect(screen.getByText(/recording/i)).toBeInTheDocument();
   });
 
   it('review: Enter submits the edited transcript', () => {

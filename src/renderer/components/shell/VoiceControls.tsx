@@ -18,10 +18,10 @@ function matchesHotkey(e: KeyboardEvent, hotkey: string): boolean {
 }
 
 function tooltipFor(reason: string | undefined, phase: string, hotkey: string, errorMsg?: string): string {
-  if (phase === 'recording') return 'Listening… release to transcribe';
+  if (phase === 'recording') return 'Recording — click to stop';
   if (phase === 'transcribing') return 'Transcribing…';
   switch (reason) {
-    case 'ready': return `Hold to dictate (${hotkey})`;
+    case 'ready': return `Click to dictate (${hotkey})`;
     case 'downloading': return 'Downloading voice model…';
     case 'model-missing': return 'Download a voice model to dictate';
     case 'engine-error': return errorMsg ? `Voice error: ${errorMsg}` : 'Voice error — click to set up';
@@ -49,20 +49,29 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
     window.dispatchEvent(new Event(STT_OPEN_SETTINGS_EVENT));
   }, []);
 
-  // Push-to-talk hotkey: only armed when ready. Ignore auto-repeat.
+  // Toggle dictation: start when idle, stop (→ transcribe) when recording.
+  // Ignores transient phases (permission/transcribing/review) so double-clicks
+  // while a request is in flight are no-ops.
+  const toggle = useCallback(() => {
+    if (!ready) { openSettings(); return; }
+    if (stt.phase === 'idle') void stt.beginRecording();
+    else if (stt.phase === 'recording') void stt.endRecording();
+  }, [ready, openSettings, stt]);
+
+  // Hotkey mirrors the click: press once to start, press again to stop (not hold).
   useEffect(() => {
     if (!visible || !ready) return;
-    const down = (e: KeyboardEvent) => { if (!e.repeat && matchesHotkey(e, hotkey) && stt.phase === 'idle') { e.preventDefault(); void stt.beginRecording(); } };
-    const up = (e: KeyboardEvent) => { if (matchesHotkey(e, hotkey) && stt.phase === 'recording') { e.preventDefault(); void stt.endRecording(); } };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || !matchesHotkey(e, hotkey)) return;
+      e.preventDefault();
+      if (stt.phase === 'idle') void stt.beginRecording();
+      else if (stt.phase === 'recording') void stt.endRecording();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [visible, ready, hotkey, stt]);
 
   if (!visible) return null;
-
-  const holdStart = () => { if (ready && stt.phase === 'idle') void stt.beginRecording(); };
-  const holdEnd = () => { if (ready && stt.phase === 'recording') void stt.endRecording(); };
 
   const recording = stt.phase === 'recording';
   const background = recording
@@ -75,12 +84,7 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
       <button
         aria-label="Voice input"
         title={tooltipFor(reason, stt.phase, hotkey, stt.status?.error)}
-        onMouseDown={holdStart}
-        onMouseUp={holdEnd}
-        onMouseLeave={() => { if (ready && stt.phase === 'recording') void stt.endRecording(); }}
-        onTouchStart={(e) => { if (ready) { e.preventDefault(); holdStart(); } }}
-        onTouchEnd={(e) => { if (ready) { e.preventDefault(); holdEnd(); } }}
-        onClick={() => { if (!ready) openSettings(); }}
+        onClick={toggle}
         onContextMenu={(e) => { e.preventDefault(); void stt.hideButton(); }}
         style={{
           position: 'absolute', bottom: 'var(--space-3)', right: 'var(--space-3)', zIndex: 15,
@@ -113,7 +117,7 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
         onChange={stt.setTranscript}
         onSubmit={submit}
         onDiscard={stt.cancel}
-        onRetry={() => { stt.cancel(); void stt.beginRecording(); }}
+        onRetry={() => { stt.cancel(); if (ready) void stt.beginRecording(); }}
       />
     </>
   );

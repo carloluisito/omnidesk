@@ -58,7 +58,7 @@ describe('VoiceControls', () => {
     window.removeEventListener(STT_OPEN_SETTINGS_EVENT, openHandler);
   });
 
-  it('when ready, hold → record → release → review → Enter injects', async () => {
+  it('when ready, click toggles record → click again → review → Enter injects', async () => {
     const onInject = vi.fn();
     function W() {
       mockState = baseState({ status: { available: true, reason: 'ready', model: 'base.en', modelPresent: true } });
@@ -66,9 +66,9 @@ describe('VoiceControls', () => {
     }
     render(<W />);
     const mic = screen.getByRole('button', { name: /voice|dictate|microphone/i });
-    fireEvent.mouseDown(mic);
-    await waitFor(() => expect(screen.getByText(/listening/i)).toBeInTheDocument());
-    fireEvent.mouseUp(mic);
+    fireEvent.click(mic); // start
+    await waitFor(() => expect(screen.getByText(/recording/i)).toBeInTheDocument());
+    fireEvent.click(mic); // stop → review
     const box = await screen.findByRole('textbox');
     fireEvent.keyDown(box, { key: 'Enter' });
     expect(onInject).toHaveBeenCalledWith('run tests');
