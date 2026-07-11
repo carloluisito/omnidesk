@@ -1,6 +1,7 @@
 // @atlas-entrypoint: Main process — creates window, initializes all 8 managers, wires IPC
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, session } from 'electron';
 import * as path from 'path';
+import { applyMediaPermissions } from './media-permissions';
 import * as fs from 'fs';
 import * as os from 'os';
 import { CONFIG_DIR, ensureConfigDir, migrateFromLegacy } from './config-dir';
@@ -353,6 +354,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Grant the desktop window microphone (getUserMedia) + clipboard permissions.
+  // Without this, Electron denies mic access and voice capture throws AbortError.
+  applyMediaPermissions(session.defaultSession);
   migrateFromLegacy();
   createWindow();
 

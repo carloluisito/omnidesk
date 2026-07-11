@@ -14,6 +14,23 @@ class PcmTap extends AudioWorkletProcessor {
 registerProcessor('pcm-tap', PcmTap);
 `;
 
+/** Map a getUserMedia DOMException to a message the user can act on. */
+function micErrorMessage(err: Error): string {
+  switch (err?.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return 'Microphone access is blocked. Allow it in Windows Settings → Privacy → Microphone (and for this app).';
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return 'No microphone was found. Connect one and try again.';
+    case 'NotReadableError':
+    case 'AbortError':
+      return 'Microphone is busy — another app (OBS, Zoom, Teams, Discord, a browser tab) is using it, or Windows exclusive mode is on. Close those apps and try again.';
+    default:
+      return err?.message || 'Could not access the microphone.';
+  }
+}
+
 export class PcmRecorder {
   private ctx: AudioContext | null = null;
   private stream: MediaStream | null = null;
@@ -29,7 +46,16 @@ export class PcmRecorder {
   }
 
   async start(): Promise<void> {
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const err = e as Error;
+      // Keep the raw name/message in the console for debugging…
+      console.error('[STT] microphone getUserMedia failed:', err?.name, '-', err?.message);
+      // …but surface an actionable message instead of the cryptic browser default
+      // ("The user aborted a request.").
+      throw new Error(micErrorMessage(err));
+    }
     this.ctx = new AudioContext();
     this.inRate = this.ctx.sampleRate;
     this.source = this.ctx.createMediaStreamSource(this.stream);

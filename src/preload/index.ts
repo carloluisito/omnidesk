@@ -17,6 +17,13 @@ import {
  *   sendSessionInput(sessionId, data) → send(channel, { sessionId, data })
  *   resizeSession(sessionId, cols, rows) → send(channel, { sessionId, cols, rows })
  */
+// Each visible terminal mounts its own event subscribers (e.g. VoiceControls →
+// useSTT subscribes to stt:statusChanged), so with many terminals the per-channel
+// listener count legitimately exceeds Node's default of 10. Subscriptions are
+// removed on unmount (see the event branch below), so this is scale, not a leak —
+// raise the cap to silence the spurious MaxListenersExceededWarning.
+ipcRenderer.setMaxListeners(64);
+
 function buildBridge(): DerivedElectronAPI {
   const api: Record<string, unknown> = {};
 
