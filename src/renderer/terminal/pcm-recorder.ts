@@ -56,26 +56,41 @@ export class PcmRecorder {
       // ("The user aborted a request.").
       throw new Error(micErrorMessage(err));
     }
-    this.ctx = new AudioContext();
-    this.inRate = this.ctx.sampleRate;
-    this.source = this.ctx.createMediaStreamSource(this.stream);
-    this.frames = [];
+    // getUserMedia succeeded, so the mic is now open. Any failure past this
+    // point (e.g. the AudioWorklet module blocked by CSP) must be caught here:
+    // it lives outside the getUserMedia try above, so without this wrapper it
+    // would surface the raw browser message ("The user aborted a request.")
+    // AND leave the mic track running. dispose() releases it.
+    try {
+      this.ctx = new AudioContext();
+      this.inRate = this.ctx.sampleRate;
+      this.source = this.ctx.createMediaStreamSource(this.stream);
+      this.frames = [];
 
-    if (this.ctx.audioWorklet) {
-      const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
-      await this.ctx.audioWorklet.addModule(url);
-      URL.revokeObjectURL(url);
-      const node = new AudioWorkletNode(this.ctx, 'pcm-tap');
-      node.port.onmessage = (e) => this.frames.push(e.data as Float32Array[]);
-      this.source.connect(node);
-      this.node = node;
-    } else {
-      // Fallback for webviews without AudioWorklet.
-      const proc = this.ctx.createScriptProcessor(4096, 1, 1);
-      proc.onaudioprocess = (e) => this.frames.push([e.inputBuffer.getChannelData(0).slice()]);
-      this.source.connect(proc);
-      proc.connect(this.ctx.destination);
-      this.node = proc;
+      if (this.ctx.audioWorklet) {
+        const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
+        try {
+          await this.ctx.audioWorklet.addModule(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        const node = new AudioWorkletNode(this.ctx, 'pcm-tap');
+        node.port.onmessage = (e) => this.frames.push(e.data as Float32Array[]);
+        this.source.connect(node);
+        this.node = node;
+      } else {
+        // Fallback for webviews without AudioWorklet.
+        const proc = this.ctx.createScriptProcessor(4096, 1, 1);
+        proc.onaudioprocess = (e) => this.frames.push([e.inputBuffer.getChannelData(0).slice()]);
+        this.source.connect(proc);
+        proc.connect(this.ctx.destination);
+        this.node = proc;
+      }
+    } catch (e) {
+      const err = e as Error;
+      console.error('[STT] audio pipeline setup failed:', err?.name, '-', err?.message);
+      this.dispose(); // release the mic track opened by getUserMedia
+      throw new Error('Could not start audio capture. Restart OmniDesk and try again.');
     }
   }
 
