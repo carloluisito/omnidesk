@@ -16,6 +16,31 @@ export function useSTT() {
   // the generation they started with and bail if it changed (cancel/restart),
   // so a late transcription can never overwrite a cancelled/reset state.
   const genRef = useRef(0);
+  // Live mic input level (0..1) sampled while recording. Kept in a ref and
+  // driven by an rAF loop so the ~60fps updates never trigger React re-renders;
+  // the recording UI reads it from its own rAF loop.
+  const levelRef = useRef(0);
+  const levelRafRef = useRef<number | null>(null);
+
+  const stopLevelLoop = useCallback(() => {
+    if (levelRafRef.current != null) {
+      cancelAnimationFrame(levelRafRef.current);
+      levelRafRef.current = null;
+    }
+    levelRef.current = 0;
+  }, []);
+
+  const startLevelLoop = useCallback(() => {
+    stopLevelLoop();
+    const tick = () => {
+      levelRef.current = recorderRef.current?.getLevel() ?? 0;
+      levelRafRef.current = requestAnimationFrame(tick);
+    };
+    levelRafRef.current = requestAnimationFrame(tick);
+  }, [stopLevelLoop]);
+
+  // Cancel any running level loop if the hook unmounts mid-recording.
+  useEffect(() => stopLevelLoop, [stopLevelLoop]);
 
   const refreshStatus = useCallback(async () => {
     try { setStatus(await window.electronAPI.getSTTStatus()); } catch { /* noop */ }
@@ -52,17 +77,19 @@ export function useSTT() {
       if (genRef.current !== gen) { rec.dispose(); return; } // cancelled during permission
       recorderRef.current = rec;
       setPhase('recording');
+      startLevelLoop();
     } catch (e) {
       rec.dispose();
       if (genRef.current !== gen) return;
       setError(e instanceof Error ? e.message : String(e));
       setPhase('error');
     }
-  }, []);
+  }, [startLevelLoop]);
 
   const endRecording = useCallback(async () => {
     const rec = recorderRef.current;
     if (!rec) return;
+    stopLevelLoop();
     recorderRef.current = null;
     const gen = genRef.current;
     setPhase('transcribing');
@@ -79,17 +106,18 @@ export function useSTT() {
       setError(e instanceof Error ? e.message : String(e));
       setPhase('error');
     }
-  }, []);
+  }, [stopLevelLoop]);
 
   const cancel = useCallback(() => {
     genRef.current++; // invalidate any in-flight begin/endRecording continuation
+    stopLevelLoop();
     recorderRef.current?.dispose();
     recorderRef.current = null;
     void window.electronAPI.cancelTranscribe().catch(() => { /* noop */ });
     setTranscript('');
     setError(null);
     setPhase('idle');
-  }, []);
+  }, [stopLevelLoop]);
 
   const downloadModel = useCallback(async () => {
     try { setStatus(await window.electronAPI.downloadSTTModel()); }
@@ -106,7 +134,7 @@ export function useSTT() {
   }, []);
 
   return {
-    phase, transcript, error, status, settings,
+    phase, transcript, error, status, settings, levelRef,
     beginRecording, endRecording, cancel, setTranscript, downloadModel, refreshStatus, hideButton,
   };
 }

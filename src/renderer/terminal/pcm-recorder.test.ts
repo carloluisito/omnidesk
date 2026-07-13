@@ -51,6 +51,7 @@ describe('PcmRecorder.start error handling', () => {
     (globalThis as any).AudioContext = class {
       sampleRate = 48000;
       createMediaStreamSource() { return { connect() {} }; }
+      createAnalyser() { return { fftSize: 2048, connect() {}, disconnect() {}, getFloatTimeDomainData() {} }; }
       audioWorklet = {
         addModule: () => Promise.reject(Object.assign(new Error('The user aborted a request.'), { name: 'AbortError' })),
       };
@@ -62,5 +63,24 @@ describe('PcmRecorder.start error handling', () => {
     await expect(rec.start()).rejects.not.toThrow('The user aborted a request.');
     // The mic track opened before the failure must be stopped (no dangling capture).
     expect(stop).toHaveBeenCalled();
+  });
+});
+
+describe('PcmRecorder.getLevel', () => {
+  it('returns 0 before recording has started', () => {
+    expect(new PcmRecorder().getLevel()).toBe(0);
+  });
+
+  it('reads the analyser time-domain buffer and returns a normalized level', () => {
+    const rec = new PcmRecorder();
+    // Inject a fake analyser that fills the buffer with a full-scale square wave.
+    (rec as any).analyser = {
+      getFloatTimeDomainData: (buf: Float32Array) => {
+        for (let i = 0; i < buf.length; i++) buf[i] = i % 2 ? 1 : -1;
+      },
+    };
+    (rec as any).levelBuf = new Float32Array(8);
+    // RMS of ±1 is 1 → 0 dBFS → clamps to the max meter level.
+    expect(rec.getLevel()).toBe(1);
   });
 });

@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import type { STTPhase } from '../../hooks/useSTT';
+import { ListeningBars } from '../ui/ListeningBars';
 
 interface DictationOverlayProps {
   phase: STTPhase;
   transcript: string;
   error: string | null;
   downloadProgress?: number;
+  levelRef?: MutableRefObject<number>;
   onChange: (t: string) => void;
   onSubmit: (t: string) => void;
   onDiscard: () => void;
@@ -13,7 +15,7 @@ interface DictationOverlayProps {
 }
 
 export function DictationOverlay({
-  phase, transcript, error, downloadProgress, onChange, onSubmit, onDiscard, onRetry,
+  phase, transcript, error, downloadProgress, levelRef, onChange, onSubmit, onDiscard, onRetry,
 }: DictationOverlayProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (phase === 'review') ref.current?.focus(); }, [phase]);
@@ -47,7 +49,12 @@ export function DictationOverlay({
 
   return (
     <div style={wrap} role="dialog" aria-label="Voice dictation">
-      {phase === 'recording' && label('● Recording… click the mic to stop', 'var(--term-red, #F7678E)')}
+      {phase === 'recording' && (
+        <div role="status" aria-label="Recording" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <ListeningBars levelRef={levelRef} />
+          {label('click the mic to stop', 'var(--v2-text-tertiary)')}
+        </div>
+      )}
       {phase === 'permission' && label('Requesting microphone…')}
       {phase === 'transcribing' && label('Transcribing…')}
       {phase === 'error' && (

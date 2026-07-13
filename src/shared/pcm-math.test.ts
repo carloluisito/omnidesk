@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { downmixToMono, resampleLinear, floatToInt16, int16ToFloat32 } from './pcm-math';
+import { downmixToMono, resampleLinear, floatToInt16, int16ToFloat32, rms, normalizeLevel } from './pcm-math';
 
 describe('pcm-math', () => {
   it('downmixes stereo to mono by averaging', () => {
@@ -40,5 +40,30 @@ describe('pcm-math', () => {
     const f = int16ToFloat32(i16.buffer);
     expect(f[0]).toBeCloseTo(0.5, 2);
     expect(f[1]).toBeCloseTo(-0.5, 2);
+  });
+
+  it('rms is 0 for silence and empty input', () => {
+    expect(rms(new Float32Array([0, 0, 0]))).toBe(0);
+    expect(rms(new Float32Array([]))).toBe(0);
+  });
+
+  it('rms is 1 for a full-scale square wave', () => {
+    expect(rms(new Float32Array([1, -1, 1, -1]))).toBeCloseTo(1, 5);
+  });
+
+  it('rms computes the mean-square root for a known buffer', () => {
+    // sqrt((0.25 + 0.25) / 2) = 0.5
+    expect(rms(new Float32Array([0.5, -0.5]))).toBeCloseTo(0.5, 5);
+  });
+
+  it('normalizeLevel flatlines on silence and clamps at full scale', () => {
+    expect(normalizeLevel(0)).toBe(0);
+    expect(normalizeLevel(-0.1)).toBe(0);
+    expect(normalizeLevel(1)).toBe(1); // 0 dBFS clamps to 1
+  });
+
+  it('normalizeLevel maps -30 dBFS to the middle of its travel', () => {
+    // 10^(-1.5) == -30 dBFS; (-30 - -60)/(-10 - -60) = 30/50 = 0.6
+    expect(normalizeLevel(Math.pow(10, -1.5))).toBeCloseTo(0.6, 5);
   });
 });

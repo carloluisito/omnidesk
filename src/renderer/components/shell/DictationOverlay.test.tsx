@@ -15,7 +15,10 @@ describe('DictationOverlay', () => {
 
   it('shows a recording indicator while recording', () => {
     render(<DictationOverlay phase="recording" {...base} />);
-    expect(screen.getByText(/recording/i)).toBeInTheDocument();
+    // The live equalizer replaced the "● Recording…" text; the accessible
+    // status label + the stop hint stand in for it.
+    expect(screen.getByRole('status', { name: /recording/i })).toBeInTheDocument();
+    expect(screen.getByText(/click the mic to stop/i)).toBeInTheDocument();
   });
 
   it('review: Enter submits the edited transcript', () => {

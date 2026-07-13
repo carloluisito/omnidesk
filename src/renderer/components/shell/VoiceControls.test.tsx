@@ -13,7 +13,7 @@ function baseState(over: any = {}) {
   const react = require('react');
   const [phase, setPhase] = react.useState('idle');
   return {
-    phase, transcript: 'run tests', error: null,
+    phase, transcript: 'run tests', error: null, levelRef: { current: 0 },
     status: { available: false, reason: 'disabled', model: 'base.en', modelPresent: false },
     settings: { enabled: false, model: 'base.en', hotkey: 'Ctrl+Shift+Space', language: 'en', showButton: true },
     beginRecording: vi.fn(async () => setPhase('recording')),
@@ -67,7 +67,7 @@ describe('VoiceControls', () => {
     render(<W />);
     const mic = screen.getByRole('button', { name: /voice|dictate|microphone/i });
     fireEvent.click(mic); // start
-    await waitFor(() => expect(screen.getByText(/recording/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('status', { name: /recording/i })).toBeInTheDocument());
     fireEvent.click(mic); // stop → review
     const box = await screen.findByRole('textbox');
     fireEvent.keyDown(box, { key: 'Enter' });

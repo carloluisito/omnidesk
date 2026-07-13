@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { useSTT } from '../../hooks/useSTT';
 import { DictationOverlay } from './DictationOverlay';
@@ -31,6 +31,7 @@ function tooltipFor(reason: string | undefined, phase: string, hotkey: string, e
 
 export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
   const stt = useSTT();
+  const btnRef = useRef<HTMLButtonElement>(null);
   const isRemote = !!(window as unknown as { __OMNIDESK_REMOTE__?: boolean }).__OMNIDESK_REMOTE__;
   const settings = stt.settings ?? DEFAULT_STT_SETTINGS;
   const hotkey = settings.hotkey || DEFAULT_STT_SETTINGS.hotkey;
@@ -71,6 +72,25 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, [visible, ready, hotkey, stt]);
 
+  // Pulse the mic button in proportion to live input level while recording, so
+  // feedback is visible even when the dictation pill isn't in view. Driven by
+  // an rAF loop reading levelRef (no re-render). The glow is data-reactive
+  // rather than a decorative loop, so it stays meaningful under reduced motion.
+  useEffect(() => {
+    const el = btnRef.current;
+    if (!el || stt.phase !== 'recording') { if (el) el.style.boxShadow = ''; return; }
+    let raf = 0;
+    const tick = () => {
+      const lvl = stt.levelRef?.current ?? 0; // 0..1
+      const spread = 2 + lvl * 14;
+      const alpha = 0.25 + lvl * 0.5;
+      el.style.boxShadow = `0 0 ${spread}px rgba(247,103,142,${alpha})`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); if (el) el.style.boxShadow = ''; };
+  }, [stt.phase, stt.levelRef]);
+
   if (!visible) return null;
 
   const recording = stt.phase === 'recording';
@@ -82,6 +102,7 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
   return (
     <>
       <button
+        ref={btnRef}
         aria-label="Voice input"
         title={tooltipFor(reason, stt.phase, hotkey, stt.status?.error)}
         onClick={toggle}
@@ -114,6 +135,7 @@ export function VoiceControls({ readOnly, onInject }: VoiceControlsProps) {
         transcript={stt.transcript}
         error={stt.error}
         downloadProgress={stt.status?.downloadProgress}
+        levelRef={stt.levelRef}
         onChange={stt.setTranscript}
         onSubmit={submit}
         onDiscard={stt.cancel}

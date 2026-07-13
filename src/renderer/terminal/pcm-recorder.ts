@@ -1,4 +1,4 @@
-import { downmixToMono, resampleLinear, floatToInt16 } from '../../shared/pcm-math';
+import { downmixToMono, resampleLinear, floatToInt16, rms, normalizeLevel } from '../../shared/pcm-math';
 
 const TARGET_RATE = 16000;
 
@@ -38,6 +38,9 @@ export class PcmRecorder {
   private source: MediaStreamAudioSourceNode | null = null;
   private frames: Float32Array[][] = []; // list of channel-arrays
   private inRate = 48000;
+  // Parallel tap for a live input level (recording UI); observes, doesn't alter.
+  private analyser: AnalyserNode | null = null;
+  private levelBuf: Float32Array<ArrayBuffer> | null = null;
 
   static isSupported(): boolean {
     return typeof navigator !== 'undefined'
@@ -66,6 +69,15 @@ export class PcmRecorder {
       this.inRate = this.ctx.sampleRate;
       this.source = this.ctx.createMediaStreamSource(this.stream);
       this.frames = [];
+
+      // Tap an AnalyserNode off the source for a live input level. It observes
+      // the signal without changing it and needs no onward connection; this
+      // fans out from the same source as the capture node below, so it works
+      // identically on the AudioWorklet and ScriptProcessor paths.
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 1024;
+      this.source.connect(this.analyser);
+      this.levelBuf = new Float32Array(this.analyser.fftSize);
 
       if (this.ctx.audioWorklet) {
         const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
@@ -110,11 +122,20 @@ export class PcmRecorder {
     return int16.buffer as ArrayBuffer;
   }
 
+  /** Current mic input level in 0..1 (perceptual), or 0 when not recording. */
+  getLevel(): number {
+    if (!this.analyser || !this.levelBuf) return 0;
+    this.analyser.getFloatTimeDomainData(this.levelBuf);
+    return normalizeLevel(rms(this.levelBuf));
+  }
+
   dispose(): void {
     try { this.node?.disconnect(); } catch { /* noop */ }
+    try { this.analyser?.disconnect(); } catch { /* noop */ }
     try { this.source?.disconnect(); } catch { /* noop */ }
     this.stream?.getTracks().forEach((t) => t.stop());
     void this.ctx?.close();
     this.ctx = null; this.stream = null; this.node = null; this.source = null;
+    this.analyser = null; this.levelBuf = null;
   }
 }

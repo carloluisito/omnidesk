@@ -44,3 +44,27 @@ export function int16ToFloat32(buf: ArrayBuffer): Float32Array {
   for (let i = 0; i < i16.length; i++) out[i] = i16[i] / 0x8000;
   return out;
 }
+
+/** Root-mean-square amplitude of a sample buffer (0 for empty input). */
+export function rms(samples: Float32Array): number {
+  if (samples.length === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  return Math.sqrt(sum / samples.length);
+}
+
+// Perceptual meter range. Speech RMS is tiny (~0.01–0.2), so a linear scale
+// barely moves a bar; map dBFS instead so the meter spreads across its travel.
+const LEVEL_MIN_DB = -60;
+const LEVEL_MAX_DB = -10;
+
+/**
+ * Map a linear RMS amplitude to a 0..1 meter level. Converts to dBFS and maps
+ * [-60dB, -10dB] → [0,1], clamped. rms <= 0 → 0 (flatline on silence).
+ */
+export function normalizeLevel(rmsValue: number): number {
+  if (rmsValue <= 0) return 0;
+  const db = 20 * Math.log10(rmsValue);
+  const t = (db - LEVEL_MIN_DB) / (LEVEL_MAX_DB - LEVEL_MIN_DB);
+  return Math.max(0, Math.min(1, t));
+}
