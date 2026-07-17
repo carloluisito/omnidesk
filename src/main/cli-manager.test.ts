@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as pty from 'node-pty';
 
 // Stop the fresh-env probe from shelling out to powershell/login shell.
@@ -55,6 +55,94 @@ describe('CLIManager shell sessions', () => {
     mgr.resize({ cols: 180, rows: 50 });
     expect(getResize()).toHaveBeenCalledWith(180, 50);
     expect(writtenText()).not.toContain('claude');
+  });
+});
+
+describe('CLIManager Windows ConPTY rendering workarounds', () => {
+  const realPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+  const setPlatform = (value: string) =>
+    Object.defineProperty(process, 'platform', { value, configurable: true });
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => Object.defineProperty(process, 'platform', realPlatform));
+
+  function spawnOptions(): Record<string, unknown> {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.calls[spawnMock.mock.calls.length - 1][2];
+  }
+
+  it('opts into the bundled Windows Terminal ConPTY on win32', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    expect(spawnOptions().useConptyDll).toBe(true);
+  });
+
+  it('sets Claude full-repaint + synchronized-output env vars on win32', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    const env = spawnOptions().env as Record<string, string>;
+    expect(env.CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT).toBe('1');
+    expect(env.CLAUDE_CODE_FORCE_SYNC_OUTPUT).toBe('1');
+  });
+
+  it('leaves non-Windows spawns untouched', async () => {
+    setPlatform('linux');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    const opts = spawnOptions();
+    expect('useConptyDll' in opts).toBe(false);
+    const env = opts.env as Record<string, string>;
+    expect(env.CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT).toBeUndefined();
+    expect(env.CLAUDE_CODE_FORCE_SYNC_OUTPUT).toBeUndefined();
+  });
+
+  it('answers the bundled ConPTY startup DA1 query from main and strips it', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    const chunks: string[] = [];
+    mgr.onOutput(d => chunks.push(d));
+
+    // The modern conpty.dll's real startup burst (captured from node-pty).
+    getOnData()('\x1b[1t\x1b[c\x1b[?1004h\x1b[?9001h');
+    await new Promise(r => setTimeout(r, 30));
+
+    expect(writtenText()).toContain('\x1b[?1;2c');            // main answered
+    expect(chunks.join('')).not.toContain('\x1b[c');          // query stripped
+    expect(chunks.join('')).toContain('\x1b[?1004h');         // rest untouched
+  });
+
+  it('stops scanning for DA1 after the startup window', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    const chunks: string[] = [];
+    mgr.onOutput(d => chunks.push(d));
+
+    const onData = getOnData();
+    for (let i = 0; i < 16; i++) onData('regular output\r\n');
+    const writesBefore = getWrite().mock.calls.length;
+    onData('\x1b[c'); // e.g. an app-level DA1 passed through post-startup
+    await new Promise(r => setTimeout(r, 30));
+
+    expect(getWrite().mock.calls.length).toBe(writesBefore);  // no auto-reply
+    expect(chunks.join('')).toContain('\x1b[c');              // passes through
+  });
+
+  it('does not intercept DA1 on non-Windows', async () => {
+    setPlatform('linux');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+    const chunks: string[] = [];
+    mgr.onOutput(d => chunks.push(d));
+
+    getOnData()('\x1b[c');
+    await new Promise(r => setTimeout(r, 30));
+
+    expect(writtenText()).not.toContain('\x1b[?1;2c');
+    expect(chunks.join('')).toContain('\x1b[c');
   });
 });
 

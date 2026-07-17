@@ -199,6 +199,12 @@ export class CLIManager {
   private providerLaunched: boolean = false;
   private launchTimer: NodeJS.Timeout | null = null;
   private readonly LAUNCH_FALLBACK_MS = 500; // launch anyway if no resize arrives
+  // The bundled conpty.dll (useConptyDll) probes terminal capabilities at
+  // startup with a DA1 query (`ESC [ c`) and withholds output ~3s when no
+  // reply arrives. Agent sessions buffer output away from xterm until the
+  // CLI is detected as ready, so xterm can't answer in time — main answers
+  // instead. Counts down chunks scanned; 0 = disarmed.
+  private da1ScanChunksLeft = 0;
   private currentModel: ClaudeModel | null = null;
   private initialDetectionBuffer: string = '';
   private initialDetectionDone: boolean = false;
@@ -354,6 +360,16 @@ export class CLIManager {
       ...cleanEnv,
       TERM: 'xterm-256color',
       COLORTERM: 'truecolor',
+      // ConPTY can coalesce Claude Code's incremental (changed-cells-only)
+      // repaints incorrectly, freezing fragments of old frames into xterm
+      // scrollback. Full repaint + DEC 2026 synchronized output make each
+      // frame atomic. Set at the PTY level (not the provider) so a `claude`
+      // launched manually in a shell session is covered too; other CLIs
+      // ignore these vars.
+      ...(process.platform === 'win32' ? {
+        CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT: '1',
+        CLAUDE_CODE_FORCE_SYNC_OUTPUT: '1',
+      } : {}),
     };
     if (this.options.provider) {
       // Use provider-supplied env vars (provider is responsible for agent teams flag)
@@ -374,12 +390,21 @@ export class CLIManager {
       rows: 24,
       cwd: this.options.workingDirectory,
       env: ptyEnv,
+      // Use node-pty's bundled Windows Terminal conpty.dll instead of the
+      // OS in-box conhost — it carries years of rendering/passthrough fixes
+      // for the scrollback ghosting that TUI diff-repaints trigger.
+      ...(process.platform === 'win32' ? { useConptyDll: true } : {}),
     });
 
     this._isRunning = true;
 
+    // Arm the DA1 responder for the bundled ConPTY's startup probe (win32
+    // only — matches the useConptyDll spawn option above). 16 chunks is far
+    // past the probe, which arrives in the very first chunk.
+    this.da1ScanChunksLeft = process.platform === 'win32' ? 16 : 0;
+
     this.ptyProcess.onData((data: string) => {
-      this.bufferOutput(data);
+      this.bufferOutput(this.interceptConptyDa1(data));
     });
 
     this.ptyProcess.onExit(({ exitCode }) => {
@@ -534,6 +559,23 @@ export class CLIManager {
     this.initialDetectionDone = false;
     this.switchDetectionBuffer = '';
     this.currentModel = null;
+  }
+
+  /**
+   * Answer the bundled ConPTY's startup DA1 capability query on xterm's
+   * behalf (same reply xterm.js sends) and strip it from the stream, so a
+   * late second reply from xterm never lands as shell/CLI input. Scanning
+   * disarms after the startup window; later app-level DA1 queries pass
+   * through to the terminal untouched.
+   */
+  private interceptConptyDa1(data: string): string {
+    if (this.da1ScanChunksLeft <= 0) return data;
+    this.da1ScanChunksLeft--;
+    const idx = data.indexOf('\x1b[c');
+    if (idx === -1) return data;
+    this.da1ScanChunksLeft = 0;
+    this.ptyProcess?.write('\x1b[?1;2c');
+    return data.slice(0, idx) + data.slice(idx + 3);
   }
 
   /**
