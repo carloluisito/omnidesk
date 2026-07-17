@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, type MutableRefObject } from 'react';
 import type { STTPhase } from '../../hooks/useSTT';
 import { ListeningBars } from '../ui/ListeningBars';
 
@@ -20,6 +20,17 @@ export function DictationOverlay({
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (phase === 'review') ref.current?.focus(); }, [phase]);
 
+  // Grow the review textarea to fit the transcript, capped at 40% of the
+  // viewport; past the cap it scrolls internally.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (phase !== 'review' || !el) return;
+    const cap = Math.round(window.innerHeight * 0.4);
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, cap)}px`;
+    el.style.overflowY = el.scrollHeight > cap ? 'auto' : 'hidden';
+  }, [phase, transcript]);
+
   if (phase === 'idle') return null;
 
   const btn = {
@@ -37,6 +48,9 @@ export function DictationOverlay({
   const wrap = {
     position: 'absolute', bottom: 'var(--space-4)', left: '50%', transform: 'translateX(-50%)',
     zIndex: 20, minWidth: '340px', maxWidth: '70%',
+    // Review shows a full editable transcript — give it a fixed reading
+    // column (clamped by maxWidth) instead of shrink-to-fit.
+    ...(phase === 'review' ? { width: '720px' } : {}),
     background: 'color-mix(in srgb, var(--v2-surface-overlay) 94%, transparent)',
     border: '1px solid var(--v2-border-default)', borderRadius: 'var(--radius-md)',
     padding: 'var(--space-3)', fontFamily: '"JetBrains Mono", monospace',
