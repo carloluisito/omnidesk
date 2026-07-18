@@ -6,12 +6,17 @@ Multi-provider Electron desktop application for AI coding CLIs. Organizes work a
 
 **Always run the `requirements-clarifier` agent (via the Task tool) on the user's initial prompt before planning or implementing.** This ensures requirements are analyzed, ambiguities are surfaced, and acceptance criteria are established before any work begins. Skip only for trivial tasks (typo fixes, single-line changes, or purely informational questions).
 
-**Always start new work on a fresh branch cut from an up-to-date `main`.** For any new feature, issue, or bug fix, before writing code:
-1. `git fetch origin` (pull the latest `main` first — never branch from a stale local `main`).
-2. Create the working branch off the freshly-fetched `main`: `git checkout -b <type>/<short-desc> origin/main` (e.g. `fix/terminal-initial-size-garble`, `feat/session-search`).
-3. Do all work for that item on this one branch, then open a PR against `main`.
+**Always start new work in a fresh branch based on an up-to-date `main` — and always use a git worktree for it.** For any new feature, issue, or bug fix that is **not** related to the branch the current checkout is on, before writing code:
+1. `git fetch origin` — always get the latest `main` first; never create a branch or worktree from a stale local `main`.
+2. Create a worktree with its own new branch cut from the freshly-fetched `origin/main`:
+   `git worktree add .claude/worktrees/<type>-<short-desc> -b <type>/<short-desc> origin/main`
+   (e.g. `git worktree add .claude/worktrees/fix-terminal-garble -b fix/terminal-initial-size-garble origin/main`). In Claude Code, `EnterWorktree` is the preferred way to do this.
+3. Do all work for that item inside that worktree on that one branch, then open a PR against `main`.
+4. When the work is merged/abandoned, clean up: `git worktree remove <path>`.
 
-Never commit work directly to `main`, and never build a fix on top of an unrelated feature branch — if you're already on another branch with uncommitted changes, stash them, branch from `origin/main`, then restore. Skip only when the user explicitly asks to work on the current branch.
+**Why worktrees are required:** multiple sessions often run concurrently in this repo. Switching branches (or stashing/restoring) in the main checkout would change files underneath another running session. A worktree gives each work item its own isolated directory, so nothing else is affected.
+
+Never commit work directly to `main`, and never build a fix on top of an unrelated feature branch — if the task doesn't belong to the current branch, spin up a new worktree from `origin/main` as above instead of reusing the checkout. Skip only when the user explicitly asks to work on the current branch.
 
 ## Tech Stack
 
