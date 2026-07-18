@@ -3,6 +3,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { VoiceControls } from './shell/VoiceControls';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
 import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
@@ -702,6 +703,12 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
           </div>
         )}
 
+        {isVisible && (
+          <VoiceControls
+            readOnly={readOnly}
+            onInject={(text) => xtermRef.current?.paste(text)}
+          />
+        )}
       </div>
 
       <ConfirmDialog

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar, RemoteAccessPanel, P4Icon,
+  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
@@ -32,6 +32,7 @@ import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { showToast } from './utils/toast';
 import iconDarkUrl from './assets/logo/icon-dark.svg';
 import type { PermissionMode } from '../shared/ipc-types';
+import { STT_OPEN_SETTINGS_EVENT } from './stt-ui';
 
 function App() {
   // ─── Core state ──────────────────────────────────────────────
@@ -131,6 +132,7 @@ function App() {
   const [showPalette, setShowPalette] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
   const touchMode = useTouchMode();
   // Pending close confirmation. null while no prompt is open.
@@ -417,11 +419,18 @@ function App() {
         if (showNewSession) setShowNewSession(false);
         if (showAddRepo)    setShowAddRepo(false);
         if (showRemote)     setShowRemote(false);
+        if (showVoiceSettings) setShowVoiceSettings(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showNewSession, showAddRepo, showRemote]);
+  }, [showPalette, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
+
+  useEffect(() => {
+    const open = () => setShowVoiceSettings(true);
+    window.addEventListener(STT_OPEN_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(STT_OPEN_SETTINGS_EVENT, open);
+  }, []);
 
   // ─── Palette actions ─────────────────────────────────────────
   const paletteActions: PaletteAction[] = useMemo(() => [
@@ -454,6 +463,11 @@ function App() {
       id: 'remote', icon: 'tunnel', title: 'Remote access…',
       sub: 'Reach OmniDesk from a browser over a tunnel',
       run: () => { setShowPalette(false); setShowRemote(true); },
+    },
+    {
+      id: 'voice-settings', icon: 'settings', title: 'Voice / speech-to-text settings…',
+      sub: 'Enable voice prompting, pick a model, download it',
+      run: () => { setShowPalette(false); setShowVoiceSettings(true); },
     },
   ], []);
 
@@ -596,6 +610,7 @@ function App() {
           />
         )}
         {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+        {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
             name={nonGitChoice.name}
@@ -797,6 +812,7 @@ function App() {
       )}
 
       {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+      {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
 
       {confirmClose && (() => {
         const target = sessions.find(s => s.id === confirmClose.id);

@@ -1,6 +1,7 @@
 // @atlas-entrypoint: Main process — creates window, initializes all 8 managers, wires IPC
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, session } from 'electron';
 import * as path from 'path';
+import { applyMediaPermissions } from './media-permissions';
 import * as fs from 'fs';
 import * as os from 'os';
 import { CONFIG_DIR, ensureConfigDir, migrateFromLegacy } from './config-dir';
@@ -21,6 +22,8 @@ import { ClientHub } from './remote/client-hub';
 import { TunnelController } from './remote/tunnel-controller';
 import { managedCloudflaredPath } from './remote/tunnel-manager';
 import { registerRemoteBroadcaster } from './ipc-emitter';
+import { STTManager } from './stt/stt-manager';
+import { createUtilityEngine } from './stt/utility-engine';
 import { WindowState } from '../shared/ipc-types';
 
 // Prevent EPIPE crashes when stdout/stderr pipe breaks (e.g., renderer window closes while PTY is active)
@@ -218,6 +221,20 @@ function createWindow(): void {
   const clientHub = new ClientHub();
   registerRemoteBroadcaster((channel, payload) => clientHub.broadcast(channel, payload));
 
+  // Speech-to-text engine (WASM Whisper in a crash-isolated utilityProcess).
+  // Models cache under userData/models/transformers. Status pushes to the
+  // desktop window AND every remote web client.
+  const sttModelsDir = path.join(app.getPath('userData'), 'models', 'transformers');
+  const sttManager = new STTManager({
+    getSettings: () => settingsManager!.getSTTSettings(),
+    modelsDir: sttModelsDir,
+    engineFactory: () => createUtilityEngine(sttModelsDir),
+    onStatusChanged: (s) => {
+      mainWindow?.webContents.send('stt:statusChanged', s);
+      clientHub.broadcast('stt:statusChanged', s);
+    },
+  });
+
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
     mainWindow,
@@ -229,6 +246,7 @@ function createWindow(): void {
     gitManager,
     providerRegistry,
     remoteAuth,
+    sttManager,
   );
 
   // Construct the remote server now that the IPC registry exists, then inject
@@ -274,6 +292,10 @@ function createWindow(): void {
     void agentViewDelayedInit();
   }, 2000);
 
+  // Warm the STT engine off the synchronous critical path (loads the model if
+  // already cached; no-op if voice is disabled or the model isn't downloaded).
+  setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed()) void sttManager.warmUp(); }, 3000);
+
   // Run history cleanup on startup
   historyManager.runCleanup().catch(err => {
     console.error('Initial history cleanup failed:', err);
@@ -313,6 +335,7 @@ function createWindow(): void {
       remoteServer.stop().catch(() => {});
       remoteServer = null;
     }
+    sttManager.shutdown();
     removeIPCHandlers();
     if (gitManager) {
       gitManager.destroy();
@@ -331,6 +354,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Grant the desktop window microphone (getUserMedia) + clipboard permissions.
+  // Without this, Electron denies mic access and voice capture throws AbortError.
+  applyMediaPermissions(session.defaultSession);
   migrateFromLegacy();
   createWindow();
 

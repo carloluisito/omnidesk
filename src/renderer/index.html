@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:;" />
+    <!-- worker-src/script-src allow blob: so the STT AudioWorklet (built from an
+         inline blob: URL in pcm-recorder.ts) can load. Blobs are same-origin only;
+         without this Chromium rejects addModule with a raw "user aborted" error. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:;" />
     <title>OmniDesk</title>
   </head>
   <body>

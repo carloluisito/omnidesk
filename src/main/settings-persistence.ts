@@ -12,6 +12,7 @@ import {
   SplitViewState,
   SessionPoolSettings,
   LayoutNode,
+  STTSettings,
 } from '../shared/ipc-types';
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
 import { CONFIG_DIR, ensureConfigDir } from './config-dir';
@@ -56,6 +57,13 @@ function getDefaultSettings(): AppSettings {
     remoteAccess: {
       enabled: false,
       port: 8420,
+    },
+    stt: {
+      enabled: false,
+      model: 'base.en',
+      hotkey: 'Ctrl+Shift+Space',
+      language: 'en',
+      showButton: true,
     },
   };
 }
@@ -513,6 +521,11 @@ export class SettingsManager {
     };
     saveSettings(this.settings);
     return this.settings.worktreeSettings;
+  }
+
+  getSTTSettings(): STTSettings {
+    const defaults = getDefaultSettings();
+    return this.settings.stt || defaults.stt!;
   }
 
   private getValidationErrorMessage(error: string): string {
