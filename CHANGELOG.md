@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-07-18
+
+### Added
+- **Voice prompting (speech-to-text).** Dictate prompts instead of typing: click the mic button in the terminal (or press `Ctrl+Shift+Space`) to start recording, click again to stop. Transcription runs a local Whisper model fully on-device — no cloud service, no API keys, audio never leaves your machine. The transcript opens in an editable review overlay (auto-grows for long dictations) before being injected into the terminal, and a live audio-reactive equalizer shows the mic is actually hearing you while you speak. Configure it — enable/disable, pick a model (`tiny.en` / `base.en` / `small.en`), download with one click — from `Ctrl/Cmd+K → "Voice / speech-to-text settings…"`. The model downloads once with your consent and is cached locally. Right-click the mic button to hide it. Desktop only (disabled for remote browser clients).
+
+### Fixed
+- **Ghost text in Windows terminal scrollback.** Long Claude sessions on Windows could leave fragments of old frames (stray spinner/status-line prefixes) frozen in the terminal's scrollback, caused by ConPTY mis-coalescing incremental repaints. Sessions now use the bundled Windows Terminal ConPTY plus full-repaint/synchronized-output modes, which also cuts session startup output delay from ~3s to ~200ms.
+
+---
+
 ## [2.3.2] - 2026-07-10
 
 ### Fixed

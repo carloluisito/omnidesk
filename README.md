@@ -87,6 +87,14 @@
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
 
+### Voice Prompting (Speech-to-Text)
+- **Dictate prompts instead of typing** — click the mic button in the terminal (or press `Ctrl+Shift+Space`) to start recording, click/press again to stop
+- **Fully on-device** — transcription runs a local Whisper model (via transformers.js WASM) in a sandboxed background process; audio never leaves your machine, no cloud service, no API keys
+- **Review before sending** — the transcript appears in an editable overlay so you can fix wording before it's injected into the terminal
+- **Live feedback** — an audio-reactive equalizer while recording, so a muted or dead mic is immediately obvious
+- **Model choice** — pick `tiny.en`, `base.en` (default), or `small.en` from the voice settings panel (`Ctrl/Cmd+K → "Voice / speech-to-text settings…"`); the model downloads once, with your consent, and is cached locally
+- Right-click the mic button to hide it; disabled for remote (browser) clients
+
 ### Remote Access
 - **Reach OmniDesk from any browser** — the same UI runs on your phone, tablet, or another computer, driving your live sessions
 - **One-click managed tunnel** — OmniDesk runs a Cloudflare tunnel for you (auto-downloads `cloudflared` on request); no manual terminal setup
@@ -263,7 +271,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 - **Local-first** — all session data is stored on your machine
 - **No telemetry** — no usage data is collected or transmitted
-- **Minimal external services** — network calls are limited to: Anthropic's API (quota/burn-rate), GitHub (app update checks via `electron-updater`), and your configured git remotes (clone/fetch/push). Nothing else is contacted.
+- **Minimal external services** — network calls are limited to: Anthropic's API (quota/burn-rate), GitHub (app update checks via `electron-updater`), your configured git remotes (clone/fetch/push), and Hugging Face (one-time, user-consented voice model download). Nothing else is contacted.
+- **Voice stays local** — speech-to-text runs entirely on-device; audio is never uploaded anywhere
 - **Credential security** — reads Claude CLI credentials locally, never logs or stores them
 
 For more details, see [SECURITY.md](SECURITY.md).
