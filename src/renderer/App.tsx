@@ -9,8 +9,9 @@ import {
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
   TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, ShipItSheet, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
-  type ViewMode, type PaletteAction, type NewSessionForm,
+  type ViewMode, type PaletteAction, type NewSessionForm, type NewSessionPrefill,
 } from './components/shell';
+import { IssuePickerSheet } from './components/shell/IssuePickerSheet';
 import type { ActiveSelection } from './components/shell/RepoActivityBar';
 import { ContextMenu } from './components/shell/ContextMenu';
 import { TerminalHost } from './components/shell/TerminalHost';
@@ -94,6 +95,9 @@ function App() {
   const [confirmKill, setConfirmKill] = useState<{ id: string; name: string } | null>(null);
   // Ship-it sheet target (session → PR handoff).
   const [shipIt, setShipIt] = useState<{ id: string; name: string } | null>(null);
+  // Work intake: GitHub issue picker + the prefill it hands to NewSessionSheet.
+  const [showIssuePicker, setShowIssuePicker] = useState(false);
+  const [newSessionPrefill, setNewSessionPrefill] = useState<NewSessionPrefill | null>(null);
 
   // Last-known burn rate for the active session, surfaced in the status bar.
   const { burnRate } = useQuota(activeSessionId);
@@ -318,6 +322,8 @@ function App() {
         wt,
         form.agent,
         form.launchMode,
+        undefined,
+        form.initialPrompt,
       );
     };
 
@@ -505,6 +511,11 @@ function App() {
       id: 'integrations', icon: 'bolt', title: 'Integrations…',
       sub: 'Telegram / Slack / Discord / webhook alerts + GitHub ship-it',
       run: () => { setShowPalette(false); setShowIntegrations(true); },
+    },
+    {
+      id: 'issue-intake', icon: 'branch', title: 'Start from GitHub issue…',
+      sub: 'Pick an issue → worktree session seeded with its context',
+      run: () => { setShowPalette(false); setShowIssuePicker(true); },
     },
     {
       id: 'voice-settings', icon: 'settings', title: 'Voice / speech-to-text settings…',
@@ -848,11 +859,25 @@ function App() {
             sessions={sessions}
             activeRepoId={activeRepoId}
             agentsAvailable={agentsAvailable}
-            onClose={() => setShowNewSession(false)}
+            prefill={newSessionPrefill ?? undefined}
+            onClose={() => { setShowNewSession(false); setNewSessionPrefill(null); }}
             onCreate={handleCreateSession}
           />
         );
       })()}
+
+      {showIssuePicker && activeRepo && (
+        <IssuePickerSheet
+          repoPath={activeRepo.path}
+          repoName={activeRepo.name}
+          onPick={(prefill) => {
+            setShowIssuePicker(false);
+            setNewSessionPrefill(prefill);
+            setShowNewSession(true);
+          }}
+          onClose={() => setShowIssuePicker(false)}
+        />
+      )}
 
       {showPalette && activeRepo && (
         <Palette
