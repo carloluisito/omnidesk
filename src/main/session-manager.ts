@@ -45,6 +45,9 @@ interface Session {
   cliManager: CLIManager | null;
 }
 
+/** Main-process subscriber to session activity-state changes (see addStateListener). */
+export type SessionStateListener = (event: SessionStateChangeEvent, meta: SessionMetadata) => void;
+
 export class SessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
@@ -66,6 +69,8 @@ export class SessionManager {
   /** In-flight worktree/branch cleanup promises. Awaited on app quit so the
    *  user-initiated close→quit sequence doesn't leave a half-cleaned repo. */
   private pendingCleanups: Set<Promise<void>> = new Set();
+  /** Main-process activity-state subscribers (integrations event bus tap). */
+  private stateListeners: SessionStateListener[] = [];
 
   constructor(historyManager: HistoryManager, sessionPool: SessionPool) {
     this.historyManager = historyManager;
@@ -407,6 +412,24 @@ export class SessionManager {
     session.metadata.activityState = state;
     const event: SessionStateChangeEvent = { sessionId, state, reason, at: Date.now() };
     this.emitter?.emit('onSessionStateChanged', event);
+    for (const listener of this.stateListeners) {
+      try {
+        listener(event, { ...session.metadata });
+      } catch (err) {
+        console.error('Session state listener failed:', err);
+      }
+    }
+  }
+
+  /** Subscribe a main-process module to every activity-state change (with the
+   *  session's metadata attached). Listener errors are swallowed — they can
+   *  never break the renderer broadcast. Returns an unsubscribe function. */
+  addStateListener(listener: SessionStateListener): () => void {
+    this.stateListeners.push(listener);
+    return () => {
+      const i = this.stateListeners.indexOf(listener);
+      if (i !== -1) this.stateListeners.splice(i, 1);
+    };
   }
 
   private wireCliManager(mgr: CLIManager, sessionId: string): void {
@@ -535,6 +558,11 @@ export class SessionManager {
       classifier?.onExit(exitCode);
       classifier?.dispose();
       this.classifiers.delete(sessionId);
+      // Agent sessions have no classifier, so their exit would never reach
+      // activity-state subscribers (integrations) — emit it directly.
+      if (!classifier) {
+        this.emitActivityState(sessionId, crashed ? 'errored' : 'exited', 'exit');
+      }
 
       // Flush final history buffer
       this.historyManager.onSessionExit(sessionId, exitCode).catch(err => {

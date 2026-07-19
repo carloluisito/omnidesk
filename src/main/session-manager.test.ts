@@ -807,3 +807,52 @@ describe('SessionManager title → auto-rename', () => {
     expect(manager.getSession('test-session-id')?.name).toBe(before);
   });
 });
+
+describe('SessionManager.addStateListener', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  it('invokes listeners with the event and session metadata on state changes', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const listener = vi.fn();
+    manager.addStateListener(listener);
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'awaiting-input', 'bell');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const [event, sessionMeta] = listener.mock.calls[0];
+    expect(event).toMatchObject({ sessionId: meta.id, state: 'awaiting-input', reason: 'bell' });
+    expect(sessionMeta).toMatchObject({ id: meta.id, workingDirectory: '/mock/home' });
+  });
+
+  it('a throwing listener does not break other listeners', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const bad = vi.fn(() => { throw new Error('boom'); });
+    const good = vi.fn();
+    manager.addStateListener(bad);
+    manager.addStateListener(good);
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'done');
+
+    expect(good).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribe stops future invocations', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const listener = vi.fn();
+    const unsub = manager.addStateListener(listener);
+    unsub();
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'done');
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
