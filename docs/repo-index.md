@@ -1,6 +1,6 @@
 # OmniDesk — Repository Index
 
-~7 core managers (+ quota-service, providers/, agent-view/, remote/) | 109 IPC methods | 19 channel-prefix domains | 446 tests across 42 files + 6 e2e specs
+~7 core managers (+ quota-service, providers/, agent-view/, remote/, session-state/) | 115 IPC methods | 19 channel-prefix domains | 670 tests across 70 files + 6 e2e specs
 
 ## Entrypoints
 
@@ -8,13 +8,13 @@
 |------|------|
 | `src/main/index.ts` | Main process — creates window, initializes 7 managers, wires IPC, runs agent-view probe |
 | `src/renderer/App.tsx` | Root React component — Phase 4 shell, composes all hooks and shell components |
-| `src/shared/ipc-contract.ts` | IPC single source of truth — 103 methods, auto-derives preload bridge and types |
+| `src/shared/ipc-contract.ts` | IPC single source of truth — 115 methods, auto-derives preload bridge and types |
 
 ## IPC Infrastructure (cross-cutting)
 
 | File | Layer | Role |
 |------|-------|------|
-| `src/shared/ipc-contract.ts` | Shared | Contract map: channel names, arg types, return types (103 entries) |
+| `src/shared/ipc-contract.ts` | Shared | Contract map: channel names, arg types, return types (115 entries) |
 | `src/shared/ipc-types.ts` | Shared | All IPC payload/response types |
 | `src/main/ipc-handlers.ts` | Main | Handler implementations wired from all surviving managers |
 | `src/main/ipc-registry.ts` | Main | Typed `handle()` / `on()` wrappers for `ipcMain` |
@@ -47,7 +47,8 @@ The renderer uses a flat repo→session model. The shell lives in `src/renderer/
 | `src/renderer/components/shell/NonGitFolderDialog.tsx` | Renderer | Prompt to initialize git when adding a non-git folder |
 | `src/renderer/components/shell/ContextMenu.tsx` | Renderer | Right-click context menu for shell elements |
 | `src/renderer/components/shell/P4Icon.tsx` | Renderer | Phase 4 icon component |
-| `src/renderer/components/shell/shell-utils.ts` | Renderer | Shared utilities: color helpers, status metadata, formatting |
+| `src/renderer/components/shell/shell-utils.ts` | Renderer | Shared utilities: color helpers, `SessionStatus` + `STATUS_META` (incl. `needs-approval`), `isSessionStopped`, formatting |
+| `src/renderer/components/shell/CockpitPanel.tsx` | Renderer | Attention cockpit overlay (⌘J) — cross-repo "who needs you" list |
 
 ## Sessions
 
@@ -65,6 +66,20 @@ IPC: `session:*`, `model:*`
 | `src/renderer/components/Terminal.tsx` | Renderer | xterm.js wrapper, Ctrl+C intercept, Claude readiness detection |
 | `src/renderer/terminal/kitty-keyboard.ts` | Renderer | Kitty keyboard protocol negotiation + key/modifier encoding |
 | `src/renderer/terminal/shell-key-rules.ts` | Renderer | Plain-shell key mapping (incl. Ctrl+C pass-through) |
+
+## Session state / Cockpit
+
+IPC: `session:stateChanged`. Classifies each session's live `SessionActivityState` and routes attention. **Currently gated to shell sessions** (`SessionManager.setupClassifier`); agent-CLI live-state classification is deferred to a headless-emulator rewrite (see `docs/design/2026-07-19-agentic-cockpit-design.md`).
+
+| File | Layer | Role |
+|------|-------|------|
+| `src/main/session-state/classifier.ts` | Main | Per-session state machine (output patterns + quiescence + alt-screen + exit code, with hysteresis) |
+| `src/main/session-state/alt-screen-tracker.ts` | Main | Tracks alternate-screen buffer enter/exit (DECSET ?1049/1047/47) |
+| `src/shared/state-detector.ts` | Shared | Pure detector: tail + provider signals → candidate state |
+| `src/shared/line-reducer.ts` | Shared | Collapses CR/erase/cursor repaints into visible lines |
+| `src/shared/session-state-types.ts` | Shared | `StateSignals`, `CandidateState`, `DetectContext` |
+| `src/renderer/hooks/useAttentionQueue.ts` | Renderer | Cross-repo attention queue + acknowledge + backgrounded toasts |
+| `src/renderer/components/shell/CockpitPanel.tsx` | Renderer | Attention cockpit overlay (⌘J) |
 
 ## Repos / Workspaces
 
@@ -131,7 +146,7 @@ IPC: `provider:*` (3 invoke methods)
 
 | File | Layer | Role |
 |------|-------|------|
-| `src/main/providers/provider.ts` | Main | `IProvider` interface + `ProviderCommandOptions` type (incl. optional `launchMode`) |
+| `src/main/providers/provider.ts` | Main | `IProvider` interface (incl. `getStateSignals()` for the cockpit classifier) + `ProviderCommandOptions` type (incl. optional `launchMode`) |
 | `src/main/providers/provider-registry.ts` | Main | `ProviderRegistry`: auto-registers Claude + Codex, `get()`, `list()`, `getAvailable()` |
 | `src/main/providers/claude-provider.ts` | Main | Claude Code provider: command building (switch on `LaunchMode`), readiness patterns, model detection, env vars, defense-in-depth fallback for `'agents'` mode |
 | `src/main/providers/codex-provider.ts` | Main | Codex CLI provider: approval-mode mapping, Codex-specific readiness + model patterns |
@@ -243,8 +258,16 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 
 ### Unit Tests
 
+> Per-file counts below are indicative and drift as tests are added — run `npm test` for the current total (**670 tests across 70 files**).
+
 | File | Tests | Covers |
 |------|-------|--------|
+| `src/main/session-state/classifier.test.ts` | 13 | State machine: leading-edge working, dwell→done/idle, approval, interrupt veto, exit fusion, alt-screen suppression, dispose |
+| `src/main/session-state/alt-screen-tracker.test.ts` | 10 | DECSET ?1049/1047/47 enter/exit, combined params, multiple transitions, reset |
+| `src/shared/state-detector.test.ts` | 26 | Priority order, tail-end anchoring, done-vs-idle bias, multi-line approval ordering |
+| `src/shared/line-reducer.test.ts` | 22 | CR/erase/cursor repaint collapse incl. the answered-approval smear case |
+| `src/renderer/hooks/useAttentionQueue.test.ts` | 11 | Sort/count, acknowledge + re-arm, cold-attach guard, backgrounded toast |
+| `src/main/history-manager.test.ts` | 4 | Readiness gate: shell skip, 8KB give-up, bounded buffering, Claude-banner regression |
 | `src/shared/model-detector.test.ts` | 15 | Initial/switch detection, ANSI stripping |
 | `src/shared/types/provider-types.test.ts` | 7 | ProviderId, ProviderCapabilities, ProviderInfo structural tests |
 | `src/renderer/utils/variable-resolver.test.ts` | 18 | resolveVariables, extractVariables, getMissingVariables |
@@ -252,8 +275,8 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 | `src/renderer/utils/layout-tree.test.ts` | 33 | countPanes, traverseTree, transformTree, pruneTree, grid nodes |
 | `src/main/git-manager.test.ts` | 41 | Status parsing, branches, commit, generateMessage, detectErrorCode |
 | `src/main/providers/provider-registry.test.ts` | 9 | Auto-registration, get/list/getAvailable, error handling |
-| `src/main/providers/claude-provider.test.ts` | 28 | getId, getInfo, buildCommand permutations (incl. LaunchMode switch + agents-mode defense-in-depth), patterns, normalizeModel, env vars |
-| `src/main/providers/codex-provider.test.ts` | 14 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel, launchMode-inertness |
+| `src/main/providers/claude-provider.test.ts` | 31 | getId, getInfo, buildCommand permutations (incl. LaunchMode switch + agents-mode defense-in-depth), patterns, normalizeModel, env vars, `getStateSignals` false-positive locks |
+| `src/main/providers/codex-provider.test.ts` | 16 | getId, getInfo, buildCommand with approval modes, readiness patterns, normalizeModel, launchMode-inertness, `getStateSignals` |
 | `src/main/agent-view/availability.test.ts` | 35 | Precedence rules, reason variants, edge cases |
 | `src/main/agent-view/probe-version.test.ts` | 6 | Successful version parse, missing binary, non-zero exit, parse-unsafe output, 5s timeout |
 | `src/main/ipc-handlers.availability.test.ts` | 7 | Cached-and-return semantics, no-respawn on N calls, IPC wrapper, initial `'probing'` state |
@@ -261,7 +284,7 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 | `src/main/cli-manager.test.ts` | 2 | PTY spawn wiring, agent-teams env var injection |
 | `src/main/path-access.test.ts` | 6 | Home + workspace path allow-listing, Windows normalization |
 | `src/shared/session-kind.test.ts` | 2 | `SessionKind` type-level guards (agent vs shell) |
-| `src/renderer/components/shell/shell-utils.test.ts` | 5 | Color helpers, status metadata, formatting |
+| `src/renderer/components/shell/shell-utils.test.ts` | 8 | Color helpers, status metadata, `isSessionStopped`, formatting |
 | `src/renderer/terminal/kitty-keyboard.test.ts` | 23 | Kitty protocol negotiation + key/modifier encoding |
 | `src/renderer/terminal/shell-key-rules.test.ts` | 8 | Plain-shell key mapping incl. Ctrl+C pass-through |
 
@@ -272,7 +295,7 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 | `src/renderer/hooks/useSessionManager.test.ts` | 8 | CRUD, events, output subscribers |
 | `src/renderer/hooks/useAgentViewAvailability.test.tsx` | 6 | Initial null/loading state, stays loading when initial fetch returns `'probing'`, success path, rejection synthesizes `detection-failed`, subscribes to push event, unsubscribes on unmount |
 | `src/main/session-persistence.test.ts` | 17 | Load/save/clear, validation, atomic write |
-| `src/main/session-manager.test.ts` | 20 | Session lifecycle, history recording, model events |
+| `src/main/session-manager.test.ts` | 33 | Session lifecycle, model events, launchMode/model persistence + restart, spawn-failure gating, early map insert, stale-manager guard + crash status |
 | `src/main/ipc-registry.test.ts` | 5 | handle(), on(), removeAll() |
 | `src/main/ipc-emitter.test.ts` | 3 | emit(), destroyed window guard |
 | `src/main/ipc-handlers.test.ts` | 4 | IPC handler integration |

@@ -120,7 +120,7 @@ OmniDesk is an Electron application with three main layers and ~7 domain manager
 - **cli-manager.ts** - PTY spawning, output buffering, provider-aware CLI interaction
 - **session-manager.ts** - Session state, lifecycle, model events
 - **session-pool.ts** - Pre-warmed shell pool for fast session creation
-- **ipc-handlers.ts** - IPC communication handlers (103 methods)
+- **ipc-handlers.ts** - IPC communication handlers (115 methods)
 - **git-manager.ts** - Git status, branches, commits, and worktree operations (backend only)
 - **quota-service.ts** - Anthropic API quota + burn-rate calculation
 - **providers/** - Pluggable CLI provider abstraction (Claude, Codex)
@@ -219,7 +219,7 @@ await window.electronAPI.createSession(name, dir);
 
 ### Current State
 
-OmniDesk has **393 tests across 33 test files**, using Vitest 4 with 3 workspace projects:
+OmniDesk has **670 tests across 70 test files**, using Vitest 4 with 3 workspace projects:
 
 | Project | Environment | Pattern |
 |---------|-------------|---------|
