@@ -62,7 +62,7 @@
 
 ### Multi-Session Management
 - **Multiple concurrent sessions** per repository
-- **Named sessions** for better organization
+- **Named sessions** for better organization — and sessions you don't name **auto-rename to the agent's live task summary** (sourced from the CLI's terminal title; a name you type, at creation or via rename, is never touched)
 - **Session persistence** — sessions are restored after an app restart
 - **Pre-warmed session pool** for fast session creation
 - **Per-session launch mode picker** (Claude) — choose between `claude`, `claude --dangerously-skip-permissions`, or `claude agents` (the Claude Code 2.1.139+ background-session TUI) at creation time, gated by an automatic CLI availability probe
@@ -87,7 +87,8 @@
 ### Attention Cockpit
 - **Live session status** on the rail — each session is classified (`working` / `awaiting-approval` / `errored` / `done` / `idle`) rather than a single "running" state
 - **"Who needs you" cockpit** (`Ctrl/Cmd+J`) — a cross-repo overlay listing sessions that need attention, with Jump/Dismiss, plus a "N need you" pill in the status bar and background toasts for backgrounded sessions
-- **Current scope** — live-state classification is available for **plain terminal (shell) sessions** today; agent-CLI (Claude Code / Codex) live-state classification is in progress (their full-screen TUIs need a screen-aware classifier). Agent sessions still surface run/error/exit state.
+- **Agent "needs you" alerts via the terminal bell** — when an agent CLI rings its bell (Claude Code: turn finished, question waiting), the session is flagged `awaiting-input`, fires a toast with Jump, and counts in the pill. Typing in the session clears it. **Requires the CLI's bell channel** — for Claude Code add `"preferredNotifChannel": "terminal_bell"` to your `~/.claude/settings.json` (or profile settings)
+- **Current scope** — full live-state classification (working/idle) runs for **plain terminal (shell) sessions**; agent sessions get bell-driven needs-you alerts plus run/error/exit state. Richer agent states (screen-aware classification) are planned.
 
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service

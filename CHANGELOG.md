@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-07-19
+
+### Added
+- **Attention cockpit — supervise your agents instead of babysitting them.** Every session now carries a live activity state (`working` / `awaiting-approval` / `awaiting-input` / `errored` / `done` / `idle`) surfaced across the app: rich status chips on the session rail, a cross-repo **"who needs you" overlay** (`Ctrl/Cmd+J`) with Jump/Dismiss, an **"N need you" pill** in the status bar, and toasts when a *backgrounded* session starts needing you. Full classification runs for plain terminal (shell) sessions.
+- **Agent "needs you" alerts via the terminal bell.** When Claude Code rings its bell — turn finished, or a question is waiting — the session is flagged `awaiting-input`, fires a toast with a Jump button, and counts in the pill; typing in the session clears it. Detection is escape-sequence-aware (title/clipboard sequences that end in the same byte never false-alarm), verified byte-for-byte against a live Claude Code session. Requires the CLI's bell channel: for Claude Code set `"preferredNotifChannel": "terminal_bell"` in your settings.
+- **Sessions auto-rename to what the agent is working on.** Sessions you don't explicitly name pick up the CLI's live task summary from its terminal title (e.g. "Fix login bug") and update as the work changes. A name you type — at creation or via rename — is never touched, and that choice survives restarts. Shell sessions and junk titles are excluded.
+
+### Changed
+- Architecture docs, README feature docs, and contributor workflow notes refreshed; repo workflow now requires worktree-per-task branching from an up-to-date `main`.
+
+### Fixed
+- **Session lifecycle trust fixes (cockpit foundation):** crash-on-launch is no longer silently dropped by pooled sessions (no more sessions stuck at "starting"), a crashed session is reported as `error` rather than a clean exit, and stale/replaced PTY managers can no longer feed or tear down a live session.
+
+---
+
 ## [2.4.0] - 2026-07-18
 
 ### Added
