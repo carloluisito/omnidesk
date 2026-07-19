@@ -738,6 +738,11 @@ interface MultiTerminalProps {
   onOutput: (callback: (sessionId: string, data: string) => void) => () => void;
 }
 
+// Readiness-gate hard-flush thresholds (see readinessTimersRef). A terminal
+// must never stay blank waiting for a ready banner that never comes.
+const READINESS_FLUSH_BYTES = 8 * 1024;
+const READINESS_FLUSH_MS = 2500;
+
 export function MultiTerminal({
   sessionIds,
   visibleSessionIds,
@@ -756,6 +761,12 @@ export function MultiTerminal({
   // Buffer for output that arrives before the terminal xterm instance is registered
   const pendingOutputRef = useRef<Map<string, string[]>>(new Map());
   const kittyStateRef = useRef<Map<string, KittyKeyboardState>>(new Map());
+  // Hard-flush fallback timers for the Claude-readiness gate. A non-Claude
+  // provider (e.g. Codex) never matches the Claude ready patterns, so without
+  // a fallback its output stays buffered and the terminal renders blank
+  // forever. If no match arrives within READINESS_FLUSH_MS (or the buffer
+  // exceeds READINESS_FLUSH_BYTES), we flush the raw buffer and mark ready.
+  const readinessTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Latest sessionKindMap, read via ref so the onOutput/handleReady closures
   // (whose deps don't include the prop) never see a stale map for a session
   // created after they were memoized.
@@ -795,6 +806,24 @@ export function MultiTerminal({
         const newBuffer = currentBuffer + data;
         outputBuffersRef.current.set(sessionId, newBuffer);
 
+        // Arm a one-shot fallback so a session whose banner never matches the
+        // Claude patterns (e.g. Codex) can't stay blank indefinitely.
+        if (!readinessTimersRef.current.has(sessionId)) {
+          readinessTimersRef.current.set(sessionId, setTimeout(() => {
+            readinessTimersRef.current.delete(sessionId);
+            if (isReadyRef.current.get(sessionId)) return;
+            const buffered = outputBuffersRef.current.get(sessionId);
+            const term = terminalsRef.current.get(sessionId);
+            if (buffered && term) {
+              term.write(buffered);
+              isReadyRef.current.set(sessionId, true);
+              const cb = claudeReadyCallbacksRef.current.get(sessionId);
+              if (cb) cb(buffered);
+              outputBuffersRef.current.delete(sessionId);
+            }
+          }, READINESS_FLUSH_MS));
+        }
+
         // Check if Claude is ready using centralized detection
         if (checkClaudeReadyPatterns(newBuffer)) {
 
@@ -830,6 +859,10 @@ export function MultiTerminal({
             }
           }
 
+          // Pattern matched — cancel the pending hard-flush fallback.
+          const pending = readinessTimersRef.current.get(sessionId);
+          if (pending) { clearTimeout(pending); readinessTimersRef.current.delete(sessionId); }
+
           // Write only Claude's output
           const claudeOutput = newBuffer.substring(startIndex);
           terminal.write(claudeOutput);
@@ -846,11 +879,26 @@ export function MultiTerminal({
 
           // Clear the buffer
           outputBuffersRef.current.delete(sessionId);
+        } else if (newBuffer.length > READINESS_FLUSH_BYTES) {
+          // Buffer grew past the cap without a match — flush raw so the
+          // terminal shows content rather than staying blank.
+          const pending = readinessTimersRef.current.get(sessionId);
+          if (pending) { clearTimeout(pending); readinessTimersRef.current.delete(sessionId); }
+          terminal.write(newBuffer);
+          isReadyRef.current.set(sessionId, true);
+          const checkCallback = claudeReadyCallbacksRef.current.get(sessionId);
+          if (checkCallback) checkCallback(newBuffer);
+          outputBuffersRef.current.delete(sessionId);
         }
       }
     });
 
-    return cleanup;
+    return () => {
+      cleanup();
+      // Clear any armed readiness fallback timers so they don't fire after unmount.
+      for (const t of readinessTimersRef.current.values()) clearTimeout(t);
+      readinessTimersRef.current.clear();
+    };
   }, [onOutput, onInput, readOnlySessionIds]);
 
   const handleReady = useCallback((sessionId: string, terminal: XTerm, checkClaudeReady: (data: string) => void) => {
@@ -935,6 +983,8 @@ export function MultiTerminal({
         isReadyRef.current.delete(id);
         pendingOutputRef.current.delete(id);
         kittyStateRef.current.delete(id);
+        const t = readinessTimersRef.current.get(id);
+        if (t) { clearTimeout(t); readinessTimersRef.current.delete(id); }
       }
     }
   }, [sessionIds]);

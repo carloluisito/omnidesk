@@ -47,6 +47,10 @@ export function saveSessionState(
       createdAt: session.createdAt,
       exitCode: session.exitCode,
       currentModel: session.currentModel,
+      // Starting intent, persisted so a session restored after an app restart
+      // relaunches with the same model / launch mode it was created with.
+      ...(session.model !== undefined ? { model: session.model } : {}),
+      ...(session.launchMode !== undefined ? { launchMode: session.launchMode } : {}),
       // providerId is optional; missing on load defaults to 'claude' (backward compat)
       ...(session.providerId !== undefined ? { providerId: session.providerId } : {}),
       // kind is optional; missing on load defaults to 'agent' (backward compat)

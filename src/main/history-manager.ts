@@ -7,6 +7,7 @@ import * as path from 'path';
 import { app } from 'electron';
 import { stripAnsi } from './ansi-strip';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../shared/claude-detector';
+import type { SessionKind } from '../shared/ipc-types';
 import type {
   HistoryIndex,
   HistorySessionEntry,
@@ -23,6 +24,11 @@ const INDEX_FILE = path.join(HISTORY_DIR, 'index.json');
 const SETTINGS_FILE = path.join(HISTORY_DIR, 'settings.json');
 
 const FLUSH_INTERVAL = 500; // Write to disk every 500ms
+// Give-up cutoff for the "wait for Claude's ready banner" gate. Mirrors the
+// 8KB Phase-1 cutoff in cli-manager.ts. Without it, a session whose output
+// never matches the Claude patterns (a plain shell, or a Codex agent) would
+// accumulate every byte forever and re-scan the whole string each chunk (O(n^2)).
+const PRE_READY_BUFFER_MAX = 8 * 1024;
 const MAX_PREVIEW_LENGTH = 50; // Characters before/after match
 const MAX_PREVIEWS_PER_RESULT = 3; // Preview snippets per search result
 
@@ -108,7 +114,7 @@ export class HistoryManager {
    * @param sessionId - Session identifier
    * @param data - Raw terminal output (may contain ANSI codes)
    */
-  async recordOutput(sessionId: string, data: string): Promise<void> {
+  async recordOutput(sessionId: string, data: string, opts?: { kind?: SessionKind }): Promise<void> {
     try {
       let state = this.sessionStates.get(sessionId);
 
@@ -144,20 +150,33 @@ export class HistoryManager {
 
       // Filter shell initialization output
       if (!state.isClaudeReady) {
-        state.preClaudeBuffer += data;
-
-        if (checkClaudeReadyPatterns(state.preClaudeBuffer)) {
+        if (opts?.kind === 'shell') {
+          // Shells never print a Claude ready banner. Record immediately
+          // instead of buffering forever waiting for a match that never comes.
           state.isClaudeReady = true;
+          state.buffer += data;
+        } else {
+          state.preClaudeBuffer += data;
 
-          // Find where Claude output starts and record from there
-          const earliestIndex = findClaudeOutputStart(state.preClaudeBuffer);
-          const startAt = earliestIndex !== -1 ? earliestIndex : 0;
-          const claudeOutput = state.preClaudeBuffer.slice(startAt);
-          state.buffer += claudeOutput;
-          state.preClaudeBuffer = '';
+          if (checkClaudeReadyPatterns(state.preClaudeBuffer)) {
+            state.isClaudeReady = true;
+
+            // Find where Claude output starts and record from there
+            const earliestIndex = findClaudeOutputStart(state.preClaudeBuffer);
+            const startAt = earliestIndex !== -1 ? earliestIndex : 0;
+            state.buffer += state.preClaudeBuffer.slice(startAt);
+            state.preClaudeBuffer = '';
+          } else if (state.preClaudeBuffer.length > PRE_READY_BUFFER_MAX) {
+            // Give up detection (a non-Claude provider, e.g. Codex, whose
+            // banner never matches): flush what we have and record from here
+            // so the buffer can't grow unbounded.
+            state.isClaudeReady = true;
+            state.buffer += state.preClaudeBuffer;
+            state.preClaudeBuffer = '';
+          }
+          // If not ready yet, don't record anything
+          if (!state.isClaudeReady) return;
         }
-        // If not ready yet, don't record anything
-        if (!state.isClaudeReady) return;
       } else {
         // Already ready, record directly
         state.buffer += data;

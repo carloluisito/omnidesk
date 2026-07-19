@@ -52,11 +52,14 @@ export interface SessionMetadata {
   status: SessionStatus;
   createdAt: number;
   exitCode?: number;
+  error?: string; // Failure reason when status === 'error' (e.g. spawn failed)
   teamName?: string;
   agentId?: string;
   agentType?: 'lead' | 'teammate';
   isTeammate?: boolean;
-  currentModel?: ClaudeModel | null; // null = not yet detected
+  model?: ClaudeModel; // The model the session was launched with (starting intent; restored on restart)
+  launchMode?: LaunchMode; // The launch mode the session was created with (restored on restart)
+  currentModel?: ClaudeModel | null; // null = not yet detected (live-detected, distinct from `model`)
   worktreeInfo?: import('./types/git-types').WorktreeInfo;
   providerId?: ProviderId; // Provider backing this session (defaults to 'claude')
   kind?: SessionKind; // undefined treated as 'agent' for back-compat
