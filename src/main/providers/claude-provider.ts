@@ -10,38 +10,44 @@ import type { StateSignals } from '../../shared/session-state-types';
 // State-classifier marker tables for Claude Code's TUI. Matched against the
 // line-reduced, ANSI-stripped tail of the session's output.
 const CLAUDE_STATE_SIGNALS: StateSignals = {
-  // Shown while a turn/tool call is in flight — a strong "still busy" signal
-  // that survives in-place repaints, so it also vetoes premature done/idle.
+  // In-flight markers that survive in-place repaints. "esc to interrupt" is the
+  // reliable one; the spinner glyphs are the distinctive star + braille frames.
+  // A bare middle-dot '·' is deliberately NOT here — it appears in ordinary
+  // output/footers and would pin every session to 'working'.
   working: [
     /esc to interrupt/i,
     /\besc\b\s+to\s+interrupt/i,
-    // Braille + star spinner glyphs Claude animates while thinking.
     /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
-    /[✻✽✳✢·]/,
+    /[✻✽✳✢]/,
   ],
-  // Permission / trust prompts. Anchored to the tail end by the detector, so
-  // these fire only when the prompt is the current bottom-of-screen state.
+  // Permission / trust prompts, anchored to the tail end by the detector. The
+  // structural numbered selector is the strong, box-specific signal; the verb
+  // list is kept box-specific ('proceed' / 'make this edit') — generic verbs
+  // like run/create/continue were dropped because they appear in agent prose.
   approval: [
-    /Do you want to (proceed|make this edit|create|run|apply|continue)/i,
-    /Do you trust the files in this folder/i,
-    // The interactive selector sitting on the "Yes" option.
     /❯\s*1\.\s*Yes/,
-    // The numbered Yes / Yes-and triad that only the approval box renders.
     /\b1\.\s*Yes\b[\s\S]{0,120}\b2\.\s*Yes,/i,
+    /Do you want to (proceed|make this edit)\b/i,
+    /Do you trust the files in this folder/i,
   ],
   // Explicit "your turn to type" prompts distinct from a bare idle prompt box.
   awaitingInput: [
     /Press Enter to continue/i,
     /\bwaiting for your (input|response)\b/i,
   ],
-  // Fatal banners — narrow on purpose so an agent merely printing "error"
-  // while debugging does not trip this (also gated on quiescence by the detector).
+  // Fatal banners anchored to their real framing (start-of-line / banner shape)
+  // so ordinary prose about "the API Error case" or "rate limiting" doesn't trip
+  // 'errored'. Includes the subscription usage-limit hard block.
   fatalError: [
-    /API Error/i,
+    /^\s*(⎿\s*)?API Error[:\s(]/im,
     /Credit balance is too low/i,
-    /\brate limit(?:ed|s)?\b/i,
+    /rate_limit_error/i,
+    /You have exceeded your rate limit/i,
     /overloaded_error/i,
     /Invalid API key/i,
+    /usage limit reached/i,
+    /\b\d+-hour limit reached\b/i,
+    /approaching (?:your )?usage limit/i,
   ],
 };
 

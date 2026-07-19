@@ -627,6 +627,12 @@ export class CLIManager {
       clearTimeout(this.flushTimeout);
       this.flushTimeout = null;
     }
+    // Drop callbacks BEFORE killing the pty so a late node-pty exit event from
+    // a deliberately-destroyed manager can't deliver a stale exit/output to a
+    // session that may already have a replacement manager.
+    this.exitCallback = null;
+    this.outputCallback = null;
+    this.modelChangeCallback = null;
     if (this.ptyProcess) {
       this.ptyProcess.kill();
       this.ptyProcess = null;

@@ -12,6 +12,10 @@ interface StatusBarProps {
   /** Burn rate, USD per hour, displayed as N.NN /hr. Provide null if not yet known. */
   burnRatePerHour?: number | null;
   onOpenOtherReposLive: () => void;
+  /** Count of agents (across all repos) currently needing attention. */
+  needYouCount?: number;
+  /** Open the attention cockpit (⌘J). */
+  onOpenCockpit?: () => void;
 }
 
 export function StatusBar({
@@ -20,6 +24,8 @@ export function StatusBar({
   sessions,
   burnRatePerHour,
   onOpenOtherReposLive,
+  needYouCount = 0,
+  onOpenCockpit,
 }: StatusBarProps) {
   if (!repo) {
     return (
@@ -71,6 +77,22 @@ export function StatusBar({
       <span>
         {repoSessions.length} session{repoSessions.length === 1 ? '' : 's'} · {worktreeCount} worktree{worktreeCount === 1 ? '' : 's'}
       </span>
+
+      {needYouCount > 0 && (
+        <>
+          <span className="sep">|</span>
+          <button
+            type="button"
+            className="pill"
+            onClick={onOpenCockpit}
+            title="Agents that need you (⌘J)"
+            style={{ color: 'var(--warning)' }}
+          >
+            <P4Icon name="bolt" size={10} style={{ color: 'var(--warning)' }} />
+            {needYouCount} need you
+          </button>
+        </>
+      )}
 
       {otherLive > 0 && (
         <>

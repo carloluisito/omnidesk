@@ -17,27 +17,29 @@ const PERMISSION_MODE_MAP: Record<string, string> = {
 // hidden as 'idle'), so imperfect tables under-fire rather than mislead.
 // TODO(codex-signals): validate/replace against a live Codex session.
 const CODEX_STATE_SIGNALS: StateSignals = {
+  // Line-anchored status forms only — bare words 'working'/'thinking' would
+  // match ordinary prose ("tests are working now") and pin the session.
   working: [
     /esc to interrupt/i,
-    /\bthinking\b/i,
-    /\bworking\b…?/i,
+    /^\s*(Thinking|Working)…?\s*$/im,
     /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
   ],
+  // Codex's own approval framing (not a generic '[y/n]', which appears in
+  // captured subprocess output the agent itself answers).
   approval: [
     /Allow command/i,
     /Run this command\?/i,
-    /\bApprove\b\??/i,
     /Allow Codex to run/i,
-    /\[y\/n\]/i,
   ],
   awaitingInput: [
     /Press Enter to continue/i,
   ],
+  // Banner-shaped only; dropped bare /quota/ and /unauthorized/, which match
+  // normal code-writing about auth/HTTP status.
   fatalError: [
-    /\brate limit(?:ed|s)?\b/i,
-    /API error/i,
-    /\bquota\b/i,
-    /unauthorized/i,
+    /^\s*Error:/im,
+    /You have exceeded your rate limit/i,
+    /rate_limit_error/i,
   ],
 };
 

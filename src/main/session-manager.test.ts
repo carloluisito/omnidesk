@@ -521,9 +521,46 @@ describe('SessionManager.createSession — early map insertion (F2)', () => {
     const meta = await manager.createSession({ ...baseRequest });
 
     // Before F2 this exit was dropped (session not yet in the map) and the
-    // session sat at 'starting' forever; now it is correctly 'exited'.
-    expect(manager.getSession(meta.id)?.status).toBe('exited');
+    // session sat at 'starting' forever. Now it is recorded — and since the
+    // exit code is non-zero it is a crash, so status is 'error'.
+    expect(manager.getSession(meta.id)?.status).toBe('error');
     expect(manager.getSession(meta.id)?.exitCode).toBe(1);
+  });
+});
+
+describe('SessionManager — stale-manager guard & crash status (review fixes)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('a clean exit (code 0) is exited; a non-zero exit is error', async () => {
+    const exitCbs: Array<(c: number) => void> = [];
+    vi.mocked(CLIManager.prototype.onExit).mockImplementation((cb: (c: number) => void) => { exitCbs.push(cb); });
+
+    const meta = await manager.createSession({ ...baseRequest });
+    exitCbs[exitCbs.length - 1](0);
+    expect(manager.getSession(meta.id)?.status).toBe('exited');
+  });
+
+  it('ignores a stale (replaced) manager\'s late exit — the live session is untouched', async () => {
+    const exitCbs: Array<(c: number) => void> = [];
+    vi.mocked(CLIManager.prototype.onExit).mockImplementation((cb: (c: number) => void) => { exitCbs.push(cb); });
+
+    const meta = await manager.createSession({ ...baseRequest });
+    const staleExit = exitCbs[exitCbs.length - 1]; // manager A's onExit
+    await manager.restartSession(meta.id);          // installs manager B
+    expect(manager.getSession(meta.id)?.status).toBe('running');
+
+    // Manager A's PTY dies late (non-zero). The guard must ignore it so the
+    // healthy replacement isn't torn down.
+    staleExit(1);
+    expect(manager.getSession(meta.id)?.status).toBe('running');
   });
 });
 

@@ -230,3 +230,26 @@ describe('ClaudeProvider', () => {
     });
   });
 });
+
+describe('ClaudeProvider.getStateSignals', () => {
+  const provider = new ClaudeProvider();
+  const sig = provider.getStateSignals();
+  const anyMatch = (table: RegExp[], s: string) => table.some(re => { re.lastIndex = 0; return re.test(s); });
+
+  it('working does NOT match a bare middle-dot (would pin every session to working)', () => {
+    expect(anyMatch(sig.working, '1,234 tokens · $0.12')).toBe(false);
+    expect(anyMatch(sig.working, 'esc to interrupt')).toBe(true);
+  });
+
+  it('approval matches the numbered Yes triad / selector but not generic prose', () => {
+    expect(anyMatch(sig.approval, '❯ 1. Yes\n  2. Yes, and\n  3. No')).toBe(true);
+    expect(anyMatch(sig.approval, 'Do you want to run the migration now, or wait?')).toBe(false);
+  });
+
+  it('fatalError matches a real banner but not casual prose about errors', () => {
+    expect(anyMatch(sig.fatalError, 'API Error: Request timed out')).toBe(true);
+    expect(anyMatch(sig.fatalError, 'usage limit reached')).toBe(true);
+    expect(anyMatch(sig.fatalError, 'I fixed the API Error case in the handler')).toBe(false);
+    expect(anyMatch(sig.fatalError, 'we should add rate limiting here')).toBe(false);
+  });
+});

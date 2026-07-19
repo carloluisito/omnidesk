@@ -396,9 +396,15 @@ export class SessionManager {
   private wireCliManager(mgr: CLIManager, sessionId: string): void {
     this.setupClassifier(sessionId);
 
+    // A CLIManager that has been destroyed and replaced (pool-fallback,
+    // restart, or Stop) can still deliver a late PTY exit/output. Every wired
+    // callback ignores events from a manager that is no longer the session's
+    // current one, so a stale manager can't tear down or feed a live session.
+    const isStale = () => this.sessions.get(sessionId)?.cliManager !== mgr;
+
     mgr.onModelChange((model: ClaudeModel) => {
       const session = this.sessions.get(sessionId);
-      if (!session) return;
+      if (!session || isStale()) return;
       const previousModel = session.metadata.currentModel ?? null;
       session.metadata.currentModel = model;
 
@@ -414,6 +420,7 @@ export class SessionManager {
     });
 
     mgr.onOutput((data: string) => {
+      if (isStale()) return;
       this.appendScrollback(sessionId, data);
       const output: SessionOutput = { sessionId, data };
       this.emitter?.emit('onSessionOutput', output);
@@ -432,17 +439,22 @@ export class SessionManager {
 
     mgr.onExit((exitCode: number) => {
       const session = this.sessions.get(sessionId);
-      if (!session) return;
-      session.metadata.status = 'exited';
+      // Ignore a stale manager's exit (a deliberate Stop/close/restart nulls or
+      // replaces cliManager first, so only a LIVE manager's genuine exit lands
+      // here — which means a non-zero code is a real crash, not a user Stop).
+      if (!session || isStale()) return;
+      const crashed = exitCode !== 0;
+      // A crash is authoritative 'error' so both the rail and the attention
+      // cockpit surface it; a clean exit is 'exited'.
+      session.metadata.status = crashed ? 'error' : 'exited';
       session.metadata.exitCode = exitCode;
       this.emitter?.emit('onSessionUpdated', session.metadata);
       this.emitter?.emit('onSessionExited', { sessionId, exitCode });
       this.persistState();
       this.notifySessionEnd(sessionId);
 
-      // Fuse the authoritative exit into the classifier (an unexpected exit is a
-      // crash → 'errored'; a deliberate stop/close disposes it first so this is
-      // a no-op there), then tear it down.
+      // Fuse the authoritative exit into the classifier (crash → 'errored',
+      // clean → 'exited'), then tear it down.
       const classifier = this.classifiers.get(sessionId);
       classifier?.onExit(exitCode);
       classifier?.dispose();
@@ -687,11 +699,14 @@ export class SessionManager {
       kind: session.metadata.kind,
     });
 
+    // Point the session at the new manager BEFORE wiring, so the callbacks'
+    // manager-identity guard recognises this manager as the current one.
+    session.cliManager = cliManager;
+
     // Same wiring the create path uses — including the scrollback append this
     // path used to omit, so a client attaching after a restart sees output.
     this.wireCliManager(cliManager, sessionId);
 
-    session.cliManager = cliManager;
     session.metadata.status = 'starting';
     session.metadata.exitCode = undefined;
     session.metadata.error = undefined;
