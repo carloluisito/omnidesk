@@ -109,3 +109,19 @@ describe('CodexProvider', () => {
     });
   });
 });
+
+describe('CodexProvider.getStateSignals', () => {
+  const provider = new CodexProvider();
+  const sig = provider.getStateSignals();
+  const anyMatch = (table: RegExp[], s: string) => table.some(re => { re.lastIndex = 0; return re.test(s); });
+
+  it('working matches a standalone status line but not the bare words in prose', () => {
+    expect(anyMatch(sig.working, 'Thinking…')).toBe(true);
+    expect(anyMatch(sig.working, 'the tests are working now')).toBe(false);
+  });
+
+  it('fatalError does not match casual auth/quota prose', () => {
+    expect(anyMatch(sig.fatalError, 'handle the 401 unauthorized response')).toBe(false);
+    expect(anyMatch(sig.fatalError, 'check the remaining quota')).toBe(false);
+  });
+});

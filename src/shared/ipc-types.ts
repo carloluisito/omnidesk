@@ -25,6 +25,31 @@ export type LaunchMode = 'default' | 'bypass-permissions' | 'agents' | 'continue
 // Session status
 export type SessionStatus = 'starting' | 'running' | 'exited' | 'error';
 
+/**
+ * Fine-grained live activity state of a session, derived by the
+ * SessionStateClassifier from the PTY output stream (plus authoritative exit
+ * events). Distinct from the coarse process-lifecycle `SessionStatus`. This is
+ * the signal the attention-router cockpit routes on. Transient — never
+ * persisted; reset to 'initializing' on load.
+ */
+export type SessionActivityState =
+  | 'initializing'      // PTY up, CLI not yet at its ready banner
+  | 'working'           // actively producing output / interrupt affordance present
+  | 'awaiting-approval' // blocked on a permission/trust prompt — highest urgency
+  | 'awaiting-input'    // quiescent at a prompt carrying a pending question
+  | 'done'              // quiescent after a turn's output, unacknowledged
+  | 'errored'           // non-zero exit, or a fatal error banner while quiescent
+  | 'idle'              // quiescent, nothing new since last acknowledge
+  | 'exited';           // clean / user-initiated exit
+
+/** Emitted when a session's activity state changes (delta only). */
+export interface SessionStateChangeEvent {
+  sessionId: string;
+  state: SessionActivityState;
+  reason?: string; // optional human-readable cause (e.g. matched signal name)
+  at: number;      // epoch ms
+}
+
 // Claude model types
 export type ClaudeModel = 'sonnet' | 'opus' | 'haiku' | 'auto';
 
@@ -60,6 +85,7 @@ export interface SessionMetadata {
   model?: ClaudeModel; // The model the session was launched with (starting intent; restored on restart)
   launchMode?: LaunchMode; // The launch mode the session was created with (restored on restart)
   currentModel?: ClaudeModel | null; // null = not yet detected (live-detected, distinct from `model`)
+  activityState?: SessionActivityState; // Live classifier state (transient — never persisted)
   worktreeInfo?: import('./types/git-types').WorktreeInfo;
   providerId?: ProviderId; // Provider backing this session (defaults to 'claude')
   kind?: SessionKind; // undefined treated as 'agent' for back-compat

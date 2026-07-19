@@ -26,6 +26,7 @@ function sessionMetadataToTabData(metadata: SessionMetadata): TabData {
     workingDirectory: metadata.workingDirectory,
     permissionMode: metadata.permissionMode,
     status: metadata.status === 'starting' ? 'running' : metadata.status,
+    activityState: metadata.activityState,
     worktreeBranch: metadata.worktreeInfo?.branch ?? null,
     mainRepoPath: metadata.worktreeInfo?.mainRepoPath ?? null,
     providerId: metadata.providerId,
@@ -92,6 +93,14 @@ export function useSessionManager(): UseSessionManagerReturn {
       ));
     });
 
+    // Live activity state from the session-state classifier — folded into the
+    // session's TabData so the rail/inspector/cockpit render the rich status.
+    const cleanupStateChanged = window.electronAPI.onSessionStateChanged((event) => {
+      setSessions(prev => prev.map(s =>
+        s.id === event.sessionId ? { ...s, activityState: event.state } : s
+      ));
+    });
+
     return () => {
       cleanupCreated();
       cleanupClosed();
@@ -99,6 +108,7 @@ export function useSessionManager(): UseSessionManagerReturn {
       cleanupUpdated();
       cleanupOutput();
       cleanupExited();
+      cleanupStateChanged();
     };
   }, []);
 

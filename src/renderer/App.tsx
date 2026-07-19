@@ -26,6 +26,9 @@ import { useTouchMode } from './hooks/useTouchMode';
 import { MobileKeyBar } from './components/shell/mobile/MobileKeyBar';
 import { MobileShell } from './components/shell/mobile/MobileShell';
 import { repoIdForSession } from './components/shell/mobile/nav-utils';
+import { CockpitPanel } from './components/shell/CockpitPanel';
+import { useAttentionQueue } from './hooks/useAttentionQueue';
+import type { TabData } from './components/ui/Tab';
 import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
@@ -130,6 +133,7 @@ function App() {
   const setShowAddRepo = (next: boolean) => setAddRepoTab(next ? (addRepoTab ?? 'clone') : null);
   const [showNewSession, setShowNewSession] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [showCockpit, setShowCockpit] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -203,6 +207,21 @@ function App() {
     switchSession(id);
     setMode('focus');
   }, [visibleRepos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
+
+  // ─── Attention cockpit: cross-repo "who needs you" queue + backgrounded toasts ───
+  const repoOf = useCallback((s: TabData) => {
+    const id = repoIdForSession(visibleRepos, sessions, s.id);
+    const r = repos.find(x => x.id === id);
+    return r ? { id: r.id, name: r.name } : null;
+  }, [visibleRepos, sessions, repos]);
+
+  const attention = useAttentionQueue({
+    sessions,
+    repoOf,
+    previews,
+    activeSessionId,
+    onJump: handleMobileSelectSession,
+  });
 
   const handleCloseRepo = useCallback((id: string) => {
     const target = repos.find(r => r.id === id);
@@ -410,12 +429,14 @@ function App() {
         return;
       }
       if (cmd && e.key === 'k') { e.preventDefault(); setShowPalette(true); return; }
+      if (cmd && e.key === 'j') { e.preventDefault(); setShowCockpit(v => !v); return; }
       if (cmd && e.key === 'n') { e.preventDefault(); setShowNewSession(true); return; }
       if (cmd && e.key === '1') { e.preventDefault(); setMode('focus'); return; }
       if (cmd && e.key === '2') { e.preventDefault(); setMode('grid'); return; }
       if (cmd && e.key === '.') { e.preventDefault(); setShowRightPanel(v => !v); return; }
       if (e.key === 'Escape') {
         if (showPalette)    setShowPalette(false);
+        if (showCockpit)    setShowCockpit(false);
         if (showNewSession) setShowNewSession(false);
         if (showAddRepo)    setShowAddRepo(false);
         if (showRemote)     setShowRemote(false);
@@ -424,7 +445,7 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
+  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
 
   useEffect(() => {
     const open = () => setShowVoiceSettings(true);
@@ -438,6 +459,11 @@ function App() {
       id: 'new', icon: 'plus', title: 'New session…',
       sub: 'Open the new-session sheet', shortcut: ['⌘', 'N'],
       run: () => { setShowPalette(false); setShowNewSession(true); },
+    },
+    {
+      id: 'cockpit', icon: 'bolt', title: 'Who needs you…',
+      sub: 'Attention cockpit — agents awaiting approval, input, or errored', shortcut: ['⌘', 'J'],
+      run: () => { setShowPalette(false); setShowCockpit(true); },
     },
     {
       id: 'focus', icon: 'focus', title: 'Switch to Focus view',
@@ -750,6 +776,8 @@ function App() {
           sessions={sessions}
           burnRatePerHour={(burnRate as any)?.dollarsPerHour ?? null}
           onOpenOtherReposLive={() => setRepoSwitcher({ anchorRect: null })}
+          needYouCount={attention.count}
+          onOpenCockpit={() => setShowCockpit(true)}
         />
       </div>
       )}
@@ -808,6 +836,15 @@ function App() {
           onPickSession={(id) => { handleSelectSession(id); setShowPalette(false); }}
           onClose={() => setShowPalette(false)}
           actions={paletteActions}
+        />
+      )}
+
+      {showCockpit && (
+        <CockpitPanel
+          items={attention.items}
+          onJump={handleMobileSelectSession}
+          onAcknowledge={attention.acknowledge}
+          onClose={() => setShowCockpit(false)}
         />
       )}
 

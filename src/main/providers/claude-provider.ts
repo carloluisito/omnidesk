@@ -5,6 +5,51 @@ import { CLAUDE_READY_PATTERNS } from '../../shared/claude-detector';
 import { WELCOME_PATTERNS, SWITCH_PATTERNS } from '../../shared/model-detector';
 import type { AgentViewAvailability } from '../../shared/types/agent-view-types';
 import type { LaunchMode } from '../../shared/ipc-types';
+import type { StateSignals } from '../../shared/session-state-types';
+
+// State-classifier marker tables for Claude Code's TUI. Matched against the
+// line-reduced, ANSI-stripped tail of the session's output.
+const CLAUDE_STATE_SIGNALS: StateSignals = {
+  // In-flight markers that survive in-place repaints. "esc to interrupt" is the
+  // reliable one; the spinner glyphs are the distinctive star + braille frames.
+  // A bare middle-dot '·' is deliberately NOT here — it appears in ordinary
+  // output/footers and would pin every session to 'working'.
+  working: [
+    /esc to interrupt/i,
+    /\besc\b\s+to\s+interrupt/i,
+    /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
+    /[✻✽✳✢]/,
+  ],
+  // Permission / trust prompts, anchored to the tail end by the detector. The
+  // structural numbered selector is the strong, box-specific signal; the verb
+  // list is kept box-specific ('proceed' / 'make this edit') — generic verbs
+  // like run/create/continue were dropped because they appear in agent prose.
+  approval: [
+    /❯\s*1\.\s*Yes/,
+    /\b1\.\s*Yes\b[\s\S]{0,120}\b2\.\s*Yes,/i,
+    /Do you want to (proceed|make this edit)\b/i,
+    /Do you trust the files in this folder/i,
+  ],
+  // Explicit "your turn to type" prompts distinct from a bare idle prompt box.
+  awaitingInput: [
+    /Press Enter to continue/i,
+    /\bwaiting for your (input|response)\b/i,
+  ],
+  // Fatal banners anchored to their real framing (start-of-line / banner shape)
+  // so ordinary prose about "the API Error case" or "rate limiting" doesn't trip
+  // 'errored'. Includes the subscription usage-limit hard block.
+  fatalError: [
+    /^\s*(⎿\s*)?API Error[:\s(]/im,
+    /Credit balance is too low/i,
+    /rate_limit_error/i,
+    /You have exceeded your rate limit/i,
+    /overloaded_error/i,
+    /Invalid API key/i,
+    /usage limit reached/i,
+    /\b\d+-hour limit reached\b/i,
+    /approaching (?:your )?usage limit/i,
+  ],
+};
 
 export class ClaudeProvider implements IProvider {
   /**
@@ -112,6 +157,15 @@ export class ClaudeProvider implements IProvider {
     return {
       welcome: [...WELCOME_PATTERNS],
       switch: [...SWITCH_PATTERNS],
+    };
+  }
+
+  getStateSignals(): StateSignals {
+    return {
+      working: [...CLAUDE_STATE_SIGNALS.working],
+      approval: [...CLAUDE_STATE_SIGNALS.approval],
+      awaitingInput: [...CLAUDE_STATE_SIGNALS.awaitingInput],
+      fatalError: [...CLAUDE_STATE_SIGNALS.fatalError],
     };
   }
 
