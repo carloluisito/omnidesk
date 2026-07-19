@@ -1,5 +1,6 @@
 // Helpers shared across the Phase 4 shell components.
 // Color tokens, status metadata, initials, agent letters.
+import type { TabData } from '../ui/Tab';
 
 export type RepoColor = 'accent' | 'info' | 'success' | 'warn' | 'error' | 'neutral';
 
@@ -68,6 +69,15 @@ export const STATUS_META: Record<SessionStatus, StatusMeta> = {
   done:     { color: 'var(--success)',         label: 'done',           pulse: false, chip: 'success' },
   idle:     { color: 'var(--text-tertiary)',   label: 'idle',           pulse: false, chip: '' },
 };
+
+/** Single source of truth for "the session's underlying process is gone"
+ *  (exited cleanly or errored) — used by both SessionRail and SessionPane so
+ *  the rail and the Focus-mode "restart" overlay can never disagree. A
+ *  'starting' session is NOT stopped (it hasn't finished launching), which the
+ *  previous `status !== 'running'` derivation got wrong. */
+export function isSessionStopped(status: TabData['status']): boolean {
+  return status === 'exited' || status === 'error';
+}
 
 /** Deterministic color from a string — used to color repos that don't have one assigned. */
 export const colorFromString = (input: string): RepoColor => {

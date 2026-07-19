@@ -5,7 +5,7 @@
 // terminal's DOM into it.
 import { P4Icon } from './P4Icon';
 import {
-  colorBg, colorFg, initials, STATUS_META, type RepoColor,
+  colorBg, colorFg, initials, STATUS_META, isSessionStopped, type RepoColor,
 } from './shell-utils';
 import { mapTabStatus } from './SessionRail';
 import { useTerminalSlot } from './TerminalHost';
@@ -21,8 +21,10 @@ interface SessionPaneProps {
 export function SessionPane({ session, onClose, onRestart, onKill }: SessionPaneProps) {
   const slotRef = useTerminalSlot(session.id);
 
-  // The underlying CLI process is gone once a session exits. Offer restart.
-  const isStopped = session.status !== 'running';
+  // The underlying CLI process is gone once a session exits or errors. Offer
+  // restart. (A 'starting' session is not stopped — don't flash the overlay
+  // during launch.) Single-sourced with the rail via isSessionStopped.
+  const isStopped = isSessionStopped(session.status);
 
   const status = mapTabStatus(session);
   const meta = STATUS_META[status];

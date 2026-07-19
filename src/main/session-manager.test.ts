@@ -425,6 +425,149 @@ describe('SessionManager.restartSession — shell sessions', () => {
   });
 });
 
+describe('SessionManager.createSession — spawn failure gating (F1)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('marks the session errored (not running) when the direct spawn rejects', async () => {
+    vi.mocked(CLIManager.prototype.spawn).mockRejectedValueOnce(new Error('ENOENT: claude not found'));
+
+    const meta = await manager.createSession({ ...baseRequest });
+
+    expect(meta.status).toBe('error');
+    expect(meta.error).toContain('claude not found');
+    // Session stays in the map so the UI can show/close it.
+    expect(manager.getSession(meta.id)?.status).toBe('error');
+  });
+
+  it('marks the session running when the spawn resolves (regression)', async () => {
+    vi.mocked(CLIManager.prototype.spawn).mockResolvedValueOnce(undefined);
+    const meta = await manager.createSession({ ...baseRequest });
+    expect(meta.status).toBe('running');
+    expect(meta.error).toBeUndefined();
+  });
+
+  it('marks a shell session errored when spawnShellSession rejects', async () => {
+    vi.mocked(CLIManager.prototype.spawnShellSession).mockRejectedValueOnce(new Error('bad cwd'));
+    const meta = await manager.createSession({ ...baseRequest, kind: 'shell' });
+    expect(meta.status).toBe('error');
+    expect(meta.error).toContain('bad cwd');
+  });
+});
+
+describe('SessionManager.restartSession — spawn failure gating (F1)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('returns false and marks status error when the restart spawn rejects', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    vi.clearAllMocks();
+    // The previously-dead synchronous catch could not catch an async rejection;
+    // with `await` in place this now deterministically reaches the catch.
+    vi.mocked(CLIManager.prototype.spawn).mockRejectedValueOnce(new Error('respawn failed'));
+
+    const ok = await manager.restartSession(meta.id);
+
+    expect(ok).toBe(false);
+    expect(manager.getSession(meta.id)?.status).toBe('error');
+    expect(manager.getSession(meta.id)?.error).toContain('respawn failed');
+  });
+});
+
+describe('SessionManager.createSession — early map insertion (F2)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('records an onExit fired DURING pool activation (not stuck at starting)', async () => {
+    // Capture the wired onExit, then fire it from inside initializeSession —
+    // i.e. the pooled PTY dies mid-activation, before createSession resolves.
+    let capturedExit: ((code: number) => void) | undefined;
+    const pooledCliManager = {
+      onModelChange: vi.fn(),
+      onOutput: vi.fn(),
+      onExit: vi.fn((cb: (code: number) => void) => { capturedExit = cb; }),
+      initializeSession: vi.fn().mockImplementation(async () => {
+        // Session died on launch during the ~200ms activation window.
+        capturedExit?.(1);
+      }),
+      destroy: vi.fn(),
+    };
+    vi.mocked(SessionPool.prototype.claim).mockReturnValueOnce({
+      id: 'pooled-session-id',
+      cliManager: pooledCliManager as unknown as InstanceType<typeof CLIManager>,
+    });
+
+    const meta = await manager.createSession({ ...baseRequest });
+
+    // Before F2 this exit was dropped (session not yet in the map) and the
+    // session sat at 'starting' forever; now it is correctly 'exited'.
+    expect(manager.getSession(meta.id)?.status).toBe('exited');
+    expect(manager.getSession(meta.id)?.exitCode).toBe(1);
+  });
+});
+
+describe('SessionManager — model/launchMode persistence & restart (F3)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('stores the starting model and launchMode on session metadata', async () => {
+    const meta = await manager.createSession({ ...baseRequest, model: 'opus', launchMode: 'agents' });
+    expect(meta.model).toBe('opus');
+    expect(meta.launchMode).toBe('agents');
+  });
+
+  it('restart reconstructs the CLIManager with the same model and launchMode', async () => {
+    const meta = await manager.createSession({ ...baseRequest, model: 'opus', launchMode: 'agents' });
+    vi.clearAllMocks();
+    await manager.restartSession(meta.id);
+    expect(CLIManager).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'opus', launchMode: 'agents' }),
+    );
+  });
+
+  it('restart wiring appends output to scrollback (previously dropped)', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    vi.clearAllMocks();
+    // Capture the onOutput callback wired during restart.
+    let restartOutputCb: ((data: string) => void) | undefined;
+    vi.mocked(CLIManager.prototype.onOutput).mockImplementationOnce((cb: (data: string) => void) => {
+      restartOutputCb = cb;
+    });
+    await manager.restartSession(meta.id);
+
+    restartOutputCb?.('post-restart output');
+    expect(manager.getSessionScrollback(meta.id)).toContain('post-restart output');
+  });
+});
+
 describe('SessionManager scrollback buffer', () => {
   let manager: SessionManager;
 

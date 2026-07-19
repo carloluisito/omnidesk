@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { resolveSessionWorktree } from './shell-utils';
+import { resolveSessionWorktree, isSessionStopped } from './shell-utils';
+
+describe('isSessionStopped', () => {
+  it('is true only once the process is gone (exited or errored)', () => {
+    expect(isSessionStopped('exited')).toBe(true);
+    expect(isSessionStopped('error')).toBe(true);
+  });
+
+  it('is false while running', () => {
+    expect(isSessionStopped('running')).toBe(false);
+  });
+
+  it('is false while starting — the restart overlay must not flash during launch', () => {
+    // Regression: the old `status !== 'running'` derivation treated 'starting'
+    // as stopped, briefly showing the "This session has stopped" overlay.
+    expect(isSessionStopped('starting' as never)).toBe(false);
+  });
+});
 
 describe('resolveSessionWorktree', () => {
   const repo = { path: 'C:/repos/omnidesk', branch: 'main' };

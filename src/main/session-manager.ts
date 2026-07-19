@@ -252,79 +252,59 @@ export class SessionManager {
       worktreeInfo,
       providerId,
       kind: request.kind,
+      // Starting intent — persisted and replayed verbatim on restart so a
+      // session relaunches with the same model and launch mode it began with.
+      model,
+      launchMode: request.launchMode,
     };
 
-    // Register all callbacks on a CLIManager BEFORE any async operations
-    // that produce PTY output (fixes race where Phase 1 fires before callback is set)
-    const registerCallbacks = (mgr: CLIManager) => {
-      mgr.onModelChange((model: ClaudeModel) => {
-        const session = this.sessions.get(id);
-        if (session) {
-          const previousModel = session.metadata.currentModel ?? null;
-          session.metadata.currentModel = model;
+    // Insert the session into the map BEFORE any async activation. The wired
+    // onExit/onModelChange callbacks look the session up by id and no-op if
+    // it's absent; a pooled session that crashes during its ~200ms activation
+    // (disproportionately likely during fleet-wide creation, exactly when the
+    // cockpit watches hardest) would otherwise have its exit silently dropped
+    // and sit at 'starting' forever. cliManager is patched in as each path
+    // resolves it.
+    this.sessions.set(id, { metadata, cliManager: null });
 
-          const event: ModelSwitchEvent = {
-            sessionId: id,
-            model,
-            previousModel,
-            detectedAt: Date.now(),
-          };
-
-          // Emit model change event
-          this.emitter?.emit('onModelChanged', event);
-
-          // Also emit general session updated
-          this.emitter?.emit('onSessionUpdated', session.metadata);
-          this.persistState();
-        }
-      });
-
-      mgr.onOutput((data: string) => {
-        this.appendScrollback(id, data);
-        const output: SessionOutput = { sessionId: id, data };
-        this.emitter?.emit('onSessionOutput', output);
-        this.notifyOutputSubscribers(id, data);
-
-        // Record to history (async, non-blocking)
-        this.historyManager.recordOutput(id, data).catch(err => {
-          console.error('Failed to record history:', err);
-        });
-      });
-
-      mgr.onExit((exitCode: number) => {
-        const session = this.sessions.get(id);
-        if (session) {
-          session.metadata.status = 'exited';
-          session.metadata.exitCode = exitCode;
-          this.emitter?.emit('onSessionUpdated', session.metadata);
-          this.emitter?.emit('onSessionExited', { sessionId: id, exitCode });
-          this.persistState();
-          this.notifySessionEnd(id);
-
-          // Flush final history buffer
-          this.historyManager.onSessionExit(id, exitCode).catch(err => {
-            console.error('Failed to finalize session history:', err);
-          });
-        }
-      });
-    };
+    // Set as active if first session
+    if (this.activeSessionId === null) {
+      this.activeSessionId = id;
+    }
 
     // Try to claim from pool first (agent sessions only — shells never launch claude,
     // so the pool's launch-latency optimization does not apply).
     const pooledSession = isShell ? null : this.sessionPool.claim();
     let cliManager: CLIManager;
 
-    if (pooledSession) {
-      // POOL PATH: Activate pooled session
-      console.log(`[SessionManager] Using pooled session ${pooledSession.id} for ${id}`);
-      cliManager = pooledSession.cliManager;
-      registerCallbacks(cliManager);
-      try {
-        await cliManager.initializeSession(workingDir, request.permissionMode, model, provider, request.launchMode);
-      } catch (err) {
-        // Activation failed, fall back to direct creation
-        console.error('[SessionManager] Pooled session activation failed, falling back to direct creation:', err);
-        cliManager.destroy();
+    try {
+      if (pooledSession) {
+        // POOL PATH: Activate pooled session
+        console.log(`[SessionManager] Using pooled session ${pooledSession.id} for ${id}`);
+        cliManager = pooledSession.cliManager;
+        this.sessions.get(id)!.cliManager = cliManager;
+        this.wireCliManager(cliManager, id);
+        try {
+          await cliManager.initializeSession(workingDir, request.permissionMode, model, provider, request.launchMode);
+        } catch (err) {
+          // Activation failed, fall back to direct creation
+          console.error('[SessionManager] Pooled session activation failed, falling back to direct creation:', err);
+          cliManager.destroy();
+          cliManager = new CLIManager({
+            workingDirectory: workingDir,
+            permissionMode: request.permissionMode,
+            model,
+            enableAgentTeams: this.agentTeamsGetter?.() ?? true,
+            provider,
+            launchMode: request.launchMode,
+          });
+          this.sessions.get(id)!.cliManager = cliManager;
+          this.wireCliManager(cliManager, id);
+          await cliManager.spawn();
+        }
+      } else {
+        // FALLBACK PATH: Direct creation (existing behavior)
+        console.log(`[SessionManager] Pool empty, creating session ${id} directly`);
         cliManager = new CLIManager({
           workingDirectory: workingDir,
           permissionMode: request.permissionMode,
@@ -332,48 +312,91 @@ export class SessionManager {
           enableAgentTeams: this.agentTeamsGetter?.() ?? true,
           provider,
           launchMode: request.launchMode,
+          kind: request.kind,
         });
-        registerCallbacks(cliManager);
-        await cliManager.spawn();
+        this.sessions.get(id)!.cliManager = cliManager;
+        this.wireCliManager(cliManager, id);
+        if (isShell) {
+          await cliManager.spawnShellSession();
+        } else {
+          await cliManager.spawn();
+        }
       }
-    } else {
-      // FALLBACK PATH: Direct creation (existing behavior)
-      console.log(`[SessionManager] Pool empty, creating session ${id} directly`);
-      cliManager = new CLIManager({
-        workingDirectory: workingDir,
-        permissionMode: request.permissionMode,
-        model,
-        enableAgentTeams: this.agentTeamsGetter?.() ?? true,
-        provider,
-        launchMode: request.launchMode,
-        kind: request.kind,
-      });
-      registerCallbacks(cliManager);
-      if (isShell) {
-        cliManager.spawnShellSession();
-      } else {
-        cliManager.spawn();
+      // Only claim 'running' once the PTY actually spawned. onExit may have
+      // already moved us to 'exited' (crash-on-launch); don't overwrite that.
+      if (metadata.status === 'starting') {
+        metadata.status = 'running';
       }
+    } catch (err) {
+      // Spawn/activation failed. Keep the (already-inserted) session in the
+      // map as 'error' so the UI can show and let the user close/retry it —
+      // never leave it broadcasting the false 'running' a router would trust.
+      metadata.status = 'error';
+      metadata.error = err instanceof Error ? err.message : String(err);
+      console.error(`[SessionManager] Failed to start session ${id}:`, err);
     }
 
     // Update history metadata with session details
     this.historyManager.updateSessionMetadata(id, metadata.name, workingDir);
 
-    // Store session
-    this.sessions.set(id, { metadata, cliManager });
-
-    // Process was already spawned above (pool activation or direct spawn)
-    metadata.status = 'running';
-
-    // Set as active if first session
-    if (this.activeSessionId === null) {
-      this.activeSessionId = id;
-    }
-
     this.persistState();
     this.emitter?.emit('onSessionCreated', metadata);
 
     return metadata;
+  }
+
+  /** Wire a CLIManager's model-change / output / exit callbacks to session
+   *  state. Used by BOTH createSession and restartSession so the two paths
+   *  cannot drift (they previously had — restart silently dropped the
+   *  scrollback append and the session-end notification). This is also the
+   *  single output tap the session-state classifier will hook into. */
+  private wireCliManager(mgr: CLIManager, sessionId: string): void {
+    mgr.onModelChange((model: ClaudeModel) => {
+      const session = this.sessions.get(sessionId);
+      if (!session) return;
+      const previousModel = session.metadata.currentModel ?? null;
+      session.metadata.currentModel = model;
+
+      const event: ModelSwitchEvent = {
+        sessionId,
+        model,
+        previousModel,
+        detectedAt: Date.now(),
+      };
+      this.emitter?.emit('onModelChanged', event);
+      this.emitter?.emit('onSessionUpdated', session.metadata);
+      this.persistState();
+    });
+
+    mgr.onOutput((data: string) => {
+      this.appendScrollback(sessionId, data);
+      const output: SessionOutput = { sessionId, data };
+      this.emitter?.emit('onSessionOutput', output);
+      this.notifyOutputSubscribers(sessionId, data);
+
+      // Record to history (async, non-blocking). Pass kind so shells skip the
+      // Claude-ready gate (and don't leak an unbounded pre-ready buffer).
+      const kind = this.sessions.get(sessionId)?.metadata.kind;
+      this.historyManager.recordOutput(sessionId, data, { kind }).catch(err => {
+        console.error('Failed to record history:', err);
+      });
+    });
+
+    mgr.onExit((exitCode: number) => {
+      const session = this.sessions.get(sessionId);
+      if (!session) return;
+      session.metadata.status = 'exited';
+      session.metadata.exitCode = exitCode;
+      this.emitter?.emit('onSessionUpdated', session.metadata);
+      this.emitter?.emit('onSessionExited', { sessionId, exitCode });
+      this.persistState();
+      this.notifySessionEnd(sessionId);
+
+      // Flush final history buffer
+      this.historyManager.onSessionExit(sessionId, exitCode).catch(err => {
+        console.error('Failed to finalize session history:', err);
+      });
+    });
   }
 
   async closeSession(
@@ -578,79 +601,40 @@ export class SessionManager {
       }
     }
 
-    // Create new CLI manager with same options
+    // Create new CLI manager with the same starting options the session was
+    // launched with — model and launchMode are read back from metadata so a
+    // restart doesn't silently downgrade an 'agents'-mode or explicit-model
+    // session to a plain default.
     const cliManager = new CLIManager({
       workingDirectory: session.metadata.workingDirectory,
       permissionMode: session.metadata.permissionMode,
+      model: session.metadata.model,
       enableAgentTeams: this.agentTeamsGetter?.() ?? true,
       provider: restartProvider,
+      launchMode: session.metadata.launchMode,
       kind: session.metadata.kind,
     });
 
-    // Set up handlers
-    cliManager.onModelChange((model: ClaudeModel) => {
-      const session = this.sessions.get(sessionId);
-      if (session) {
-        const previousModel = session.metadata.currentModel ?? null;
-        session.metadata.currentModel = model;
-
-        const event: ModelSwitchEvent = {
-          sessionId,
-          model,
-          previousModel,
-          detectedAt: Date.now(),
-        };
-
-        // Emit model change event
-        this.emitter?.emit('onModelChanged', event);
-
-        // Also emit general session updated
-        this.emitter?.emit('onSessionUpdated', session.metadata);
-        this.persistState();
-      }
-    });
-
-    cliManager.onOutput((data: string) => {
-      const output: SessionOutput = { sessionId, data };
-      this.emitter?.emit('onSessionOutput', output);
-      this.notifyOutputSubscribers(sessionId, data);
-
-      // Record to history (async, non-blocking)
-      this.historyManager.recordOutput(sessionId, data).catch(err => {
-        console.error('Failed to record history:', err);
-      });
-    });
-
-    cliManager.onExit((exitCode: number) => {
-      const s = this.sessions.get(sessionId);
-      if (s) {
-        s.metadata.status = 'exited';
-        s.metadata.exitCode = exitCode;
-        this.emitter?.emit('onSessionUpdated', s.metadata);
-        this.emitter?.emit('onSessionExited', { sessionId, exitCode });
-        this.persistState();
-
-        // Flush final history buffer
-        this.historyManager.onSessionExit(sessionId, exitCode).catch(err => {
-          console.error('Failed to finalize session history:', err);
-        });
-      }
-    });
+    // Same wiring the create path uses — including the scrollback append this
+    // path used to omit, so a client attaching after a restart sees output.
+    this.wireCliManager(cliManager, sessionId);
 
     session.cliManager = cliManager;
     session.metadata.status = 'starting';
     session.metadata.exitCode = undefined;
-    session.metadata.currentModel = undefined; // Clear stale model — Phase 1 will re-detect
+    session.metadata.error = undefined;
+    session.metadata.currentModel = undefined; // Clear stale detected model — Phase 1 will re-detect
 
     try {
       if (isShell) {
-        cliManager.spawnShellSession();
+        await cliManager.spawnShellSession();
       } else {
-        cliManager.spawn();
+        await cliManager.spawn();
       }
       session.metadata.status = 'running';
     } catch (err) {
       session.metadata.status = 'error';
+      session.metadata.error = err instanceof Error ? err.message : String(err);
       console.error('Failed to restart session:', err);
       return false;
     }
