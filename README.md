@@ -2,8 +2,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-2.1.1-green.svg)
-![Tests](https://img.shields.io/badge/tests-393%20passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-2.4.0-green.svg)
+![Tests](https://img.shields.io/badge/tests-670%20passing-brightgreen.svg)
 
 > A multi-provider desktop terminal for AI coding CLIs, organized around a flat **repo → session** workflow.
 
@@ -83,6 +83,11 @@
 ### Command Palette & Repo Switcher
 - **Command palette** (`Ctrl/Cmd+K`) for quick actions — new session, switch to Focus/Grid, toggle the inspector, add a repository
 - **Repo switcher** (`Ctrl/Cmd+Shift+K`) to jump between repositories and their sessions
+
+### Attention Cockpit
+- **Live session status** on the rail — each session is classified (`working` / `awaiting-approval` / `errored` / `done` / `idle`) rather than a single "running" state
+- **"Who needs you" cockpit** (`Ctrl/Cmd+J`) — a cross-repo overlay listing sessions that need attention, with Jump/Dismiss, plus a "N need you" pill in the status bar and background toasts for backgrounded sessions
+- **Current scope** — live-state classification is available for **plain terminal (shell) sessions** today; agent-CLI (Claude Code / Codex) live-state classification is in progress (their full-screen TUIs need a screen-aware classifier). Agent sessions still surface run/error/exit state.
 
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
@@ -188,6 +193,7 @@ Built packages will be in the `release/` directory.
 |----------|--------|
 | `Ctrl/Cmd+N` | New Session |
 | `Ctrl/Cmd+K` | Command Palette |
+| `Ctrl/Cmd+J` | Attention cockpit ("who needs you") |
 | `Ctrl/Cmd+Shift+K` | Repo Switcher |
 | `Ctrl/Cmd+1` | Focus View |
 | `Ctrl/Cmd+2` | Grid View |
@@ -207,7 +213,7 @@ Built packages will be in the `release/` directory.
 | Terminal | xterm.js + node-pty |
 | Styling | Tailwind CSS (Obsidian theme) |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (393 tests) + Playwright |
+| Testing | Vitest 4 (670 tests) + Playwright |
 
 ---
 
@@ -220,7 +226,7 @@ OmniDesk uses a **3-layer pattern per domain**: Manager (main process) → Hook 
 │  Main Process (Node.js)                     │
 │  ~7 managers + IPC handlers + session pool  │
 └──────────────────┬──────────────────────────┘
-                   │ IPC (103 methods)
+                   │ IPC (115 methods)
 ┌──────────────────┴──────────────────────────┐
 │  Preload (auto-derived context bridge)      │
 └──────────────────┬──────────────────────────┘
@@ -255,7 +261,7 @@ See [docs/repo-index.md](docs/repo-index.md) for a detailed domain-to-file mappi
 ```bash
 npm install              # Install dependencies
 npm run electron:dev     # Dev mode with hot reload (renderer)
-npm test                 # Run all 393 tests
+npm test                 # Run all 670 tests
 npm run test:watch       # Watch mode
 npm run test:e2e         # E2E tests (local only — requires a built app)
 npm run test:coverage    # Coverage report

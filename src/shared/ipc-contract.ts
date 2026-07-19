@@ -1,4 +1,4 @@
-// @atlas-entrypoint: IPC single source of truth — 109 methods, auto-derives preload bridge and types
+// @atlas-entrypoint: IPC single source of truth — 115 methods, auto-derives preload bridge and types
 /**
  * IPC Contract — Single source of truth for all IPC methods.
  *
