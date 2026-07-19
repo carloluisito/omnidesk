@@ -30,6 +30,28 @@
 > replaces `line-reducer` + `alt-screen-tracker`. It is the Phase-4 "headless
 > emulator" item, promoted to required for agent classification.
 
+> ## ✅ Update 2 (2026-07-19) — agent "needs you" signal SHIPPED via the terminal bell
+>
+> The empirical probe (`docs/experiments/2026-07-19-bell-attention-probe.md`,
+> PR #58) found a signal that sidesteps the repaint problem entirely: with
+> `preferredNotifChannel: "terminal_bell"` set, **Claude Code rings a bare BEL
+> exactly when it needs the user** (turn finished, question/permission prompt
+> up) and stays silent while working. `BareBellDetector`
+> (`src/main/session-state/bell-attention.ts`) watches the output tap
+> escape-aware (OSC/DCS-terminator BELs never count — observed live via an
+> OSC 52 clipboard write), emits `awaiting-input` (reason `'bell'`) through the
+> existing `onSessionStateChanged`, and clears on `sendInput`. The cockpit,
+> toasts, and pill light up for agent sessions with zero renderer changes.
+>
+> **Scope honesty:** the bell is one undifferentiated "needs you" ding — it
+> cannot distinguish done / question / approval, requires the bell channel to
+> be enabled in the CLI's settings, and errored/exited still come from process
+> lifecycle. The headless-emulator rewrite above remains the path to *richer*
+> agent states (differentiated approval vs. input, error banners); it is no
+> longer required for the core attention signal. Claude Code hooks
+> (Stop/Notification, `session_id`-correlated) are the assessed phase-2 upgrade
+> for differentiation — see the probe findings note.
+
 ## 1. Problem & Direction
 
 OmniDesk today is a **session host**: a human opens a repo, spawns a Claude/Codex session per worktree, and drives each terminal by hand. The human is the orchestrator. We are pivoting OmniDesk toward being a **supervisory cockpit** — the app classifies each session's live state from its PTY output and routes the user's attention to whichever agent needs them (needs-approval / waiting-for-input / errored / done), so the user supervises a fleet instead of babysitting terminals.
