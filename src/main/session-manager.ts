@@ -16,6 +16,8 @@ import {
   SessionActivityState,
 } from '../shared/ipc-types';
 import { SessionStateClassifier } from './session-state/classifier';
+import { BellScanner } from './session-state/bell-probe';
+import { appendFile } from 'fs';
 import type { StateSignals } from '../shared/session-state-types';
 import {
   loadSessionState,
@@ -396,6 +398,12 @@ export class SessionManager {
     // current one, so a stale manager can't tear down or feed a live session.
     const isStale = () => this.sessions.get(sessionId)?.cliManager !== mgr;
 
+    // OMNIDESK_DEBUG_BELL: probe instrumentation for the "BEL as agent
+    // attention signal" experiment — logs every \x07 with context. Set to a
+    // file path to also append there; any other value logs to console only.
+    const bellEnv = process.env.OMNIDESK_DEBUG_BELL;
+    const bellScanner = bellEnv ? new BellScanner() : null;
+
     mgr.onModelChange((model: ClaudeModel) => {
       const session = this.sessions.get(sessionId);
       if (!session || isStale()) return;
@@ -422,6 +430,19 @@ export class SessionManager {
 
       // Feed the activity-state classifier (the attention-router signal).
       this.classifiers.get(sessionId)?.onOutput(data);
+
+      if (bellScanner) {
+        const sessKind = this.sessions.get(sessionId)?.metadata.kind ?? 'agent';
+        for (const ev of bellScanner.feed(data)) {
+          const line =
+            `[bell-probe] ${new Date().toISOString()} session=${sessionId} ` +
+            `kind=${sessKind} #${ev.seq} ctx=${ev.context}`;
+          console.log(line);
+          if (bellEnv && /[\\/]/.test(bellEnv)) {
+            appendFile(bellEnv, line + '\n', () => {});
+          }
+        }
+      }
 
       // Record to history (async, non-blocking). Pass kind so shells skip the
       // Claude-ready gate (and don't leak an unbounded pre-ready buffer).
