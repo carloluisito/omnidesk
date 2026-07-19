@@ -236,8 +236,13 @@ describe('ClaudeProvider.getStateSignals', () => {
   const sig = provider.getStateSignals();
   const anyMatch = (table: RegExp[], s: string) => table.some(re => { re.lastIndex = 0; return re.test(s); });
 
-  it('working does NOT match a bare middle-dot (would pin every session to working)', () => {
+  it('working does NOT match decorative glyph bullets that persist in the tail', () => {
+    // The exact regression: Claude prints a star bullet on completed-turn and
+    // status lines that STAY in the tail; matching it pinned sessions to working.
+    expect(anyMatch(sig.working, '✳ Brewed for 29s')).toBe(false);
+    expect(anyMatch(sig.working, '✳ Elucidating… (17s · ↓ 106 tokens)')).toBe(false);
     expect(anyMatch(sig.working, '1,234 tokens · $0.12')).toBe(false);
+    // The transient, reliable signal still matches.
     expect(anyMatch(sig.working, 'esc to interrupt')).toBe(true);
   });
 

@@ -4,6 +4,32 @@
 **Status:** Approved direction; ready for implementation planning
 **Rung:** One (attention router + its foundation) of the supervisory-cockpit ladder
 
+> ## ⚠️ Update (2026-07-19) — agent classification deferred; headless emulator required
+>
+> Live testing against **Claude Code v2.1.x** proved the tail-based classifier
+> (§4: rolling byte tail + output quiescence) **cannot classify agent CLIs**.
+> Confirmed from instrumented logs: Claude Code renders its entire REPL in the
+> terminal's **alternate-screen buffer** (`?1049h`) and **repaints continuously**
+> — even when idle (footer/token counter). So the classifier never observes a
+> "quiet" tail to settle on, and the alt-screen guard holds it pinned. This is
+> the §8 "repaint/alt-buffer" risk — but it applies to Claude's **normal** REPL,
+> not only `agents` mode as originally scoped.
+>
+> **Decision:** ship the cockpit **plumbing** (rail vocabulary, ⌘J overlay,
+> toasts, IPC, StatusBar pill) plus **shell-session** classification, and gate
+> the classifier to `kind === 'shell'` (see `SessionManager.setupClassifier`).
+> Agent sessions surface only their process lifecycle for now (running via the
+> rail default; errored/exited via `SessionMetadata.status`).
+>
+> **Correct fix (next):** classify the **rendered screen**, not a byte tail —
+> feed each PTY into a headless terminal emulator (`@xterm/headless`, the pure-JS
+> sibling of the renderer's xterm) and match markers against the visible buffer
+> on a fixed interval. xterm handles the alt-screen + absolute-cursor repaints
+> internally, so no quiescence is needed and what we classify equals what the
+> user sees. This reuses `IProvider.getStateSignals()` + the pure detector and
+> replaces `line-reducer` + `alt-screen-tracker`. It is the Phase-4 "headless
+> emulator" item, promoted to required for agent classification.
+
 ## 1. Problem & Direction
 
 OmniDesk today is a **session host**: a human opens a repo, spawns a Claude/Codex session per worktree, and drives each terminal by hand. The human is the orchestrator. We are pivoting OmniDesk toward being a **supervisory cockpit** — the app classifies each session's live state from its PTY output and routes the user's attention to whichever agent needs them (needs-approval / waiting-for-input / errored / done), so the user supervises a fleet instead of babysitting terminals.

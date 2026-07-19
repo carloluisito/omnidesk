@@ -10,15 +10,16 @@ import type { StateSignals } from '../../shared/session-state-types';
 // State-classifier marker tables for Claude Code's TUI. Matched against the
 // line-reduced, ANSI-stripped tail of the session's output.
 const CLAUDE_STATE_SIGNALS: StateSignals = {
-  // In-flight markers that survive in-place repaints. "esc to interrupt" is the
-  // reliable one; the spinner glyphs are the distinctive star + braille frames.
-  // A bare middle-dot '·' is deliberately NOT here — it appears in ordinary
-  // output/footers and would pin every session to 'working'.
+  // In-flight markers. "esc to interrupt" is the reliable, transient one — it
+  // shows only while a turn is generating. Decorative glyphs are NOT used: Claude
+  // prints the SAME star glyphs (✻✽✳✢) as static bullets on completed-turn lines
+  // ("✳ Brewed for 29s"), which persist in the tail and would pin the session to
+  // 'working' forever. The braille frames are animation-only but dropped for the
+  // same reason — glyph-anywhere matching is fragile. Active generation is held
+  // as 'working' by the leading-edge output detector, not by a glyph.
   working: [
     /esc to interrupt/i,
     /\besc\b\s+to\s+interrupt/i,
-    /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
-    /[✻✽✳✢]/,
   ],
   // Permission / trust prompts, anchored to the tail end by the detector. The
   // structural numbered selector is the strong, box-specific signal; the verb
