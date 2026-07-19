@@ -17,6 +17,7 @@ import {
 } from '../shared/ipc-types';
 import { SessionStateClassifier } from './session-state/classifier';
 import { BellScanner } from './session-state/bell-probe';
+import { BareBellDetector } from './session-state/bell-attention';
 import { appendFile } from 'fs';
 import type { StateSignals } from '../shared/session-state-types';
 import {
@@ -404,6 +405,15 @@ export class SessionManager {
     const bellEnv = process.env.OMNIDESK_DEBUG_BELL;
     const bellScanner = bellEnv ? new BellScanner() : null;
 
+    // Bell → attention: agent CLIs ring a bare BEL exactly when they need the
+    // user — turn finished or a question/permission prompt is up (verified
+    // live: docs/experiments/2026-07-19-bell-attention-probe.md). Requires the
+    // CLI's bell channel (Claude: preferredNotifChannel="terminal_bell").
+    // Shells are excluded: their BELs (tab-completion, Ctrl+G) aren't
+    // attention requests, and the shell classifier already covers them.
+    const bellDetector =
+      this.sessions.get(sessionId)?.metadata.kind !== 'shell' ? new BareBellDetector() : null;
+
     mgr.onModelChange((model: ClaudeModel) => {
       const session = this.sessions.get(sessionId);
       if (!session || isStale()) return;
@@ -430,6 +440,15 @@ export class SessionManager {
 
       // Feed the activity-state classifier (the attention-router signal).
       this.classifiers.get(sessionId)?.onOutput(data);
+
+      // A bare bell = the agent needs the user. Emit only on the leading edge
+      // (delta); repeated rings while already flagged stay silent, and
+      // sendInput() clears the flag so the next bell re-alerts.
+      if (bellDetector && bellDetector.feed(data) > 0) {
+        if (this.sessions.get(sessionId)?.metadata.activityState !== 'awaiting-input') {
+          this.emitActivityState(sessionId, 'awaiting-input', 'bell');
+        }
+      }
 
       if (bellScanner) {
         const sessKind = this.sessions.get(sessionId)?.metadata.kind ?? 'agent';
@@ -773,6 +792,16 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (session?.cliManager) {
       session.cliManager.write(data);
+      // Typing into a bell-flagged session is the acknowledgement — the user
+      // is here. Clear the attention state so the cockpit stops surfacing it
+      // and the next bell can alert again. (Agent-only: shells never carry a
+      // bell-derived awaiting-input.)
+      if (
+        session.metadata.kind !== 'shell' &&
+        session.metadata.activityState === 'awaiting-input'
+      ) {
+        this.emitActivityState(sessionId, 'working', 'input');
+      }
     }
   }
 

@@ -633,3 +633,91 @@ describe('SessionManager scrollback buffer', () => {
     expect(buf.includes('OLD')).toBe(false);
   });
 });
+
+// ── Bell → attention state (agent sessions) ─────────────────────────────────
+// A bare BEL from an agent CLI means "I need the user" (verified live:
+// docs/experiments/2026-07-19-bell-attention-probe.md). It must surface as
+// 'awaiting-input' through onSessionStateChanged; typing into the session
+// acknowledges and clears it.
+import { IPCEmitter } from './ipc-emitter';
+
+describe('SessionManager bell → attention state', () => {
+  let manager: SessionManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    manager.setMainWindow({} as never);
+  });
+
+  /** All onSessionStateChanged payloads emitted so far. */
+  function stateEvents(): Array<{ sessionId: string; state: string; reason?: string }> {
+    const emit = IPCEmitter.prototype.emit as ReturnType<typeof vi.fn>;
+    return emit.mock.calls
+      .filter((c) => c[0] === 'onSessionStateChanged')
+      .map((c) => c[1]);
+  }
+
+  /** Create a session and return the PTY-output callback wired to it. */
+  async function createAndTap(kind?: 'agent' | 'shell'): Promise<(data: string) => void> {
+    await manager.createSession({ workingDirectory: '/mock/home', kind } as never);
+    const onOutput = CLIManager.prototype.onOutput as ReturnType<typeof vi.fn>;
+    expect(onOutput).toHaveBeenCalled();
+    return onOutput.mock.calls[0][0];
+  }
+
+  it('emits awaiting-input when an agent session rings a bare BEL', async () => {
+    const tap = await createAndTap('agent');
+    tap('turn output done\x07');
+    const events = stateEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      sessionId: 'test-session-id',
+      state: 'awaiting-input',
+      reason: 'bell',
+    });
+  });
+
+  it('ignores BELs that terminate OSC sequences', async () => {
+    const tap = await createAndTap('agent');
+    tap('\x1b]0;window title\x07');
+    tap('\x1b]52;c;YmFzZTY0\x07');
+    expect(stateEvents()).toHaveLength(0);
+  });
+
+  it('does not re-emit while already awaiting-input', async () => {
+    const tap = await createAndTap('agent');
+    tap('\x07');
+    tap('\x07');
+    expect(stateEvents().filter((e) => e.state === 'awaiting-input')).toHaveLength(1);
+  });
+
+  it('clears to working when the user types into the session', async () => {
+    const tap = await createAndTap('agent');
+    tap('\x07');
+    manager.sendInput('test-session-id', 'y');
+    const events = stateEvents();
+    expect(events).toHaveLength(2);
+    expect(events[1]).toMatchObject({ state: 'working', reason: 'input' });
+  });
+
+  it('sendInput without a pending bell emits no state change', async () => {
+    await createAndTap('agent');
+    manager.sendInput('test-session-id', 'hello');
+    expect(stateEvents()).toHaveLength(0);
+  });
+
+  it('re-alerts on a new bell after the previous one was acknowledged', async () => {
+    const tap = await createAndTap('agent');
+    tap('\x07');
+    manager.sendInput('test-session-id', 'answer');
+    tap('\x07');
+    expect(stateEvents().filter((e) => e.state === 'awaiting-input')).toHaveLength(2);
+  });
+
+  it('never emits awaiting-input for shell sessions', async () => {
+    const tap = await createAndTap('shell');
+    tap('beep\x07'); // e.g. tab-completion bell
+    expect(stateEvents().filter((e) => e.state === 'awaiting-input')).toHaveLength(0);
+  });
+});
