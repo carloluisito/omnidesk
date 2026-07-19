@@ -18,6 +18,7 @@ import {
 import { SessionStateClassifier } from './session-state/classifier';
 import { BellScanner } from './session-state/bell-probe';
 import { BareBellDetector } from './session-state/bell-attention';
+import { OscTitleParser, extractTaskTitle } from './session-state/title-parser';
 import { appendFile } from 'fs';
 import type { StateSignals } from '../shared/session-state-types';
 import {
@@ -263,6 +264,9 @@ export class SessionManager {
       worktreeInfo,
       providerId,
       kind: request.kind,
+      // An explicit name is the user's choice — title auto-rename must never
+      // overwrite it. Fallback (folder) names stay auto-renameable.
+      nameIsCustom: Boolean(request.name && request.name.trim()),
       // Starting intent — persisted and replayed verbatim on restart so a
       // session relaunches with the same model and launch mode it began with.
       model,
@@ -381,6 +385,21 @@ export class SessionManager {
     this.classifiers.set(sessionId, classifier);
   }
 
+  /** Rename an agent session to the CLI's terminal-title task summary — only
+   *  when the user hasn't explicitly named it (create or session:rename), and
+   *  only when the extracted text actually changed (spinner-glyph churn is a
+   *  no-op, so no per-frame emits or disk writes). */
+  private applyAutoRename(sessionId: string, rawTitle: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.metadata.kind === 'shell' || session.metadata.nameIsCustom) return;
+    const name = extractTaskTitle(rawTitle);
+    if (!name || name === session.metadata.name) return;
+    session.metadata.name = name;
+    this.emitter?.emit('onSessionUpdated', session.metadata);
+    this.persistState();
+    this.historyManager.updateSessionMetadata(sessionId, name, session.metadata.workingDirectory);
+  }
+
   /** Record + broadcast a session's live activity state (transient, not persisted). */
   private emitActivityState(sessionId: string, state: SessionActivityState, reason?: string): void {
     const session = this.sessions.get(sessionId);
@@ -413,6 +432,13 @@ export class SessionManager {
     // attention requests, and the shell classifier already covers them.
     const bellDetector =
       this.sessions.get(sessionId)?.metadata.kind !== 'shell' ? new BareBellDetector() : null;
+
+    // Terminal-title parser: agent CLIs write "<glyph> <task summary>" to the
+    // title (verified live 2026-07-19 — Claude Code); unnamed sessions
+    // auto-rename to it via applyAutoRename. OMNIDESK_DEBUG_TITLE additionally
+    // logs every title (a file path also appends there).
+    const titleEnv = process.env.OMNIDESK_DEBUG_TITLE;
+    const titleParser = new OscTitleParser();
 
     mgr.onModelChange((model: ClaudeModel) => {
       const session = this.sessions.get(sessionId);
@@ -448,6 +474,22 @@ export class SessionManager {
         if (this.sessions.get(sessionId)?.metadata.activityState !== 'awaiting-input') {
           this.emitActivityState(sessionId, 'awaiting-input', 'bell');
         }
+      }
+
+      const titles = titleParser.feed(data);
+      if (titles.length > 0) {
+        if (titleEnv) {
+          const sessKind = this.sessions.get(sessionId)?.metadata.kind ?? 'agent';
+          for (const title of titles) {
+            const line =
+              `[title-probe] ${new Date().toISOString()} session=${sessionId} ` +
+              `kind=${sessKind} title=${JSON.stringify(title)}`;
+            console.log(line);
+            if (/[\\/]/.test(titleEnv)) appendFile(titleEnv, line + '\n', () => {});
+          }
+        }
+        // Only the newest title matters for the name.
+        this.applyAutoRename(sessionId, titles[titles.length - 1]);
       }
 
       if (bellScanner) {
@@ -637,6 +679,9 @@ export class SessionManager {
     }
 
     session.metadata.name = trimmedName;
+    // A manual rename is an explicit user choice — from here on, title
+    // auto-rename must leave this session alone.
+    session.metadata.nameIsCustom = true;
     this.persistState();
     this.emitter?.emit('onSessionUpdated', session.metadata);
 

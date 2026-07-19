@@ -721,3 +721,89 @@ describe('SessionManager bell → attention state', () => {
     expect(stateEvents().filter((e) => e.state === 'awaiting-input')).toHaveLength(0);
   });
 });
+
+// ── Title → auto-rename (agent sessions) ────────────────────────────────────
+// Claude Code writes "<glyph> <task summary>" to the terminal title (verified
+// live 2026-07-19). Sessions the user did NOT explicitly name auto-rename to
+// the summary; explicit names (create or session:rename) are never touched.
+describe('SessionManager title → auto-rename', () => {
+  let manager: SessionManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    manager.setMainWindow({} as never);
+  });
+
+  function updatedEvents(): Array<{ name: string }> {
+    const emit = IPCEmitter.prototype.emit as ReturnType<typeof vi.fn>;
+    return emit.mock.calls
+      .filter((c) => c[0] === 'onSessionUpdated')
+      .map((c) => c[1]);
+  }
+
+  async function createAndTap(req: Record<string, unknown>): Promise<(data: string) => void> {
+    await manager.createSession({ workingDirectory: '/mock/home', ...req } as never);
+    const onOutput = CLIManager.prototype.onOutput as ReturnType<typeof vi.fn>;
+    return onOutput.mock.calls[0][0];
+  }
+
+  it('auto-renames an unnamed agent session from the task title', async () => {
+    const tap = await createAndTap({ kind: 'agent' });
+    tap('\x1b]0;⠂ Fix login bug\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe('Fix login bug');
+    expect(updatedEvents().some((e) => e.name === 'Fix login bug')).toBe(true);
+  });
+
+  it('does not re-emit when only the spinner glyph changes', async () => {
+    const tap = await createAndTap({ kind: 'agent' });
+    tap('\x1b]0;⠂ Fix login bug\x07');
+    const countAfterFirst = updatedEvents().length;
+    tap('\x1b]0;⠐ Fix login bug\x07');
+    tap('\x1b]0;✳ Fix login bug\x07');
+    expect(updatedEvents().length).toBe(countAfterFirst);
+  });
+
+  it('renames again when the task text actually changes', async () => {
+    const tap = await createAndTap({ kind: 'agent' });
+    tap('\x1b]0;⠂ First task\x07');
+    tap('\x1b]0;⠂ Second task\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe('Second task');
+  });
+
+  it('ignores generic and shell-spawn titles', async () => {
+    const tap = await createAndTap({ kind: 'agent' });
+    const before = manager.getSession('test-session-id')?.name;
+    tap('\x1b]0;C:\WINDOWS\SYSTEM32\cmd.exe - claude\x07');
+    tap('\x1b]0;claude\x07');
+    tap('\x1b]0;✳ Claude Code\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe(before);
+  });
+
+  it('never renames a session the user named at creation', async () => {
+    const tap = await createAndTap({ kind: 'agent', name: 'My Chosen Name' });
+    tap('\x1b]0;⠂ Some task\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe('My Chosen Name');
+  });
+
+  it('stops auto-renaming after a manual rename', async () => {
+    const tap = await createAndTap({ kind: 'agent' });
+    tap('\x1b]0;⠂ Auto name\x07');
+    await manager.renameSession('test-session-id', 'Manual Name');
+    tap('\x1b]0;⠂ Newer task\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe('Manual Name');
+    expect(manager.getSession('test-session-id')?.nameIsCustom).toBe(true);
+  });
+
+  it('marks nameIsCustom when a name is given at creation', async () => {
+    await createAndTap({ kind: 'agent', name: 'Explicit' });
+    expect(manager.getSession('test-session-id')?.nameIsCustom).toBe(true);
+  });
+
+  it('never auto-renames shell sessions', async () => {
+    const tap = await createAndTap({ kind: 'shell' });
+    const before = manager.getSession('test-session-id')?.name;
+    tap('\x1b]0;⠂ Looks like a task\x07');
+    expect(manager.getSession('test-session-id')?.name).toBe(before);
+  });
+});

@@ -53,6 +53,9 @@ export function saveSessionState(
       ...(session.launchMode !== undefined ? { launchMode: session.launchMode } : {}),
       // providerId is optional; missing on load defaults to 'claude' (backward compat)
       ...(session.providerId !== undefined ? { providerId: session.providerId } : {}),
+      // Whether the user explicitly named the session — must survive restart
+      // so fallback-named sessions keep auto-renaming and user-named ones don't.
+      ...(session.nameIsCustom !== undefined ? { nameIsCustom: session.nameIsCustom } : {}),
       // kind is optional; missing on load defaults to 'agent' (backward compat)
       ...(session.kind !== undefined ? { kind: session.kind } : {}),
     })),
