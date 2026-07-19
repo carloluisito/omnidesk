@@ -66,6 +66,7 @@ export interface SessionCreateRequest {
   providerId?: ProviderId; // Provider to use (defaults to 'claude')
   launchMode?: LaunchMode; // Per-session launch mode (Claude-specific; other providers ignore this field)
   kind?: SessionKind; // 'shell' spawns a plain terminal with no AI CLI (default 'agent')
+  initialPrompt?: string; // Seeded into the terminal at CLI readiness (typed, never auto-submitted)
 }
 
 // Session metadata
@@ -247,6 +248,7 @@ export interface AppSettings {
   // Remote access (serve OmniDesk over a tunnel)
   remoteAccess?: RemoteAccessSettings;
   stt?: STTSettings;
+  integrations?: import('./integration-types').IntegrationsSettings;
 }
 
 // Remote access persisted settings
