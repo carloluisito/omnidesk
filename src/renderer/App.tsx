@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, P4Icon,
+  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, ShipItSheet, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
@@ -92,6 +92,8 @@ function App() {
   const [sessionMenu, setSessionMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [renameSessionPrompt, setRenameSessionPrompt] = useState<{ id: string; current: string } | null>(null);
   const [confirmKill, setConfirmKill] = useState<{ id: string; name: string } | null>(null);
+  // Ship-it sheet target (session → PR handoff).
+  const [shipIt, setShipIt] = useState<{ id: string; name: string } | null>(null);
 
   // Last-known burn rate for the active session, surfaced in the status bar.
   const { burnRate } = useQuota(activeSessionId);
@@ -868,6 +870,7 @@ function App() {
           onJump={handleMobileSelectSession}
           onAcknowledge={attention.acknowledge}
           onClose={() => setShowCockpit(false)}
+          onShipIt={(id, name) => setShipIt({ id, name })}
         />
       )}
 
@@ -877,6 +880,13 @@ function App() {
           onClose={() => setShowIntegrations(false)}
           repos={repos.map(r => ({ id: r.id, name: r.name, path: r.path }))}
           activeRepoPath={activeRepo?.path ?? null}
+        />
+      )}
+      {shipIt && (
+        <ShipItSheet
+          sessionId={shipIt.id}
+          sessionName={shipIt.name}
+          onClose={() => setShipIt(null)}
         />
       )}
       {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
@@ -1010,6 +1020,11 @@ function App() {
                     void handleOpenTerminalHere(s.id, s.workingDirectory, s.name);
                   }
                 },
+              },
+              {
+                label: 'Create PR…',
+                icon: 'branch',
+                onSelect: () => setShipIt({ id: s.id, name: s.name }),
               },
               {
                 label: 'Close session',

@@ -22,4 +22,5 @@ export { TitleBar } from './TitleBar';
 export { StatusBar } from './StatusBar';
 export { RemoteAccessPanel } from './RemoteAccessPanel';
 export { IntegrationsPanel } from './IntegrationsPanel';
+export { ShipItSheet } from './ShipItSheet';
 export { VoiceSettingsPanel } from './VoiceSettingsPanel';
