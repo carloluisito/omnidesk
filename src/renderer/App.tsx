@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, P4Icon,
+  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm,
 } from './components/shell';
@@ -136,6 +136,7 @@ function App() {
   const [showCockpit, setShowCockpit] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
   const touchMode = useTouchMode();
@@ -441,11 +442,12 @@ function App() {
         if (showAddRepo)    setShowAddRepo(false);
         if (showRemote)     setShowRemote(false);
         if (showVoiceSettings) setShowVoiceSettings(false);
+        if (showIntegrations) setShowIntegrations(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
+  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations]);
 
   useEffect(() => {
     const open = () => setShowVoiceSettings(true);
@@ -489,6 +491,11 @@ function App() {
       id: 'remote', icon: 'tunnel', title: 'Remote access…',
       sub: 'Reach OmniDesk from a browser over a tunnel',
       run: () => { setShowPalette(false); setShowRemote(true); },
+    },
+    {
+      id: 'integrations', icon: 'bolt', title: 'Integrations…',
+      sub: 'Telegram / Slack / Discord / webhook alerts + GitHub ship-it',
+      run: () => { setShowPalette(false); setShowIntegrations(true); },
     },
     {
       id: 'voice-settings', icon: 'settings', title: 'Voice / speech-to-text settings…',
@@ -565,6 +572,7 @@ function App() {
               if (activeGroupId === gid) setActiveGroupId(null);
             }}
             onOpenRemote={() => setShowRemote(true)}
+            onOpenIntegrations={() => setShowIntegrations(true)}
           />
           <div style={{
             gridColumn: '2', gridRow: '2',
@@ -636,6 +644,13 @@ function App() {
           />
         )}
         {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+        {showIntegrations && (
+          <IntegrationsPanel
+            onClose={() => setShowIntegrations(false)}
+            repos={repos.map(r => ({ id: r.id, name: r.name, path: r.path }))}
+            activeRepoPath={null}
+          />
+        )}
         {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
@@ -715,6 +730,7 @@ function App() {
             if (activeGroupId === gid) setActiveGroupId(null);
           }}
           onOpenRemote={() => setShowRemote(true)}
+            onOpenIntegrations={() => setShowIntegrations(true)}
         />
 
         {activeRepo && (
@@ -849,6 +865,13 @@ function App() {
       )}
 
       {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+      {showIntegrations && (
+        <IntegrationsPanel
+          onClose={() => setShowIntegrations(false)}
+          repos={repos.map(r => ({ id: r.id, name: r.name, path: r.path }))}
+          activeRepoPath={activeRepo?.path ?? null}
+        />
+      )}
       {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
 
       {confirmClose && (() => {
