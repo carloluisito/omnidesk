@@ -28,6 +28,7 @@ import { MobileShell } from './components/shell/mobile/MobileShell';
 import { repoIdForSession } from './components/shell/mobile/nav-utils';
 import { CockpitPanel } from './components/shell/CockpitPanel';
 import { useAttentionQueue } from './hooks/useAttentionQueue';
+import { useRemoteDeepLink } from './hooks/useRemoteDeepLink';
 import type { TabData } from './components/ui/Tab';
 import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
@@ -208,6 +209,12 @@ function App() {
     switchSession(id);
     setMode('focus');
   }, [visibleRepos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
+
+  // ─── Remote deep link: ?session=<id> focuses that session on load ─────────
+  // Integration notifications link into the PWA with the target session in the
+  // query string. Desktop ignores it entirely.
+  const sessionIdList = useMemo(() => sessions.map(s => s.id), [sessions]);
+  useRemoteDeepLink({ sessionIds: sessionIdList, onJump: handleMobileSelectSession });
 
   // ─── Attention cockpit: cross-repo "who needs you" queue + backgrounded toasts ───
   const repoOf = useCallback((s: TabData) => {
