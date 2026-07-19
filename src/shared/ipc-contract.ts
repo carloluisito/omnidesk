@@ -75,6 +75,16 @@ import type {
 } from './types/provider-types';
 
 import type { AgentViewAvailability } from './types/agent-view-types';
+import type {
+  ConnectorId,
+  ConnectorTestResult,
+  CreatePRRequest,
+  CreatePRResult,
+  DeliveryStatus,
+  GitHubIssue,
+  GitHubPreflight,
+  ShipItPreview,
+} from './integration-types';
 
 // ─── Contract helper types ──────────────────────────────────────────
 
@@ -271,6 +281,18 @@ export interface IPCContractMap {
 
   // ── Speech-to-text (events) ──
   onSTTStatusChanged:         EventContract<'stt:statusChanged',         STTStatus>;
+
+  // ── Integrations (invoke) ──
+  testIntegrationConnector:       InvokeContract<'integrations:testConnector',        [ConnectorId, unknown], ConnectorTestResult>;
+  getIntegrationDeliveryStatuses: InvokeContract<'integrations:getDeliveryStatuses',  [],                     DeliveryStatus[]>;
+  sendIntegrationDigestNow:       InvokeContract<'integrations:sendDigestNow',        [],                     void>;
+  githubPreflight:                InvokeContract<'integrations:githubPreflight',      [string],               GitHubPreflight>;
+  listGithubIssues:               InvokeContract<'integrations:listIssues',           [string],               GitHubIssue[]>;
+  getShipItPreview:               InvokeContract<'integrations:getShipItPreview',     [string],               ShipItPreview>;
+  createGithubPR:                 InvokeContract<'integrations:createPR',             [string, CreatePRRequest], CreatePRResult>;
+
+  // ── Integrations (events) ──
+  onIntegrationDeliveryStatus:    EventContract<'integrations:deliveryStatus',        DeliveryStatus>;
 }
 
 // ─── Runtime channel map ────────────────────────────────────────────
@@ -437,6 +459,16 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   cancelTranscribe:           'stt:cancel',
   onSTTStatusChanged:         'stt:statusChanged',
 
+  // Integrations
+  testIntegrationConnector:       'integrations:testConnector',
+  getIntegrationDeliveryStatuses: 'integrations:getDeliveryStatuses',
+  sendIntegrationDigestNow:       'integrations:sendDigestNow',
+  githubPreflight:                'integrations:githubPreflight',
+  listGithubIssues:               'integrations:listIssues',
+  getShipItPreview:               'integrations:getShipItPreview',
+  createGithubPR:                 'integrations:createPR',
+  onIntegrationDeliveryStatus:    'integrations:deliveryStatus',
+
   // App info
   getVersionInfo:      'app:getVersionInfo',
 
@@ -588,6 +620,14 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   transcribeSpeech:           'invoke',
   cancelTranscribe:           'invoke',
   onSTTStatusChanged:         'event',
+  testIntegrationConnector:       'invoke',
+  getIntegrationDeliveryStatuses: 'invoke',
+  sendIntegrationDigestNow:       'invoke',
+  githubPreflight:                'invoke',
+  listGithubIssues:               'invoke',
+  getShipItPreview:               'invoke',
+  createGithubPR:                 'invoke',
+  onIntegrationDeliveryStatus:    'event',
 };
 
 // ─── Derived ElectronAPI type ───────────────────────────────────────

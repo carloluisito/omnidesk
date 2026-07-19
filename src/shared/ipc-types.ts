@@ -91,6 +91,7 @@ export interface SessionMetadata {
   providerId?: ProviderId; // Provider backing this session (defaults to 'claude')
   kind?: SessionKind; // undefined treated as 'agent' for back-compat
   nameIsCustom?: boolean; // true once the user explicitly named the session (create or rename) — blocks title auto-rename
+  initialPrompt?: string; // Seeded into the terminal at CLI readiness (typed, never auto-submitted; not persisted)
 }
 
 // Session list response

@@ -276,6 +276,8 @@ export class SessionManager {
       // session relaunches with the same model and launch mode it began with.
       model,
       launchMode: request.launchMode,
+      // Seeded into the terminal at CLI readiness (typed, never auto-submitted).
+      initialPrompt: request.initialPrompt,
     };
 
     // Insert the session into the map BEFORE any async activation. The wired

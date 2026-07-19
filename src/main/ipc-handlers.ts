@@ -17,6 +17,8 @@ import { ProviderRegistry } from './providers/provider-registry';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
 import { getFileInfo, readFileContent } from './file-dragdrop-handler';
 import { IPCRegistry } from './ipc-registry';
+import { IntegrationManager } from './integrations/integration-manager';
+import { GitHubService } from './integrations/github-service';
 import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot } from './path-access';
 
 let registry: IPCRegistry | null = null;
@@ -52,6 +54,8 @@ export function setupIPCHandlers(
   providerRegistry: ProviderRegistry,
   remoteAuth: RemoteAuth,
   sttManager: STTManager,
+  integrationManager: IntegrationManager,
+  githubService: GitHubService,
 ): void {
   // Connect managers to window
   sessionManager.setMainWindow(mainWindow);
@@ -311,7 +315,12 @@ export function setupIPCHandlers(
   // ── Settings & Workspaces ──
 
   registry.handle('getSettings', async () => settingsManager.getSettings());
-  registry.handle('setSettings', async (_e, partial) => settingsManager.mergeSettings(partial as Record<string, unknown>));
+  registry.handle('setSettings', async (_e, partial) => {
+    const merged = settingsManager.mergeSettings(partial as Record<string, unknown>);
+    // Integrations react to settings live (debounce, digest schedule).
+    integrationManager.settingsChanged();
+    return merged;
+  });
   registry.handle('listWorkspaces', async () => settingsManager.getWorkspaces());
 
   // ── Speech-to-text ──
@@ -319,6 +328,29 @@ export function setupIPCHandlers(
   registry.handle('downloadSTTModel', async () => sttManager.downloadModel());
   registry.handle('transcribeSpeech', async (_e, req) => sttManager.transcribe(req.pcm, req.language));
   registry.handle('cancelTranscribe', async () => { sttManager.cancel(); });
+
+  // ── Integrations ──
+  registry.handle('testIntegrationConnector', async (_e, connectorId, cfg) =>
+    integrationManager.testConnector(connectorId, cfg));
+  registry.handle('getIntegrationDeliveryStatuses', async () =>
+    integrationManager.getDeliveryStatuses());
+  registry.handle('sendIntegrationDigestNow', async () => {
+    await integrationManager.sendDigestNow();
+  });
+  registry.handle('githubPreflight', async (_e, dir) => githubService.preflight(dir));
+  registry.handle('listGithubIssues', async (_e, dir) => githubService.listIssues(dir));
+  registry.handle('getShipItPreview', async (_e, sessionId) => {
+    const meta = sessionManager.getSession(sessionId);
+    if (!meta) throw new Error(`Unknown session: ${sessionId}`);
+    return githubService.getShipItPreview(meta.workingDirectory);
+  });
+  registry.handle('createGithubPR', async (_e, sessionId, request) => {
+    const meta = sessionManager.getSession(sessionId);
+    if (!meta) throw new Error(`Unknown session: ${sessionId}`);
+    const result = await githubService.createPR(meta.workingDirectory, request);
+    integrationManager.notifyPRCreated(meta, result.url);
+    return result;
+  });
 
   registry.handle('addWorkspace', async (_e, request) => {
     try { return settingsManager.addWorkspace(request); }
