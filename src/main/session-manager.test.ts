@@ -856,3 +856,43 @@ describe('SessionManager.addStateListener', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
+
+describe('SessionManager.seedInitialPrompt', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  function cliWriteSpy(sessionId: string) {
+    const session = (manager as never as { sessions: Map<string, { cliManager: { write: ReturnType<typeof vi.fn> } | null }> })
+      .sessions.get(sessionId)!;
+    return session.cliManager!.write as ReturnType<typeof vi.fn>;
+  }
+
+  it('types the prompt exactly once, without a trailing newline', async () => {
+    const meta = await manager.createSession({ ...baseRequest, initialPrompt: 'GitHub issue #7: Fix crash\n\nIt crashes' });
+    const write = cliWriteSpy(meta.id);
+    write.mockClear();
+
+    manager.seedInitialPrompt(meta.id);
+    expect(write).toHaveBeenCalledTimes(1);
+    const typed = write.mock.calls[0][0] as string;
+    expect(typed).toBe('GitHub issue #7: Fix crash\n\nIt crashes');
+    expect(typed.endsWith('\r')).toBe(false);
+
+    manager.seedInitialPrompt(meta.id); // second call: prompt already consumed
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(manager.getSession(meta.id)?.initialPrompt).toBeUndefined();
+  });
+
+  it('is a no-op for sessions without an initialPrompt', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const write = cliWriteSpy(meta.id);
+    write.mockClear();
+    manager.seedInitialPrompt(meta.id);
+    expect(write).not.toHaveBeenCalled();
+  });
+});

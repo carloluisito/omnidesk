@@ -862,6 +862,18 @@ export class SessionManager {
     return session ? session.metadata : null;
   }
 
+  /** Type (never submit) the session's one-shot initialPrompt into the PTY.
+   *  Called at CLI readiness from the renderer; clearing the prompt BEFORE
+   *  writing makes the seed idempotent across desktop + remote renderers. */
+  seedInitialPrompt(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    const prompt = session?.metadata.initialPrompt;
+    if (!session || !prompt || !session.cliManager) return;
+    session.metadata.initialPrompt = undefined;
+    session.cliManager.write(prompt); // no trailing \r — the user reviews and submits
+    this.emitter?.emit('onSessionUpdated', session.metadata);
+  }
+
   // Session I/O methods
   sendInput(sessionId: string, data: string): void {
     const session = this.sessions.get(sessionId);

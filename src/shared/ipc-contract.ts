@@ -131,6 +131,7 @@ export interface IPCContractMap {
   sendSessionInput:    SendContract<'session:input',  [SessionInput]>;
   resizeSession:       SendContract<'session:resize', [SessionResizeRequest]>;
   sessionReady:        SendContract<'session:ready',  [string]>;
+  seedInitialPrompt:   SendContract<'session:seedPrompt', [string]>;
 
   // ── Model switching (invoke) ──
   switchModel:         InvokeContract<'model:switch', [string, ClaudeModel], boolean>;
@@ -317,6 +318,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   sendSessionInput:    'session:input',
   resizeSession:       'session:resize',
   sessionReady:        'session:ready',
+  seedInitialPrompt:   'session:seedPrompt',
 
   // Model switching
   switchModel:         'model:switch',
@@ -497,6 +499,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   sendSessionInput:    'send',
   resizeSession:       'send',
   sessionReady:        'send',
+  seedInitialPrompt:   'send',
 
   switchModel:         'invoke',
 

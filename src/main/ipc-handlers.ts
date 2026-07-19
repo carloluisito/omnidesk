@@ -768,6 +768,13 @@ export function setupIPCHandlers(
     console.log(`Session ${sessionId} ready`);
   });
 
+  // CLI-ready seed: type (never submit) the session's initialPrompt. The
+  // once-only guard lives in SessionManager so desktop + remote renderers
+  // can't double-type it.
+  registry.on('seedInitialPrompt', (_e, sessionId) => {
+    sessionManager.seedInitialPrompt(sessionId);
+  });
+
   // ── Window controls ──
 
   registry.on('minimizeWindow', () => { mainWindow.minimize(); });
