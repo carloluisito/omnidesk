@@ -77,6 +77,7 @@ IPC: `session:stateChanged`. Classifies each session's live `SessionActivityStat
 | `src/main/session-state/alt-screen-tracker.ts` | Main | Tracks alternate-screen buffer enter/exit (DECSET ?1049/1047/47) |
 | `src/main/session-state/bell-attention.ts` | Main | Escape-aware bare-BEL detector: agent bell → 'awaiting-input' attention state (ignores OSC/DCS terminator BELs) |
 | `src/main/session-state/bell-probe.ts` | Main | Debug instrumentation (OMNIDESK_DEBUG_BELL): logs every BEL with context; probe behind the bell-attention feature |
+| `src/main/session-state/title-parser.ts` | Main | OSC 0/2 terminal-title parser + `extractTaskTitle` — powers session auto-rename from the CLI's task summary |
 | `src/shared/state-detector.ts` | Shared | Pure detector: tail + provider signals → candidate state |
 | `src/shared/line-reducer.ts` | Shared | Collapses CR/erase/cursor repaints into visible lines |
 | `src/shared/session-state-types.ts` | Shared | `StateSignals`, `CandidateState`, `DetectContext` |
@@ -268,6 +269,7 @@ IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
 | `src/main/session-state/alt-screen-tracker.test.ts` | 10 | DECSET ?1049/1047/47 enter/exit, combined params, multiple transitions, reset |
 | `src/main/session-state/bell-attention.test.ts` | 12 | Bare vs OSC-terminator BELs, DCS/APC/PM/SOS strings, chunk-boundary splits |
 | `src/main/session-state/bell-probe.test.ts` | 8 | BEL context capture, chunk-boundary carry, control-char escaping |
+| `src/main/session-state/title-parser.test.ts` | 17 | OSC 0/2 extraction (BEL/ST terminators, splits, payload cap) + task-title extraction (glyph strip, junk rejection, sanitize) |
 | `src/shared/state-detector.test.ts` | 26 | Priority order, tail-end anchoring, done-vs-idle bias, multi-line approval ordering |
 | `src/shared/line-reducer.test.ts` | 22 | CR/erase/cursor repaint collapse incl. the answered-approval smear case |
 | `src/renderer/hooks/useAttentionQueue.test.ts` | 11 | Sort/count, acknowledge + re-arm, cold-attach guard, backgrounded toast |
