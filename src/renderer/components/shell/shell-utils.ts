@@ -4,7 +4,7 @@ import type { TabData } from '../ui/Tab';
 
 export type RepoColor = 'accent' | 'info' | 'success' | 'warn' | 'error' | 'neutral';
 
-export type SessionStatus = 'live' | 'thinking' | 'awaiting' | 'errored' | 'done' | 'idle';
+export type SessionStatus = 'live' | 'thinking' | 'awaiting' | 'needs-approval' | 'errored' | 'done' | 'idle';
 
 export const colorBg = (color: RepoColor | string | undefined): string => {
   switch (color) {
@@ -65,6 +65,9 @@ export const STATUS_META: Record<SessionStatus, StatusMeta> = {
   live:     { color: 'var(--success)',         label: 'live',           pulse: true,  chip: 'success' },
   thinking: { color: 'var(--accent)',          label: 'thinking',       pulse: true,  chip: 'accent' },
   awaiting: { color: 'var(--warning)',         label: 'awaiting input', pulse: false, chip: 'warn' },
+  // A decision is blocking the agent — highest attention. Non-pulsing (a
+  // decision reads differently from "still running") but the most urgent chip.
+  'needs-approval': { color: 'var(--warning)', label: 'needs approval', pulse: false, chip: 'warn' },
   errored:  { color: 'var(--error)',           label: 'errored',        pulse: false, chip: 'err' },
   done:     { color: 'var(--success)',         label: 'done',           pulse: false, chip: 'success' },
   idle:     { color: 'var(--text-tertiary)',   label: 'idle',           pulse: false, chip: '' },

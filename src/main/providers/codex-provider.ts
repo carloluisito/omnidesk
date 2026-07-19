@@ -1,11 +1,44 @@
 import { execFile } from 'child_process';
 import { IProvider, ProviderCommandOptions } from './provider';
 import { ProviderId, ProviderInfo } from '../../shared/types/provider-types';
+import type { StateSignals } from '../../shared/session-state-types';
 
 /** Map OmniDesk permission mode names to Codex approval modes */
 const PERMISSION_MODE_MAP: Record<string, string> = {
   'standard': 'suggest',
   'skip-permissions': 'full-auto',
+};
+
+// PROVISIONAL state-classifier tables for Codex CLI. Unlike the Claude table
+// these have NOT yet been validated against captured real Codex transcripts —
+// the design flags that as a ship gate. Kept intentionally conservative: the
+// classifier biases toward surfacing (an unmatched quiescent-after-output
+// state degrades to 'done', which is still surfaced for review, never silently
+// hidden as 'idle'), so imperfect tables under-fire rather than mislead.
+// TODO(codex-signals): validate/replace against a live Codex session.
+const CODEX_STATE_SIGNALS: StateSignals = {
+  working: [
+    /esc to interrupt/i,
+    /\bthinking\b/i,
+    /\bworking\b…?/i,
+    /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
+  ],
+  approval: [
+    /Allow command/i,
+    /Run this command\?/i,
+    /\bApprove\b\??/i,
+    /Allow Codex to run/i,
+    /\[y\/n\]/i,
+  ],
+  awaitingInput: [
+    /Press Enter to continue/i,
+  ],
+  fatalError: [
+    /\brate limit(?:ed|s)?\b/i,
+    /API error/i,
+    /\bquota\b/i,
+    /unauthorized/i,
+  ],
 };
 
 export class CodexProvider implements IProvider {
@@ -65,6 +98,15 @@ export class CodexProvider implements IProvider {
         /Switched to (\w[\w-]*)/i,
         /Using model[: ]+(\w[\w-]*)/i,
       ],
+    };
+  }
+
+  getStateSignals(): StateSignals {
+    return {
+      working: [...CODEX_STATE_SIGNALS.working],
+      approval: [...CODEX_STATE_SIGNALS.approval],
+      awaitingInput: [...CODEX_STATE_SIGNALS.awaitingInput],
+      fatalError: [...CODEX_STATE_SIGNALS.fatalError],
     };
   }
 

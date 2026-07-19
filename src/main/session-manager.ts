@@ -12,7 +12,11 @@ import {
   SessionOutput,
   ClaudeModel,
   ModelSwitchEvent,
+  SessionStateChangeEvent,
+  SessionActivityState,
 } from '../shared/ipc-types';
+import { SessionStateClassifier } from './session-state/classifier';
+import type { StateSignals } from '../shared/session-state-types';
 import {
   loadSessionState,
   saveSessionState,
@@ -29,6 +33,8 @@ import type { ProviderRegistry } from './providers/provider-registry';
 import type { IProvider } from './providers/provider';
 
 const MAX_SESSIONS = 10;
+
+const EMPTY_STATE_SIGNALS: StateSignals = { working: [], approval: [], awaitingInput: [], fatalError: [] };
 
 interface Session {
   metadata: SessionMetadata;
@@ -47,6 +53,8 @@ export class SessionManager {
   private worktreeSettings: WorktreeSettings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' };
   private outputSubscribers: Map<string, Set<(data: string) => void>> = new Map();
   private providerRegistry: ProviderRegistry | null = null;
+  /** Per-session live-activity-state classifier (the attention-router feed). */
+  private classifiers: Map<string, SessionStateClassifier> = new Map();
   /** Rolling per-session raw output buffer, replayed to clients that attach
    *  mid-session (e.g. a phone joining, or a renderer reload). Bounded. */
   private scrollback: Map<string, string> = new Map();
@@ -350,7 +358,44 @@ export class SessionManager {
    *  cannot drift (they previously had — restart silently dropped the
    *  scrollback append and the session-end notification). This is also the
    *  single output tap the session-state classifier will hook into. */
+  /** Resolve the state-signal tables for a session's provider (empty for shells
+   *  or when the provider can't be resolved). */
+  private stateSignalsFor(sessionId: string): StateSignals {
+    const meta = this.sessions.get(sessionId)?.metadata;
+    if (!meta || meta.kind === 'shell') return EMPTY_STATE_SIGNALS;
+    try {
+      return this.providerRegistry?.get(meta.providerId ?? 'claude')?.getStateSignals() ?? EMPTY_STATE_SIGNALS;
+    } catch {
+      return EMPTY_STATE_SIGNALS;
+    }
+  }
+
+  /** Create (replacing any prior) the activity-state classifier for a session
+   *  and broadcast its transitions. */
+  private setupClassifier(sessionId: string): SessionStateClassifier {
+    this.classifiers.get(sessionId)?.dispose();
+    const kind = this.sessions.get(sessionId)?.metadata.kind;
+    const classifier = new SessionStateClassifier({
+      signals: this.stateSignalsFor(sessionId),
+      kind,
+      onStateChange: (state, reason) => this.emitActivityState(sessionId, state, reason),
+    });
+    this.classifiers.set(sessionId, classifier);
+    return classifier;
+  }
+
+  /** Record + broadcast a session's live activity state (transient, not persisted). */
+  private emitActivityState(sessionId: string, state: SessionActivityState, reason?: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    session.metadata.activityState = state;
+    const event: SessionStateChangeEvent = { sessionId, state, reason, at: Date.now() };
+    this.emitter?.emit('onSessionStateChanged', event);
+  }
+
   private wireCliManager(mgr: CLIManager, sessionId: string): void {
+    this.setupClassifier(sessionId);
+
     mgr.onModelChange((model: ClaudeModel) => {
       const session = this.sessions.get(sessionId);
       if (!session) return;
@@ -374,6 +419,9 @@ export class SessionManager {
       this.emitter?.emit('onSessionOutput', output);
       this.notifyOutputSubscribers(sessionId, data);
 
+      // Feed the activity-state classifier (the attention-router signal).
+      this.classifiers.get(sessionId)?.onOutput(data);
+
       // Record to history (async, non-blocking). Pass kind so shells skip the
       // Claude-ready gate (and don't leak an unbounded pre-ready buffer).
       const kind = this.sessions.get(sessionId)?.metadata.kind;
@@ -392,6 +440,14 @@ export class SessionManager {
       this.persistState();
       this.notifySessionEnd(sessionId);
 
+      // Fuse the authoritative exit into the classifier (an unexpected exit is a
+      // crash → 'errored'; a deliberate stop/close disposes it first so this is
+      // a no-op there), then tear it down.
+      const classifier = this.classifiers.get(sessionId);
+      classifier?.onExit(exitCode);
+      classifier?.dispose();
+      this.classifiers.delete(sessionId);
+
       // Flush final history buffer
       this.historyManager.onSessionExit(sessionId, exitCode).catch(err => {
         console.error('Failed to finalize session history:', err);
@@ -407,6 +463,11 @@ export class SessionManager {
     if (!session) {
       return false;
     }
+
+    // Dispose the classifier before destroy (the session is going away — no
+    // exit state to report).
+    this.classifiers.get(sessionId)?.dispose();
+    this.classifiers.delete(sessionId);
 
     // Destroy CLI manager if running
     if (session.cliManager) {
@@ -548,10 +609,15 @@ export class SessionManager {
   async stopSession(sessionId: string): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) return false;
+    // Deliberate stop: dispose the classifier BEFORE destroy so the resulting
+    // PTY exit isn't misread as a crash ('errored'), then mark it 'exited'.
+    this.classifiers.get(sessionId)?.dispose();
+    this.classifiers.delete(sessionId);
     if (session.cliManager) {
       session.cliManager.destroy();
       session.cliManager = null;
     }
+    this.emitActivityState(sessionId, 'exited', 'stopped');
     // Clear the terminal display so a killed session reads as a clean black
     // slate — matching freshly-restored idle sessions. ESC[2J (clear screen),
     // ESC[3J (clear scrollback), ESC[H (cursor home).
@@ -568,6 +634,12 @@ export class SessionManager {
     if (!session) {
       return false;
     }
+
+    // Dispose the outgoing classifier BEFORE destroy so the old PTY's exit
+    // isn't emitted as a spurious state change during restart. wireCliManager
+    // installs a fresh one below.
+    this.classifiers.get(sessionId)?.dispose();
+    this.classifiers.delete(sessionId);
 
     // Destroy existing CLI manager if any
     if (session.cliManager) {
@@ -624,6 +696,7 @@ export class SessionManager {
     session.metadata.exitCode = undefined;
     session.metadata.error = undefined;
     session.metadata.currentModel = undefined; // Clear stale detected model — Phase 1 will re-detect
+    this.emitActivityState(sessionId, 'initializing', 'restart'); // clear stale activity state in the UI
 
     try {
       if (isShell) {
@@ -682,6 +755,10 @@ export class SessionManager {
 
   // Cleanup all sessions
   destroyAll(): void {
+    for (const classifier of this.classifiers.values()) {
+      classifier.dispose();
+    }
+    this.classifiers.clear();
     for (const session of this.sessions.values()) {
       if (session.cliManager) {
         session.cliManager.destroy();

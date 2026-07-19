@@ -5,6 +5,45 @@ import { CLAUDE_READY_PATTERNS } from '../../shared/claude-detector';
 import { WELCOME_PATTERNS, SWITCH_PATTERNS } from '../../shared/model-detector';
 import type { AgentViewAvailability } from '../../shared/types/agent-view-types';
 import type { LaunchMode } from '../../shared/ipc-types';
+import type { StateSignals } from '../../shared/session-state-types';
+
+// State-classifier marker tables for Claude Code's TUI. Matched against the
+// line-reduced, ANSI-stripped tail of the session's output.
+const CLAUDE_STATE_SIGNALS: StateSignals = {
+  // Shown while a turn/tool call is in flight — a strong "still busy" signal
+  // that survives in-place repaints, so it also vetoes premature done/idle.
+  working: [
+    /esc to interrupt/i,
+    /\besc\b\s+to\s+interrupt/i,
+    // Braille + star spinner glyphs Claude animates while thinking.
+    /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
+    /[✻✽✳✢·]/,
+  ],
+  // Permission / trust prompts. Anchored to the tail end by the detector, so
+  // these fire only when the prompt is the current bottom-of-screen state.
+  approval: [
+    /Do you want to (proceed|make this edit|create|run|apply|continue)/i,
+    /Do you trust the files in this folder/i,
+    // The interactive selector sitting on the "Yes" option.
+    /❯\s*1\.\s*Yes/,
+    // The numbered Yes / Yes-and triad that only the approval box renders.
+    /\b1\.\s*Yes\b[\s\S]{0,120}\b2\.\s*Yes,/i,
+  ],
+  // Explicit "your turn to type" prompts distinct from a bare idle prompt box.
+  awaitingInput: [
+    /Press Enter to continue/i,
+    /\bwaiting for your (input|response)\b/i,
+  ],
+  // Fatal banners — narrow on purpose so an agent merely printing "error"
+  // while debugging does not trip this (also gated on quiescence by the detector).
+  fatalError: [
+    /API Error/i,
+    /Credit balance is too low/i,
+    /\brate limit(?:ed|s)?\b/i,
+    /overloaded_error/i,
+    /Invalid API key/i,
+  ],
+};
 
 export class ClaudeProvider implements IProvider {
   /**
@@ -112,6 +151,15 @@ export class ClaudeProvider implements IProvider {
     return {
       welcome: [...WELCOME_PATTERNS],
       switch: [...SWITCH_PATTERNS],
+    };
+  }
+
+  getStateSignals(): StateSignals {
+    return {
+      working: [...CLAUDE_STATE_SIGNALS.working],
+      approval: [...CLAUDE_STATE_SIGNALS.approval],
+      awaitingInput: [...CLAUDE_STATE_SIGNALS.awaitingInput],
+      fatalError: [...CLAUDE_STATE_SIGNALS.fatalError],
     };
   }
 

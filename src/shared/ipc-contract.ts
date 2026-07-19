@@ -32,6 +32,7 @@ import type {
   AppVersionInfo,
   ClaudeModel,
   ModelSwitchEvent,
+  SessionStateChangeEvent,
   RemoteAccessStatus,
   STTStatus,
   STTTranscribeRequest,
@@ -143,6 +144,7 @@ export interface IPCContractMap {
   onSessionOutput:     EventContract<'session:output',   SessionOutput>;
   onSessionExited:     EventContract<'session:exited',   SessionExitEvent>;
   onModelChanged:      EventContract<'model:changed',    ModelSwitchEvent>;
+  onSessionStateChanged: EventContract<'session:stateChanged', SessionStateChangeEvent>;
 
   // ── Dialogs & File system (invoke) ──
   browseDirectory:     InvokeContract<'dialog:browseDirectory', [],                              string | null>;
@@ -316,6 +318,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   onSessionOutput:     'session:output',
   onSessionExited:     'session:exited',
   onModelChanged:      'model:changed',
+  onSessionStateChanged: 'session:stateChanged',
 
   // Dialogs
   browseDirectory:     'dialog:browseDirectory',
@@ -479,6 +482,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   onSessionOutput:     'event',
   onSessionExited:     'event',
   onModelChanged:      'event',
+  onSessionStateChanged: 'event',
 
   browseDirectory:     'invoke',
   showSaveDialog:      'invoke',

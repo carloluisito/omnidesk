@@ -7,6 +7,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import type { ProviderId } from '../../../shared/types/provider-types';
+import type { SessionActivityState } from '../../../shared/ipc-types';
 import { ProviderBadge } from './ProviderBadge';
 import { StatusDot, StatusDotState } from './StatusDot';
 // import { ShareIndicator } from './ShareIndicator'; // LaunchTunnel disabled
@@ -17,6 +18,8 @@ export interface TabData {
   workingDirectory: string;
   permissionMode:   'standard' | 'skip-permissions';
   status:           'running' | 'exited' | 'error';
+  /** Live classifier state (from session:stateChanged); drives the rich rail/cockpit status. */
+  activityState?:   SessionActivityState;
   worktreeBranch?:  string | null;
   /** Main repo this session is rooted under (set when session was created with a worktree). */
   mainRepoPath?:    string | null;

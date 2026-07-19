@@ -12,14 +12,44 @@ import type { RepoGroup } from '../../hooks/useRepos';
 import type { Repo } from '../../hooks/useRepos';
 import type { TabData } from '../ui/Tab';
 
-// ─── TabData (running/exited/error) → prototype's richer status set ───
+// ─── TabData → rich status ───
+// Process lifecycle (running/exited/error) is authoritative for terminal
+// states; while running, the classifier's fine-grained activityState (from the
+// session:stateChanged event) drives the status. Falls back to 'live' when no
+// classifier signal has arrived yet (back-compat / pre-classification).
 export function mapTabStatus(t: TabData): SessionStatus {
   if (t.status === 'error')  return 'errored';
   if (t.status === 'exited') return 'idle';
-  return 'live';
+  switch (t.activityState) {
+    case 'working':           return 'live';
+    case 'awaiting-approval': return 'needs-approval';
+    case 'awaiting-input':    return 'awaiting';
+    case 'done':              return 'done';
+    case 'errored':           return 'errored';
+    case 'idle':              return 'idle';
+    case 'initializing':      return 'live';
+    case 'exited':            return 'idle';
+    default:                  return 'live';
+  }
 }
 
-export const ACTIVE_STATUSES: SessionStatus[] = ['live', 'thinking', 'awaiting', 'errored'];
+export const ACTIVE_STATUSES: SessionStatus[] = ['live', 'thinking', 'awaiting', 'needs-approval', 'errored', 'done'];
+
+// Attention priority for ordering within the Active group — most urgent first.
+// Sessions the user must act on (a blocking approval, an error) rise to the top.
+const ATTENTION_PRIORITY: Record<SessionStatus, number> = {
+  'needs-approval': 0,
+  errored:          1,
+  awaiting:         2,
+  done:             3,
+  thinking:         4,
+  live:             5,
+  idle:             6,
+};
+
+export function attentionRank(t: TabData): number {
+  return ATTENTION_PRIORITY[mapTabStatus(t)] ?? 5;
+}
 
 // ─── Sessions are scoped to a repo by mainRepoPath OR working-directory prefix ───
 export function sessionsForRepo(repo: Repo, sessions: TabData[]): TabData[] {
@@ -215,10 +245,13 @@ export function SessionRail({
   // For group view, we still split active/idle but ALSO sub-group by repo.
   // In single-repo mode, apply the persisted drag order for this repo.
   const singleOrder = !group ? sessionOrders?.[repo.id] : undefined;
-  const active = applyOrder(
+  // Apply the persisted drag order, then float attention-urgent sessions
+  // (needs-approval / errored) to the top. Array.sort is stable, so the drag
+  // order is preserved within each attention rank — reordering still works.
+  const active = [...applyOrder(
     allRepoSessions.filter(s => ACTIVE_STATUSES.includes(mapTabStatus(s)) && matches(s)),
     singleOrder,
-  );
+  )].sort((a, b) => attentionRank(a) - attentionRank(b));
   const idle = applyOrder(
     allRepoSessions.filter(s => !ACTIVE_STATUSES.includes(mapTabStatus(s)) && matches(s)),
     singleOrder,
