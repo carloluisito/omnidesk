@@ -202,6 +202,28 @@ Remote also serves an **auth-gated** `/manifest.webmanifest` (token in `start_ur
 | `src/renderer/components/shell/RemoteAccessPanel.tsx` | Renderer | Toggle + URL/token/copy/regenerate + tunnel hint (Cmd+K → "Remote access…") |
 | `src/shared/ipc-types.ts` `RemoteAccessStatus` / `RemoteAccessSettings` | Shared | Status DTO + persisted `{ enabled, port }` |
 
+## Integrations (outbound event bus + connectors + GitHub actions)
+
+Pushes session events out to Telegram / Slack / Discord / a generic HMAC-signed webhook, and drives GitHub ship-it + issue intake via the `gh` CLI. IPC: `integrations:testConnector` / `getDeliveryStatuses` / `sendDigestNow` / `githubPreflight` / `listIssues` / `getShipItPreview` / `createPR` (7 invoke) + `integrations:deliveryStatus` (1 event) + `session:seedPrompt` (1 send).
+
+| File | Layer | Role |
+|------|-------|------|
+| `src/shared/integration-types.ts` | Shared | `IntegrationEvent`, `IntegrationsSettings` (+defaults/merge), connector configs, GitHub DTOs |
+| `src/main/integrations/integration-manager.ts` | Main | The hub: state-tap subscriber, routing policy, deep-link builder, digest scheduler |
+| `src/main/integrations/connector.ts` | Main | `IConnector` + HTTP→`SendOutcome` mapping (429 Retry-After, 4xx non-retryable) |
+| `src/main/integrations/connector-registry.ts` | Main | Registry (mirrors ProviderRegistry) of the four built-in connectors |
+| `src/main/integrations/connectors/*.ts` | Main | Telegram (Bot API, HTML), Slack (webhook), Discord (webhook), generic webhook (raw event JSON + HMAC) |
+| `src/main/integrations/attention-policy.ts` | Main | Edge-triggered notify policy: arm/disarm + debounce per session |
+| `src/main/integrations/delivery-queue.ts` | Main | Per-connector token bucket, backoff retries, bounded drop-oldest queue |
+| `src/main/integrations/message-format.ts` | Main | Pure event→text (+Telegram HTML); agent copy never claims "approval" |
+| `src/main/integrations/github-service.ts` | Main | `gh` wrapper (execFile + per-dir mutex): preflight, issues, ship-it preview, createPR (one PR per branch) |
+| `src/main/session-manager.ts` `addStateListener` / `seedInitialPrompt` | Main | Main-process state fan-out; once-only initialPrompt typing at CLI readiness |
+| `src/renderer/hooks/useIntegrations.ts` | Renderer | Settings section CRUD, test pings, live delivery statuses, gh preflight |
+| `src/renderer/hooks/useRemoteDeepLink.ts` | Renderer | Remote PWA `?session=` one-shot focus (notification tap-through) |
+| `src/renderer/components/shell/IntegrationsPanel.tsx` | Renderer | Connector cards + notify/digest/per-repo-mute config (Cmd+K → "Integrations…") |
+| `src/renderer/components/shell/ShipItSheet.tsx` | Renderer | Diff preview → explicit Create PR/draft (cockpit done-items + session menu) |
+| `src/renderer/components/shell/IssuePickerSheet.tsx` | Renderer | Issue list → prefilled NewSessionSheet (branch `feat/<n>-<slug>` + initialPrompt) |
+
 ## Window & UI Utilities
 
 IPC: `window:*`, `dialog:*`, `shell:*`, `updates:*`, `app:*`
