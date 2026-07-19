@@ -353,35 +353,29 @@ export class SessionManager {
     return metadata;
   }
 
-  /** Wire a CLIManager's model-change / output / exit callbacks to session
-   *  state. Used by BOTH createSession and restartSession so the two paths
-   *  cannot drift (they previously had — restart silently dropped the
-   *  scrollback append and the session-end notification). This is also the
-   *  single output tap the session-state classifier will hook into. */
-  /** Resolve the state-signal tables for a session's provider (empty for shells
-   *  or when the provider can't be resolved). */
-  private stateSignalsFor(sessionId: string): StateSignals {
-    const meta = this.sessions.get(sessionId)?.metadata;
-    if (!meta || meta.kind === 'shell') return EMPTY_STATE_SIGNALS;
-    try {
-      return this.providerRegistry?.get(meta.providerId ?? 'claude')?.getStateSignals() ?? EMPTY_STATE_SIGNALS;
-    } catch {
-      return EMPTY_STATE_SIGNALS;
-    }
-  }
-
-  /** Create (replacing any prior) the activity-state classifier for a session
-   *  and broadcast its transitions. */
-  private setupClassifier(sessionId: string): SessionStateClassifier {
+  /** Create (replacing any prior) the activity-state classifier for a session.
+   *
+   *  Currently only SHELL sessions are classified. Agent CLIs (Claude Code,
+   *  Codex) render as full-screen TUIs in the terminal's ALTERNATE-SCREEN buffer
+   *  and repaint continuously (even when idle), which the output-tail +
+   *  quiescence model cannot classify — it can never observe "quiet", and the
+   *  alt-screen holds it pinned. Their live state (working / awaiting-approval /
+   *  done) is DEFERRED to a headless-terminal-emulator rewrite that classifies
+   *  the rendered screen instead of a byte tail. Until then agent sessions
+   *  surface only their process lifecycle: running (rail default) and
+   *  errored/exited via SessionMetadata.status. See the design doc's
+   *  "Known limitations". */
+  private setupClassifier(sessionId: string): void {
     this.classifiers.get(sessionId)?.dispose();
+    this.classifiers.delete(sessionId);
     const kind = this.sessions.get(sessionId)?.metadata.kind;
+    if (kind !== 'shell') return;
     const classifier = new SessionStateClassifier({
-      signals: this.stateSignalsFor(sessionId),
+      signals: EMPTY_STATE_SIGNALS,
       kind,
       onStateChange: (state, reason) => this.emitActivityState(sessionId, state, reason),
     });
     this.classifiers.set(sessionId, classifier);
-    return classifier;
   }
 
   /** Record + broadcast a session's live activity state (transient, not persisted). */
