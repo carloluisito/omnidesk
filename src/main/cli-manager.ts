@@ -596,7 +596,22 @@ export class CLIManager {
     let offset = 0;
     const writeNextChunk = () => {
       if (!this.ptyProcess || !this._isRunning) return;
-      const end = Math.min(offset + this.WRITE_CHUNK_SIZE, data.length);
+      let end = Math.min(offset + this.WRITE_CHUNK_SIZE, data.length);
+      // JS strings are UTF-16; an astral character (emoji, some CJK, etc.) is
+      // a surrogate pair of two code units. If the boundary falls between
+      // them, this chunk ends with a lone high surrogate and the next one
+      // starts with a lone low surrogate — node-pty encodes each write to
+      // UTF-8 independently, so a lone surrogate is replaced with U+FFFD
+      // ("�") and the character is corrupted. Pull the boundary back one
+      // code unit so the pair stays together in the next chunk instead.
+      // WRITE_CHUNK_SIZE is a soft max (varies by at most one code unit);
+      // that's harmless for its pipe-buffer-draining purpose.
+      if (end < data.length && end > offset) {
+        const code = data.charCodeAt(end - 1);
+        if (code >= 0xd800 && code <= 0xdbff) {
+          end -= 1;
+        }
+      }
       this.ptyProcess.write(data.substring(offset, end));
       offset = end;
       if (offset < data.length) {
