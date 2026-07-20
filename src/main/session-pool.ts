@@ -109,6 +109,10 @@ export class SessionPool {
       } catch (err) { /* Ignore EPIPE */ }
       this.destroyAllIdle();
       this.stopCleanupInterval();
+      // The pool is genuinely un-initialized once disabled: reset the flag so a
+      // subsequent re-enable's initialize() call actually re-spawns idle sessions
+      // and restarts the cleanup interval instead of early-returning.
+      this.isInitialized = false;
       return;
     }
 
