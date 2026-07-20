@@ -70,6 +70,18 @@ export function setupIPCHandlers(
 
   registry.handle('createSession', async (_e, request) => {
     try {
+      // Validate the entry-point directory before any worktree/process is
+      // created. For worktree sessions this is mainRepoPath — the eventual
+      // worktree path is derived by git and legitimately may sit outside
+      // home/workspaces (e.g. a sibling checkout), so it isn't the right
+      // thing to gate on; the repo the worktree is created from is.
+      const pathToCheck =
+        request.worktree?.mainRepoPath || request.workingDirectory || app.getPath('home');
+      const resolved = path.resolve(pathToCheck);
+      if (!isPathAllowed(resolved)) {
+        console.warn('[createSession] Blocked working directory outside home/workspaces:', resolved);
+        throw new Error('Working directory not allowed');
+      }
       const result = await sessionManager.createSession(request);
       return result;
     }
