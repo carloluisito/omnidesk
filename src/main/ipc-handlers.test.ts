@@ -1,4 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// getVersionInfo delegates to probeClaudeVersion (execFile with a 5s timeout)
+// instead of the old blocking execSync. Mock child_process the same way
+// probe-version.test.ts does so we exercise the real probe function.
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn(),
+}));
 
 describe('IPC Handlers - revealInExplorer', () => {
   describe('handler logic', () => {
@@ -122,5 +129,99 @@ describe('IPC Handlers - revealInExplorer', () => {
 
       expect(result).toBe(false);
     });
+  });
+});
+
+describe('IPC Handlers - getVersionInfo', () => {
+  // Mirrors the handler body in ipc-handlers.ts: `(await probeClaudeVersion()) ?? undefined`,
+  // combined with app.getVersion() and process.versions. probeClaudeVersion itself is
+  // already covered end-to-end by probe-version.test.ts (success/ENOENT/ETIMEDOUT/empty
+  // stdout), so this test is intentionally thin: it verifies the real probe function is
+  // wired up and its `string | null` result is mapped onto the AppVersionInfo shape.
+  type ExecFileCallback = (err: Error | null, stdout: string, stderr?: string) => void;
+
+  const buildVersionInfo = async (appVersion: string) => {
+    const { probeClaudeVersion } = await import('./agent-view/probe-version');
+    const claudeVersion = (await probeClaudeVersion()) ?? undefined;
+    return {
+      appVersion,
+      electronVersion: process.versions.electron,
+      nodeVersion: process.versions.node,
+      claudeVersion,
+    };
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('resolves a well-formed AppVersionInfo with claudeVersion on success', async () => {
+    const { execFile } = await import('node:child_process');
+    vi.mocked(execFile).mockImplementation(
+      (_cmd: unknown, _args: unknown, _opts: unknown, cb: unknown) => {
+        (cb as ExecFileCallback)(null, '2.1.139 (Claude Code)\n', '');
+      },
+    );
+
+    const info = await buildVersionInfo('4.6.0');
+
+    expect(info).toEqual({
+      appVersion: '4.6.0',
+      electronVersion: process.versions.electron,
+      nodeVersion: process.versions.node,
+      claudeVersion: '2.1.139',
+    });
+  });
+
+  it('resolves claudeVersion as undefined (not null) when the binary is missing', async () => {
+    const { execFile } = await import('node:child_process');
+    vi.mocked(execFile).mockImplementation(
+      (_cmd: unknown, _args: unknown, _opts: unknown, cb: unknown) => {
+        const err = Object.assign(new Error('not found'), { code: 'ENOENT' });
+        (cb as ExecFileCallback)(err, '', '');
+      },
+    );
+
+    const info = await buildVersionInfo('4.6.0');
+
+    expect(info.claudeVersion).toBeUndefined();
+    expect(info.appVersion).toBe('4.6.0');
+    expect(info.nodeVersion).toBe(process.versions.node);
+  });
+
+  it('resolves claudeVersion as undefined on a timed-out probe, without hanging the handler', async () => {
+    const { execFile } = await import('node:child_process');
+    vi.mocked(execFile).mockImplementation(
+      (_cmd: unknown, _args: unknown, _opts: unknown, cb: unknown) => {
+        const err = Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' });
+        (cb as ExecFileCallback)(err, '', '');
+      },
+    );
+
+    const info = await buildVersionInfo('4.6.0');
+
+    expect(info.claudeVersion).toBeUndefined();
+  });
+
+  it('invokes the probe via execFile (non-blocking) with a 5s timeout, never execSync', async () => {
+    const { execFile } = await import('node:child_process');
+    vi.mocked(execFile).mockImplementation(
+      (_cmd: unknown, _args: unknown, _opts: unknown, cb: unknown) => {
+        (cb as ExecFileCallback)(null, '2.1.139\n', '');
+      },
+    );
+
+    await buildVersionInfo('4.6.0');
+
+    expect(execFile).toHaveBeenCalledWith(
+      'claude',
+      ['--version'],
+      expect.objectContaining({ timeout: 5000 }),
+      expect.any(Function),
+    );
   });
 });

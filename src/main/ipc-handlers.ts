@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, shell } from 'electron';
 import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
+import { probeClaudeVersion } from './agent-view/probe-version';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SubdirectoryEntry, GitRepoEntry, RemoteAccessStatus } from '../shared/ipc-types';
@@ -683,10 +684,7 @@ export function setupIPCHandlers(
 
   registry.handle('getVersionInfo', async () => {
     const { app } = require('electron');
-    const { execSync } = require('child_process');
-    let claudeVersion: string | undefined;
-    try { claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim(); }
-    catch (_err) { claudeVersion = undefined; }
+    const claudeVersion = (await probeClaudeVersion()) ?? undefined;
     return {
       appVersion: app.getVersion(),
       electronVersion: process.versions.electron,
