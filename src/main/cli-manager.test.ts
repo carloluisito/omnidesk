@@ -205,6 +205,44 @@ describe('CLIManager deferred provider launch', () => {
   });
 });
 
+describe('CLIManager launchProviderCommand fallback — model flag injection guard (#116)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // No `provider` is passed, so CLIManager falls back to its own copy of the
+  // --model-appending logic in launchProviderCommand(). options.model is
+  // untrusted (reachable over the remote WS bridge with only a token as
+  // gate); session-manager.ts gates it at the trust boundary, but this
+  // fallback path must also refuse to shell-interpolate a malicious value
+  // into the line written to the PTY.
+  it.each([
+    '; rm -rf /',
+    'opus`whoami`',
+    'opus$(whoami)',
+    'opus && curl evil.com',
+    'opus | tee /tmp/x',
+  ])('never writes a metacharacter-laden model (%j) into the launched command', async (maliciousModel) => {
+    const mgr = new CLIManager({
+      workingDirectory: '/tmp',
+      permissionMode: 'standard',
+      model: maliciousModel as unknown as import('../shared/ipc-types').ClaudeModel,
+    });
+    await mgr.spawn();
+    mgr.resize({ cols: 180, rows: 50 });
+
+    const written = writtenText();
+    expect(written).toContain('claude');
+    expect(written).not.toContain(maliciousModel);
+    expect(written).not.toMatch(/--model/);
+  });
+
+  it('still appends a well-formed model to the launched command', async () => {
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard', model: 'opus' as any });
+    await mgr.spawn();
+    mgr.resize({ cols: 180, rows: 50 });
+    expect(writtenText()).toContain('--model opus');
+  });
+});
+
 describe('CLIManager write() chunking (surrogate-pair safe)', () => {
   beforeEach(() => vi.clearAllMocks());
 

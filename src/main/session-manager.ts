@@ -35,6 +35,7 @@ import type { GitManager } from './git-manager';
 import type { WorktreeSettings } from '../shared/types/git-types';
 import type { ProviderRegistry } from './providers/provider-registry';
 import type { IProvider } from './providers/provider';
+import { isSafeModelToken } from './providers/provider';
 
 const MAX_SESSIONS = 10;
 
@@ -243,7 +244,7 @@ export class SessionManager {
       addWorktreeToRegistry(worktreeInfo);
     }
 
-    const model = request.model;
+    const rawModel = request.model;
     const isShell = request.kind === 'shell';
 
     // Resolve the provider to use: explicit request > default 'claude'. Shell sessions have none.
@@ -255,6 +256,34 @@ export class SessionManager {
       } catch {
         console.warn(`[SessionManager] Provider '${providerId}' not found, using no provider`);
         provider = undefined;
+      }
+    }
+
+    // Gate `model` at this trust boundary before it is persisted to metadata
+    // and forwarded to CLIManager, which shell-interpolates it into
+    // `--model <value>` and writes the resulting line straight to a PTY
+    // (claude-provider.ts#buildCommand / cli-manager.ts#launchProviderCommand).
+    // request.model is untrusted input — reachable over the remote WS bridge
+    // with only a token as gate (issue #116) — so anything that isn't a known
+    // model name must never reach that write. Prefer the provider's own
+    // normalizeModel() (it understands aliases like '4-sonnet' -> 'sonnet');
+    // fall back to a strict charset check when no provider is resolved (or a
+    // test double doesn't implement it). Values that don't validate are
+    // dropped rather than rejected outright, matching the existing
+    // 'auto'/no-flag behavior for an absent model.
+    //
+    // normalizeModel()/isSafeModelToken() operate on `string`, not the
+    // narrower ClaudeModel union — SessionMetadata.model's ClaudeModel type is
+    // a compile-time convenience only and enforces nothing at runtime (that
+    // gap is exactly what issue #116 is about). The cast below is safe
+    // because `model` is only ever assigned a value that has already passed
+    // through one of the two runtime checks above.
+    let model: ClaudeModel | undefined;
+    if (rawModel) {
+      if (provider && typeof provider.normalizeModel === 'function') {
+        model = (provider.normalizeModel(rawModel) ?? undefined) as ClaudeModel | undefined;
+      } else {
+        model = (isSafeModelToken(rawModel) ? rawModel : undefined) as ClaudeModel | undefined;
       }
     }
 
