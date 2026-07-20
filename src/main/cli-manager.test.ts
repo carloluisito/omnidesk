@@ -146,6 +146,90 @@ describe('CLIManager Windows ConPTY rendering workarounds', () => {
   });
 });
 
+describe('CLIManager Windows relocation (cmd.exe %VAR% expansion)', () => {
+  const realPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+  const setPlatform = (value: string) =>
+    Object.defineProperty(process, 'platform', { value, configurable: true });
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => Object.defineProperty(process, 'platform', realPlatform));
+
+  function spawnCount(): number {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.calls.length;
+  }
+  function spawnOptionsAt(index: number): Record<string, unknown> {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.calls[index][2];
+  }
+  function ptyInstanceAt(index: number) {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.results[index].value;
+  }
+
+  it('relocates a pooled win32 shell via interactive cd for a plain path', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    await mgr.initializeSession('C:\\Users\\carlo\\project', 'standard');
+
+    expect(spawnCount()).toBe(1); // no respawn needed
+    expect(writtenText()).toContain('cd /d "C:\\Users\\carlo\\project"');
+  });
+
+  it('relocates a pooled win32 shell via interactive cd for a path with spaces', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    await mgr.initializeSession('C:\\Users\\carlo\\My Project', 'standard');
+
+    expect(spawnCount()).toBe(1);
+    expect(writtenText()).toContain('cd /d "C:\\Users\\carlo\\My Project"');
+  });
+
+  it('respawns instead of writing an interactive cd when the target path contains %VAR%', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    const firstPty = ptyInstanceAt(0);
+
+    const target = 'C:\\Users\\carlo\\%TEMP%\\project';
+    await mgr.initializeSession(target, 'standard');
+
+    // The old pooled pty was killed rather than sent an interactive cd that
+    // cmd.exe would silently expand...
+    expect(firstPty.kill).toHaveBeenCalled();
+    // ...and a fresh pty was spawned directly at the target cwd instead
+    // (node-pty hands cwd straight to the OS, bypassing cmd's parser).
+    expect(spawnCount()).toBe(2);
+    expect(spawnOptionsAt(1).cwd).toBe(target);
+    // No interactive command should ever carry the unexpanded %TEMP% token.
+    expect(writtenText()).not.toContain('%TEMP%');
+    expect(mgr.isInitialized).toBe(true);
+  });
+
+  it('ignores a stale exit event from the killed pooled pty after a %VAR% respawn', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    const firstPty = ptyInstanceAt(0);
+    const staleOnExit = firstPty.onExit.mock.calls[0][0];
+
+    const onExitCb = vi.fn();
+    mgr.onExit(onExitCb);
+
+    await mgr.initializeSession('C:\\Users\\carlo\\%TEMP%\\project', 'standard');
+
+    // The killed pooled pty's exit event can still arrive asynchronously —
+    // it must be a no-op against the manager's current (new) session state.
+    staleOnExit({ exitCode: 1 });
+
+    expect(onExitCb).not.toHaveBeenCalled();
+    expect(mgr.isRunning).toBe(true);
+    expect(mgr.isInitialized).toBe(true);
+  });
+});
+
 describe('CLIManager deferred provider launch', () => {
   beforeEach(() => vi.clearAllMocks());
 
