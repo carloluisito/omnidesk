@@ -204,3 +204,77 @@ describe('CLIManager deferred provider launch', () => {
     }
   });
 });
+
+describe('CLIManager write() chunking (surrogate-pair safe)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('writes payloads at or under 1024 chars in a single ptyProcess.write call', async () => {
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+
+    const payload = 'hello world'.repeat(50); // 550 chars, well under the 1024 chunk size
+    mgr.write(payload);
+
+    expect(getWrite().mock.calls.length).toBe(1);
+    expect(getWrite().mock.calls[0][0]).toBe(payload);
+  });
+
+  it('splits a large ASCII write into <=1024-char chunks that reassemble to the original', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+      const spawnPromise = mgr.spawn();
+      // createPtyProcess waits ~150ms for shell readiness.
+      await vi.advanceTimersByTimeAsync(200);
+      await spawnPromise;
+
+      const payload = 'x'.repeat(2500); // spans 3 chunks at WRITE_CHUNK_SIZE = 1024
+      mgr.write(payload);
+      // Flush the chained setTimeout(writeNextChunk, WRITE_CHUNK_DELAY) calls.
+      await vi.advanceTimersByTimeAsync(50);
+
+      const calls = getWrite().mock.calls.map((c: string[]) => c[0]);
+      expect(calls.length).toBeGreaterThan(1);
+      expect(calls.join('')).toBe(payload);
+      for (const chunk of calls) {
+        expect(chunk.length).toBeLessThanOrEqual(1024);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reassembles a large write with an astral emoji straddling the 1024-char chunk boundary', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+      const spawnPromise = mgr.spawn();
+      await vi.advanceTimersByTimeAsync(200);
+      await spawnPromise;
+
+      // 😀 (U+1F600) is a surrogate pair: high surrogate U+D83D + low surrogate
+      // U+DE00. Placed right after 1023 filler chars, the naive chunk boundary
+      // (offset 0 + WRITE_CHUNK_SIZE 1024) would land between the two halves —
+      // exactly the corruption case the fix guards against.
+      const emoji = '\u{1F600}';
+      const payload = 'a'.repeat(1023) + emoji + 'b'.repeat(200);
+      mgr.write(payload);
+      await vi.advanceTimersByTimeAsync(50);
+
+      const calls = getWrite().mock.calls.map((c: string[]) => c[0]);
+      expect(calls.length).toBeGreaterThan(1);
+      expect(calls.join('')).toBe(payload);
+
+      // No chunk may end with a lone high surrogate or start with a lone low
+      // surrogate — that's what causes node-pty's UTF-8 encoder to emit U+FFFD.
+      for (const chunk of calls) {
+        const lastCode = chunk.charCodeAt(chunk.length - 1);
+        expect(lastCode >= 0xd800 && lastCode <= 0xdbff).toBe(false);
+        const firstCode = chunk.charCodeAt(0);
+        expect(firstCode >= 0xdc00 && firstCode <= 0xdfff).toBe(false);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
