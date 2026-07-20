@@ -435,6 +435,18 @@ function App() {
     setActiveRepoId(repo.id);
   }, [nonGitChoice, openPlainFolder, openRepo, setActiveRepoId]);
 
+  // Cycle to the next/previous session within the active repo, wrapping
+  // around at the ends. Returns whether it actually switched (so the
+  // keydown handler only preventDefault()s when the shortcut was handled).
+  const cycleSession = useCallback((direction: 1 | -1): boolean => {
+    if (!activeSessionId || repoSessions.length < 2) return false;
+    const idx = repoSessions.findIndex(s => s.id === activeSessionId);
+    if (idx === -1) return false;
+    const nextIdx = (idx + direction + repoSessions.length) % repoSessions.length;
+    switchSession(repoSessions[nextIdx].id);
+    return true;
+  }, [repoSessions, activeSessionId, switchSession]);
+
   // ─── Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -442,6 +454,17 @@ function App() {
       if (cmd && e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setRepoSwitcher({ anchorRect: null });
+        return;
+      }
+      // Cmd/Ctrl+Shift+]/[ — next/previous session. Matched on e.code
+      // (physical bracket key) rather than e.key so Shift doesn't turn
+      // the check into the shifted '{'/'}' characters.
+      if (cmd && e.shiftKey && e.code === 'BracketRight') {
+        if (cycleSession(1)) e.preventDefault();
+        return;
+      }
+      if (cmd && e.shiftKey && e.code === 'BracketLeft') {
+        if (cycleSession(-1)) e.preventDefault();
         return;
       }
       if (cmd && e.key === 'k') { e.preventDefault(); setShowPalette(true); return; }
@@ -462,7 +485,7 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations]);
+  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations, cycleSession]);
 
   useEffect(() => {
     const open = () => setShowVoiceSettings(true);
