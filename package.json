@@ -69,5 +69,9 @@
     "vitest": "^4.0.18"
   },
   "author": "Carlo Luisito Adap <carlo.adap@hotmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
 }
