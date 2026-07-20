@@ -193,6 +193,24 @@ describe('IntegrationManager', () => {
     m.dispose();
   });
 
+  it('sendDigestNow does not count exited sessions as idle', async () => {
+    const { registry, delivered } = fakeRegistry();
+    const sessions = [
+      meta({ id: 'a', name: 'one', activityState: 'working' }),
+      meta({ id: 'b', name: 'two', activityState: 'exited' }),
+      meta({ id: 'c', name: 'three', activityState: 'exited' }),
+      meta({ id: 'd', name: 'four', activityState: 'exited' }),
+    ];
+    const m = new IntegrationManager(makeDeps(settingsWith({}), { sessions }), { registry });
+    await m.sendDigestNow();
+    await vi.runAllTimersAsync();
+    expect(delivered.length).toBe(1);
+    const text = delivered[0].msg.text;
+    expect(text).toContain('1 working');
+    expect(text).toContain('0 idle');
+    m.dispose();
+  });
+
   it('scheduled digest skips when the whole fleet is idle', async () => {
     const { registry, delivered } = fakeRegistry();
     const sessions = [meta({ id: 'a', activityState: 'idle' }), meta({ id: 'b', activityState: 'exited' })];
