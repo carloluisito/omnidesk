@@ -63,6 +63,59 @@ export async function getFileInfo(filePaths: string[]): Promise<FileInfo[]> {
 }
 
 /**
+ * Given a buffer and the number of valid bytes read into it, return the
+ * length (<= bytesRead) that ends on a complete UTF-8 code point.
+ *
+ * When a truncation cut lands in the middle of a multi-byte UTF-8 sequence
+ * (accented letters, CJK, emoji, box-drawing, etc.), decoding the dangling
+ * lead byte(s) produces a spurious trailing U+FFFD replacement character.
+ * This walks back over any trailing continuation bytes (0x80-0xBF) to find
+ * the sequence's leader byte, and if that sequence isn't fully present in
+ * `bytesRead`, trims back to just before it. A UTF-8 sequence is at most 4
+ * bytes, so at most 3 trailing continuation bytes are ever scanned.
+ */
+function trimIncompleteTrailingUtf8Sequence(buffer: Buffer, bytesRead: number): number {
+  if (bytesRead === 0) {
+    return 0;
+  }
+
+  let leaderIndex = bytesRead - 1;
+  let continuationBytes = 0;
+  while (
+    leaderIndex >= 0 &&
+    continuationBytes < 3 &&
+    (buffer[leaderIndex] & 0xc0) === 0x80
+  ) {
+    continuationBytes++;
+    leaderIndex--;
+  }
+
+  if (leaderIndex < 0) {
+    // Nothing but continuation bytes in the scanned window; no safe boundary found.
+    return 0;
+  }
+
+  const leader = buffer[leaderIndex];
+  let sequenceLength: number;
+  if ((leader & 0x80) === 0x00) {
+    sequenceLength = 1; // ASCII
+  } else if ((leader & 0xe0) === 0xc0) {
+    sequenceLength = 2;
+  } else if ((leader & 0xf0) === 0xe0) {
+    sequenceLength = 3;
+  } else if ((leader & 0xf8) === 0xf0) {
+    sequenceLength = 4;
+  } else {
+    // Not a valid leader byte (e.g. a run of continuation bytes with no
+    // leader, or an invalid encoding) - drop it along with its continuations.
+    return leaderIndex;
+  }
+
+  const bytesAvailable = bytesRead - leaderIndex;
+  return bytesAvailable >= sequenceLength ? bytesRead : leaderIndex;
+}
+
+/**
  * Read file content with size limit
  */
 export async function readFileContent(
@@ -104,7 +157,8 @@ export async function readFileContent(
       const fd = fs.openSync(sanitizedPath, 'r');
       const bytesRead = fs.readSync(fd, buffer, 0, maxSizeBytes, 0);
       fs.closeSync(fd);
-      content = buffer.toString('utf-8', 0, bytesRead);
+      const safeLength = trimIncompleteTrailingUtf8Sequence(buffer, bytesRead);
+      content = buffer.toString('utf-8', 0, safeLength);
     } else {
       content = fs.readFileSync(sanitizedPath, 'utf-8');
     }
