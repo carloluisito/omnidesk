@@ -32,7 +32,10 @@ function isApprovedRoot(resolved: string): boolean {
 }
 
 export function isPathAllowed(resolved: string, homeDir: string, workspacePaths: string[]): boolean {
-  if (isPathWithin(resolved, homeDir)) return true;
+  // homeDir must be resolved the same way workspacePaths are below, otherwise
+  // a resolved (drive-lettered on win32) child path can fail to match an
+  // unresolved homeDir that lacks a drive letter, causing false rejections.
+  if (isPathWithin(resolved, path.resolve(homeDir))) return true;
   for (const ws of workspacePaths) {
     if (isPathWithin(resolved, path.resolve(ws))) return true;
   }
