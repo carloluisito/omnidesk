@@ -7,7 +7,7 @@ export interface UseSessionManagerReturn {
   sessions: TabData[];
   activeSessionId: string | null;
   isLoading: boolean;
-  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode, kind?: import('../../shared/ipc-types').SessionKind) => Promise<string>;
+  createSession: (name: string, workingDirectory: string, permissionMode: 'standard' | 'skip-permissions', worktree?: import('../../shared/types/git-types').WorktreeCreateRequest, providerId?: ProviderId, launchMode?: LaunchMode, kind?: import('../../shared/ipc-types').SessionKind, initialPrompt?: string) => Promise<string>;
   closeSession: (sessionId: string, opts?: { removeWorktree?: boolean; removeBranch?: boolean }) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -120,6 +120,7 @@ export function useSessionManager(): UseSessionManagerReturn {
     providerId?: ProviderId,
     launchMode?: LaunchMode,
     kind?: import('../../shared/ipc-types').SessionKind,
+    initialPrompt?: string,
   ): Promise<string> => {
     try {
       if (kind === 'shell') {
@@ -145,6 +146,7 @@ export function useSessionManager(): UseSessionManagerReturn {
         worktree,
         providerId,
         launchMode,
+        initialPrompt,
       });
       return meta.id;
     } catch (err) {

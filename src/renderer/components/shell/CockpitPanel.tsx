@@ -15,9 +15,11 @@ interface CockpitPanelProps {
   onJump: (sessionId: string) => void;
   onAcknowledge: (sessionId: string) => void;
   onClose: () => void;
+  /** Ship-it flow: offered on 'done' items (session → PR handoff). */
+  onShipIt?: (sessionId: string, sessionName: string) => void;
 }
 
-export function CockpitPanel({ items, onJump, onAcknowledge, onClose }: CockpitPanelProps) {
+export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }: CockpitPanelProps) {
   const [sel, setSel] = useState(0);
   const rowsRef = useRef<HTMLDivElement | null>(null);
 
@@ -100,6 +102,16 @@ export function CockpitPanel({ items, onJump, onAcknowledge, onClose }: CockpitP
                   <button className="p4-btn primary" style={{ padding: '4px 10px' }} onClick={() => jump(it.session.id)}>
                     <P4Icon name="focus" size={12} /> Jump
                   </button>
+                  {status === 'done' && onShipIt && (
+                    <button
+                      className="p4-btn"
+                      style={{ padding: '4px 10px' }}
+                      title="Turn this session's branch into a pull request"
+                      onClick={() => { onShipIt(it.session.id, it.session.name); onClose(); }}
+                    >
+                      <P4Icon name="branch" size={12} /> Ship it
+                    </button>
+                  )}
                   <button className="p4-btn" style={{ padding: '4px 10px' }} onClick={() => onAcknowledge(it.session.id)}>
                     Dismiss
                   </button>

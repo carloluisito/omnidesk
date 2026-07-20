@@ -24,6 +24,8 @@ import { managedCloudflaredPath } from './remote/tunnel-manager';
 import { registerRemoteBroadcaster } from './ipc-emitter';
 import { STTManager } from './stt/stt-manager';
 import { createUtilityEngine } from './stt/utility-engine';
+import { IntegrationManager } from './integrations/integration-manager';
+import { GitHubService } from './integrations/github-service';
 import { WindowState } from '../shared/ipc-types';
 
 // Prevent EPIPE crashes when stdout/stderr pipe breaks (e.g., renderer window closes while PTY is active)
@@ -44,6 +46,7 @@ let gitManager: GitManager | null = null;
 let providerRegistry: ProviderRegistry | null = null;
 let remoteServer: RemoteAccessServer | null = null;
 let remoteTunnel: TunnelController | null = null;
+let integrationManager: IntegrationManager | null = null;
 
 const WINDOW_STATE_FILE = path.join(CONFIG_DIR, 'window-state.json');
 
@@ -235,6 +238,25 @@ function createWindow(): void {
     },
   });
 
+  // Integrations: outbound event bus (attention push / digest / ship-it) +
+  // GitHub actions via gh. The state tap feeds it; deep links resolve lazily
+  // from the live tunnel so notifications never carry a dead URL.
+  const githubService = new GitHubService();
+  integrationManager = new IntegrationManager({
+    getSettings: () => settingsManager!.getIntegrationsSettings(),
+    listSessions: () => sessionManager!.listSessions().sessions,
+    getRemoteLink: () => {
+      const tunnel = remoteTunnel?.status();
+      if (!tunnel || tunnel.state !== 'running' || !tunnel.url) return null;
+      return { baseUrl: tunnel.url, token: remoteAuth.getToken() };
+    },
+    onDeliveryStatus: (s) => {
+      mainWindow?.webContents.send('integrations:deliveryStatus', s);
+      clientHub.broadcast('integrations:deliveryStatus', s);
+    },
+  });
+  sessionManager.addStateListener((evt, meta) => integrationManager?.handleStateChange(evt, meta));
+
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
     mainWindow,
@@ -247,6 +269,8 @@ function createWindow(): void {
     providerRegistry,
     remoteAuth,
     sttManager,
+    integrationManager,
+    githubService,
   );
 
   // Construct the remote server now that the IPC registry exists, then inject
@@ -368,6 +392,8 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  integrationManager?.dispose();
+  integrationManager = null;
   if (process.platform !== 'darwin') {
     app.quit();
   }

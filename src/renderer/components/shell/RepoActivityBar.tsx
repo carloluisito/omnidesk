@@ -60,6 +60,7 @@ export interface RepoActivityBarProps {
   onRequestRenameGroup: (groupId: string) => void;
   onRequestUngroup: (groupId: string) => void;
   onOpenRemote?: () => void;                // open the Remote Access panel
+  onOpenIntegrations?: () => void;          // open the Integrations panel
 }
 
 // Track which group icons are expanded inline.
@@ -90,6 +91,7 @@ export function RepoActivityBar({
   onRequestRenameGroup,
   onRequestUngroup,
   onOpenRemote,
+  onOpenIntegrations,
 }: RepoActivityBarProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => readExpanded());
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -259,6 +261,17 @@ export function RepoActivityBar({
           onClick={onOpenRemote}
         >
           <P4Icon name="tunnel" />
+        </button>
+      )}
+
+      {onOpenIntegrations && (
+        <button
+          className="p4-ab p4-ab-add"
+          title="Integrations — Telegram / Slack / Discord alerts + GitHub ship-it"
+          aria-label="Integrations"
+          onClick={onOpenIntegrations}
+        >
+          <P4Icon name="bolt" />
         </button>
       )}
 

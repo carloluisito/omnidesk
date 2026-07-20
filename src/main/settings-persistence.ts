@@ -15,6 +15,7 @@ import {
   STTSettings,
 } from '../shared/ipc-types';
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
+import { defaultIntegrationsSettings, mergeIntegrationsSettings } from '../shared/integration-types';
 import { CONFIG_DIR, ensureConfigDir } from './config-dir';
 
 const WORKTREE_REGISTRY_FILE = path.join(CONFIG_DIR, 'worktrees.json');
@@ -65,6 +66,7 @@ function getDefaultSettings(): AppSettings {
       language: 'en',
       showButton: true,
     },
+    integrations: defaultIntegrationsSettings(),
   };
 }
 
@@ -439,6 +441,11 @@ export class SettingsManager {
 
   getRemoteAccessToken(): string | undefined {
     return this.settings.remoteAccess?.token;
+  }
+
+  /** Integrations section, tolerant-merged over defaults (survives stale/malformed persisted shapes). */
+  getIntegrationsSettings() {
+    return mergeIntegrationsSettings(this.settings.integrations);
   }
 
   setRemoteAccessToken(token: string): void {

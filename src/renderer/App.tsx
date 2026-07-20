@@ -7,10 +7,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, P4Icon,
+  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, ShipItSheet, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
-  type ViewMode, type PaletteAction, type NewSessionForm,
+  type ViewMode, type PaletteAction, type NewSessionForm, type NewSessionPrefill,
 } from './components/shell';
+import { IssuePickerSheet } from './components/shell/IssuePickerSheet';
 import type { ActiveSelection } from './components/shell/RepoActivityBar';
 import { ContextMenu } from './components/shell/ContextMenu';
 import { TerminalHost } from './components/shell/TerminalHost';
@@ -28,6 +29,7 @@ import { MobileShell } from './components/shell/mobile/MobileShell';
 import { repoIdForSession } from './components/shell/mobile/nav-utils';
 import { CockpitPanel } from './components/shell/CockpitPanel';
 import { useAttentionQueue } from './hooks/useAttentionQueue';
+import { useRemoteDeepLink } from './hooks/useRemoteDeepLink';
 import type { TabData } from './components/ui/Tab';
 import { shouldShowCloseDialog } from './terminal/shell-key-rules';
 import { ToastContainer } from './components/ui/ToastContainer';
@@ -91,6 +93,11 @@ function App() {
   const [sessionMenu, setSessionMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [renameSessionPrompt, setRenameSessionPrompt] = useState<{ id: string; current: string } | null>(null);
   const [confirmKill, setConfirmKill] = useState<{ id: string; name: string } | null>(null);
+  // Ship-it sheet target (session → PR handoff).
+  const [shipIt, setShipIt] = useState<{ id: string; name: string } | null>(null);
+  // Work intake: GitHub issue picker + the prefill it hands to NewSessionSheet.
+  const [showIssuePicker, setShowIssuePicker] = useState(false);
+  const [newSessionPrefill, setNewSessionPrefill] = useState<NewSessionPrefill | null>(null);
 
   // Last-known burn rate for the active session, surfaced in the status bar.
   const { burnRate } = useQuota(activeSessionId);
@@ -136,6 +143,7 @@ function App() {
   const [showCockpit, setShowCockpit] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
   const touchMode = useTouchMode();
@@ -207,6 +215,12 @@ function App() {
     switchSession(id);
     setMode('focus');
   }, [visibleRepos, sessions, activeRepoId, setActiveRepoId, setActiveGroupId, switchSession]);
+
+  // ─── Remote deep link: ?session=<id> focuses that session on load ─────────
+  // Integration notifications link into the PWA with the target session in the
+  // query string. Desktop ignores it entirely.
+  const sessionIdList = useMemo(() => sessions.map(s => s.id), [sessions]);
+  useRemoteDeepLink({ sessionIds: sessionIdList, onJump: handleMobileSelectSession });
 
   // ─── Attention cockpit: cross-repo "who needs you" queue + backgrounded toasts ───
   const repoOf = useCallback((s: TabData) => {
@@ -308,6 +322,8 @@ function App() {
         wt,
         form.agent,
         form.launchMode,
+        undefined,
+        form.initialPrompt,
       );
     };
 
@@ -441,11 +457,12 @@ function App() {
         if (showAddRepo)    setShowAddRepo(false);
         if (showRemote)     setShowRemote(false);
         if (showVoiceSettings) setShowVoiceSettings(false);
+        if (showIntegrations) setShowIntegrations(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings]);
+  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations]);
 
   useEffect(() => {
     const open = () => setShowVoiceSettings(true);
@@ -489,6 +506,16 @@ function App() {
       id: 'remote', icon: 'tunnel', title: 'Remote access…',
       sub: 'Reach OmniDesk from a browser over a tunnel',
       run: () => { setShowPalette(false); setShowRemote(true); },
+    },
+    {
+      id: 'integrations', icon: 'bolt', title: 'Integrations…',
+      sub: 'Telegram / Slack / Discord / webhook alerts + GitHub ship-it',
+      run: () => { setShowPalette(false); setShowIntegrations(true); },
+    },
+    {
+      id: 'issue-intake', icon: 'branch', title: 'Start from GitHub issue…',
+      sub: 'Pick an issue → worktree session seeded with its context',
+      run: () => { setShowPalette(false); setShowIssuePicker(true); },
     },
     {
       id: 'voice-settings', icon: 'settings', title: 'Voice / speech-to-text settings…',
@@ -565,6 +592,7 @@ function App() {
               if (activeGroupId === gid) setActiveGroupId(null);
             }}
             onOpenRemote={() => setShowRemote(true)}
+            onOpenIntegrations={() => setShowIntegrations(true)}
           />
           <div style={{
             gridColumn: '2', gridRow: '2',
@@ -636,6 +664,13 @@ function App() {
           />
         )}
         {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+        {showIntegrations && (
+          <IntegrationsPanel
+            onClose={() => setShowIntegrations(false)}
+            repos={repos.map(r => ({ id: r.id, name: r.name, path: r.path }))}
+            activeRepoPath={null}
+          />
+        )}
         {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
@@ -715,6 +750,7 @@ function App() {
             if (activeGroupId === gid) setActiveGroupId(null);
           }}
           onOpenRemote={() => setShowRemote(true)}
+            onOpenIntegrations={() => setShowIntegrations(true)}
         />
 
         {activeRepo && (
@@ -823,11 +859,25 @@ function App() {
             sessions={sessions}
             activeRepoId={activeRepoId}
             agentsAvailable={agentsAvailable}
-            onClose={() => setShowNewSession(false)}
+            prefill={newSessionPrefill ?? undefined}
+            onClose={() => { setShowNewSession(false); setNewSessionPrefill(null); }}
             onCreate={handleCreateSession}
           />
         );
       })()}
+
+      {showIssuePicker && activeRepo && (
+        <IssuePickerSheet
+          repoPath={activeRepo.path}
+          repoName={activeRepo.name}
+          onPick={(prefill) => {
+            setShowIssuePicker(false);
+            setNewSessionPrefill(prefill);
+            setShowNewSession(true);
+          }}
+          onClose={() => setShowIssuePicker(false)}
+        />
+      )}
 
       {showPalette && activeRepo && (
         <Palette
@@ -845,10 +895,25 @@ function App() {
           onJump={handleMobileSelectSession}
           onAcknowledge={attention.acknowledge}
           onClose={() => setShowCockpit(false)}
+          onShipIt={(id, name) => setShipIt({ id, name })}
         />
       )}
 
       {showRemote && <RemoteAccessPanel onClose={() => setShowRemote(false)} />}
+      {showIntegrations && (
+        <IntegrationsPanel
+          onClose={() => setShowIntegrations(false)}
+          repos={repos.map(r => ({ id: r.id, name: r.name, path: r.path }))}
+          activeRepoPath={activeRepo?.path ?? null}
+        />
+      )}
+      {shipIt && (
+        <ShipItSheet
+          sessionId={shipIt.id}
+          sessionName={shipIt.name}
+          onClose={() => setShipIt(null)}
+        />
+      )}
       {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
 
       {confirmClose && (() => {
@@ -980,6 +1045,11 @@ function App() {
                     void handleOpenTerminalHere(s.id, s.workingDirectory, s.name);
                   }
                 },
+              },
+              {
+                label: 'Create PR…',
+                icon: 'branch',
+                onSelect: () => setShipIt({ id: s.id, name: s.name }),
               },
               {
                 label: 'Close session',

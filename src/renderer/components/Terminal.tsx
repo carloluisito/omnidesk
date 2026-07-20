@@ -106,6 +106,18 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
     loadSettings();
   }, []);
 
+  // Seed the session's one-shot initialPrompt (work intake) at CLI readiness.
+  // Main owns the once-only guard (the prompt is cleared before the write), so
+  // this firing again — or from a second attached renderer — is a no-op. It
+  // TYPES the prompt only; the user reviews and presses Enter themselves.
+  const seedRequestedRef = useRef(false);
+  useEffect(() => {
+    if (isClaudeReady && !readOnly && !seedRequestedRef.current) {
+      seedRequestedRef.current = true;
+      window.electronAPI.seedInitialPrompt(sessionId);
+    }
+  }, [isClaudeReady, readOnly, sessionId]);
+
   // Process drop queue when Claude becomes ready
   useEffect(() => {
     if (isClaudeReady && dropQueueRef.current.length > 0) {

@@ -1,6 +1,6 @@
 // @atlas-entrypoint: New Session sheet (Phase 4).
 // Repo picker · name · worktree mode (new/share) · branch · agent · launch mode.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import { colorBg, colorFg, type RepoColor } from './shell-utils';
 import { sessionsForRepo, liveCount } from './SessionRail';
@@ -34,6 +34,16 @@ export interface NewSessionForm {
   shareSessionId?: string;
   /** Session kind: 'agent' (default) or 'shell' (plain terminal). */
   kind: SessionKind;
+  /** Typed into the terminal at CLI readiness (never auto-submitted). Set by
+   *  work intake (GitHub issue → session) to seed the issue context. */
+  initialPrompt?: string;
+}
+
+/** Values pre-filled by a flow that opens the sheet (e.g. GitHub issue intake). */
+export interface NewSessionPrefill {
+  name?: string;
+  branch?: string;
+  initialPrompt?: string;
 }
 
 interface NewSessionSheetProps {
@@ -42,6 +52,8 @@ interface NewSessionSheetProps {
   activeRepoId: string | null;
   /** Whether `claude agents` is available right now (probe result from useAgentViewAvailability). */
   agentsAvailable?: boolean;
+  /** Optional pre-filled values (work intake). */
+  prefill?: NewSessionPrefill;
   onClose: () => void;
   onCreate: (form: NewSessionForm) => Promise<void> | void;
 }
@@ -54,16 +66,17 @@ export function NewSessionSheet({
   sessions,
   activeRepoId,
   agentsAvailable = true,
+  prefill,
   onClose,
   onCreate,
 }: NewSessionSheetProps) {
   const [repoId, setRepoId] = useState<string>(activeRepoId ?? repos[0]?.id ?? '');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(prefill?.name ?? '');
   const [sessionType, setSessionType] = useState<'agent' | 'shell'>('agent');
   const [agent, setAgent] = useState<ProviderId>('claude');
   const [launchMode, setLaunchMode] = useState<LaunchMode>('default');
   const [worktreeMode, setWorktreeMode] = useState<WorktreeMode>('new');
-  const [branch, setBranch] = useState('');
+  const [branch, setBranch] = useState(prefill?.branch ?? '');
   const [baseBranch, setBaseBranch] = useState('');
   const [shareSessionId, setShareSessionId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -99,10 +112,16 @@ export function NewSessionSheet({
 
   // Reset branch + base when switching repos. Also fetch the repo's branches
   // (skipped for plain non-git folders — they have no branches/worktrees).
+  // The mount run must NOT clear a prefilled branch (work intake).
+  const firstRepoRunRef = useRef(true);
   useEffect(() => {
-    setBranch('');
-    setBaseBranch('');
-    setShareSessionId('');
+    if (firstRepoRunRef.current) {
+      firstRepoRunRef.current = false;
+    } else {
+      setBranch('');
+      setBaseBranch('');
+      setShareSessionId('');
+    }
     if (!repo || !repo.isGit) { setAllBranches([]); setBranchesLoading(false); return; }
     let cancelled = false;
     setBranchesLoading(true);
@@ -191,6 +210,7 @@ export function NewSessionSheet({
             : undefined,
         shareSessionId: isShell ? undefined :
           worktreeMode === 'share' ? shareSessionId : undefined,
+        initialPrompt: isShell ? undefined : prefill?.initialPrompt,
       });
       onClose();
     } catch (e: any) {

@@ -807,3 +807,92 @@ describe('SessionManager title → auto-rename', () => {
     expect(manager.getSession('test-session-id')?.name).toBe(before);
   });
 });
+
+describe('SessionManager.addStateListener', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  it('invokes listeners with the event and session metadata on state changes', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const listener = vi.fn();
+    manager.addStateListener(listener);
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'awaiting-input', 'bell');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const [event, sessionMeta] = listener.mock.calls[0];
+    expect(event).toMatchObject({ sessionId: meta.id, state: 'awaiting-input', reason: 'bell' });
+    expect(sessionMeta).toMatchObject({ id: meta.id, workingDirectory: '/mock/home' });
+  });
+
+  it('a throwing listener does not break other listeners', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const bad = vi.fn(() => { throw new Error('boom'); });
+    const good = vi.fn();
+    manager.addStateListener(bad);
+    manager.addStateListener(good);
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'done');
+
+    expect(good).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribe stops future invocations', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const listener = vi.fn();
+    const unsub = manager.addStateListener(listener);
+    unsub();
+
+    (manager as never as { emitActivityState(id: string, s: string, r?: string): void })
+      .emitActivityState(meta.id, 'done');
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('SessionManager.seedInitialPrompt', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+  });
+
+  function cliWriteSpy(sessionId: string) {
+    const session = (manager as never as { sessions: Map<string, { cliManager: { write: ReturnType<typeof vi.fn> } | null }> })
+      .sessions.get(sessionId)!;
+    return session.cliManager!.write as ReturnType<typeof vi.fn>;
+  }
+
+  it('types the prompt exactly once, without a trailing newline', async () => {
+    const meta = await manager.createSession({ ...baseRequest, initialPrompt: 'GitHub issue #7: Fix crash\n\nIt crashes' });
+    const write = cliWriteSpy(meta.id);
+    write.mockClear();
+
+    manager.seedInitialPrompt(meta.id);
+    expect(write).toHaveBeenCalledTimes(1);
+    const typed = write.mock.calls[0][0] as string;
+    expect(typed).toBe('GitHub issue #7: Fix crash\n\nIt crashes');
+    expect(typed.endsWith('\r')).toBe(false);
+
+    manager.seedInitialPrompt(meta.id); // second call: prompt already consumed
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(manager.getSession(meta.id)?.initialPrompt).toBeUndefined();
+  });
+
+  it('is a no-op for sessions without an initialPrompt', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    const write = cliWriteSpy(meta.id);
+    write.mockClear();
+    manager.seedInitialPrompt(meta.id);
+    expect(write).not.toHaveBeenCalled();
+  });
+});
