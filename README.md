@@ -198,6 +198,7 @@ Built packages will be in the `release/` directory.
 | `Ctrl/Cmd+1` | Focus View |
 | `Ctrl/Cmd+2` | Grid View |
 | `Ctrl/Cmd+.` | Toggle Right Inspector |
+| `Ctrl+Shift+Space` | Toggle voice dictation (start/stop; default, configurable in Voice settings) |
 | `Escape` | Close Palette / Sheets |
 | `Ctrl+C` | Session Termination Dialog |
 | `Ctrl/Shift/Alt/Cmd+Enter` | Insert newline (without submitting) |
