@@ -195,6 +195,8 @@ Built packages will be in the `release/` directory.
 | `Ctrl/Cmd+K` | Command Palette |
 | `Ctrl/Cmd+J` | Attention cockpit ("who needs you") |
 | `Ctrl/Cmd+Shift+K` | Repo Switcher |
+| `Ctrl/Cmd+Shift+]` | Next session (active repo) |
+| `Ctrl/Cmd+Shift+[` | Previous session (active repo) |
 | `Ctrl/Cmd+1` | Focus View |
 | `Ctrl/Cmd+2` | Grid View |
 | `Ctrl/Cmd+.` | Toggle Right Inspector |
