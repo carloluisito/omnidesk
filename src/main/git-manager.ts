@@ -1162,6 +1162,10 @@ export class GitManager {
           const indexWatcher = fs.watch(indexPath, () => {
             this.debouncedRefresh(workDir);
           });
+          indexWatcher.on('error', (err) => {
+            console.warn('[GitManager] Index watch error for', workDir, err);
+            this.stopWatching(workDir);
+          });
           // Store with a modified key
           this.watchers.set(workDir + ':index', indexWatcher);
         } catch {
