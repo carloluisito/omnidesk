@@ -182,9 +182,14 @@ export function isLocalFile(filePath: string): boolean {
 }
 
 /**
- * Sanitize file path for security
+ * Normalize a file path to an absolute path.
+ *
+ * Note: this does NOT confine the result to any base directory or prevent
+ * path traversal — `path.resolve()` collapses `..` segments but happily
+ * resolves them past any starting point (e.g. `path.resolve('/base', '../../etc/passwd')`
+ * yields `/etc/passwd`). Callers that need traversal protection must add
+ * their own base-directory containment check.
  */
 export function sanitizeFilePath(filePath: string): string {
-  // Resolve to absolute path to prevent path traversal
   return path.resolve(filePath);
 }
