@@ -10,14 +10,19 @@ vi.mock('child_process', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => false),
   watch: vi.fn(() => ({ close: vi.fn(), on: vi.fn() })),
+  promises: {
+    readFile: vi.fn(),
+  },
 }));
 
 import { execFile } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
 const mockExistsSync = fs.existsSync as unknown as ReturnType<typeof vi.fn>;
 const mockWatch = fs.watch as unknown as ReturnType<typeof vi.fn>;
+const mockReadFile = fs.promises.readFile as unknown as ReturnType<typeof vi.fn>;
 
 /** Fake FSWatcher: a real EventEmitter (so `.on('error', ...)` actually works) plus a close() spy. */
 function fakeWatcher(): EventEmitter & { close: ReturnType<typeof vi.fn> } {
@@ -398,6 +403,48 @@ describe('GitManager', () => {
       mockGitResponse('', '', 0);
       const result = await manager.unstageAll('/test');
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('fileContent', () => {
+    it('reads a relative path inside workDir and formats it as an add-diff', async () => {
+      mockReadFile.mockResolvedValueOnce('line1\nline2\n');
+      const result = await manager.fileContent('/test/repo', 'src/foo.ts');
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        path.resolve('/test/repo', 'src/foo.ts'),
+        'utf-8',
+      );
+      expect(result.filePath).toBe('src/foo.ts');
+      expect(result.diff).toContain('+line1');
+      expect(result.diff).toContain('+line2');
+      expect(result.isTruncated).toBe(false);
+    });
+
+    it('rejects a ../ traversal path that escapes workDir', async () => {
+      await expect(
+        manager.fileContent('/test/repo', '../../etc/passwd'),
+      ).rejects.toThrow(/escapes workDir/);
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects an absolute path outside workDir', async () => {
+      const outside = process.platform === 'win32' ? 'C:\\Windows\\win.ini' : '/etc/passwd';
+      await expect(
+        manager.fileContent('/test/repo', outside),
+      ).rejects.toThrow(/escapes workDir/);
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+
+    it('allows a path that traverses out and back in, staying within workDir', async () => {
+      mockReadFile.mockResolvedValueOnce('content\n');
+      const result = await manager.fileContent('/test/repo', 'sub/../file.txt');
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        path.resolve('/test/repo', 'sub/../file.txt'),
+        'utf-8',
+      );
+      expect(result.diff).toContain('+content');
     });
   });
 

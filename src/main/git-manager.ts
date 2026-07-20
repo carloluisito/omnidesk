@@ -3,6 +3,7 @@ import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IPCEmitter } from './ipc-emitter';
+import { isPathWithin } from './path-access';
 import type {
   GitStatus,
   GitFileStatus,
@@ -780,6 +781,9 @@ export class GitManager {
 
   async fileContent(workDir: string, filePath: string): Promise<GitDiffResult> {
     const fullPath = path.resolve(workDir, filePath);
+    if (!isPathWithin(fullPath, path.resolve(workDir))) {
+      throw new Error(`fileContent: path escapes workDir: ${filePath}`);
+    }
     try {
       const content = await fs.promises.readFile(fullPath, 'utf-8');
       const totalSize = Buffer.byteLength(content, 'utf-8');
