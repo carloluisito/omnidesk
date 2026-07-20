@@ -486,6 +486,29 @@ describe('SessionManager.restartSession — spawn failure gating (F1)', () => {
     expect(manager.getSession(meta.id)?.status).toBe('error');
     expect(manager.getSession(meta.id)?.error).toContain('respawn failed');
   });
+
+  it('does not overwrite an onExit-driven crash status with running when the PTY dies during the restart spawn (#124)', async () => {
+    const meta = await manager.createSession({ ...baseRequest });
+    vi.clearAllMocks();
+
+    // Capture the onExit callback wired for the NEW CLIManager created inside
+    // restartSession (mirrors the F2 createSession crash test).
+    let capturedExit: ((code: number) => void) | undefined;
+    vi.mocked(CLIManager.prototype.onExit).mockImplementationOnce((cb: (code: number) => void) => {
+      capturedExit = cb;
+    });
+    // Fire the crash from inside spawn(), before the spawn promise resolves —
+    // the exact race restartSession must guard against.
+    vi.mocked(CLIManager.prototype.spawn).mockImplementationOnce(async () => {
+      capturedExit?.(1);
+    });
+
+    const ok = await manager.restartSession(meta.id);
+
+    expect(ok).toBe(true);
+    expect(manager.getSession(meta.id)?.status).toBe('error');
+    expect(manager.getSession(meta.id)?.exitCode).toBe(1);
+  });
 });
 
 describe('SessionManager.createSession — early map insertion (F2)', () => {

@@ -828,7 +828,12 @@ export class SessionManager {
       } else {
         await cliManager.spawn();
       }
-      session.metadata.status = 'running';
+      // Only claim 'running' once the PTY actually spawned. onExit may have
+      // already moved us to 'exited'/'error' (crash-on-launch during restart);
+      // don't overwrite that with a false 'running'. Mirrors createSession.
+      if (session.metadata.status === 'starting') {
+        session.metadata.status = 'running';
+      }
     } catch (err) {
       session.metadata.status = 'error';
       session.metadata.error = err instanceof Error ? err.message : String(err);
