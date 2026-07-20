@@ -329,7 +329,7 @@ describe('IPC Handlers - gitWorktreeList reconciliation', () => {
     expect(result[0].linkedSessionId).toBeNull();
   });
 
-  it('tolerates slash-direction and drive-letter-case differences when matching a session to a worktree', async () => {
+  it.skipIf(process.platform !== 'win32')('tolerates slash-direction and drive-letter-case differences when matching a session to a worktree', async () => {
     const { isWorktreeManagedByOmniDesk } = await import('./settings-persistence');
     vi.mocked(isWorktreeManagedByOmniDesk).mockReturnValue(false);
 
