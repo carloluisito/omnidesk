@@ -17,6 +17,7 @@ import { AttentionPolicy } from './attention-policy';
 import { ConnectorRegistry } from './connector-registry';
 import { DeliveryQueue } from './delivery-queue';
 import { formatMessage } from './message-format';
+import { isPathWithin } from '../path-access';
 
 export interface IntegrationManagerDeps {
   getSettings(): IntegrationsSettings;
@@ -138,7 +139,7 @@ export class IntegrationManager {
 
   private isMuted(settings: IntegrationsSettings, workingDirectory: string): boolean {
     return Object.entries(settings.perRepo).some(
-      ([repoPath, cfg]) => cfg?.muted && workingDirectory.startsWith(repoPath)
+      ([repoPath, cfg]) => cfg?.muted && isPathWithin(workingDirectory, repoPath)
     );
   }
 

@@ -101,6 +101,39 @@ describe('IntegrationManager', () => {
     m.dispose();
   });
 
+  it('mutes an exact repoPath match', async () => {
+    const { registry, delivered } = fakeRegistry();
+    const settings = settingsWith({ perRepo: { 'C:/repos/omnidesk': { muted: true } } });
+    const m = new IntegrationManager(makeDeps(settings), { registry });
+    m.handleStateChange(evt({}), meta({ workingDirectory: 'C:/repos/omnidesk' }));
+    await vi.runAllTimersAsync();
+    expect(delivered).toEqual([]);
+    m.dispose();
+  });
+
+  it('does not mute a sibling repo that merely shares a path prefix', async () => {
+    const { registry, delivered } = fakeRegistry();
+    const settings = settingsWith({ perRepo: { 'C:/repos/omnidesk': { muted: true } } });
+    const m = new IntegrationManager(makeDeps(settings), { registry });
+    m.handleStateChange(evt({}), meta({ workingDirectory: 'C:/repos/omnidesk-crew' }));
+    await vi.runAllTimersAsync();
+    expect(delivered.map((d) => d.id)).toEqual(['telegram']);
+    m.dispose();
+  });
+
+  it.skipIf(process.platform !== 'win32')(
+    'mutes when the stored key uses backslashes and the workingDirectory uses forward slashes / differing case (win32 only)',
+    async () => {
+      const { registry, delivered } = fakeRegistry();
+      const settings = settingsWith({ perRepo: { 'C:\\repos\\Omnidesk': { muted: true } } });
+      const m = new IntegrationManager(makeDeps(settings), { registry });
+      m.handleStateChange(evt({}), meta({ workingDirectory: 'c:/repos/omnidesk/src' }));
+      await vi.runAllTimersAsync();
+      expect(delivered).toEqual([]);
+      m.dispose();
+    }
+  );
+
   it('gates done/errored on their toggles without consuming the attention arm', async () => {
     const { registry, delivered } = fakeRegistry();
     const settings = settingsWith({ notify: { attention: true, done: false, errored: true, debounceSeconds: 0 } });
