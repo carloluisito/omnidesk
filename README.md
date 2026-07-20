@@ -2,8 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
-![Version](https://img.shields.io/badge/version-2.4.0-green.svg)
-![Tests](https://img.shields.io/badge/tests-670%20passing-brightgreen.svg)
+![Version](https://img.shields.io/github/package-json/v/carloluisito/omnidesk)
 
 > A multi-provider desktop terminal for AI coding CLIs, organized around a flat **repo → session** workflow.
 
