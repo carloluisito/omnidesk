@@ -5,7 +5,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { app } from 'electron';
-import { stripAnsi } from './ansi-strip';
+import { stripAnsi } from '../shared/ansi-strip';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../shared/claude-detector';
 import type { SessionKind } from '../shared/ipc-types';
 import type {
