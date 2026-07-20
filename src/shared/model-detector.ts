@@ -6,6 +6,8 @@
  * 2. Switch detection: Parse /model command confirmations
  */
 
+import { stripAnsi } from './ansi-strip';
+
 export type ClaudeModel = 'sonnet' | 'opus' | 'haiku' | 'auto';
 
 export interface ModelDetectionResult {
@@ -36,18 +38,6 @@ export const WELCOME_PATTERNS = [
   /Model[: ]+(\w+)/i,
   /\((\w+)\s+\d+\.\d+\)/i, // e.g., "(Sonnet 4.5)"
 ];
-
-/**
- * Strip ANSI escape sequences from terminal output.
- * Handles CSI sequences (\x1b[...X), OSC sequences (\x1b]...\x07), and single-char escapes.
- */
-function stripAnsi(text: string): string {
-  return text
-    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')   // CSI sequences (colors, cursor, etc.)
-    .replace(/\x1b\][^\x07]*\x07/g, '')        // OSC sequences (title, etc.)
-    .replace(/\x1b[()][A-Z0-9]/g, '')          // Character set selection
-    .replace(/\x1b[=>]/g, '');                  // Keypad mode
-}
 
 /**
  * Detect model from terminal output.

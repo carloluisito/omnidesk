@@ -1,6 +1,9 @@
 /**
  * ANSI escape code stripping utility
  * Removes ANSI color codes, cursor movements, and control sequences from terminal output
+ *
+ * Lives under src/shared so it can be imported from main, renderer, and shared
+ * code alike. This is the single canonical implementation - do not fork it.
  */
 
 // ANSI CSI (Control Sequence Introducer) pattern

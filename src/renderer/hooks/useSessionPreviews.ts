@@ -2,13 +2,9 @@
 // for the Grid tiles. Strips ANSI escape sequences. Tracks last-activity
 // timestamp per session as a side effect.
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { stripAnsi } from '../../shared/ansi-strip';
 
 const MAX_LINES = 8;
-const ANSI_RE = /\x1b\[[0-9;?]*[A-Za-z]/g;
-
-function stripAnsi(s: string): string {
-  return s.replace(ANSI_RE, '').replace(/\r/g, '');
-}
 
 export interface SessionPreviewsApi {
   outputSnapshots: Record<string, string[]>;

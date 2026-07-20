@@ -14,7 +14,7 @@
 
 import { reduceLines } from '../../shared/line-reducer';
 import { detectStateFromTail } from '../../shared/state-detector';
-import { stripAnsi } from '../ansi-strip';
+import { stripAnsi } from '../../shared/ansi-strip';
 import { AltScreenTracker } from './alt-screen-tracker';
 import type { StateSignals } from '../../shared/session-state-types';
 import type { SessionActivityState, SessionKind } from '../../shared/ipc-types';
