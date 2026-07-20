@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, shell } from 'electron';
 import { getCachedAgentViewAvailability } from './agent-view/availability-cache';
+import { probeClaudeVersion } from './agent-view/probe-version';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SubdirectoryEntry, GitRepoEntry, RemoteAccessStatus } from '../shared/ipc-types';
@@ -69,6 +70,18 @@ export function setupIPCHandlers(
 
   registry.handle('createSession', async (_e, request) => {
     try {
+      // Validate the entry-point directory before any worktree/process is
+      // created. For worktree sessions this is mainRepoPath — the eventual
+      // worktree path is derived by git and legitimately may sit outside
+      // home/workspaces (e.g. a sibling checkout), so it isn't the right
+      // thing to gate on; the repo the worktree is created from is.
+      const pathToCheck =
+        request.worktree?.mainRepoPath || request.workingDirectory || app.getPath('home');
+      const resolved = path.resolve(pathToCheck);
+      if (!isPathAllowed(resolved)) {
+        console.warn('[createSession] Blocked working directory outside home/workspaces:', resolved);
+        throw new Error('Working directory not allowed');
+      }
       const result = await sessionManager.createSession(request);
       return result;
     }
@@ -683,10 +696,7 @@ export function setupIPCHandlers(
 
   registry.handle('getVersionInfo', async () => {
     const { app } = require('electron');
-    const { execSync } = require('child_process');
-    let claudeVersion: string | undefined;
-    try { claudeVersion = execSync('claude --version', { encoding: 'utf-8' }).trim(); }
-    catch (_err) { claudeVersion = undefined; }
+    const claudeVersion = (await probeClaudeVersion()) ?? undefined;
     return {
       appVersion: app.getVersion(),
       electronVersion: process.versions.electron,

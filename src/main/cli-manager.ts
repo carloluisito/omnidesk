@@ -264,8 +264,20 @@ export class CLIManager {
       this.options.launchMode = launchMode;
     }
 
-    // Change to the target directory (shell was spawned at process.cwd())
-    if (process.platform === 'win32') {
+    // Change to the target directory (shell was spawned at process.cwd()).
+    // cmd.exe expands %VAR% tokens on the interactive command line even
+    // inside double quotes, with no interactive escape sequence available —
+    // so a workingDirectory containing e.g. "%TEMP%" would silently land the
+    // shell somewhere other than the intended path. Rather than risk that,
+    // respawn the pooled pty directly at the target cwd (node-pty hands cwd
+    // straight to the OS, bypassing cmd's parser entirely).
+    if (process.platform === 'win32' && workingDirectory.includes('%')) {
+      if (this.ptyProcess) {
+        this.ptyProcess.kill();
+        this.ptyProcess = null;
+      }
+      await this.createPtyProcess();
+    } else if (process.platform === 'win32') {
       this.write(`cd /d "${workingDirectory}"\r`);
     } else {
       const escapedDir = workingDirectory.replace(/'/g, "'\\''");
@@ -403,11 +415,22 @@ export class CLIManager {
     // past the probe, which arrives in the very first chunk.
     this.da1ScanChunksLeft = process.platform === 'win32' ? 16 : 0;
 
-    this.ptyProcess.onData((data: string) => {
+    // Capture this spawn's process by reference. createPtyProcess() can be
+    // called again on the same CLIManager instance (e.g. the win32 %VAR%
+    // relocation respawn in initializeSession), which kills the old
+    // ptyProcess and replaces this.ptyProcess with a new one. The old
+    // process's onData/onExit can still fire asynchronously after that —
+    // guard both handlers so a stale event from a superseded pty is a
+    // no-op instead of corrupting the current session's state.
+    const proc = this.ptyProcess;
+
+    proc.onData((data: string) => {
+      if (this.ptyProcess !== proc) return;
       this.bufferOutput(this.interceptConptyDa1(data));
     });
 
-    this.ptyProcess.onExit(({ exitCode }) => {
+    proc.onExit(({ exitCode }) => {
+      if (this.ptyProcess !== proc) return;
       this._isRunning = false;
       this._isInitialized = false;
       this.flushOutput();
@@ -596,7 +619,22 @@ export class CLIManager {
     let offset = 0;
     const writeNextChunk = () => {
       if (!this.ptyProcess || !this._isRunning) return;
-      const end = Math.min(offset + this.WRITE_CHUNK_SIZE, data.length);
+      let end = Math.min(offset + this.WRITE_CHUNK_SIZE, data.length);
+      // JS strings are UTF-16; an astral character (emoji, some CJK, etc.) is
+      // a surrogate pair of two code units. If the boundary falls between
+      // them, this chunk ends with a lone high surrogate and the next one
+      // starts with a lone low surrogate — node-pty encodes each write to
+      // UTF-8 independently, so a lone surrogate is replaced with U+FFFD
+      // ("�") and the character is corrupted. Pull the boundary back one
+      // code unit so the pair stays together in the next chunk instead.
+      // WRITE_CHUNK_SIZE is a soft max (varies by at most one code unit);
+      // that's harmless for its pipe-buffer-draining purpose.
+      if (end < data.length && end > offset) {
+        const code = data.charCodeAt(end - 1);
+        if (code >= 0xd800 && code <= 0xdbff) {
+          end -= 1;
+        }
+      }
       this.ptyProcess.write(data.substring(offset, end));
       offset = end;
       if (offset < data.length) {

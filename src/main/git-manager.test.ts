@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { EventEmitter } from 'events';
 import { GitManager } from './git-manager';
 
 // Mock child_process and fs
@@ -9,11 +10,26 @@ vi.mock('child_process', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => false),
   watch: vi.fn(() => ({ close: vi.fn(), on: vi.fn() })),
+  promises: {
+    readFile: vi.fn(),
+  },
 }));
 
 import { execFile } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
+const mockExistsSync = fs.existsSync as unknown as ReturnType<typeof vi.fn>;
+const mockWatch = fs.watch as unknown as ReturnType<typeof vi.fn>;
+const mockReadFile = fs.promises.readFile as unknown as ReturnType<typeof vi.fn>;
+
+/** Fake FSWatcher: a real EventEmitter (so `.on('error', ...)` actually works) plus a close() spy. */
+function fakeWatcher(): EventEmitter & { close: ReturnType<typeof vi.fn> } {
+  const w = new EventEmitter() as EventEmitter & { close: ReturnType<typeof vi.fn> };
+  w.close = vi.fn();
+  return w;
+}
 
 function mockGitResponse(stdout: string, stderr = '', exitCode = 0) {
   mockExecFile.mockImplementationOnce(
@@ -390,10 +406,104 @@ describe('GitManager', () => {
     });
   });
 
+  describe('fileContent', () => {
+    it('reads a relative path inside workDir and formats it as an add-diff', async () => {
+      mockReadFile.mockResolvedValueOnce('line1\nline2\n');
+      const result = await manager.fileContent('/test/repo', 'src/foo.ts');
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        path.resolve('/test/repo', 'src/foo.ts'),
+        'utf-8',
+      );
+      expect(result.filePath).toBe('src/foo.ts');
+      expect(result.diff).toContain('+line1');
+      expect(result.diff).toContain('+line2');
+      expect(result.isTruncated).toBe(false);
+    });
+
+    it('rejects a ../ traversal path that escapes workDir', async () => {
+      await expect(
+        manager.fileContent('/test/repo', '../../etc/passwd'),
+      ).rejects.toThrow(/escapes workDir/);
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects an absolute path outside workDir', async () => {
+      const outside = process.platform === 'win32' ? 'C:\\Windows\\win.ini' : '/etc/passwd';
+      await expect(
+        manager.fileContent('/test/repo', outside),
+      ).rejects.toThrow(/escapes workDir/);
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+
+    it('allows a path that traverses out and back in, staying within workDir', async () => {
+      mockReadFile.mockResolvedValueOnce('content\n');
+      const result = await manager.fileContent('/test/repo', 'sub/../file.txt');
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        path.resolve('/test/repo', 'sub/../file.txt'),
+        'utf-8',
+      );
+      expect(result.diff).toContain('+content');
+    });
+  });
+
   describe('watching', () => {
     it('stopWatching returns true even with no watcher', () => {
       const result = manager.stopWatching('/test');
       expect(result).toBe(true);
+    });
+
+    describe('watcher error handling (regression for #99)', () => {
+      let watchers: Array<EventEmitter & { close: ReturnType<typeof vi.fn> }>;
+
+      beforeEach(() => {
+        watchers = [];
+        mockExistsSync.mockReturnValue(true); // gitDir and indexPath both "exist"
+        mockWatch.mockImplementation(() => {
+          const w = fakeWatcher();
+          watchers.push(w);
+          return w;
+        });
+      });
+
+      it('registers an error listener on both the dir watcher and the index watcher', () => {
+        const ok = manager.startWatching('/repo');
+        expect(ok).toBe(true);
+        expect(watchers.length).toBe(2); // [0] = .git dir watcher, [1] = .git/index watcher
+        expect(watchers[0].listenerCount('error')).toBeGreaterThan(0);
+        expect(watchers[1].listenerCount('error')).toBeGreaterThan(0);
+      });
+
+      it('dir watcher "error" is caught, logged, and stops watching without throwing', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        manager.startWatching('/repo');
+        const [dirWatcher, indexWatcher] = watchers;
+
+        expect(() => dirWatcher.emit('error', new Error('boom'))).not.toThrow();
+
+        expect(warnSpy).toHaveBeenCalledWith('[GitManager] Watch error for', '/repo', expect.any(Error));
+        expect(dirWatcher.close).toHaveBeenCalled();
+        expect(indexWatcher.close).toHaveBeenCalled(); // stopWatching closes both entries
+
+        warnSpy.mockRestore();
+      });
+
+      it('index watcher "error" is caught, logged, and stops watching without throwing (the #99 crash path)', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        manager.startWatching('/repo');
+        const [dirWatcher, indexWatcher] = watchers;
+
+        // Before the fix, this emit had no listener and Node would throw it as an
+        // uncaught exception, crashing the Electron main process.
+        expect(() => indexWatcher.emit('error', new Error('boom'))).not.toThrow();
+
+        expect(warnSpy).toHaveBeenCalledWith('[GitManager] Index watch error for', '/repo', expect.any(Error));
+        expect(dirWatcher.close).toHaveBeenCalled();
+        expect(indexWatcher.close).toHaveBeenCalled();
+
+        warnSpy.mockRestore();
+      });
     });
   });
 

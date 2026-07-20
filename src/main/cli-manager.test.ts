@@ -146,6 +146,90 @@ describe('CLIManager Windows ConPTY rendering workarounds', () => {
   });
 });
 
+describe('CLIManager Windows relocation (cmd.exe %VAR% expansion)', () => {
+  const realPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+  const setPlatform = (value: string) =>
+    Object.defineProperty(process, 'platform', { value, configurable: true });
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => Object.defineProperty(process, 'platform', realPlatform));
+
+  function spawnCount(): number {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.calls.length;
+  }
+  function spawnOptionsAt(index: number): Record<string, unknown> {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.calls[index][2];
+  }
+  function ptyInstanceAt(index: number) {
+    const spawnMock = pty.spawn as unknown as ReturnType<typeof vi.fn>;
+    return spawnMock.mock.results[index].value;
+  }
+
+  it('relocates a pooled win32 shell via interactive cd for a plain path', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    await mgr.initializeSession('C:\\Users\\carlo\\project', 'standard');
+
+    expect(spawnCount()).toBe(1); // no respawn needed
+    expect(writtenText()).toContain('cd /d "C:\\Users\\carlo\\project"');
+  });
+
+  it('relocates a pooled win32 shell via interactive cd for a path with spaces', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    await mgr.initializeSession('C:\\Users\\carlo\\My Project', 'standard');
+
+    expect(spawnCount()).toBe(1);
+    expect(writtenText()).toContain('cd /d "C:\\Users\\carlo\\My Project"');
+  });
+
+  it('respawns instead of writing an interactive cd when the target path contains %VAR%', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    const firstPty = ptyInstanceAt(0);
+
+    const target = 'C:\\Users\\carlo\\%TEMP%\\project';
+    await mgr.initializeSession(target, 'standard');
+
+    // The old pooled pty was killed rather than sent an interactive cd that
+    // cmd.exe would silently expand...
+    expect(firstPty.kill).toHaveBeenCalled();
+    // ...and a fresh pty was spawned directly at the target cwd instead
+    // (node-pty hands cwd straight to the OS, bypassing cmd's parser).
+    expect(spawnCount()).toBe(2);
+    expect(spawnOptionsAt(1).cwd).toBe(target);
+    // No interactive command should ever carry the unexpanded %TEMP% token.
+    expect(writtenText()).not.toContain('%TEMP%');
+    expect(mgr.isInitialized).toBe(true);
+  });
+
+  it('ignores a stale exit event from the killed pooled pty after a %VAR% respawn', async () => {
+    setPlatform('win32');
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawnShell();
+    const firstPty = ptyInstanceAt(0);
+    const staleOnExit = firstPty.onExit.mock.calls[0][0];
+
+    const onExitCb = vi.fn();
+    mgr.onExit(onExitCb);
+
+    await mgr.initializeSession('C:\\Users\\carlo\\%TEMP%\\project', 'standard');
+
+    // The killed pooled pty's exit event can still arrive asynchronously —
+    // it must be a no-op against the manager's current (new) session state.
+    staleOnExit({ exitCode: 1 });
+
+    expect(onExitCb).not.toHaveBeenCalled();
+    expect(mgr.isRunning).toBe(true);
+    expect(mgr.isInitialized).toBe(true);
+  });
+});
+
 describe('CLIManager deferred provider launch', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -199,6 +283,80 @@ describe('CLIManager deferred provider launch', () => {
       // No resize ever arrives (e.g. pane hidden at create) — fallback fires.
       await vi.advanceTimersByTimeAsync(600);
       expect(writtenText()).toContain('claude');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('CLIManager write() chunking (surrogate-pair safe)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('writes payloads at or under 1024 chars in a single ptyProcess.write call', async () => {
+    const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+    await mgr.spawn();
+
+    const payload = 'hello world'.repeat(50); // 550 chars, well under the 1024 chunk size
+    mgr.write(payload);
+
+    expect(getWrite().mock.calls.length).toBe(1);
+    expect(getWrite().mock.calls[0][0]).toBe(payload);
+  });
+
+  it('splits a large ASCII write into <=1024-char chunks that reassemble to the original', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+      const spawnPromise = mgr.spawn();
+      // createPtyProcess waits ~150ms for shell readiness.
+      await vi.advanceTimersByTimeAsync(200);
+      await spawnPromise;
+
+      const payload = 'x'.repeat(2500); // spans 3 chunks at WRITE_CHUNK_SIZE = 1024
+      mgr.write(payload);
+      // Flush the chained setTimeout(writeNextChunk, WRITE_CHUNK_DELAY) calls.
+      await vi.advanceTimersByTimeAsync(50);
+
+      const calls = getWrite().mock.calls.map((c: string[]) => c[0]);
+      expect(calls.length).toBeGreaterThan(1);
+      expect(calls.join('')).toBe(payload);
+      for (const chunk of calls) {
+        expect(chunk.length).toBeLessThanOrEqual(1024);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reassembles a large write with an astral emoji straddling the 1024-char chunk boundary', async () => {
+    vi.useFakeTimers();
+    try {
+      const mgr = new CLIManager({ workingDirectory: '/tmp', permissionMode: 'standard' });
+      const spawnPromise = mgr.spawn();
+      await vi.advanceTimersByTimeAsync(200);
+      await spawnPromise;
+
+      // 😀 (U+1F600) is a surrogate pair: high surrogate U+D83D + low surrogate
+      // U+DE00. Placed right after 1023 filler chars, the naive chunk boundary
+      // (offset 0 + WRITE_CHUNK_SIZE 1024) would land between the two halves —
+      // exactly the corruption case the fix guards against.
+      const emoji = '\u{1F600}';
+      const payload = 'a'.repeat(1023) + emoji + 'b'.repeat(200);
+      mgr.write(payload);
+      await vi.advanceTimersByTimeAsync(50);
+
+      const calls = getWrite().mock.calls.map((c: string[]) => c[0]);
+      expect(calls.length).toBeGreaterThan(1);
+      expect(calls.join('')).toBe(payload);
+
+      // No chunk may end with a lone high surrogate or start with a lone low
+      // surrogate — that's what causes node-pty's UTF-8 encoder to emit U+FFFD.
+      for (const chunk of calls) {
+        const lastCode = chunk.charCodeAt(chunk.length - 1);
+        expect(lastCode >= 0xd800 && lastCode <= 0xdbff).toBe(false);
+        const firstCode = chunk.charCodeAt(0);
+        expect(firstCode >= 0xdc00 && firstCode <= 0xdfff).toBe(false);
+      }
     } finally {
       vi.useRealTimers();
     }

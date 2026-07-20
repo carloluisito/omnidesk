@@ -33,11 +33,23 @@ describe('CodexProvider', () => {
       expect(info.capabilities.readinessDetection).toBe(true);
     });
 
-    it('includes Codex-specific permission modes', () => {
+    it('advertises permission modes in the OmniDesk domain vocabulary, not Codex CLI names', () => {
       const info = provider.getInfo();
-      expect(info.capabilities.permissionModes).toContain('suggest');
-      expect(info.capabilities.permissionModes).toContain('auto-edit');
-      expect(info.capabilities.permissionModes).toContain('full-auto');
+      expect(info.capabilities.permissionModes).toEqual(['standard', 'skip-permissions']);
+      // Guard against re-introducing Codex-native names (e.g. 'suggest', 'auto-edit', 'full-auto')
+      expect(info.capabilities.permissionModes).not.toContain('suggest');
+      expect(info.capabilities.permissionModes).not.toContain('auto-edit');
+      expect(info.capabilities.permissionModes).not.toContain('full-auto');
+    });
+
+    it('every advertised permission mode has a buildCommand() translation', () => {
+      const info = provider.getInfo();
+      for (const mode of info.capabilities.permissionModes) {
+        const cmd = provider.buildCommand({ workingDirectory: '/test', permissionMode: mode });
+        expect(cmd).toContain('--approval-mode');
+        // The raw domain name should never leak through untranslated
+        expect(cmd).not.toContain(`--approval-mode ${mode}`);
+      }
     });
   });
 

@@ -1,6 +1,9 @@
 import type { ConnectorTestResult, OutboundMessage, SendOutcome, TelegramConfig } from '../../../shared/integration-types';
 import { IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
-import { formatTelegramHTML } from '../message-format';
+import { formatTelegramHTML, truncateHtmlByLines } from '../message-format';
+
+// Telegram sendMessage `text` field hard limit — over this the API returns HTTP 400.
+const TELEGRAM_MAX_LENGTH = 4096;
 
 export class TelegramConnector implements IConnector<TelegramConfig> {
   readonly id = 'telegram' as const;
@@ -32,7 +35,7 @@ export class TelegramConnector implements IConnector<TelegramConfig> {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           chat_id: cfg.chatId,
-          text: formatTelegramHTML(msg.event),
+          text: truncateHtmlByLines(formatTelegramHTML(msg.event), TELEGRAM_MAX_LENGTH),
           parse_mode: 'HTML',
           disable_web_page_preview: true,
         }),
