@@ -12,6 +12,9 @@ export class RemoteAuth {
   private readonly attempts = new Map<string, { count: number; first: number }>();
   private readonly WINDOW_MS = 60_000;
   private readonly MAX_ATTEMPTS = 10;
+  // Throttle the sweep so the common-path call stays O(1): a full pass over
+  // `attempts` only runs once per WINDOW_MS, not on every call.
+  private lastPruneAt = 0;
 
   constructor(token?: string) {
     this.token = token ?? RemoteAuth.generateToken();
@@ -62,6 +65,7 @@ export class RemoteAuth {
 
   rateLimited(ip: string): boolean {
     const now = Date.now();
+    this.pruneStaleAttempts(now);
     const rec = this.attempts.get(ip);
     if (!rec || now - rec.first > this.WINDOW_MS) {
       this.attempts.set(ip, { count: 1, first: now });
@@ -69,5 +73,28 @@ export class RemoteAuth {
     }
     rec.count += 1;
     return rec.count > this.MAX_ATTEMPTS;
+  }
+
+  /**
+   * Number of IPs currently tracked in the rate-limit window. Exposed for
+   * tests/monitoring; not used by the rate-limit decision itself.
+   */
+  size(): number {
+    return this.attempts.size;
+  }
+
+  // `attempts` is fed one entry per distinct caller (remote-access-server.ts
+  // trusts a client-supplied header for the IP), so an entry for an IP that
+  // never calls again would otherwise sit in the Map forever. Sweep out
+  // anything whose window has elapsed, but only as often as WINDOW_MS so a
+  // steady stream of requests doesn't pay an O(n) scan on every call.
+  private pruneStaleAttempts(now: number): void {
+    if (now - this.lastPruneAt < this.WINDOW_MS) return;
+    this.lastPruneAt = now;
+    for (const [ip, rec] of this.attempts) {
+      if (now - rec.first > this.WINDOW_MS) {
+        this.attempts.delete(ip);
+      }
+    }
   }
 }
