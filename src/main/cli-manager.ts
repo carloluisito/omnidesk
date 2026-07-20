@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { TerminalSize, PermissionMode, ClaudeModel, LaunchMode, SessionKind } from '../shared/ipc-types';
 import { detectModelFromOutput } from '../shared/model-detector';
 import type { IProvider } from './providers/provider';
+import { isSafeModelToken } from './providers/provider';
 
 /**
  * Read a fresh set of environment variables from the Windows registry.
@@ -485,8 +486,12 @@ export class CLIManager {
         }
       }
 
-      // Add model flag if specified (skip for 'auto' or 'agents' mode)
-      if (launchMode !== 'agents' && this.options.model && this.options.model !== 'auto') {
+      // Add model flag if specified (skip for 'auto' or 'agents' mode).
+      // isSafeModelToken is a defense-in-depth guard: session-manager.ts
+      // already gates request.model at the trust boundary, but this is the
+      // point where the value is shell-interpolated and written to the PTY,
+      // so it is checked again here too (issue #116).
+      if (launchMode !== 'agents' && this.options.model && this.options.model !== 'auto' && isSafeModelToken(this.options.model)) {
         command += ` --model ${this.options.model}`;
       }
     }

