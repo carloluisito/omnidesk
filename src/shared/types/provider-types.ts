@@ -1,3 +1,5 @@
+import type { PermissionMode } from '../ipc-types';
+
 export type ProviderId = 'claude' | 'codex';
 
 export interface ProviderCapabilities {
@@ -5,7 +7,7 @@ export interface ProviderCapabilities {
   agentTeams: boolean;         // Supports agent team workflows
   quota: boolean;              // Has usage quota/billing tracking
   readinessDetection: boolean; // Has CLI ready-state detection
-  permissionModes: string[];   // Available permission modes
+  permissionModes: PermissionMode[]; // Available permission modes, in OmniDesk's own domain vocabulary — not provider-native CLI names
 }
 
 export interface ProviderInfo {

@@ -76,7 +76,7 @@ describe('provider-types', () => {
           agentTeams: false,
           quota: false,
           readinessDetection: true,
-          permissionModes: ['suggest', 'auto-edit', 'full-auto'],
+          permissionModes: ['standard', 'skip-permissions'],
         },
         defaultModel: 'codex-mini',
       };
