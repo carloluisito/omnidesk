@@ -3,6 +3,11 @@ import { IProvider, ProviderCommandOptions } from './provider';
 import { ProviderId, ProviderInfo } from '../../shared/types/provider-types';
 import type { StateSignals } from '../../shared/session-state-types';
 
+// Note: ProviderCommandOptions.permissionMode (see ./provider) is still a
+// loose `string`, so this map stays keyed by string too — tightening it to
+// PermissionMode breaks the `PERMISSION_MODE_MAP[options.permissionMode]`
+// lookup in buildCommand() below. Narrowing that option's type is out of
+// scope here; see capabilities.permissionModes for the domain-typed surface.
 /** Map OmniDesk permission mode names to Codex approval modes */
 const PERMISSION_MODE_MAP: Record<string, string> = {
   'standard': 'suggest',
@@ -58,7 +63,9 @@ export class CodexProvider implements IProvider {
         agentTeams: false,
         quota: false,
         readinessDetection: true,
-        permissionModes: ['suggest', 'auto-edit', 'full-auto'],
+        // Domain names (see PermissionMode), not Codex's own CLI vocabulary —
+        // buildCommand() below translates these into Codex approval modes.
+        permissionModes: ['standard', 'skip-permissions'],
       },
       defaultModel: 'codex-mini',
     };
