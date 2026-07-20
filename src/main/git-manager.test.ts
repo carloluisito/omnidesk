@@ -122,7 +122,39 @@ describe('GitManager', () => {
       mockGitResponse('# branch.head main\n2 R. N... 100644 100644 100644 abc123 def456 R100 new.ts\told.ts\n', '', 0);
       const status = await manager.getStatus('/test');
       expect(status.stagedCount).toBe(1);
+      expect(status.unstagedCount).toBe(0);
+      expect(status.files).toHaveLength(1);
       expect(status.files[0].indexStatus).toBe('renamed');
+    });
+
+    it('parses renamed-then-modified entries (RM) as both staged and unstaged', async () => {
+      mockGitResponse('true', '', 0);
+      mockGitResponse('# branch.head main\n2 RM N... 100644 100644 100644 abc123 def456 R100 new.ts\told.ts\n', '', 0);
+      const status = await manager.getStatus('/test');
+      expect(status.stagedCount).toBe(1);
+      expect(status.unstagedCount).toBe(1);
+      expect(status.files).toHaveLength(2);
+
+      const staged = status.files.find(f => f.area === 'staged');
+      expect(staged?.indexStatus).toBe('renamed');
+      expect(staged?.originalPath).toBe('old.ts');
+
+      const unstaged = status.files.find(f => f.area === 'unstaged');
+      expect(unstaged?.workTreeStatus).toBe('modified');
+      expect(unstaged?.originalPath).toBe('old.ts');
+      expect(unstaged?.path).toBe('new.ts');
+    });
+
+    it('parses renamed-then-deleted entries (RD) as an unstaged deletion', async () => {
+      mockGitResponse('true', '', 0);
+      mockGitResponse('# branch.head main\n2 RD N... 100644 100644 100644 abc123 def456 R100 new.ts\told.ts\n', '', 0);
+      const status = await manager.getStatus('/test');
+      expect(status.stagedCount).toBe(1);
+      expect(status.unstagedCount).toBe(1);
+
+      const unstaged = status.files.find(f => f.area === 'unstaged');
+      expect(unstaged?.workTreeStatus).toBe('deleted');
+      expect(unstaged?.originalPath).toBe('old.ts');
     });
 
     it('parses unmerged entries', async () => {

@@ -257,6 +257,22 @@ export class GitManager {
             });
             status.stagedCount++;
           }
+
+          // Renamed-then-modified (RM) or renamed-then-deleted (RD): the
+          // worktree half is a separate, still-pending change and must be
+          // surfaced as its own unstaged entry, mirroring the format-1 branch
+          // above. Without this, a rename staged over a subsequently edited
+          // file hides the pending edit entirely.
+          if (xy[1] !== '.') {
+            status.files.push({
+              path: filePath,
+              originalPath,
+              indexStatus: 'renamed',
+              workTreeStatus: this.charToStatus(xy[1]),
+              area: 'unstaged',
+            });
+            status.unstagedCount++;
+          }
         }
         continue;
       }
