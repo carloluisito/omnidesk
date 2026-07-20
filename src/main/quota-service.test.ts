@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterPostReset, buildBurnRateResult } from './quota-service';
+import { filterPostReset, buildBurnRateResult, findSamplesWithDelta } from './quota-service';
 
 function makeSample(fiveHour: number, sevenDay: number, minutesAgo: number) {
   return {
@@ -129,5 +129,129 @@ describe('buildBurnRateResult', () => {
     const result = buildBurnRateResult(3.456, 1.234, current, history);
     expect(result.ratePerHour5h).toBe(3.5);
     expect(result.ratePerHour7d).toBe(1.2);
+  });
+
+  describe('trend', () => {
+    it('is stable when history has fewer than 4 samples', () => {
+      const current = makeSample(30, 40, 0);
+      const history = [makeSample(10, 40, 20), current];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('stable');
+    });
+
+    it('is increasing when the recent delta exceeds the older delta by more than 0.5', () => {
+      // olderRate = h[1]-h[0] = 1, recentRate = h[3]-h[2] = 2 → 2 > 1+0.5
+      const history = [
+        makeSample(10, 40, 40),
+        makeSample(11, 40, 30),
+        makeSample(15, 40, 20),
+        makeSample(17, 40, 10),
+      ];
+      const current = history[3];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('increasing');
+    });
+
+    it('is decreasing when the recent delta falls short of the older delta by more than 0.5', () => {
+      // olderRate = h[1]-h[0] = 5, recentRate = h[3]-h[2] = 0.5 → 0.5 < 5-0.5
+      const history = [
+        makeSample(10, 40, 40),
+        makeSample(15, 40, 30),
+        makeSample(20, 40, 20),
+        makeSample(20.5, 40, 10),
+      ];
+      const current = history[3];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('decreasing');
+    });
+
+    it('is stable when the recent and older deltas are within 0.5 of each other', () => {
+      // olderRate = h[1]-h[0] = 2, recentRate = h[3]-h[2] = 2.3 → diff 0.3, under threshold
+      const history = [
+        makeSample(10, 40, 40),
+        makeSample(12, 40, 30),
+        makeSample(20, 40, 20),
+        makeSample(22.3, 40, 10),
+      ];
+      const current = history[3];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('stable');
+    });
+  });
+
+  describe('7d projection fallback', () => {
+    it('estimates projectedTimeToLimit7d from the 5h rate when the 7d rate is ~0', () => {
+      const current = makeSample(50, 30, 0);
+      const history = [current];
+      // remaining7d = 70; estimated7dRate = 20 * (5/168); projected = (70 / estimated7dRate) * 60 = 7056
+      const result = buildBurnRateResult(20, 0, current, history);
+      expect(result.projectedTimeToLimit7d).toBe(7056);
+    });
+
+    it('leaves projectedTimeToLimit7d null when both the 5h and 7d rates are 0', () => {
+      const current = makeSample(50, 30, 0);
+      const history = [current];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.projectedTimeToLimit7d).toBeNull();
+    });
+  });
+});
+
+describe('findSamplesWithDelta', () => {
+  it('returns null for an empty array', () => {
+    expect(findSamplesWithDelta([], 60_000)).toBeNull();
+  });
+
+  it('returns null for a single sample', () => {
+    const samples = [makeSample(10, 40, 0)];
+    expect(findSamplesWithDelta(samples, 60_000)).toBeNull();
+  });
+
+  it('returns null when no earlier sample meets the delta threshold', () => {
+    // Only other sample is 30s old; minDeltaMs is 1 minute.
+    const samples = [makeSample(10, 40, 0.5), makeSample(12, 41, 0)];
+    expect(findSamplesWithDelta(samples, 60_000)).toBeNull();
+  });
+
+  it('returns the nearest qualifying sample, not the oldest', () => {
+    // Scanning backward from the newest sample (0 min ago), the 0.5-min-ago
+    // sample doesn't meet the 1-minute threshold, but the 1-min-ago sample does —
+    // that nearer sample should win over the older 2- and 3-min-ago samples.
+    const samples = [
+      makeSample(1, 40, 3),
+      makeSample(2, 40, 2),
+      makeSample(5, 40, 1),
+      makeSample(6, 40, 0.5),
+      makeSample(7, 40, 0),
+    ];
+    const result = findSamplesWithDelta(samples, 60_000);
+    expect(result).not.toBeNull();
+    expect(result!.first).toBe(samples[2]); // the 1-min-ago sample
+    expect(result!.last).toBe(samples[4]);
+  });
+
+  it('includes a sample whose delta is exactly minDeltaMs (boundary)', () => {
+    // Fixed timestamps (rather than the minutesAgo helper, which calls
+    // Date.now() separately per sample and can drift by a millisecond)
+    // to pin the delta at exactly 60_000ms.
+    const base = Date.now();
+    const samples = [
+      { timestamp: new Date(base).toISOString(), fiveHour: 5, sevenDay: 40 },
+      { timestamp: new Date(base + 60_000).toISOString(), fiveHour: 7, sevenDay: 40 },
+    ];
+    const result = findSamplesWithDelta(samples, 60_000);
+    expect(result).not.toBeNull();
+    expect(result!.deltaMs).toBe(60_000);
+  });
+
+  it('reports deltaMs as last.timestamp minus first.timestamp', () => {
+    const samples = [makeSample(5, 40, 10), makeSample(7, 40, 0)];
+    const result = findSamplesWithDelta(samples, 60_000);
+    expect(result).not.toBeNull();
+    const expectedDeltaMs =
+      new Date(samples[1].timestamp).getTime() - new Date(samples[0].timestamp).getTime();
+    expect(result!.deltaMs).toBe(expectedDeltaMs);
+    expect(result!.first).toBe(samples[0]);
+    expect(result!.last).toBe(samples[1]);
   });
 });
