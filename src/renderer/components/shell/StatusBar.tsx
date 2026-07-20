@@ -9,7 +9,7 @@ interface StatusBarProps {
   repo: Repo | null;
   repos: Repo[];
   sessions: TabData[];
-  /** Burn rate, USD per hour, displayed as N.NN /hr. Provide null if not yet known. */
+  /** Burn rate, percent of the 5h quota consumed per hour, displayed as N.N%/hr. Provide null if not yet known. */
   burnRatePerHour?: number | null;
   onOpenOtherReposLive: () => void;
   /** Count of agents (across all repos) currently needing attention. */
@@ -113,7 +113,7 @@ export function StatusBar({
         {typeof burnRatePerHour === 'number' && (
           <span className="pill">
             <P4Icon name="flame" size={10} style={{ color: 'var(--warning)' }} />
-            {burnRatePerHour.toFixed(2)} /hr
+            {burnRatePerHour.toFixed(1)}%/hr
           </span>
         )}
       </div>
