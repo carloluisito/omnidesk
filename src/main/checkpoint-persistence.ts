@@ -26,16 +26,9 @@ export async function loadCheckpointIndex(): Promise<CheckpointIndex> {
     await ensureCheckpointDir();
 
     const data = await fs.readFile(INDEX_FILE, 'utf-8');
-    const index = JSON.parse(data) as CheckpointIndex;
+    const index = JSON.parse(data);
 
-    // Validate version
-    if (index.version !== 1) {
-      console.warn('Unknown checkpoint index version, using empty index');
-      return createEmptyIndex();
-    }
-
-    // Validate structure
-    if (!index.checkpoints || !index.bySession) {
+    if (!validateCheckpointIndex(index)) {
       console.warn('Invalid checkpoint index structure, using empty index');
       return createEmptyIndex();
     }
