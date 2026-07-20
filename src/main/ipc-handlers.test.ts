@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { GitWorktreeEntry } from '../shared/types/git-types';
 import type { SessionMetadata } from '../shared/ipc-types';
 
+// revealSessionInExplorer (extracted from the real revealInExplorer registry
+// handler) calls electron's shell.showItemInFolder and node's fs.existsSync.
+// Mock both so the test drives production code instead of a hand-copied
+// reimplementation of the handler's control flow.
+vi.mock('electron', () => ({
+  shell: { showItemInFolder: vi.fn() },
+}));
+
+vi.mock('fs', () => ({
+  existsSync: vi.fn(),
+}));
+
 // getVersionInfo delegates to probeClaudeVersion (execFile with a 5s timeout)
 // instead of the old blocking execSync. Mock child_process the same way
 // probe-version.test.ts does so we exercise the real probe function.
@@ -17,127 +29,74 @@ vi.mock('./settings-persistence', () => ({
 }));
 
 describe('IPC Handlers - revealInExplorer', () => {
-  describe('handler logic', () => {
-    it('returns true when directory exists and showItemInFolder is called', () => {
-      // Mock the dependencies
-      const mockSession = {
-        workingDirectory: '/home/user/project',
-      };
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-      const mockSessionManager = {
-        getSession: vi.fn().mockReturnValue(mockSession),
-      };
+  it('returns true when directory exists and showItemInFolder is called', async () => {
+    const { revealSessionInExplorer } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+    const fs = await import('fs');
+    vi.mocked(fs.existsSync).mockReturnValue(true);
 
-      const mockFs = {
-        existsSync: vi.fn().mockReturnValue(true),
-      };
+    const mockSessionManager = {
+      getSession: vi.fn().mockReturnValue({ workingDirectory: '/home/user/project' }),
+    };
 
-      const mockShell = {
-        showItemInFolder: vi.fn().mockReturnValue(undefined),
-      };
+    const result = await revealSessionInExplorer(mockSessionManager as any, 'session-123');
 
-      // Simulate the handler logic
-      const result = (() => {
-        try {
-          const session = mockSessionManager.getSession('session-123');
-          if (!session) return false;
+    expect(result).toBe(true);
+    expect(mockSessionManager.getSession).toHaveBeenCalledWith('session-123');
+    expect(fs.existsSync).toHaveBeenCalledWith('/home/user/project');
+    expect(shell.showItemInFolder).toHaveBeenCalledWith('/home/user/project');
+  });
 
-          const workDir = session.workingDirectory;
-          if (!mockFs.existsSync(workDir)) return false;
+  it('returns false when session not found', async () => {
+    const { revealSessionInExplorer } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
 
-          mockShell.showItemInFolder(workDir);
-          return true;
-        } catch (err) {
-          return false;
-        }
-      })();
+    const mockSessionManager = {
+      getSession: vi.fn().mockReturnValue(null),
+    };
 
-      expect(result).toBe(true);
-      expect(mockSessionManager.getSession).toHaveBeenCalledWith('session-123');
-      expect(mockFs.existsSync).toHaveBeenCalledWith('/home/user/project');
-      expect(mockShell.showItemInFolder).toHaveBeenCalledWith('/home/user/project');
-    });
+    const result = await revealSessionInExplorer(mockSessionManager as any, 'nonexistent');
 
-    it('returns false when session not found', () => {
-      const mockSessionManager = {
-        getSession: vi.fn().mockReturnValue(null),
-      };
+    expect(result).toBe(false);
+    expect(mockSessionManager.getSession).toHaveBeenCalledWith('nonexistent');
+    expect(shell.showItemInFolder).not.toHaveBeenCalled();
+  });
 
-      const mockShell = {
-        showItemInFolder: vi.fn(),
-      };
+  it('returns false when directory does not exist', async () => {
+    const { revealSessionInExplorer } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+    const fs = await import('fs');
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
-      const result = (() => {
-        try {
-          const session = mockSessionManager.getSession('nonexistent');
-          if (!session) return false;
-          return true;
-        } catch (err) {
-          return false;
-        }
-      })();
+    const mockSessionManager = {
+      getSession: vi.fn().mockReturnValue({ workingDirectory: '/deleted/directory' }),
+    };
 
-      expect(result).toBe(false);
-      expect(mockSessionManager.getSession).toHaveBeenCalledWith('nonexistent');
-      expect(mockShell.showItemInFolder).not.toHaveBeenCalled();
-    });
+    const result = await revealSessionInExplorer(mockSessionManager as any, 'session-123');
 
-    it('returns false when directory does not exist', () => {
-      const mockSession = {
-        workingDirectory: '/deleted/directory',
-      };
+    expect(result).toBe(false);
+    expect(fs.existsSync).toHaveBeenCalledWith('/deleted/directory');
+    expect(shell.showItemInFolder).not.toHaveBeenCalled();
+  });
 
-      const mockSessionManager = {
-        getSession: vi.fn().mockReturnValue(mockSession),
-      };
+  it('returns false on exception', async () => {
+    const { revealSessionInExplorer } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
 
-      const mockFs = {
-        existsSync: vi.fn().mockReturnValue(false),
-      };
+    const mockSessionManager = {
+      getSession: vi.fn().mockImplementation(() => {
+        throw new Error('Database error');
+      }),
+    };
 
-      const mockShell = {
-        showItemInFolder: vi.fn(),
-      };
+    const result = await revealSessionInExplorer(mockSessionManager as any, 'session-123');
 
-      const result = (() => {
-        try {
-          const session = mockSessionManager.getSession('session-123');
-          if (!session) return false;
-
-          const workDir = session.workingDirectory;
-          if (!mockFs.existsSync(workDir)) return false;
-
-          mockShell.showItemInFolder(workDir);
-          return true;
-        } catch (err) {
-          return false;
-        }
-      })();
-
-      expect(result).toBe(false);
-      expect(mockFs.existsSync).toHaveBeenCalledWith('/deleted/directory');
-      expect(mockShell.showItemInFolder).not.toHaveBeenCalled();
-    });
-
-    it('returns false on exception', () => {
-      const mockSessionManager = {
-        getSession: vi.fn().mockImplementation(() => {
-          throw new Error('Database error');
-        }),
-      };
-
-      const result = (() => {
-        try {
-          const session = mockSessionManager.getSession('session-123');
-          if (!session) return false;
-          return true;
-        } catch (err) {
-          return false;
-        }
-      })();
-
-      expect(result).toBe(false);
-    });
+    expect(result).toBe(false);
+    expect(shell.showItemInFolder).not.toHaveBeenCalled();
   });
 });
 

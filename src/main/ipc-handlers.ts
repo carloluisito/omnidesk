@@ -45,6 +45,41 @@ export function setRemoteTunnel(controller: TunnelController): void {
   remoteTunnelRef = controller;
 }
 
+/**
+ * Reveals a session's working directory in the OS file manager.
+ * Extracted from the `revealInExplorer` registry handler so it can be
+ * exercised directly in tests instead of via a hand-copied reimplementation.
+ * Returns false (never throws) when the session doesn't exist, its working
+ * directory is missing on disk, or the OS call itself fails.
+ */
+export async function revealSessionInExplorer(
+  sessionManager: Pick<SessionManager, 'getSession'>,
+  sessionId: string,
+): Promise<boolean> {
+  try {
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      console.error('[revealInExplorer] Session not found:', sessionId);
+      return false;
+    }
+
+    const workDir = session.workingDirectory;
+
+    // Validate directory exists
+    if (!fs.existsSync(workDir)) {
+      console.error('[revealInExplorer] Directory does not exist:', workDir);
+      return false;
+    }
+
+    // Reveal in file manager
+    shell.showItemInFolder(workDir);
+    return true;
+  } catch (err) {
+    console.error('[revealInExplorer] Failed:', err);
+    return false;
+  }
+}
+
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
   sessionManager: SessionManager,
@@ -122,28 +157,7 @@ export function setupIPCHandlers(
   });
 
   registry.handle('revealInExplorer', async (_e, sessionId) => {
-    try {
-      const session = sessionManager.getSession(sessionId);
-      if (!session) {
-        console.error('[revealInExplorer] Session not found:', sessionId);
-        return false;
-      }
-
-      const workDir = session.workingDirectory;
-
-      // Validate directory exists
-      if (!fs.existsSync(workDir)) {
-        console.error('[revealInExplorer] Directory does not exist:', workDir);
-        return false;
-      }
-
-      // Reveal in file manager
-      shell.showItemInFolder(workDir);
-      return true;
-    } catch (err) {
-      console.error('[revealInExplorer] Failed:', err);
-      return false;
-    }
+    return revealSessionInExplorer(sessionManager, sessionId);
   });
 
   registry.handle('getSessionScrollback', async (_e, sessionId) => {
