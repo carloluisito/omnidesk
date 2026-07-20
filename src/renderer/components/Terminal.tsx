@@ -5,51 +5,16 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { VoiceControls } from './shell/VoiceControls';
 import { ClaudeReadinessProgress } from './ui/ClaudeReadinessProgress';
-import { FileInfo, DragDropSettings, DragDropInsertMode, PathFormat } from '../../shared/ipc-types';
+import { FileInfo, DragDropSettings, DragDropInsertMode } from '../../shared/ipc-types';
 import type { ProviderId } from '../../shared/types/provider-types';
 import { isClaudeReady as checkClaudeReadyPatterns, findClaudeOutputStart } from '../../shared/claude-detector';
+import { formatPathForTerminal } from '../../shared/format-terminal-path';
 import { KittyKeyboardState, encodeKittyKey } from '../terminal/kitty-keyboard';
 import { shouldShowCloseDialog, isNewlineChord, isOutputReady } from '../terminal/shell-key-rules';
 import { takeScrollLines, TOUCH_SCROLL_THRESHOLD_PX } from '../terminal/touch-scroll';
 import type { SessionKind } from '../../shared/ipc-types';
 import { useTouchMode } from '../hooks/useTouchMode';
 import '@xterm/xterm/css/xterm.css';
-
-// Utility function to format paths for terminal (renderer-side implementation)
-function formatPathForTerminal(filePath: string, format: PathFormat): string {
-  const isWindows = navigator.platform.toLowerCase().includes('win');
-
-  // Normalize path separators for platform
-  let formatted = isWindows
-    ? filePath.replace(/\//g, '\\')
-    : filePath.replace(/\\/g, '/');
-
-  switch (format) {
-    case 'quoted':
-      // Quote paths with spaces or special characters
-      if (formatted.includes(' ') || formatted.includes('(') || formatted.includes(')')) {
-        formatted = `"${formatted}"`;
-      }
-      break;
-
-    case 'escaped':
-      // Escape spaces and special characters
-      formatted = formatted
-        .replace(/ /g, '\\ ')
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/&/g, '\\&')
-        .replace(/\$/g, '\\$');
-      break;
-
-    case 'unquoted':
-    default:
-      // No transformation
-      break;
-  }
-
-  return formatted;
-}
 
 interface TerminalProps {
   sessionId: string;
@@ -176,7 +141,8 @@ export function Terminal({ sessionId, isVisible, isFocused, providerId, kind, re
           }
         } else {
           // Insert file path
-          const formatted = formatPathForTerminal(file.path, settings.pathFormat);
+          const isWindows = navigator.platform.toLowerCase().includes('win');
+          const formatted = formatPathForTerminal(file.path, settings.pathFormat, isWindows);
           parts.push(formatted);
         }
       }
