@@ -177,7 +177,7 @@ export class IntegrationManager {
       if (state === 'working' || state === 'initializing') counts.working++;
       else if (state === 'awaiting-input' || state === 'awaiting-approval' || state === 'done') counts.needYou++;
       else if (state === 'errored') counts.errored++;
-      else counts.idle++;
+      else if (state !== 'exited') counts.idle++;
       if (state !== 'idle' && state !== 'exited') {
         lines.push(`${path.basename(s.workingDirectory)} · ${s.name} — ${state}`);
       }
