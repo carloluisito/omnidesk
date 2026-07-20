@@ -331,7 +331,7 @@ interface SamplesWithDelta {
   deltaMs: number;
 }
 
-function findSamplesWithDelta(
+export function findSamplesWithDelta(
   samples: UtilizationSample[],
   minDeltaMs: number
 ): SamplesWithDelta | null {
