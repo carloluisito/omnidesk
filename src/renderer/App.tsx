@@ -439,17 +439,18 @@ function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const cmd = e.metaKey || e.ctrlKey;
-      if (cmd && e.shiftKey && e.key.toLowerCase() === 'k') {
+      const key = e.key.toLowerCase();
+      if (cmd && e.shiftKey && key === 'k') {
         e.preventDefault();
         setRepoSwitcher({ anchorRect: null });
         return;
       }
-      if (cmd && e.key === 'k') { e.preventDefault(); setShowPalette(true); return; }
-      if (cmd && e.key === 'j') { e.preventDefault(); setShowCockpit(v => !v); return; }
-      if (cmd && e.key === 'n') { e.preventDefault(); setShowNewSession(true); return; }
-      if (cmd && e.key === '1') { e.preventDefault(); setMode('focus'); return; }
-      if (cmd && e.key === '2') { e.preventDefault(); setMode('grid'); return; }
-      if (cmd && e.key === '.') { e.preventDefault(); setShowRightPanel(v => !v); return; }
+      if (cmd && key === 'k') { e.preventDefault(); setShowPalette(true); return; }
+      if (cmd && key === 'j') { e.preventDefault(); setShowCockpit(v => !v); return; }
+      if (cmd && key === 'n') { e.preventDefault(); setShowNewSession(true); return; }
+      if (cmd && key === '1') { e.preventDefault(); setMode('focus'); return; }
+      if (cmd && key === '2') { e.preventDefault(); setMode('grid'); return; }
+      if (cmd && key === '.') { e.preventDefault(); setShowRightPanel(v => !v); return; }
       if (e.key === 'Escape') {
         if (showPalette)    setShowPalette(false);
         if (showCockpit)    setShowCockpit(false);
