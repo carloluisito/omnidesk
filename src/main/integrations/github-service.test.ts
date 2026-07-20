@@ -124,6 +124,57 @@ describe('GitHubService.getShipItPreview', () => {
       existingPrUrl: 'https://github.com/a/b/pull/3',
     });
   });
+
+  it('uses origin/HEAD to detect a non-main/master default branch', async () => {
+    routeExec((bin, args) => {
+      const found = ghFound(bin, args);
+      if (found) return found;
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('--abbrev-ref')) return { stdout: 'feat/x\n' };
+      if (bin === 'git' && args[0] === 'symbolic-ref') return { stdout: 'origin/develop\n' };
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('origin/develop')) return { exitCode: 0 };
+      if (bin === 'git' && args[0] === 'diff') return { stdout: ' 1 file changed, 4 insertions(+)\n' };
+      if (bin === 'git' && args[0] === 'log') return { stdout: 'aaa111 chore: setup\n' };
+      if (args[0] === 'pr' && args[1] === 'view') return { exitCode: 1 };
+      return undefined;
+    });
+    const preview = await new GitHubService().getShipItPreview('C:\\repo');
+    expect(preview).toEqual({
+      branch: 'feat/x',
+      baseBranch: 'develop',
+      filesChanged: 1,
+      insertions: 4,
+      deletions: 0,
+      commits: ['aaa111 chore: setup'],
+      existingPrUrl: undefined,
+    });
+  });
+
+  it('throws when no base branch can be resolved', async () => {
+    routeExec((bin, args) => {
+      const found = ghFound(bin, args);
+      if (found) return found;
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('--abbrev-ref')) return { stdout: 'feat/x\n' };
+      if (bin === 'git' && args[0] === 'symbolic-ref') return { exitCode: 1 };
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('origin/main')) return { exitCode: 1 };
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('origin/master')) return { exitCode: 1 };
+      return undefined;
+    });
+    await expect(new GitHubService().getShipItPreview('C:\\repo'))
+      .rejects.toThrow('Could not determine the base branch to compare against');
+  });
+
+  it('throws when diff/log commands fail against a resolved base', async () => {
+    routeExec((bin, args) => {
+      const found = ghFound(bin, args);
+      if (found) return found;
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('--abbrev-ref')) return { stdout: 'feat/x\n' };
+      if (bin === 'git' && args[0] === 'rev-parse' && args.includes('origin/main')) return { exitCode: 0 };
+      if (bin === 'git' && args[0] === 'diff') return { exitCode: 1, stderr: 'fatal: bad revision\n' };
+      return undefined;
+    });
+    await expect(new GitHubService().getShipItPreview('C:\\repo'))
+      .rejects.toThrow('Could not determine the base branch to compare against');
+  });
 });
 
 describe('GitHubService.createPR', () => {

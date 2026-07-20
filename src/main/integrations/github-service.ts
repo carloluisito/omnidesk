@@ -72,6 +72,26 @@ export class GitHubService {
     return this.ghBinary;
   }
 
+  /**
+   * Best-effort detection of the repo's real default branch, for repos whose
+   * default is neither `main` nor `master` (e.g. `develop`, `trunk`).
+   * `origin/HEAD` is the canonical, offline answer (set at clone time), so it
+   * is tried first; the main/master probes remain as a fallback for shallow
+   * or never-fetched clones where `origin/HEAD` isn't set.
+   */
+  private async detectDefaultBranch(dir: string): Promise<string | undefined> {
+    const symbolicRef = await this.exec('git', ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], dir);
+    if (symbolicRef.exitCode === 0) {
+      const stripped = symbolicRef.stdout.trim().replace(/^origin\//, '');
+      if (stripped) return stripped;
+    }
+    const hasMain = await this.exec('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], dir);
+    if (hasMain.exitCode === 0) return 'main';
+    const hasMaster = await this.exec('git', ['rev-parse', '--verify', '--quiet', 'origin/master'], dir);
+    if (hasMaster.exitCode === 0) return 'master';
+    return undefined;
+  }
+
   async preflight(dir: string): Promise<GitHubPreflight> {
     const gh = await this.findGh();
     if (!gh) {
@@ -113,16 +133,19 @@ export class GitHubService {
       if (branchRes.exitCode !== 0) throw new Error('Not a git repository');
       const branch = branchRes.stdout.trim();
 
-      let base = baseBranch;
-      if (!base) {
-        const hasMain = await this.exec('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], dir);
-        base = hasMain.exitCode === 0 ? 'main' : 'master';
+      let base = baseBranch || (await this.detectDefaultBranch(dir));
+      if (base) {
+        const baseExists = await this.exec('git', ['rev-parse', '--verify', '--quiet', `origin/${base}`], dir);
+        if (baseExists.exitCode !== 0) base = undefined;
       }
+      if (!base) throw new Error('Could not determine the base branch to compare against');
 
       const stat = await this.exec('git', ['diff', '--shortstat', `origin/${base}...HEAD`], dir);
+      if (stat.exitCode !== 0) throw new Error('Could not determine the base branch to compare against');
       const { filesChanged, insertions, deletions } = parseShortstat(stat.stdout);
 
       const logRes = await this.exec('git', ['log', '--oneline', `origin/${base}..HEAD`], dir);
+      if (logRes.exitCode !== 0) throw new Error('Could not determine the base branch to compare against');
       const commits = logRes.stdout.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
       const gh = await this.findGh();
