@@ -507,6 +507,154 @@ describe('GitManager', () => {
     });
   });
 
+  describe('listWorktrees (parseWorktreeListPorcelain)', () => {
+    function mockVersionThenPorcelain(porcelain: string) {
+      mockGitResponse('git version 2.42.0', '', 0); // getGitVersion()
+      mockGitResponse(porcelain, '', 0); // worktree list --porcelain
+    }
+
+    it('returns [] when git version is below 2.5', async () => {
+      mockGitResponse('git version 2.4.9', '', 0);
+      const result = await manager.listWorktrees('/repo');
+      expect(result).toEqual([]);
+    });
+
+    it('parses a main worktree plus a linked worktree, marking only the first as main', async () => {
+      const porcelain = [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /repo-worktrees/feature',
+        'HEAD def456',
+        'branch refs/heads/feature-x',
+        '',
+      ].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        path: '/repo',
+        head: 'abc123',
+        branch: 'main',
+        isMainWorktree: true,
+        isBare: false,
+        isLocked: false,
+        isPrunable: false,
+        linkedSessionId: null,
+        managedByOmniDesk: false,
+      });
+      expect(result[1]).toMatchObject({
+        path: '/repo-worktrees/feature',
+        head: 'def456',
+        branch: 'feature-x',
+        isMainWorktree: false,
+        linkedSessionId: null,
+        managedByOmniDesk: false,
+      });
+    });
+
+    it('parses a detached HEAD worktree with branch: null', async () => {
+      const porcelain = [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /repo-worktrees/detached',
+        'HEAD 789abc',
+        'detached',
+        '',
+      ].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[1]).toMatchObject({
+        path: '/repo-worktrees/detached',
+        head: '789abc',
+        branch: null,
+        isMainWorktree: false,
+      });
+    });
+
+    it('parses the bare flag', async () => {
+      const porcelain = ['worktree /repo.git', 'bare', ''].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[0]).toMatchObject({ path: '/repo.git', isBare: true, isMainWorktree: true });
+    });
+
+    it('parses the locked flag, with and without a reason', async () => {
+      const porcelain = [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /repo-worktrees/locked',
+        'HEAD def456',
+        'branch refs/heads/locked-branch',
+        'locked some reason',
+        '',
+      ].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[1]).toMatchObject({ path: '/repo-worktrees/locked', isLocked: true });
+    });
+
+    it('parses the prunable flag, with and without a reason', async () => {
+      const porcelain = [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /repo-worktrees/gone',
+        'HEAD def456',
+        'branch refs/heads/gone-branch',
+        'prunable gitdir file points to non-existent location',
+        '',
+      ].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[1]).toMatchObject({ path: '/repo-worktrees/gone', isPrunable: true });
+    });
+
+    it('preserves worktree paths containing spaces', async () => {
+      const porcelain = [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /repo worktrees/my feature',
+        'HEAD def456',
+        'branch refs/heads/my-feature',
+        '',
+      ].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[1].path).toBe('/repo worktrees/my feature');
+    });
+
+    it('always reports linkedSessionId: null and managedByOmniDesk: false at this layer (reconciliation happens in ipc-handlers)', async () => {
+      const porcelain = ['worktree /repo', 'HEAD abc123', 'branch refs/heads/main', ''].join('\n');
+      mockVersionThenPorcelain(porcelain);
+
+      const result = await manager.listWorktrees('/repo');
+
+      expect(result[0].linkedSessionId).toBeNull();
+      expect(result[0].managedByOmniDesk).toBe(false);
+    });
+  });
+
   describe('destroy', () => {
     it('cleans up watchers and timers', () => {
       manager.destroy();

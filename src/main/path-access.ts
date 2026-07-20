@@ -13,6 +13,16 @@ export function isPathWithin(child: string, parent: string): boolean {
   return c.startsWith(parentWithSep);
 }
 
+/**
+ * Compares two filesystem paths for equality, tolerating slash-direction and
+ * (on Windows) drive-letter/segment case differences — e.g. worktree paths
+ * reported by `git worktree list` vs. paths persisted in the worktree
+ * registry or recorded on session metadata.
+ */
+export function arePathsEqual(a: string, b: string): boolean {
+  return normalizeForCompare(a) === normalizeForCompare(b);
+}
+
 // Roots the user explicitly chose via a native OS dialog (e.g. the "Browse…"
 // folder picker). Stored resolved; descendants are allowed. This closes the
 // chicken-and-egg where the add-repo flow must scan a folder to decide whether

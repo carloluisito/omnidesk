@@ -20,7 +20,8 @@ import { getFileInfo, readFileContent } from './file-dragdrop-handler';
 import { IPCRegistry } from './ipc-registry';
 import { IntegrationManager } from './integrations/integration-manager';
 import { GitHubService } from './integrations/github-service';
-import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot } from './path-access';
+import { isPathAllowed as isPathAllowedAgainst, approvePickedRoot, arePathsEqual } from './path-access';
+import { isWorktreeManagedByOmniDesk } from './settings-persistence';
 
 let registry: IPCRegistry | null = null;
 let remoteServerRef: RemoteAccessServer | null = null;
@@ -647,7 +648,20 @@ export function setupIPCHandlers(
   // ── Git Worktrees ──
 
   registry.handle('gitWorktreeList', async (_e, workDir) => {
-    try { return await gitManager.listWorktrees(workDir); }
+    try {
+      const worktrees = await gitManager.listWorktrees(workDir);
+      const { sessions } = sessionManager.listSessions();
+      return worktrees.map(wt => {
+        const linkedSession = sessions.find(
+          s => s.worktreeInfo?.worktreePath && arePathsEqual(s.worktreeInfo.worktreePath, wt.path)
+        );
+        return {
+          ...wt,
+          linkedSessionId: linkedSession?.id ?? null,
+          managedByOmniDesk: isWorktreeManagedByOmniDesk(wt.path),
+        };
+      });
+    }
     catch (err) { console.error('Failed to list worktrees:', err); throw err; }
   });
 
