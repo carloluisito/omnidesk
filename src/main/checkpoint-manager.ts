@@ -233,16 +233,16 @@ export class CheckpointManager {
     try {
       const fullContent = await this.historyManager.getSessionContent(checkpoint.sessionId);
 
-      // For now, use line-based truncation
-      // In future, could use byte offset for more precision
-      const allLines = fullContent.split('\n');
+      // historyPosition is an exact UTF-8 byte offset (see history-manager.ts
+      // sizeBytes, which createCheckpoint copies verbatim), so truncate by
+      // bytes rather than re-deriving an approximate line count. A byte
+      // offset can land mid-codepoint; Buffer#toString('utf-8') replaces any
+      // incomplete trailing sequence with U+FFFD, which is an acceptable
+      // edge case for a display/export truncation boundary.
+      const buf = Buffer.from(fullContent, 'utf-8');
+      const end = Math.min(checkpoint.historyPosition, buf.length);
 
-      // Estimate line count from byte position (rough approximation)
-      // Average line length ~80 chars ~= ~80 bytes
-      const estimatedLineCount = Math.floor(checkpoint.historyPosition / 80);
-      const truncatedLines = allLines.slice(0, Math.min(estimatedLineCount, allLines.length));
-
-      return truncatedLines.join('\n');
+      return buf.subarray(0, end).toString('utf-8');
     } catch (err) {
       console.error('Failed to get history up to checkpoint:', err);
       throw err;
