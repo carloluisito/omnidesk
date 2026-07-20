@@ -17,6 +17,7 @@ import {
 import type { WorktreeSettings, WorktreeInfo } from '../shared/types/git-types';
 import { defaultIntegrationsSettings, mergeIntegrationsSettings } from '../shared/integration-types';
 import { CONFIG_DIR, ensureConfigDir } from './config-dir';
+import { arePathsEqual } from './path-access';
 
 const WORKTREE_REGISTRY_FILE = path.join(CONFIG_DIR, 'worktrees.json');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.json');
@@ -605,5 +606,5 @@ export function removeWorktreeFromRegistry(worktreePath: string): void {
 
 export function isWorktreeManagedByOmniDesk(worktreePath: string): boolean {
   const worktrees = loadWorktreeRegistry();
-  return worktrees.some(wt => wt.worktreePath === worktreePath && (wt.managedByOmniDesk ?? wt.managedByClaudeDesk));
+  return worktrees.some(wt => arePathsEqual(wt.worktreePath, worktreePath) && (wt.managedByOmniDesk ?? wt.managedByClaudeDesk));
 }
