@@ -2,7 +2,7 @@
  * Centralized Claude-ready detection.
  *
  * Detects whether Claude Code's welcome screen has appeared in terminal output.
- * Used by: Terminal.tsx (renderer), MultiTerminal (renderer), HistoryManager (main).
+ * Used by: Terminal.tsx (renderer), history-manager.ts (main), claude-provider.ts (main).
  *
  * Keep this as the SINGLE SOURCE OF TRUTH for detection patterns.
  * When Claude Code updates its welcome screen, update ONLY this file.
@@ -21,24 +21,19 @@ export const CLAUDE_READY_PATTERNS = [
 
 /**
  * Check if a string contains any Claude-ready pattern.
+ * Delegates to the generic `isProviderReady` so the two cannot drift.
  */
 export function isClaudeReady(output: string): boolean {
-  return CLAUDE_READY_PATTERNS.some(pattern => output.includes(pattern));
+  return isProviderReady(output, CLAUDE_READY_PATTERNS as unknown as string[]);
 }
 
 /**
  * Find the earliest index in the buffer where Claude's output begins.
  * Returns the index of the first matching pattern, or -1 if none found.
+ * Delegates to the generic `findProviderOutputStart` so the two cannot drift.
  */
 export function findClaudeOutputStart(buffer: string): number {
-  let earliest = -1;
-  for (const pattern of CLAUDE_READY_PATTERNS) {
-    const index = buffer.indexOf(pattern);
-    if (index !== -1 && (earliest === -1 || index < earliest)) {
-      earliest = index;
-    }
-  }
-  return earliest;
+  return findProviderOutputStart(buffer, CLAUDE_READY_PATTERNS as unknown as string[]);
 }
 
 /**
