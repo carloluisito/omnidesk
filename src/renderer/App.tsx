@@ -811,7 +811,7 @@ function App() {
           repo={activeRepo}
           repos={repos}
           sessions={sessions}
-          burnRatePerHour={(burnRate as any)?.dollarsPerHour ?? null}
+          burnRatePerHour={burnRate?.ratePerHour5h ?? null}
           onOpenOtherReposLive={() => setRepoSwitcher({ anchorRect: null })}
           needYouCount={attention.count}
           onOpenCockpit={() => setShowCockpit(true)}
