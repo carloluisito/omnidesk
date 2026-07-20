@@ -9,11 +9,14 @@ import {
 } from '../../shared/integration-types';
 import type { SessionMetadata, SessionStateChangeEvent } from '../../shared/ipc-types';
 
+// Fixture paths use forward slashes: path.basename splits on '/' on every
+// platform (win32 accepts both separators), while '\\' only splits on
+// Windows — a '\\' fixture broke the repoName assertion on CI's posix runners.
 function meta(partial: Partial<SessionMetadata>): SessionMetadata {
   return {
     id: 's1',
     name: 'fix-bug',
-    workingDirectory: 'C:\\repos\\omnidesk',
+    workingDirectory: 'C:/repos/omnidesk',
     permissionMode: 'standard',
     status: 'running',
     createdAt: 0,
@@ -90,9 +93,9 @@ describe('IntegrationManager', () => {
 
   it('mutes sessions whose workingDirectory is under a muted repo path', async () => {
     const { registry, delivered } = fakeRegistry();
-    const settings = settingsWith({ perRepo: { 'C:\\repos\\omnidesk': { muted: true } } });
+    const settings = settingsWith({ perRepo: { 'C:/repos/omnidesk': { muted: true } } });
     const m = new IntegrationManager(makeDeps(settings), { registry });
-    m.handleStateChange(evt({}), meta({ workingDirectory: 'C:\\repos\\omnidesk\\.claude\\worktrees\\feat-x' }));
+    m.handleStateChange(evt({}), meta({ workingDirectory: 'C:/repos/omnidesk/.claude/worktrees/feat-x' }));
     await vi.runAllTimersAsync();
     expect(delivered).toEqual([]);
     m.dispose();
