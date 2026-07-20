@@ -65,3 +65,56 @@ export function formatTelegramHTML(event: IntegrationEvent): string {
   lines.push(event.link ? escapeHTML(event.link) : escapeHTML(OFFLINE_LINE));
   return lines.join('\n');
 }
+
+const DEFAULT_TRUNCATION_MARKER = '\n… (truncated)';
+
+/**
+ * Truncates plain text to at most `maxLength` characters, keeping the head
+ * and dropping from the tail. Appends `marker` when truncation occurs, and
+ * the returned string is always `<= maxLength` characters. Safe for bodies
+ * with no markup to preserve (Discord's `content`).
+ */
+export function truncatePlainText(
+  text: string,
+  maxLength: number,
+  marker: string = DEFAULT_TRUNCATION_MARKER
+): string {
+  if (text.length <= maxLength) return text;
+  const budget = Math.max(0, maxLength - marker.length);
+  return text.slice(0, budget) + marker.slice(0, maxLength - budget);
+}
+
+/**
+ * Truncates an HTML-formatted string to at most `maxLength` characters by
+ * dropping whole trailing lines — never cutting inside a line. This keeps
+ * HTML entities and tags intact because `formatTelegramHTML` always keeps
+ * them self-contained within a single line (e.g. a full `<b>…</b>` span, or
+ * a fully-escaped `&amp;`), so a `\n` boundary is always a safe cut point.
+ *
+ * In the pathological case where the very first line alone exceeds
+ * `maxLength`, tags are stripped before a hard character slice so the result
+ * can never leave an unclosed tag (which Telegram's HTML parse mode would
+ * reject outright). The length guarantee (`<= maxLength`) always holds.
+ */
+export function truncateHtmlByLines(
+  text: string,
+  maxLength: number,
+  marker: string = DEFAULT_TRUNCATION_MARKER
+): string {
+  if (text.length <= maxLength) return text;
+  const budget = maxLength - marker.length;
+  const lines = text.split('\n');
+  const kept: string[] = [];
+  let used = 0;
+  for (const line of lines) {
+    const addLen = line.length + (kept.length > 0 ? 1 : 0); // +1 for the joining '\n'
+    if (used + addLen > budget) break;
+    kept.push(line);
+    used += addLen;
+  }
+  if (kept.length > 0) return kept.join('\n') + marker;
+  // Even the head line alone doesn't fit: strip tags to avoid an unclosed
+  // tag, then hard-slice as plain text.
+  const stripped = lines[0].replace(/<\/?[a-z]+>/gi, '');
+  return truncatePlainText(stripped, maxLength, marker);
+}

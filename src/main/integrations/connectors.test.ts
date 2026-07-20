@@ -40,6 +40,29 @@ describe('TelegramConnector', () => {
     expect(body.text).toContain('<b>sess</b>');
   });
 
+  it('truncates text over the 4096 char limit without breaking HTML tags/entities', async () => {
+    const fetchFn = mockFetch();
+    const longMsg: OutboundMessage = {
+      text: 'x',
+      event: {
+        type: 'attention',
+        at: 1,
+        sessionName: 'a<b>&c'.repeat(200), // forces escaping + long single "head" line
+        repoName: 'omnidesk',
+        state: 'awaiting-input',
+        reason: Array.from({ length: 300 }, (_, i) => `line ${i}`).join('\n'),
+      },
+    };
+    const out = await new TelegramConnector().deliver({ enabled: true, botToken: 't', chatId: 'c' }, longMsg);
+    expect(out.ok).toBe(true);
+    const [, init] = fetchFn.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.text.length).toBeLessThanOrEqual(4096);
+    // No unclosed <b> tag and no split-in-half HTML entity.
+    expect((body.text.match(/<b>/g) ?? []).length).toBe((body.text.match(/<\/b>/g) ?? []).length);
+    expect(body.text).not.toMatch(/&(amp|lt|gt);?$/); // dangling partial entity at the cut
+  });
+
   it('maps 429 with Retry-After to a retryable outcome', async () => {
     mockFetch(429, { 'retry-after': '7' });
     const out = await new TelegramConnector().deliver({ enabled: true, botToken: 't', chatId: 'c' }, msg);
@@ -82,6 +105,17 @@ describe('DiscordConnector', () => {
     expect(out.ok).toBe(true);
     const [, init] = fetchFn.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ content: msg.text });
+  });
+
+  it('truncates content over the 2000 char limit', async () => {
+    const fetchFn = mockFetch(204);
+    const longMsg: OutboundMessage = { text: 'y'.repeat(2500), event: msg.event };
+    const out = await new DiscordConnector().deliver({ enabled: true, webhookUrl: 'https://discord.com/api/webhooks/x' }, longMsg);
+    expect(out.ok).toBe(true);
+    const [, init] = fetchFn.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.content.length).toBeLessThanOrEqual(2000);
+    expect(body.content).toContain('truncated');
   });
 });
 
