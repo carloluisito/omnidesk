@@ -256,6 +256,9 @@ function createWindow(): void {
     },
   });
   sessionManager.addStateListener((evt, meta) => integrationManager?.handleStateChange(evt, meta));
+  // Release the AttentionPolicy record when a session ends (exit or delete)
+  // so per-session state doesn't accumulate for the life of the app.
+  sessionManager.onSessionEnd((sessionId) => integrationManager?.handleSessionRemoved(sessionId));
 
   // Setup IPC handlers with pool reference
   setupIPCHandlers(
