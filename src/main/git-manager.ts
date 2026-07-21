@@ -700,16 +700,31 @@ export class GitManager {
   // ── Public API: Branches ──
 
   async switchBranch(workDir: string, branch: string): Promise<GitOperationResult> {
+    // Guard against git argument injection: a branch name beginning with '-'
+    // (e.g. '-f') would otherwise be parsed by git as an option rather than a
+    // ref, e.g. forcing a destructive checkout that discards uncommitted
+    // changes. Reject before it ever reaches execGit. Mirrors the guard added
+    // for commitDiff (#168/#170).
+    if (branch.startsWith('-')) {
+      return this.makeError(`Invalid branch name: ${branch}`, 1);
+    }
     return this.withMutex(workDir, async () => {
-      const result = await this.execGit(workDir, ['checkout', branch]);
+      // The '--end-of-options' marker is belt-and-suspenders: it marks the
+      // end of options so a future caller can't reintroduce the gap.
+      const result = await this.execGit(workDir, ['checkout', '--end-of-options', branch]);
       if (result.exitCode !== 0) return this.makeError(result.stderr, result.exitCode);
       return { success: true, message: `Switched to branch '${branch}'`, errorCode: null };
     });
   }
 
   async createBranch(workDir: string, branch: string): Promise<GitOperationResult> {
+    // See switchBranch: reject a branch name that could be parsed as a git
+    // option before it reaches execGit.
+    if (branch.startsWith('-')) {
+      return this.makeError(`Invalid branch name: ${branch}`, 1);
+    }
     return this.withMutex(workDir, async () => {
-      const result = await this.execGit(workDir, ['checkout', '-b', branch]);
+      const result = await this.execGit(workDir, ['checkout', '-b', '--end-of-options', branch]);
       if (result.exitCode !== 0) return this.makeError(result.stderr, result.exitCode);
       return { success: true, message: `Created and switched to branch '${branch}'`, errorCode: null };
     });

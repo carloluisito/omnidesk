@@ -447,6 +447,65 @@ describe('GitManager', () => {
     });
   });
 
+  describe('switchBranch', () => {
+    it('checks out an existing branch', async () => {
+      mockGitResponse('', '', 0);
+
+      const result = await manager.switchBranch('/test', 'feature/foo');
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        expect.arrayContaining(['checkout', '--end-of-options', 'feature/foo']),
+        expect.anything(),
+        expect.any(Function),
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a branch name that could be parsed as a git option, without calling execFile', async () => {
+      const result = await manager.switchBranch('/test', '-f');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid branch name/);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects an --orphan-style branch name, without calling execFile', async () => {
+      const result = await manager.switchBranch('/test', '--orphan');
+
+      expect(result.success).toBe(false);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createBranch', () => {
+    it('creates and checks out a new branch', async () => {
+      mockGitResponse('', '', 0);
+
+      const result = await manager.createBranch('/test', 'feature/bar');
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        expect.arrayContaining(['checkout', '-b', '--end-of-options', 'feature/bar']),
+        expect.anything(),
+        expect.any(Function),
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a branch name that could be parsed as a git option, without calling execFile', async () => {
+      const result = await manager.createBranch('/test', '-f');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid branch name/);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+  });
+
   describe('staging operations', () => {
     it('stageFiles returns success', async () => {
       mockGitResponse('', '', 0);
