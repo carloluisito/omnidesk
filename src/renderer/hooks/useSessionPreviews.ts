@@ -30,6 +30,14 @@ export interface SessionPreviewsApi {
   attach: (
     onOutput: (callback: (sessionId: string, data: string) => void) => () => void
   ) => () => void;
+  /**
+   * Drop all per-session state for ids not in `liveIds`. Call this whenever
+   * the live session set changes (e.g. on session close) so a session's
+   * snapshot lines, timestamp, and internal buffers don't outlive it.
+   * No-op (identity-stable) when nothing was removed, so it never forces an
+   * extra render.
+   */
+  prune: (liveIds: string[] | Set<string>) => void;
 }
 
 export function useSessionPreviews(): SessionPreviewsApi {
@@ -104,11 +112,35 @@ export function useSessionPreviews(): SessionPreviewsApi {
     [ingest]
   );
 
+  const prune = useCallback((liveIds: string[] | Set<string>) => {
+    const live = liveIds instanceof Set ? liveIds : new Set(liveIds);
+
+    for (const id of linesRef.current.keys()) {
+      if (!live.has(id)) linesRef.current.delete(id);
+    }
+    for (const id of carryRef.current.keys()) {
+      if (!live.has(id)) carryRef.current.delete(id);
+    }
+    for (const id of pendingRef.current) {
+      if (!live.has(id)) pendingRef.current.delete(id);
+    }
+
+    const dropStale = <T,>(prev: Record<string, T>): Record<string, T> => {
+      const staleIds = Object.keys(prev).filter(id => !live.has(id));
+      if (staleIds.length === 0) return prev;
+      const next = { ...prev };
+      for (const id of staleIds) delete next[id];
+      return next;
+    };
+    setOutputSnapshots(dropStale);
+    setLastActivityAt(dropStale);
+  }, []);
+
   useEffect(() => () => {
     if (flushTimerRef.current !== null) {
       window.clearTimeout(flushTimerRef.current);
     }
   }, []);
 
-  return { outputSnapshots, lastActivityAt, attach };
+  return { outputSnapshots, lastActivityAt, attach, prune };
 }
