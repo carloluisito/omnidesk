@@ -231,6 +231,13 @@ function App() {
   const sessionIdList = useMemo(() => sessions.map(s => s.id), [sessions]);
   useRemoteDeepLink({ sessionIds: sessionIdList, onJump: handleMobileSelectSession });
 
+  // Drop preview state (snapshot lines, last-activity, internal buffers) for
+  // any session that's no longer live, so closed sessions don't accumulate
+  // forever in useSessionPreviews (renderer-side analog of #139/#104).
+  useEffect(() => {
+    previews.prune(sessionIdList);
+  }, [previews.prune, sessionIdList]);
+
   // ─── Attention cockpit: cross-repo "who needs you" queue + backgrounded toasts ───
   const repoOf = useCallback((s: TabData) => {
     const id = repoIdForSession(visibleRepos, sessions, s.id);

@@ -129,4 +129,64 @@ describe('useSessionPreviews', () => {
     expect(result.current.outputSnapshots.s1).toEqual(['a', 'b']);
     expect(result.current.lastActivityAt.s1).toBeGreaterThan(0);
   });
+
+  it('prune drops all state for sessions no longer live, keeping the survivor intact', () => {
+    const { result } = renderHook(() => useSessionPreviews());
+    const emitter = makeEmitter();
+    act(() => {
+      result.current.attach(emitter.onOutput);
+    });
+
+    act(() => {
+      emitter.emit('s1', 'session one line\n');
+      emitter.emit('s2', 'session two line\n');
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(result.current.outputSnapshots.s1).toEqual(['session one line']);
+    expect(result.current.outputSnapshots.s2).toEqual(['session two line']);
+    expect(result.current.lastActivityAt.s1).toBeGreaterThan(0);
+    expect(result.current.lastActivityAt.s2).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.prune(['s1']);
+    });
+
+    expect(result.current.outputSnapshots.s1).toEqual(['session one line']);
+    expect(result.current.outputSnapshots).not.toHaveProperty('s2');
+    expect(result.current.lastActivityAt.s1).toBeGreaterThan(0);
+    expect(result.current.lastActivityAt).not.toHaveProperty('s2');
+
+    // Internal buffers for the pruned session are gone too: re-emitting for s2
+    // after prune starts it fresh rather than appending to old (now-deleted)
+    // buffered lines.
+    act(() => {
+      emitter.emit('s2', 'brand new after prune\n');
+      vi.advanceTimersByTime(200);
+    });
+    expect(result.current.outputSnapshots.s2).toEqual(['brand new after prune']);
+  });
+
+  it('prune is a no-op (identity-stable) when nothing needs to be removed', () => {
+    const { result } = renderHook(() => useSessionPreviews());
+    const emitter = makeEmitter();
+    act(() => {
+      result.current.attach(emitter.onOutput);
+    });
+
+    act(() => {
+      emitter.emit('s1', 'hello\n');
+      vi.advanceTimersByTime(200);
+    });
+
+    const snapshotsBefore = result.current.outputSnapshots;
+    const activityBefore = result.current.lastActivityAt;
+
+    act(() => {
+      result.current.prune(['s1']);
+    });
+
+    expect(result.current.outputSnapshots).toBe(snapshotsBefore);
+    expect(result.current.lastActivityAt).toBe(activityBefore);
+  });
 });
