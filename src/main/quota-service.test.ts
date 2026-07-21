@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { filterPostReset, buildBurnRateResult, findSamplesWithDelta, computeBurnRate } from './quota-service';
+import * as path from 'path';
+import * as os from 'os';
+import {
+  filterPostReset,
+  buildBurnRateResult,
+  findSamplesWithDelta,
+  computeBurnRate,
+  resolveClaudeConfigDir,
+} from './quota-service';
+import type { QuotaAccountMapRule } from '../shared/ipc-types';
 
 function makeSample(fiveHour: number, sevenDay: number, minutesAgo: number) {
   return {
@@ -394,5 +403,57 @@ describe('computeBurnRate', () => {
       label: 'unknown',
       dataPoints: 1,
     });
+  });
+});
+
+describe('resolveClaudeConfigDir', () => {
+  // quota-service.ts uses the real `os.homedir()` (not electron's mocked
+  // app.getPath) for the default dir, so assert against the real value.
+  const DEFAULT_DIR = path.join(os.homedir(), '.claude');
+  // Custom configDir entries are tilde-expanded via app.getPath('home'),
+  // which test/setup-main.ts mocks to '/mock/home'.
+  const MOCK_HOME = '/mock/home';
+
+  const accountMap: QuotaAccountMapRule[] = [
+    { pathContains: '/repositories/work/', configDir: '~/.claude-work' },
+    { pathContains: '/repositories/personal/', configDir: '~/.claude-personal' },
+  ];
+
+  it('returns the default dir when no mapping is provided', () => {
+    expect(resolveClaudeConfigDir('/home/me/repositories/work/omnidesk')).toBe(DEFAULT_DIR);
+  });
+
+  it('returns the default dir when the mapping is an empty array', () => {
+    expect(resolveClaudeConfigDir('/home/me/repositories/work/omnidesk', [])).toBe(DEFAULT_DIR);
+  });
+
+  it('returns the mapped dir for a working directory matching a rule', () => {
+    expect(resolveClaudeConfigDir('/home/me/repositories/work/omnidesk', accountMap)).toBe(
+      path.join(MOCK_HOME, '.claude-work')
+    );
+    expect(resolveClaudeConfigDir('/home/me/repositories/personal/omnidesk', accountMap)).toBe(
+      path.join(MOCK_HOME, '.claude-personal')
+    );
+  });
+
+  it('returns the default dir when the working directory matches no rule', () => {
+    expect(resolveClaudeConfigDir('/home/me/repositories/other/omnidesk', accountMap)).toBe(DEFAULT_DIR);
+  });
+
+  it('matches case-insensitively and normalizes backslashes to forward slashes', () => {
+    expect(resolveClaudeConfigDir('C:\\Users\\me\\Repositories\\WORK\\omnidesk', accountMap)).toBe(
+      path.join(MOCK_HOME, '.claude-work')
+    );
+  });
+
+  it('returns the default dir for an undefined or empty working directory, mapping or not', () => {
+    expect(resolveClaudeConfigDir(undefined, accountMap)).toBe(DEFAULT_DIR);
+    expect(resolveClaudeConfigDir('', accountMap)).toBe(DEFAULT_DIR);
+    expect(resolveClaudeConfigDir()).toBe(DEFAULT_DIR);
+  });
+
+  it('supports a bare "~" configDir mapping to the home directory itself', () => {
+    const rootMap: QuotaAccountMapRule[] = [{ pathContains: '/repositories/root/', configDir: '~' }];
+    expect(resolveClaudeConfigDir('/home/me/repositories/root/omnidesk', rootMap)).toBe(MOCK_HOME);
   });
 });

@@ -5,8 +5,11 @@
  * credentials stored by Claude Code CLI.
  *
  * Supports per-account quota tracking based on session working directory.
- * Different Claude config directories (~/.claude-work, ~/.claude-personal, ~/.claude)
- * are resolved from the active session's working directory.
+ * Which Claude config directory (e.g. ~/.claude-work, ~/.claude-personal, ~/.claude)
+ * is used for a given session is resolved from the active session's working
+ * directory via a user-configurable mapping (AppSettings.quotaAccountMap);
+ * see resolveClaudeConfigDir below. With no mapping configured, every
+ * session resolves to the default ~/.claude directory.
  *
  * Burn rate calculation matches claude-desk's allocator-manager.ts
  */
@@ -15,6 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { app } from 'electron';
+import type { QuotaAccountMapRule } from '../shared/ipc-types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -95,24 +99,52 @@ const stateMap = new Map<string, PerDirState>();
 
 /**
  * Resolve the Claude config directory based on a session's working directory.
- * - Paths containing `/repositories/work/` → ~/.claude-work
- * - Paths containing `/repositories/personal/` or `/repositories/ispade/` → ~/.claude-personal
- * - Otherwise → ~/.claude (default)
+ *
+ * Consults `accountMap` (typically AppSettings.quotaAccountMap) in order and
+ * returns the `configDir` of the first rule whose `pathContains` is found as
+ * a substring of the working directory (case-insensitive, with `\` normalized
+ * to `/`). If no rule matches, `accountMap` is empty/undefined, or
+ * `workingDirectory` is undefined/empty, the default `~/.claude` directory is
+ * returned.
+ *
+ * Example `accountMap` reproducing a common multi-account layout:
+ *   [
+ *     { pathContains: '/repositories/work/', configDir: '~/.claude-work' },
+ *     { pathContains: '/repositories/personal/', configDir: '~/.claude-personal' },
+ *   ]
+ *
+ * Kept pure and synchronous — callers on the hot getQuota/getBurnRate path
+ * should pass in an already-loaded settings snapshot rather than doing
+ * settings I/O here.
  */
-export function resolveClaudeConfigDir(workingDirectory?: string): string {
+export function resolveClaudeConfigDir(
+  workingDirectory?: string,
+  accountMap?: QuotaAccountMapRule[]
+): string {
   if (!workingDirectory) return DEFAULT_CONFIG_DIR;
+  if (!accountMap || accountMap.length === 0) return DEFAULT_CONFIG_DIR;
 
   // Normalize path separators for case-insensitive matching
   const normalized = workingDirectory.replace(/\\/g, '/').toLowerCase();
 
-  if (normalized.includes('/repositories/work/')) {
-    return path.join(os.homedir(), '.claude-work');
-  }
-  if (normalized.includes('/repositories/personal/') || normalized.includes('/repositories/ispade/')) {
-    return path.join(os.homedir(), '.claude-personal');
+  for (const rule of accountMap) {
+    if (!rule.pathContains) continue;
+    const needle = rule.pathContains.replace(/\\/g, '/').toLowerCase();
+    if (normalized.includes(needle)) {
+      return expandConfigDir(rule.configDir);
+    }
   }
 
   return DEFAULT_CONFIG_DIR;
+}
+
+/** Expand a leading `~` in a configured config dir to the user's home directory. */
+function expandConfigDir(configDir: string): string {
+  if (configDir === '~') return app.getPath('home');
+  if (configDir.startsWith('~/') || configDir.startsWith('~\\')) {
+    return path.join(app.getPath('home'), configDir.slice(2));
+  }
+  return configDir;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
