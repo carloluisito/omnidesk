@@ -114,6 +114,30 @@ describe('DeliveryQueue', () => {
     q.dispose();
   });
 
+  it('clamps an out-of-range retryAfterMs instead of scheduling a runaway reschedule loop (#144)', async () => {
+    let attempts = 0;
+    const outcomes: SendOutcome[] = [
+      { ok: false, retryable: true, retryAfterMs: 9_999_999_999_000, error: '429' }, // ~317 years, unclamped would overflow setTimeout
+      { ok: true },
+    ];
+    const q = new DeliveryQueue({
+      send: async () => { attempts++; return outcomes.shift()!; },
+    });
+    q.enqueue('webhook', msg('x'));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(attempts).toBe(1);
+
+    // Well below the clamp ceiling (120_000ms): must not have retried yet — proves the queue
+    // isn't honoring the raw out-of-range value (which Node would silently floor to ~1ms).
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(attempts).toBe(1);
+
+    // Past the clamp ceiling: the retry fires exactly once, on schedule — not a busy-spin.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(attempts).toBe(2);
+    q.dispose();
+  });
+
   it('a throwing send() is treated as a retryable failure, never escapes enqueue', async () => {
     let attempts = 0;
     const q = new DeliveryQueue({
