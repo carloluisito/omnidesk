@@ -397,13 +397,34 @@ export function buildBurnRateResult(
     projectedMinutes7d = (remaining7d / estimated7dRate) * 60;
   }
 
-  // Determine trend from recent deltas
+  // Determine trend from time-normalized per-hour rates, not raw sample
+  // deltas — samples are not evenly spaced (a session switch can force an
+  // uncached refresh seconds after the last sample, while idle periods can
+  // leave gaps of many minutes), so comparing raw deltas mislabels the trend
+  // whenever cadence differs between the two pairs.
   let trend: BurnRateData['trend'] = 'stable';
   if (history.length >= 4) {
-    const recentRate = history[history.length - 1].fiveHour - history[history.length - 2].fiveHour;
-    const olderRate = history[history.length - 3].fiveHour - history[history.length - 4].fiveHour;
-    if (recentRate > olderRate + 0.5) trend = 'increasing';
-    else if (recentRate < olderRate - 0.5) trend = 'decreasing';
+    const recentDeltaMs =
+      new Date(history[history.length - 1].timestamp).getTime() -
+      new Date(history[history.length - 2].timestamp).getTime();
+    const olderDeltaMs =
+      new Date(history[history.length - 3].timestamp).getTime() -
+      new Date(history[history.length - 4].timestamp).getTime();
+    // Guard divide-by-zero / out-of-order timestamps — an indeterminate pair
+    // leaves the trend at the 'stable' default rather than risking NaN/Infinity.
+    if (recentDeltaMs > 0 && olderDeltaMs > 0) {
+      const recentRate =
+        (history[history.length - 1].fiveHour - history[history.length - 2].fiveHour) /
+        (recentDeltaMs / (1000 * 60 * 60));
+      const olderRate =
+        (history[history.length - 3].fiveHour - history[history.length - 4].fiveHour) /
+        (olderDeltaMs / (1000 * 60 * 60));
+      // Dead-band in percentage-points/hour (re-tuned from the old 0.5
+      // raw-delta threshold, which was only ever meaningful at the ~10min
+      // sample spacing used in tests: 0.5pp / (10min/60min) = 3pp/hr).
+      if (recentRate > olderRate + 3) trend = 'increasing';
+      else if (recentRate < olderRate - 3) trend = 'decreasing';
+    }
   }
 
   // Label based on projected time to limit (worst of both quotas)

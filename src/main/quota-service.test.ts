@@ -177,6 +177,40 @@ describe('buildBurnRateResult', () => {
       const result = buildBurnRateResult(0, 0, current, history);
       expect(result.trend).toBe('stable');
     });
+
+    it('reflects the real per-hour burn under non-uniform cadence instead of raw deltas', () => {
+      // Older pair ~3min apart: Δ5h=1.5 → 30%/hr.
+      // Recent pair ~15s apart (e.g. a session switch forced an uncached
+      // refresh): Δ5h=0.2 → 48%/hr — a HIGHER real burn rate.
+      // Raw-delta comparison would see 0.2 < 1.5 - 0.5 and wrongly report
+      // 'decreasing'; time-normalized rates correctly report 'increasing'.
+      const history = [
+        makeSample(10, 40, 4), // 4 min ago
+        makeSample(11.5, 40, 1), // 1 min ago (3 min after the previous sample)
+        makeSample(11.6, 40, 0.25), // 15s ago
+        makeSample(11.8, 40, 0), // now (15s after the previous sample)
+      ];
+      const current = history[3];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('increasing');
+    });
+
+    it('falls back to stable when adjacent samples share a timestamp (divide-by-zero guard)', () => {
+      const dupTimestamp = new Date(Date.now() - 5 * 60_000).toISOString();
+      const history = [
+        { timestamp: dupTimestamp, fiveHour: 10, sevenDay: 40 },
+        // Duplicate timestamp → olderDeltaMs is 0. Without a guard this
+        // divides by zero (Infinity), which would otherwise force the
+        // comparison below to report 'decreasing' regardless of the
+        // recent pair's real rate.
+        { timestamp: dupTimestamp, fiveHour: 15, sevenDay: 40 },
+        makeSample(20, 40, 2),
+        makeSample(25, 40, 1),
+      ];
+      const current = history[3];
+      const result = buildBurnRateResult(0, 0, current, history);
+      expect(result.trend).toBe('stable');
+    });
   });
 
   describe('7d projection fallback', () => {
