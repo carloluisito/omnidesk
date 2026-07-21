@@ -1059,6 +1059,23 @@ export class GitManager {
 
     const targetPath = request.customPath || this.computeWorktreePath(request.mainRepoPath, request.branch, settings);
 
+    // Guard against git argument injection: a target path, branch, or base
+    // branch beginning with '-' would otherwise be parsed by git as an option
+    // rather than a positional path/ref (e.g. a customPath of '--force' or a
+    // baseBranch of '-b'). Reject before it reaches execGit or the filesystem.
+    // Mirrors the guard added for commitDiff/switchBranch (#170/#175).
+    // computeWorktreePath's sanitizer only covers the auto-derived case, so
+    // this must also catch request.customPath, which bypasses it entirely.
+    if (targetPath.startsWith('-')) {
+      return { success: false, message: `Invalid worktree path: ${targetPath}`, errorCode: 'UNKNOWN' };
+    }
+    if (request.branch.startsWith('-')) {
+      return { success: false, message: `Invalid branch name: ${request.branch}`, errorCode: 'UNKNOWN' };
+    }
+    if (request.baseBranch && request.baseBranch.startsWith('-')) {
+      return { success: false, message: `Invalid base branch name: ${request.baseBranch}`, errorCode: 'UNKNOWN' };
+    }
+
     // Ensure parent directory exists
     const parentDir = path.dirname(targetPath);
     try {
@@ -1074,10 +1091,10 @@ export class GitManager {
       const buildArgs = (): string[] => {
         const args = ['worktree', 'add'];
         if (request.isNewBranch) {
-          args.push('-b', request.branch, targetPath);
+          args.push('-b', request.branch, '--end-of-options', targetPath);
           if (request.baseBranch) args.push(request.baseBranch);
         } else {
-          args.push(targetPath, request.branch);
+          args.push('--end-of-options', targetPath, request.branch);
         }
         return args;
       };
@@ -1128,10 +1145,15 @@ export class GitManager {
   }
 
   async removeWorktree(request: WorktreeRemoveRequest): Promise<GitOperationResult> {
+    // Guard against git argument injection: a worktreePath beginning with
+    // '-' would otherwise be parsed by git as an option. See addWorktree.
+    if (request.worktreePath.startsWith('-')) {
+      return { success: false, message: `Invalid worktree path: ${request.worktreePath}`, errorCode: 'UNKNOWN' };
+    }
     return this.withMutex(request.mainRepoPath, async () => {
       const args = ['worktree', 'remove'];
       if (request.force) args.push('--force');
-      args.push(request.worktreePath);
+      args.push('--end-of-options', request.worktreePath);
 
       const result = await this.execGit(request.mainRepoPath, args);
 
