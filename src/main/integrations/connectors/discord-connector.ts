@@ -27,7 +27,10 @@ export class DiscordConnector implements IConnector<DiscordConfig> {
       const res = await fetch(cfg.webhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ content: truncatePlainText(msg.text, DISCORD_MAX_LENGTH) }),
+        body: JSON.stringify({
+          content: truncatePlainText(msg.text, DISCORD_MAX_LENGTH),
+          allowed_mentions: { parse: [] },
+        }),
       });
       return outcomeFromResponse(res);
     } catch (err) {

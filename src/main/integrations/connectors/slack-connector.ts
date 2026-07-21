@@ -1,5 +1,6 @@
 import type { ConnectorTestResult, OutboundMessage, SendOutcome, SlackConfig } from '../../../shared/integration-types';
 import { IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
+import { formatSlack } from '../message-format';
 
 export class SlackConnector implements IConnector<SlackConfig> {
   readonly id = 'slack' as const;
@@ -23,7 +24,7 @@ export class SlackConnector implements IConnector<SlackConfig> {
       const res = await fetch(cfg.webhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text: msg.text }),
+        body: JSON.stringify({ text: formatSlack(msg.event) }),
       });
       return outcomeFromResponse(res);
     } catch (err) {

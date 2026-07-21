@@ -5,6 +5,7 @@ import { SlackConnector } from './connectors/slack-connector';
 import { DiscordConnector } from './connectors/discord-connector';
 import { WebhookConnector } from './connectors/webhook-connector';
 import { ConnectorRegistry } from './connector-registry';
+import { formatSlack } from './message-format';
 import type { OutboundMessage } from '../../shared/integration-types';
 
 const msg: OutboundMessage = {
@@ -88,23 +89,52 @@ describe('TelegramConnector', () => {
 });
 
 describe('SlackConnector', () => {
-  it('posts {text} to the webhook URL', async () => {
+  it('posts {text} formatted via formatSlack (not the raw msg.text) to the webhook URL', async () => {
     const fetchFn = mockFetch();
     const out = await new SlackConnector().deliver({ enabled: true, webhookUrl: 'https://hooks.slack.com/x' }, msg);
     expect(out.ok).toBe(true);
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe('https://hooks.slack.com/x');
-    expect(JSON.parse(init.body)).toEqual({ text: msg.text });
+    expect(JSON.parse(init.body)).toEqual({ text: formatSlack(msg.event) });
+  });
+
+  it('escapes &, <, > from session name and reason in the posted body', async () => {
+    const fetchFn = mockFetch();
+    const specialMsg: OutboundMessage = {
+      text: 'unused',
+      event: {
+        type: 'attention', at: 1, sessionName: '<Button>', repoName: 'omnidesk',
+        state: 'awaiting-input', reason: 'A & B',
+      },
+    };
+    const out = await new SlackConnector().deliver({ enabled: true, webhookUrl: 'https://hooks.slack.com/x' }, specialMsg);
+    expect(out.ok).toBe(true);
+    const [, init] = fetchFn.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.text).toContain('&lt;Button&gt;');
+    expect(body.text).toContain('A &amp; B');
+    expect(body.text).not.toContain('<Button>');
   });
 });
 
 describe('DiscordConnector', () => {
-  it('posts {content} to the webhook URL', async () => {
+  it('posts {content, allowed_mentions} to the webhook URL', async () => {
     const fetchFn = mockFetch(204);
     const out = await new DiscordConnector().deliver({ enabled: true, webhookUrl: 'https://discord.com/api/webhooks/x' }, msg);
     expect(out.ok).toBe(true);
     const [, init] = fetchFn.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({ content: msg.text });
+    expect(JSON.parse(init.body)).toEqual({ content: msg.text, allowed_mentions: { parse: [] } });
+  });
+
+  it('suppresses mentions even when the text contains @everyone', async () => {
+    const fetchFn = mockFetch(204);
+    const mentionMsg: OutboundMessage = { text: '@everyone check this out', event: msg.event };
+    const out = await new DiscordConnector().deliver({ enabled: true, webhookUrl: 'https://discord.com/api/webhooks/x' }, mentionMsg);
+    expect(out.ok).toBe(true);
+    const [, init] = fetchFn.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.content).toContain('@everyone');
+    expect(body.allowed_mentions).toEqual({ parse: [] });
   });
 
   it('truncates content over the 2000 char limit', async () => {

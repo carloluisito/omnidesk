@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMessage, formatTelegramHTML, truncatePlainText, truncateHtmlByLines } from './message-format';
+import { formatMessage, formatTelegramHTML, formatSlack, truncatePlainText, truncateHtmlByLines } from './message-format';
 import type { IntegrationEvent } from '../../shared/integration-types';
 
 function evt(partial: Partial<IntegrationEvent>): IntegrationEvent {
@@ -60,6 +60,38 @@ describe('formatTelegramHTML', () => {
   it('bolds the session name', () => {
     const text = formatTelegramHTML(evt({ sessionName: 'sess', state: 'awaiting-input' }));
     expect(text).toContain('<b>sess</b>');
+  });
+});
+
+describe('formatSlack', () => {
+  it('escapes &, <, > in names and reason, with & escaped first', () => {
+    const text = formatSlack(evt({
+      sessionName: '<Button>', repoName: 'a<b&c', reason: 'A & B', state: 'awaiting-input',
+    }));
+    expect(text).toContain('&lt;Button&gt;');
+    expect(text).toContain('a&lt;b&amp;c');
+    expect(text).toContain('A &amp; B');
+    expect(text).not.toMatch(/<Button>/);
+    expect(text).not.toMatch(/&(?!amp;|lt;|gt;)/); // no unescaped bare "&"
+  });
+
+  it('does not bold the session name (no HTML markup for Slack)', () => {
+    const text = formatSlack(evt({ sessionName: 'sess', state: 'awaiting-input' }));
+    expect(text).not.toContain('<b>');
+    expect(text).toContain('sess');
+  });
+
+  it('leaves the deep link raw/unescaped so Slack can auto-link it', () => {
+    const text = formatSlack(evt({
+      sessionName: 's', state: 'awaiting-input',
+      link: 'https://x.trycloudflare.com/?token=t&session=abc',
+    }));
+    expect(text).toContain('https://x.trycloudflare.com/?token=t&session=abc');
+    expect(text).not.toContain('&amp;session=abc');
+  });
+
+  it('digest / pr-created / test escape the summary', () => {
+    expect(formatSlack(evt({ type: 'digest', summary: '<all> & done' }))).toContain('&lt;all&gt; &amp; done');
   });
 });
 
