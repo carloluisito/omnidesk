@@ -784,7 +784,7 @@
 .p4-source-card .sub { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 3px; line-height: 1.5; }
 
 .p4-form-row { margin-bottom: 12px; }
-.p4-form-row label {
+.p4-form-row label:not(.p4-check-row) {
   display: block;
   font-family: var(--font-mono); font-size: 10px;
   text-transform: uppercase; letter-spacing: .12em;
@@ -804,6 +804,14 @@
   outline: 0;
   font-family: var(--font-sans);
 }
+/* Checkboxes/radios inside a form row must keep their native size —
+   the width:100% reset above is meant for text/select controls only. */
+.p4-form-row input[type="checkbox"],
+.p4-form-row input[type="radio"] {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 0;
+}
 .p4-form-row input:focus,
 .p4-form-row textarea:focus,
 .p4-form-row select:focus {
@@ -817,6 +825,26 @@
   margin-top: 4px;
 }
 .p4-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Checkbox/radio option row: a plain, sentence-case, inline label —
+   used instead of the block/uppercase caption style above (see #159). */
+.p4-check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* A row can embed a <select> alongside the checkbox (e.g. digest interval) —
+   keep it sized to its content instead of stretching to fill the flex row. */
+.p4-check-row select {
+  width: auto;
+  flex: 0 0 auto;
+}
 
 .p4-sheet-foot {
   padding: 12px 18px;
