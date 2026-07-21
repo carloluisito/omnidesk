@@ -804,14 +804,24 @@ export class GitManager {
   }
 
   async commitDiff(workDir: string, hash: string): Promise<GitCommitInfo> {
+    // Guard against git argument injection: a hash beginning with '-' (e.g.
+    // '--output=<path>') would otherwise be parsed by git as an option
+    // rather than a revision, turning this read into an arbitrary-file-write
+    // primitive. Reject anything that isn't a hex object name before it
+    // ever reaches execGit.
+    if (!/^[0-9a-fA-F]{4,64}$/.test(hash)) {
+      throw new Error(`Invalid commit hash: ${hash}`);
+    }
+
     return this.withMutex(workDir, async () => {
-      // Get commit info
+      // Get commit info. The trailing '--' is belt-and-suspenders: it marks
+      // the end of options so a future caller can't reintroduce the gap.
       const logResult = await this.execGit(workDir, [
-        'log', `--format=%H|%h|%an|%ae|%aI|%s`, '-1', hash,
+        'log', `--format=%H|%h|%an|%ae|%aI|%s`, '-1', hash, '--',
       ]);
 
       const statResult = await this.execGit(workDir, [
-        'diff-tree', '--no-commit-id', '-r', '--stat', hash,
+        'diff-tree', '--no-commit-id', '-r', '--stat', hash, '--',
       ]);
 
       const parts = logResult.stdout.trim().split('|');

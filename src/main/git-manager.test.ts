@@ -380,6 +380,73 @@ describe('GitManager', () => {
     });
   });
 
+  describe('commitDiff', () => {
+    it('parses log + stat output into a GitCommitInfo, preserving a pipe in the subject', async () => {
+      const hash = 'abcdef1234567890abcdef1234567890abcdef12';
+      mockGitResponse(
+        `${hash}|abc1234|John Doe|john@test.com|2024-01-15T10:30:00+00:00|feat: add A|B feature`,
+        '',
+        0,
+      );
+      mockGitResponse(
+        [' src/foo.ts | 10 ++++---', ' 1 file changed, 6 insertions(+), 4 deletions(-)', ''].join('\n'),
+        '',
+        0,
+      );
+
+      const commit = await manager.commitDiff('/test', hash);
+
+      expect(mockExecFile).toHaveBeenCalledTimes(2);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        expect.arrayContaining(['log', '-1', hash, '--']),
+        expect.anything(),
+        expect.any(Function),
+      );
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        expect.arrayContaining(['diff-tree', hash, '--']),
+        expect.anything(),
+        expect.any(Function),
+      );
+      expect(commit.hash).toBe(hash);
+      expect(commit.shortHash).toBe('abc1234');
+      expect(commit.authorName).toBe('John Doe');
+      expect(commit.authorEmail).toBe('john@test.com');
+      // Subject contains a literal '|' — must be rejoined, not truncated at the first split.
+      expect(commit.subject).toBe('feat: add A|B feature');
+      expect(commit.filesChanged).toBe(1);
+      expect(commit.insertions).toBe(6);
+      expect(commit.deletions).toBe(4);
+    });
+
+    it('sets filesChanged from a stat summary with no insertions/deletions parenthetical', async () => {
+      const hash = '1234567890abcdef1234567890abcdef12345678';
+      mockGitResponse(`${hash}|1234567|Jane Doe|jane@test.com|2024-02-01T00:00:00+00:00|chore: rename files`, '', 0);
+      mockGitResponse([' 2 files changed', ''].join('\n'), '', 0);
+
+      const commit = await manager.commitDiff('/test', hash);
+
+      expect(commit.filesChanged).toBe(2);
+      expect(commit.insertions).toBe(0);
+      expect(commit.deletions).toBe(0);
+    });
+
+    it('rejects a hash-like argument that could be parsed by git as an option, without calling execFile', async () => {
+      await expect(
+        manager.commitDiff('/test', '--output=/tmp/pwned'),
+      ).rejects.toThrow(/Invalid commit hash/);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects a short flag-like hash, without calling execFile', async () => {
+      await expect(manager.commitDiff('/test', '-1')).rejects.toThrow(/Invalid commit hash/);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+  });
+
   describe('staging operations', () => {
     it('stageFiles returns success', async () => {
       mockGitResponse('', '', 0);
