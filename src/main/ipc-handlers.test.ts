@@ -151,6 +151,139 @@ describe('IPC Handlers - openExternal', () => {
   });
 });
 
+describe('IPC Handlers - exportHistoryMarkdown / exportHistoryJson', () => {
+  // exportHistoryMarkdownGated/exportHistoryJsonGated (extracted from the real
+  // exportHistoryMarkdown/exportHistoryJson registry handlers) must gate
+  // outputPath through the same home/workspaces/approved-picked-root
+  // allowlist as writeFile/listSubdirectories/listGitRepos, rather than
+  // handing an arbitrary renderer-supplied path straight to HistoryManager
+  // (issue #163). isPathAllowedFn below is the real isPathAllowed from
+  // ./path-access, not a hand-copied reimplementation.
+  const homeDir = '/mock/home';
+  const workspaces = ['/mock/workspace'];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exportHistoryMarkdown blocks a path outside home/workspaces (forward slashes)', async () => {
+    const { exportHistoryMarkdownGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportMarkdown: vi.fn() };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+
+    const result = await exportHistoryMarkdownGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      '/etc/passwd',
+    );
+
+    expect(result).toBe(false);
+    expect(historyManager.exportMarkdown).not.toHaveBeenCalled();
+  });
+
+  it('exportHistoryMarkdown blocks a path outside home/workspaces (Windows-style)', async () => {
+    const { exportHistoryMarkdownGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportMarkdown: vi.fn() };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+
+    const result = await exportHistoryMarkdownGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      'C:\\Windows\\System32\\evil.md',
+    );
+
+    expect(result).toBe(false);
+    expect(historyManager.exportMarkdown).not.toHaveBeenCalled();
+  });
+
+  it('exportHistoryMarkdown exports when outputPath is under home', async () => {
+    const path = await import('path');
+    const { exportHistoryMarkdownGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportMarkdown: vi.fn().mockResolvedValue(true) };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+    const inputPath = '/mock/home/exports/session-1.md';
+
+    const result = await exportHistoryMarkdownGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      inputPath,
+    );
+
+    expect(result).toBe(true);
+    // Compare against path.resolve() of the same input rather than a hardcoded
+    // literal — path.resolve() drive-letter-prefixes and backslash-separates
+    // Unix-style inputs when tests run on Windows.
+    expect(historyManager.exportMarkdown).toHaveBeenCalledWith(
+      'session-1',
+      path.resolve(inputPath),
+    );
+  });
+
+  it('exportHistoryJson blocks a path outside home/workspaces (forward slashes)', async () => {
+    const { exportHistoryJsonGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportJson: vi.fn() };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+
+    const result = await exportHistoryJsonGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      '/etc/passwd',
+    );
+
+    expect(result).toBe(false);
+    expect(historyManager.exportJson).not.toHaveBeenCalled();
+  });
+
+  it('exportHistoryJson blocks a path outside home/workspaces (Windows-style)', async () => {
+    const { exportHistoryJsonGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportJson: vi.fn() };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+
+    const result = await exportHistoryJsonGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      'C:\\Windows\\System32\\evil.json',
+    );
+
+    expect(result).toBe(false);
+    expect(historyManager.exportJson).not.toHaveBeenCalled();
+  });
+
+  it('exportHistoryJson exports when outputPath is under a registered workspace', async () => {
+    const path = await import('path');
+    const { exportHistoryJsonGated } = await import('./ipc-handlers');
+    const { isPathAllowed } = await import('./path-access');
+    const historyManager = { exportJson: vi.fn().mockResolvedValue(true) };
+    const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+    const inputPath = '/mock/workspace/exports/session-1.json';
+
+    const result = await exportHistoryJsonGated(
+      historyManager as never,
+      isPathAllowedFn,
+      'session-1',
+      inputPath,
+    );
+
+    expect(result).toBe(true);
+    // Compare against path.resolve() of the same input rather than a hardcoded
+    // literal — see the exportHistoryMarkdown "under home" test above.
+    expect(historyManager.exportJson).toHaveBeenCalledWith(
+      'session-1',
+      path.resolve(inputPath),
+    );
+  });
+});
+
 describe('IPC Handlers - getVersionInfo', () => {
   // Mirrors the handler body in ipc-handlers.ts: `(await probeClaudeVersion()) ?? undefined`,
   // combined with app.getVersion() and process.versions. probeClaudeVersion itself is
