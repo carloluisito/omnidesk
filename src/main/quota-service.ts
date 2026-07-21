@@ -447,10 +447,10 @@ export function buildBurnRateResult(
   };
 }
 
-export function getBurnRate(configDir: string = DEFAULT_CONFIG_DIR): BurnRateData {
-  loadState(configDir);
-  const history = getPerDirState(configDir).state.utilizationHistory;
-
+export function computeBurnRate(
+  history: UtilizationSample[],
+  now: number = Date.now(),
+): BurnRateData {
   const defaultResult: BurnRateData = {
     ratePerHour5h: null,
     ratePerHour7d: null,
@@ -474,7 +474,7 @@ export function getBurnRate(configDir: string = DEFAULT_CONFIG_DIR): BurnRateDat
   }
 
   // Try to use samples from the last 30 minutes
-  const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
+  const thirtyMinAgo = now - 30 * 60 * 1000;
   const recentSamples = postResetHistory.filter(s => new Date(s.timestamp).getTime() >= thirtyMinAgo);
 
   // Try recent samples first
@@ -497,6 +497,11 @@ export function getBurnRate(configDir: string = DEFAULT_CONFIG_DIR): BurnRateDat
   const rate7d = (last.sevenDay - first.sevenDay) / hoursElapsed;
 
   return buildBurnRateResult(rate5h, rate7d, last, postResetHistory);
+}
+
+export function getBurnRate(configDir: string = DEFAULT_CONFIG_DIR): BurnRateData {
+  loadState(configDir);
+  return computeBurnRate(getPerDirState(configDir).state.utilizationHistory);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

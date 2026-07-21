@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterPostReset, buildBurnRateResult, findSamplesWithDelta } from './quota-service';
+import { filterPostReset, buildBurnRateResult, findSamplesWithDelta, computeBurnRate } from './quota-service';
 
 function makeSample(fiveHour: number, sevenDay: number, minutesAgo: number) {
   return {
@@ -287,5 +287,112 @@ describe('findSamplesWithDelta', () => {
     expect(result!.deltaMs).toBe(expectedDeltaMs);
     expect(result!.first).toBe(samples[0]);
     expect(result!.last).toBe(samples[1]);
+  });
+});
+
+describe('computeBurnRate', () => {
+  // Fixed reference instant + explicit millisecond offsets, rather than the
+  // minutesAgo-based makeSample() helper, so the 30-minute recency window and
+  // the MIN_DELTA_MS (1 minute) threshold can be pinned exactly.
+  const NOW = Date.parse('2026-01-01T12:00:00.000Z');
+
+  function fixedSample(fiveHour: number, sevenDay: number, msAgo: number) {
+    return {
+      timestamp: new Date(NOW - msAgo).toISOString(),
+      fiveHour,
+      sevenDay,
+    };
+  }
+
+  it('returns unknown with dataPoints=0 for an empty history', () => {
+    const result = computeBurnRate([], NOW);
+    expect(result.label).toBe('unknown');
+    expect(result.trend).toBe('unknown');
+    expect(result.dataPoints).toBe(0);
+  });
+
+  it('returns unknown with dataPoints=1 for a single-sample history', () => {
+    const result = computeBurnRate([fixedSample(10, 40, 0)], NOW);
+    expect(result.label).toBe('unknown');
+    expect(result.dataPoints).toBe(1);
+  });
+
+  it('returns unknown when fewer than 2 samples remain after a reset', () => {
+    // Reset drops fiveHour from 30 -> 1, leaving only one post-reset sample.
+    const history = [
+      fixedSample(28, 40, 120_000),
+      fixedSample(30, 41, 60_000),
+      fixedSample(1, 42, 0),
+    ];
+    const result = computeBurnRate(history, NOW);
+    expect(result.label).toBe('unknown');
+    expect(result.dataPoints).toBe(1);
+  });
+
+  it('computes the rate from the recent 30-minute window, ignoring older samples', () => {
+    const history = [
+      fixedSample(50, 60, 60 * 60_000), // 60 min ago — outside the 30-min window
+      fixedSample(10, 40, 20 * 60_000), // 20 min ago — inside the window
+      fixedSample(20, 42, 0),           // now
+    ];
+    const result = computeBurnRate(history, NOW);
+    // Only the last two samples (20 min apart) should be used: delta 10 over 1/3 hour = 30/hr.
+    expect(result.ratePerHour5h).toBe(30);
+  });
+
+  it('falls back to the full post-reset history when the recent window has too few samples', () => {
+    const history = [
+      fixedSample(5, 40, 50 * 60_000),  // 50 min ago — outside the window, used only via fallback
+      fixedSample(15, 42, 40 * 60_000), // 40 min ago — also outside the window
+      fixedSample(20, 44, 0),           // now — the only sample inside the 30-min window
+    ];
+    const result = computeBurnRate(history, NOW);
+    // recentSamples has just the "now" sample, so findSamplesWithDelta returns null there
+    // and the function falls back to the full history: 40 min ago -> now, delta 5 over 2/3 hour.
+    expect(result.ratePerHour5h).toBe(7.5);
+    expect(result.ratePerHour7d).toBe(3);
+  });
+
+  it('falls back to a stable zero rate when no samples have sufficient time delta anywhere', () => {
+    const history = [
+      fixedSample(10, 40, 20_000), // 20s ago
+      fixedSample(11, 40, 10_000), // 10s ago
+      fixedSample(12, 40, 0),      // now — all within MIN_DELTA_MS of each other
+    ];
+    const result = computeBurnRate(history, NOW);
+    expect(result.ratePerHour5h).toBe(0);
+    expect(result.ratePerHour7d).toBe(0);
+    expect(result.label).toBe('on-track');
+  });
+
+  it('normalizes by elapsed time, not just value delta, when picking a rate', () => {
+    // Same +10 fiveHour delta in both histories, but the elapsed time differs
+    // by an order of magnitude, so the resulting hourly rates must differ too.
+    const fast = [
+      fixedSample(10, 40, 6 * 60_000), // 6 min ago — inside the 30-min window
+      fixedSample(20, 42, 0),
+    ];
+    const slow = [
+      fixedSample(10, 40, 60 * 60_000), // 60 min ago — outside the 30-min window, fallback used
+      fixedSample(20, 42, 0),
+    ];
+    const fastResult = computeBurnRate(fast, NOW);
+    const slowResult = computeBurnRate(slow, NOW);
+    expect(fastResult.ratePerHour5h).toBe(100); // 10 delta / 0.1h
+    expect(slowResult.ratePerHour5h).toBe(10);  // 10 delta / 1h
+    expect(fastResult.ratePerHour5h).toBeGreaterThan(slowResult.ratePerHour5h);
+  });
+
+  it('delegates dataPoints and defaults consistently with getBurnRate defaults for <2 samples', () => {
+    const result = computeBurnRate([fixedSample(5, 5, 0)], NOW);
+    expect(result).toEqual({
+      ratePerHour5h: null,
+      ratePerHour7d: null,
+      trend: 'unknown',
+      projectedTimeToLimit5h: null,
+      projectedTimeToLimit7d: null,
+      label: 'unknown',
+      dataPoints: 1,
+    });
   });
 });
