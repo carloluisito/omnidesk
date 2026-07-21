@@ -55,7 +55,9 @@ export function Palette({
   const results = useMemo(() => {
     const needle = q.toLowerCase();
     const filteredActions = needle
-      ? actions.filter(a => a.title.toLowerCase().includes(needle))
+      ? actions.filter(a =>
+          a.title.toLowerCase().includes(needle) ||
+          a.sub.toLowerCase().includes(needle))
       : actions;
 
     if (!needle) {

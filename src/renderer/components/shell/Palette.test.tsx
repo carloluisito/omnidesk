@@ -18,6 +18,14 @@ const mk = () => ({
   actions: [],
 });
 
+const action = (overrides: Partial<{ id: string; title: string; sub: string; run: () => void }> = {}) => ({
+  id: overrides.id ?? 'a1',
+  icon: 'search' as any,
+  title: overrides.title ?? 'New Session',
+  sub: overrides.sub ?? 'Open a fresh session',
+  run: overrides.run ?? vi.fn(),
+});
+
 describe('Palette', () => {
   it('shows only the active repo sessions when the query is empty', () => {
     render(<Palette {...mk()} />);
@@ -69,5 +77,73 @@ describe('Palette', () => {
     render(<Palette {...p} />);
     fireEvent.keyDown(screen.getByPlaceholderText(/search sessions/i), { key: 'Escape' });
     expect(p.onClose).toHaveBeenCalled();
+  });
+
+  it('matches an action by its sub description even when the title does not match (#142)', () => {
+    const run = vi.fn();
+    const p = { ...mk(), actions: [action({ id: 'a1', title: 'New Session', sub: 'Spin up a worktree', run })] };
+    render(<Palette {...p} />);
+    fireEvent.change(screen.getByPlaceholderText(/search sessions/i), { target: { value: 'worktree' } });
+    expect(screen.getByText('New Session')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('New Session'));
+    expect(run).toHaveBeenCalled();
+  });
+
+  it('still matches an action by its title (regression)', () => {
+    const p = { ...mk(), actions: [action({ id: 'a1', title: 'New Session', sub: 'Spin up a worktree' })] };
+    render(<Palette {...p} />);
+    fireEvent.change(screen.getByPlaceholderText(/search sessions/i), { target: { value: 'new session' } });
+    expect(screen.getByText('New Session')).toBeInTheDocument();
+  });
+
+  it('shows a "No matches" message when a query matches no actions and no sessions (#142)', () => {
+    const p = { ...mk(), actions: [action()] };
+    render(<Palette {...p} />);
+    fireEvent.change(screen.getByPlaceholderText(/search sessions/i), { target: { value: 'zzzznomatch' } });
+    expect(screen.getByText('No matches.')).toBeInTheDocument();
+  });
+
+  it('treats Enter as a safe no-op when there are zero results (#142)', () => {
+    const p = { ...mk(), actions: [action()] };
+    render(<Palette {...p} />);
+    const input = screen.getByPlaceholderText(/search sessions/i);
+    fireEvent.change(input, { target: { value: 'zzzznomatch' } });
+    expect(() => fireEvent.keyDown(input, { key: 'Enter' })).not.toThrow();
+    expect(p.onPickSession).not.toHaveBeenCalled();
+  });
+
+  it('clamps ArrowDown/ArrowUp selection within the results range (#142)', () => {
+    const p = { ...mk(), actions: [action()] };
+    render(<Palette {...p} />);
+    const input = screen.getByPlaceholderText(/search sessions/i);
+    // Only 1 action + 2 sessions in the active repo (empty query) = 3 total rows.
+    // Arrow past the end and back past the start; selecting either the first
+    // action row or the last session row via Enter should not throw and should
+    // dispatch to the correct handler without going out of bounds.
+    for (let i = 0; i < 10; i++) fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(p.onPickSession).toHaveBeenCalledWith('s2'); // last session row ('build') when clamped to the end
+
+    for (let i = 0; i < 10; i++) fireEvent.keyDown(input, { key: 'ArrowUp' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(p.actions[0].run).toHaveBeenCalled(); // clamped back to the first row (the action)
+  });
+
+  it('dispatches Enter on an action row to that action\'s run handler', () => {
+    const run = vi.fn();
+    const p = { ...mk(), actions: [action({ id: 'a1', run })] };
+    render(<Palette {...p} />);
+    const input = screen.getByPlaceholderText(/search sessions/i);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(run).toHaveBeenCalled();
+  });
+
+  it('dispatches Enter on a session row to onPickSession with the right id', () => {
+    const p = { ...mk(), actions: [action()] };
+    render(<Palette {...p} />);
+    const input = screen.getByPlaceholderText(/search sessions/i);
+    fireEvent.keyDown(input, { key: 'ArrowDown' }); // move off the action row onto the first session row
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(p.onPickSession).toHaveBeenCalledWith('s1');
   });
 });
