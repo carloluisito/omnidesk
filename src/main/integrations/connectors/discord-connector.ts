@@ -1,5 +1,5 @@
 import type { ConnectorTestResult, DiscordConfig, OutboundMessage, SendOutcome } from '../../../shared/integration-types';
-import { IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
+import { CONNECTOR_FETCH_TIMEOUT_MS, IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
 import { truncatePlainText } from '../message-format';
 
 // Discord webhook `content` field hard limit — over this the API returns HTTP 400.
@@ -31,6 +31,7 @@ export class DiscordConnector implements IConnector<DiscordConfig> {
           content: truncatePlainText(msg.text, DISCORD_MAX_LENGTH),
           allowed_mentions: { parse: [] },
         }),
+        signal: AbortSignal.timeout(CONNECTOR_FETCH_TIMEOUT_MS),
       });
       return outcomeFromResponse(res);
     } catch (err) {

@@ -6,7 +6,7 @@ import { DiscordConnector } from './connectors/discord-connector';
 import { WebhookConnector } from './connectors/webhook-connector';
 import { ConnectorRegistry } from './connector-registry';
 import { formatSlack } from './message-format';
-import { outcomeFromResponse, MAX_RETRY_AFTER_MS } from './connector';
+import { outcomeFromResponse, MAX_RETRY_AFTER_MS, CONNECTOR_FETCH_TIMEOUT_MS } from './connector';
 import type { OutboundMessage } from '../../shared/integration-types';
 
 const msg: OutboundMessage = {
@@ -87,6 +87,29 @@ describe('TelegramConnector', () => {
     expect(c.isConfigured({ enabled: true, botToken: 't', chatId: '' })).toBe(false);
     expect(c.isConfigured({ enabled: true, botToken: 't', chatId: 'c' })).toBe(true);
   });
+
+  it('bounds sendMessage with an AbortSignal (#135)', async () => {
+    const fetchFn = mockFetch();
+    await new TelegramConnector().deliver({ enabled: true, botToken: 't', chatId: 'c' }, msg);
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('bounds the test() getMe call with an AbortSignal (#135)', async () => {
+    const fetchFn = mockFetch();
+    await new TelegramConnector().test({ enabled: true, botToken: 't', chatId: 'c' });
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('a hung endpoint that aborts maps to a retryable outcome instead of hanging forever (#135)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new DOMException('The operation was aborted.', 'AbortError'))
+    );
+    const out = await new TelegramConnector().deliver({ enabled: true, botToken: 't', chatId: 'c' }, msg);
+    expect(out).toMatchObject({ ok: false, retryable: true });
+  });
 });
 
 describe('SlackConnector', () => {
@@ -115,6 +138,13 @@ describe('SlackConnector', () => {
     expect(body.text).toContain('&lt;Button&gt;');
     expect(body.text).toContain('A &amp; B');
     expect(body.text).not.toContain('<Button>');
+  });
+
+  it('bounds the webhook POST with an AbortSignal (#135)', async () => {
+    const fetchFn = mockFetch();
+    await new SlackConnector().deliver({ enabled: true, webhookUrl: 'https://hooks.slack.com/x' }, msg);
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 });
 
@@ -148,6 +178,13 @@ describe('DiscordConnector', () => {
     expect(body.content.length).toBeLessThanOrEqual(2000);
     expect(body.content).toContain('truncated');
   });
+
+  it('bounds the webhook POST with an AbortSignal (#135)', async () => {
+    const fetchFn = mockFetch(204);
+    await new DiscordConnector().deliver({ enabled: true, webhookUrl: 'https://discord.com/api/webhooks/x' }, msg);
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 });
 
 describe('WebhookConnector', () => {
@@ -171,6 +208,22 @@ describe('WebhookConnector', () => {
 
   it('network failure maps to retryable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
+    const out = await new WebhookConnector().deliver({ enabled: true, url: 'https://example.com/hook' }, msg);
+    expect(out).toMatchObject({ ok: false, retryable: true });
+  });
+
+  it('bounds the POST with an AbortSignal so a hung URL cannot stall the connector (#135)', async () => {
+    const fetchFn = mockFetch();
+    await new WebhookConnector().deliver({ enabled: true, url: 'https://example.com/hook' }, msg);
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('a hung endpoint that aborts maps to a retryable outcome instead of hanging forever (#135)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new DOMException('The operation was aborted.', 'AbortError'))
+    );
     const out = await new WebhookConnector().deliver({ enabled: true, url: 'https://example.com/hook' }, msg);
     expect(out).toMatchObject({ ok: false, retryable: true });
   });
@@ -219,6 +272,13 @@ describe('outcomeFromResponse — Retry-After parsing (#144)', () => {
   it('HTTP-date form in the past → retryAfterMs undefined', () => {
     const past = new Date(Date.now() - 10_000).toUTCString();
     expect(outcomeFromResponse(res429(past)).retryAfterMs).toBeUndefined();
+  });
+});
+
+describe('CONNECTOR_FETCH_TIMEOUT_MS (#135)', () => {
+  it('is a sane, positive bound well under the queue backoff ceiling', () => {
+    expect(CONNECTOR_FETCH_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(CONNECTOR_FETCH_TIMEOUT_MS).toBeLessThan(MAX_RETRY_AFTER_MS);
   });
 });
 

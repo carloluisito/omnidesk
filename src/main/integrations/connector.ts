@@ -26,6 +26,18 @@ export interface IConnector<C = unknown> {
 export const MAX_RETRY_AFTER_MS = 120_000;
 
 /**
+ * Bound for every connector `fetch()` call (webhook posts and the Telegram getMe/sendMessage
+ * calls). `fetch()` has no default timeout, so a hung or blackholed endpoint — most likely for
+ * the generic WebhookConnector, which posts to an arbitrary user-configured URL — would never
+ * resolve or reject, leaving the DeliveryQueue's per-connector lane (`sending: boolean`) stuck
+ * `true` forever and silently stalling all future deliveries on that connector. Pass
+ * `signal: AbortSignal.timeout(CONNECTOR_FETCH_TIMEOUT_MS)` so a hang instead surfaces as an
+ * AbortError, which flows through the existing `outcomeFromNetworkError` catch path as a
+ * retryable failure.
+ */
+export const CONNECTOR_FETCH_TIMEOUT_MS = 10_000;
+
+/**
  * Parse a Retry-After header value (RFC 7231: either delta-seconds or an HTTP-date) into a
  * positive, clamped millisecond delay. Returns undefined for missing, non-numeric/non-date,
  * negative, zero, or past values so the caller falls back to its own backoff schedule.

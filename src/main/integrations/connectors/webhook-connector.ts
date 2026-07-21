@@ -1,6 +1,6 @@
 import { createHmac } from 'crypto';
 import type { ConnectorTestResult, OutboundMessage, SendOutcome, WebhookConfig } from '../../../shared/integration-types';
-import { IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
+import { CONNECTOR_FETCH_TIMEOUT_MS, IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
 
 /** Generic webhook: POSTs the raw IntegrationEvent JSON — the escape hatch for
  * custom plumbing (n8n, Zapier, home-grown bots). */
@@ -31,7 +31,12 @@ export class WebhookConnector implements IConnector<WebhookConfig> {
       if (cfg.secret) {
         headers['x-omnidesk-signature'] = `sha256=${createHmac('sha256', cfg.secret).update(body).digest('hex')}`;
       }
-      const res = await fetch(cfg.url, { method: 'POST', headers, body });
+      const res = await fetch(cfg.url, {
+        method: 'POST',
+        headers,
+        body,
+        signal: AbortSignal.timeout(CONNECTOR_FETCH_TIMEOUT_MS),
+      });
       return outcomeFromResponse(res);
     } catch (err) {
       return outcomeFromNetworkError(err);
