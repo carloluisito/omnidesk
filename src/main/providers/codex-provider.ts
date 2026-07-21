@@ -1,5 +1,5 @@
 import { execFile } from 'child_process';
-import { IProvider, ProviderCommandOptions } from './provider';
+import { IProvider, ProviderCommandOptions, isSafeModelToken } from './provider';
 import { ProviderId, ProviderInfo } from '../../shared/types/provider-types';
 import type { StateSignals } from '../../shared/session-state-types';
 
@@ -83,7 +83,12 @@ export class CodexProvider implements IProvider {
   buildCommand(options: ProviderCommandOptions): string {
     let command = 'codex';
 
-    if (options.model) {
+    // isSafeModelToken is a defense-in-depth guard: session-manager.ts already
+    // gates request.model at the trust boundary, but this is the point where
+    // the value is shell-interpolated and written to a PTY, so it is checked
+    // again here in case a caller reaches buildCommand() directly (issue #116,
+    // mirrored from ClaudeProvider.buildCommand — see #150).
+    if (options.model && isSafeModelToken(options.model)) {
       command += ` --model ${options.model}`;
     }
 
