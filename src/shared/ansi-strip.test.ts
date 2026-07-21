@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripAnsi } from './ansi-strip';
+import { stripAnsi, stripAnsiCodes } from './ansi-strip';
 
 describe('stripAnsi', () => {
   it('strips CSI color/SGR codes', () => {
@@ -36,5 +36,16 @@ describe('stripAnsi', () => {
 
   it('handles empty input', () => {
     expect(stripAnsi('')).toBe('');
+  });
+});
+
+describe('stripAnsiCodes', () => {
+  it('strips CSI/OSC sequences but leaves \\r and \\n untouched', () => {
+    const raw = '\x1b[31mline1\r\x1b[0mline2\r\nline3';
+    expect(stripAnsiCodes(raw)).toBe('line1\rline2\r\nline3');
+  });
+
+  it('passes plain text through unchanged', () => {
+    expect(stripAnsiCodes('hello world')).toBe('hello world');
   });
 });
