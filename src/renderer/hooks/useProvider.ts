@@ -7,9 +7,11 @@ export function useProvider() {
   const capabilitiesCache = useRef<Map<ProviderId, ProviderCapabilities>>(new Map());
 
   useEffect(() => {
-    // Load providers on mount
-    window.electronAPI.listProviders().then(setProviders);
-    window.electronAPI.getAvailableProviders().then(setAvailableProviders);
+    // Load providers on mount. Guard against a resolved value of undefined
+    // (e.g. an unconfigured IPC mock in tests) so consumers can always rely
+    // on these being arrays.
+    window.electronAPI.listProviders().then(res => setProviders(res ?? []));
+    window.electronAPI.getAvailableProviders().then(res => setAvailableProviders(res ?? []));
   }, []);
 
   const getCapabilities = useCallback(async (providerId: ProviderId): Promise<ProviderCapabilities> => {
