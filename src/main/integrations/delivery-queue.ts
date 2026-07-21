@@ -31,6 +31,15 @@ export interface DeliveryQueueOptions {
 
 const BACKOFF_MS = [2_000, 8_000, 32_000];
 
+/**
+ * Defensive independent ceiling on any scheduled retry delay. connector.ts already clamps
+ * retryAfterMs at the parse boundary, but this queue must not trust that a SendOutcome always
+ * came from there — an out-of-range delay feeding straight into setTimeout is silently clamped
+ * by Node to ~1ms above ~24.85 days (2^31 - 1 ms), which turns into an unbroken reschedule loop
+ * on this lane. Kept equal to connector.ts's MAX_RETRY_AFTER_MS so behavior is consistent.
+ */
+const MAX_RETRY_DELAY_MS = 120_000;
+
 export class DeliveryQueue {
   private readonly opts: Required<Pick<DeliveryQueueOptions, 'ratePerMinute' | 'maxQueue' | 'maxRetries'>> &
     Pick<DeliveryQueueOptions, 'send' | 'onStatus'>;
@@ -129,7 +138,7 @@ export class DeliveryQueue {
       this.opts.onStatus?.({ connectorId: id, ok: true, at: Date.now() });
     } else if (outcome.retryable && item.attempts < this.opts.maxRetries) {
       const backoff = BACKOFF_MS[Math.min(item.attempts, BACKOFF_MS.length - 1)];
-      const delay = outcome.retryAfterMs ?? backoff;
+      const delay = Math.min(outcome.retryAfterMs ?? backoff, MAX_RETRY_DELAY_MS);
       lane.queue.unshift({ ...item, attempts: item.attempts + 1, notBefore: Date.now() + delay });
     } else {
       this.opts.onStatus?.({ connectorId: id, ok: false, error: outcome.error, at: Date.now() });

@@ -6,6 +6,7 @@ import { DiscordConnector } from './connectors/discord-connector';
 import { WebhookConnector } from './connectors/webhook-connector';
 import { ConnectorRegistry } from './connector-registry';
 import { formatSlack } from './message-format';
+import { outcomeFromResponse, MAX_RETRY_AFTER_MS } from './connector';
 import type { OutboundMessage } from '../../shared/integration-types';
 
 const msg: OutboundMessage = {
@@ -172,6 +173,52 @@ describe('WebhookConnector', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
     const out = await new WebhookConnector().deliver({ enabled: true, url: 'https://example.com/hook' }, msg);
     expect(out).toMatchObject({ ok: false, retryable: true });
+  });
+});
+
+describe('outcomeFromResponse — Retry-After parsing (#144)', () => {
+  function res429(retryAfter: string | null) {
+    return { status: 429, headers: { get: (n: string) => (n.toLowerCase() === 'retry-after' ? retryAfter : null) } };
+  }
+
+  it('missing header → retryAfterMs undefined (falls back to queue backoff)', () => {
+    expect(outcomeFromResponse(res429(null))).toMatchObject({ ok: false, retryable: true, retryAfterMs: undefined });
+  });
+
+  it('non-numeric, non-date header → retryAfterMs undefined', () => {
+    expect(outcomeFromResponse(res429('not-a-number-or-date')).retryAfterMs).toBeUndefined();
+  });
+
+  it('negative or zero seconds → retryAfterMs undefined', () => {
+    expect(outcomeFromResponse(res429('-5')).retryAfterMs).toBeUndefined();
+    expect(outcomeFromResponse(res429('0')).retryAfterMs).toBeUndefined();
+  });
+
+  it('sane mid-range seconds pass through unclamped', () => {
+    expect(outcomeFromResponse(res429('30')).retryAfterMs).toBe(30_000);
+  });
+
+  it('out-of-range seconds (~317 years) clamp to MAX_RETRY_AFTER_MS, never overflow setTimeout', () => {
+    const out = outcomeFromResponse(res429('9999999999'));
+    expect(out.retryAfterMs).toBe(MAX_RETRY_AFTER_MS);
+    expect(out.retryAfterMs!).toBeLessThan(2 ** 31 - 1);
+  });
+
+  it('HTTP-date form in the near future yields a positive, clamped delay', () => {
+    const future = new Date(Date.now() + 10_000).toUTCString();
+    const out = outcomeFromResponse(res429(future));
+    expect(out.retryAfterMs).toBeGreaterThan(0);
+    expect(out.retryAfterMs!).toBeLessThanOrEqual(MAX_RETRY_AFTER_MS);
+  });
+
+  it('HTTP-date form far in the future clamps to MAX_RETRY_AFTER_MS', () => {
+    const farFuture = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    expect(outcomeFromResponse(res429(farFuture)).retryAfterMs).toBe(MAX_RETRY_AFTER_MS);
+  });
+
+  it('HTTP-date form in the past → retryAfterMs undefined', () => {
+    const past = new Date(Date.now() - 10_000).toUTCString();
+    expect(outcomeFromResponse(res429(past)).retryAfterMs).toBeUndefined();
   });
 });
 
