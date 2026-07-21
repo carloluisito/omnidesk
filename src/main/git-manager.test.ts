@@ -655,6 +655,93 @@ describe('GitManager', () => {
     });
   });
 
+  describe('worktree path naming', () => {
+    describe('sanitizeBranchNameForDir', () => {
+      it('replaces forward slashes with a dash', () => {
+        expect(manager.sanitizeBranchNameForDir('feature/foo')).toBe('feature-foo');
+      });
+
+      it('replaces backslashes with a dash', () => {
+        expect(manager.sanitizeBranchNameForDir('feature\\bar')).toBe('feature-bar');
+      });
+
+      it('neutralizes path traversal sequences (no ".." or separator survives)', () => {
+        const result = manager.sanitizeBranchNameForDir('../../etc');
+        expect(result).not.toContain('..');
+        expect(result).not.toMatch(/[/\\]/);
+      });
+
+      it('rewrites a leading dot to an underscore', () => {
+        expect(manager.sanitizeBranchNameForDir('.hidden')).toBe('_hidden');
+      });
+
+      it('rewrites a trailing ".lock" (case-insensitive)', () => {
+        expect(manager.sanitizeBranchNameForDir('HEAD.lock')).toBe('HEAD_lock');
+        expect(manager.sanitizeBranchNameForDir('HEAD.LOCK')).toBe('HEAD_lock');
+      });
+
+      it('strips git-invalid and whitespace characters, then collapses dashes', () => {
+        expect(manager.sanitizeBranchNameForDir('wip: fix? [x]')).toBe('wip-fix-x');
+      });
+
+      it('collapses repeated dashes produced by adjacent separators', () => {
+        expect(manager.sanitizeBranchNameForDir('a//b')).toBe('a-b');
+        expect(manager.sanitizeBranchNameForDir('a--b')).toBe('a-b');
+      });
+
+      it('trims leading and trailing dashes', () => {
+        expect(manager.sanitizeBranchNameForDir('-foo-')).toBe('foo');
+      });
+
+      it('caps the result at 100 characters', () => {
+        const longName = 'a'.repeat(120);
+        const result = manager.sanitizeBranchNameForDir(longName);
+        expect(result).toHaveLength(100);
+        expect(result).toBe('a'.repeat(100));
+      });
+
+      it('falls back to "worktree" when sanitizing yields an empty string', () => {
+        expect(manager.sanitizeBranchNameForDir('///')).toBe('worktree');
+      });
+    });
+
+    describe('computeWorktreePath', () => {
+      const mainRepoPath = path.join('some', 'nested', 'myrepo');
+      const repoName = path.basename(mainRepoPath);
+
+      it('sibling: joins <dirname(mainRepoPath)>/<repoName>-worktrees/<sanitized>', () => {
+        const settings = { basePath: 'sibling', cleanupOnSessionClose: 'ask' } as const;
+        const result = manager.computeWorktreePath(mainRepoPath, 'feature/x', settings);
+        expect(result).toBe(path.join(path.dirname(mainRepoPath), `${repoName}-worktrees`, 'feature-x'));
+      });
+
+      it('subdirectory: joins <mainRepoPath>/.worktrees/<sanitized>', () => {
+        const settings = { basePath: 'subdirectory', cleanupOnSessionClose: 'ask' } as const;
+        const result = manager.computeWorktreePath(mainRepoPath, 'feature/x', settings);
+        expect(result).toBe(path.join(mainRepoPath, '.worktrees', 'feature-x'));
+      });
+
+      it('custom with customBasePath: joins <customBasePath>/<sanitized>', () => {
+        const customBasePath = path.join('custom', 'base');
+        const settings = { basePath: 'custom', customBasePath, cleanupOnSessionClose: 'ask' } as const;
+        const result = manager.computeWorktreePath(mainRepoPath, 'feature/x', settings);
+        expect(result).toBe(path.join(customBasePath, 'feature-x'));
+      });
+
+      it('custom without customBasePath: falls back to the sibling-style default', () => {
+        const settings = { basePath: 'custom', cleanupOnSessionClose: 'ask' } as const;
+        const result = manager.computeWorktreePath(mainRepoPath, 'feature/x', settings);
+        expect(result).toBe(path.join(path.dirname(mainRepoPath), `${repoName}-worktrees`, 'feature-x'));
+      });
+
+      it('sanitizes the branch name before joining it into the path', () => {
+        const settings = { basePath: 'subdirectory', cleanupOnSessionClose: 'ask' } as const;
+        const result = manager.computeWorktreePath(mainRepoPath, 'wip: fix? [x]', settings);
+        expect(path.basename(result)).toBe('wip-fix-x');
+      });
+    });
+  });
+
   describe('destroy', () => {
     it('cleans up watchers and timers', () => {
       manager.destroy();
