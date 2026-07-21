@@ -66,6 +66,22 @@ export function formatTelegramHTML(event: IntegrationEvent): string {
   return lines.join('\n');
 }
 
+export function formatSlack(event: IntegrationEvent): string {
+  if (event.type === 'digest' || event.type === 'pr-created' || event.type === 'test') {
+    return escapeHTML(event.summary ?? '');
+  }
+  const lines: string[] = [];
+  const repo = event.repoName ? `${escapeHTML(event.repoName)} · ` : '';
+  const name = event.sessionName ? escapeHTML(event.sessionName) : '';
+  const head = `${repo}${name}`.trim();
+  lines.push(head ? `${head} — ${escapeHTML(stateLabel(event))}` : escapeHTML(stateLabel(event)));
+  if (event.reason && event.reason !== 'bell') lines.push(escapeHTML(event.reason));
+  // The link is left unescaped: Slack auto-links bare URLs, and escaping
+  // `&` inside a query string would break the link.
+  lines.push(linkLine(event));
+  return lines.join('\n');
+}
+
 const DEFAULT_TRUNCATION_MARKER = '\n… (truncated)';
 
 /**
