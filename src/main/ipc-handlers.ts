@@ -103,6 +103,52 @@ export async function openExternalUrl(url: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Resolves and gates a renderer-supplied export outputPath through the
+ * home/workspaces/approved-picked-root allowlist (isPathAllowedFn) before
+ * delegating to HistoryManager, giving these handlers the same path parity
+ * as writeFile. Extracted from the exportHistoryMarkdown/exportHistoryJson
+ * registry handlers so the gating logic can be exercised directly in tests
+ * instead of a hand-copied reimplementation.
+ */
+export async function exportHistoryMarkdownGated(
+  historyManager: Pick<HistoryManager, 'exportMarkdown'>,
+  isPathAllowedFn: (resolved: string) => boolean,
+  sessionId: string,
+  outputPath: string,
+): Promise<boolean> {
+  const resolved = path.resolve(outputPath);
+  if (!isPathAllowedFn(resolved)) {
+    console.warn('[exportHistoryMarkdown] Blocked path outside home/workspaces:', resolved);
+    return false;
+  }
+  try {
+    return await historyManager.exportMarkdown(sessionId, resolved);
+  } catch (err) {
+    console.error('Failed to export markdown:', err);
+    return false;
+  }
+}
+
+export async function exportHistoryJsonGated(
+  historyManager: Pick<HistoryManager, 'exportJson'>,
+  isPathAllowedFn: (resolved: string) => boolean,
+  sessionId: string,
+  outputPath: string,
+): Promise<boolean> {
+  const resolved = path.resolve(outputPath);
+  if (!isPathAllowedFn(resolved)) {
+    console.warn('[exportHistoryJson] Blocked path outside home/workspaces:', resolved);
+    return false;
+  }
+  try {
+    return await historyManager.exportJson(sessionId, resolved);
+  } catch (err) {
+    console.error('Failed to export JSON:', err);
+    return false;
+  }
+}
+
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
   sessionManager: SessionManager,
@@ -514,13 +560,11 @@ export function setupIPCHandlers(
   });
 
   registry.handle('exportHistoryMarkdown', async (_e, sessionId, outputPath) => {
-    try { return await historyManager.exportMarkdown(sessionId, outputPath); }
-    catch (err) { console.error('Failed to export markdown:', err); return false; }
+    return exportHistoryMarkdownGated(historyManager, isPathAllowed, sessionId, outputPath);
   });
 
   registry.handle('exportHistoryJson', async (_e, sessionId, outputPath) => {
-    try { return await historyManager.exportJson(sessionId, outputPath); }
-    catch (err) { console.error('Failed to export JSON:', err); return false; }
+    return exportHistoryJsonGated(historyManager, isPathAllowed, sessionId, outputPath);
   });
 
   registry.handle('getHistorySettings', async () => historyManager.getSettings());
