@@ -22,6 +22,7 @@ import { useSessionManager } from './hooks/useSessionManager';
 import { useRepos } from './hooks/useRepos';
 import { useQuota } from './hooks/useQuota';
 import { useAgentViewAvailability } from './hooks/useAgentViewAvailability';
+import { useProvider } from './hooks/useProvider';
 import { useSessionPreviews } from './hooks/useSessionPreviews';
 import { useTouchMode } from './hooks/useTouchMode';
 import { MobileKeyBar } from './components/shell/mobile/MobileKeyBar';
@@ -105,6 +106,14 @@ function App() {
   // Gate the "agents" launch mode based on the live availability probe.
   const agentView = useAgentViewAvailability();
   const agentsAvailable = agentView.availability?.status === 'available';
+
+  // Providers whose CLI is actually installed, for gating the new-session
+  // Agent toggle (empty while the probe is in flight — see NewSessionSheet).
+  const { availableProviders: availableProviderInfos } = useProvider();
+  const availableProviderIds = useMemo(
+    () => availableProviderInfos.map(p => p.id),
+    [availableProviderInfos]
+  );
 
   // Per-session recent-output snapshots, fed into Grid tiles + Inspector last-activity.
   const previews = useSessionPreviews();
@@ -883,6 +892,7 @@ function App() {
             sessions={sessions}
             activeRepoId={activeRepoId}
             agentsAvailable={agentsAvailable}
+            availableProviders={availableProviderIds}
             prefill={newSessionPrefill ?? undefined}
             onClose={() => { setShowNewSession(false); setNewSessionPrefill(null); }}
             onCreate={handleCreateSession}

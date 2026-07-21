@@ -52,6 +52,11 @@ interface NewSessionSheetProps {
   activeRepoId: string | null;
   /** Whether `claude agents` is available right now (probe result from useAgentViewAvailability). */
   agentsAvailable?: boolean;
+  /** Providers whose CLI is actually installed (from useProvider().availableProviders,
+   *  mapped to ids). Empty means "unknown / still loading" — both options stay shown
+   *  and selectable, matching NewSessionDialog's fallback, so the sheet never renders
+   *  an empty toggle while the probe is in flight. */
+  availableProviders?: ProviderId[];
   /** Optional pre-filled values (work intake). */
   prefill?: NewSessionPrefill;
   onClose: () => void;
@@ -66,6 +71,7 @@ export function NewSessionSheet({
   sessions,
   activeRepoId,
   agentsAvailable = true,
+  availableProviders = [],
   prefill,
   onClose,
   onCreate,
@@ -101,6 +107,20 @@ export function NewSessionSheet({
   useEffect(() => {
     if (agent !== 'claude' && launchMode !== 'default') setLaunchMode('default');
   }, [agent, launchMode]);
+
+  // Default to an actually-installed provider once availability is known.
+  // Empty availableProviders means "still probing" — leave the default (claude)
+  // in place rather than guessing. Fires once per mount so it never clobbers
+  // a manual pick made while the probe was in flight.
+  const appliedProviderDefaultRef = useRef(false);
+  useEffect(() => {
+    if (appliedProviderDefaultRef.current) return;
+    if (availableProviders.length === 0) return;
+    appliedProviderDefaultRef.current = true;
+    if (!availableProviders.includes('claude')) {
+      setAgent(availableProviders[0]);
+    }
+  }, [availableProviders]);
 
   // Sessions in the active repo that currently have their own worktree —
   // candidates for "Share" mode. We exclude sessions running in the main
@@ -505,24 +525,37 @@ export function NewSessionSheet({
             <div className="p4-form-row" style={{ marginBottom: 0 }}>
               <label>Agent</label>
               <div style={{ display: 'flex', gap: 4, background: 'var(--surface-mid)', padding: 2, borderRadius: 6 }}>
-                {(['claude', 'codex'] as ProviderId[]).map(a => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => setAgent(a)}
-                    className="p4-btn"
-                    style={{
-                      flex: 1, justifyContent: 'center',
-                      background: agent === a ? 'var(--surface-high)' : 'transparent',
-                      border: 0,
-                      color: agent === a
-                        ? a === 'claude' ? 'var(--accent)' : 'var(--accent-2)'
-                        : 'var(--text-secondary)',
-                    }}
-                  >
-                    {a === 'claude' ? 'Claude' : 'Codex'}
-                  </button>
-                ))}
+                {(['claude', 'codex'] as ProviderId[]).map(a => {
+                  // Empty availableProviders means "still probing" — show both,
+                  // selectable, matching the empty-state fallback above.
+                  const known = availableProviders.length > 0;
+                  const unavailable = known && !availableProviders.includes(a);
+                  const label = a === 'claude' ? 'Claude' : 'Codex';
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      disabled={unavailable}
+                      title={unavailable ? `${label} CLI not installed` : undefined}
+                      onClick={() => setAgent(a)}
+                      className="p4-btn"
+                      style={{
+                        flex: 1, justifyContent: 'center',
+                        background: agent === a ? 'var(--surface-high)' : 'transparent',
+                        border: 0,
+                        color: unavailable
+                          ? 'var(--text-quaternary)'
+                          : agent === a
+                            ? a === 'claude' ? 'var(--accent)' : 'var(--accent-2)'
+                            : 'var(--text-secondary)',
+                        opacity: unavailable ? 0.5 : 1,
+                        cursor: unavailable ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {label}{unavailable ? <span style={{ fontSize: 9, marginLeft: 4 }}>(not installed)</span> : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
