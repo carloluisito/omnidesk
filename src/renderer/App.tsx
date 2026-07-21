@@ -916,8 +916,9 @@ function App() {
       {showPalette && activeRepo && (
         <Palette
           repo={activeRepo}
+          repos={visibleRepos}
           sessions={sessions}
-          onPickSession={(id) => { handleSelectSession(id); setShowPalette(false); }}
+          onPickSession={(id) => { handleMobileSelectSession(id); setShowPalette(false); }}
           onClose={() => setShowPalette(false)}
           actions={paletteActions}
         />
