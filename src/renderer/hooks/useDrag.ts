@@ -21,7 +21,7 @@
  * Persistence: caller receives onReorder(from, to) and writes to settings/IPC.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export interface DragState {
   activeIndex: number | null;
@@ -53,6 +53,15 @@ export function useDrag<T>({ items, onReorder, threshold = 4 }: UseDragOptions<T
   const didStartRef = useRef(false);
   const itemsRef = useRef<T[]>(items);
   itemsRef.current = items;
+
+  // Teardown for whichever drag is currently in progress, if any. Set at the
+  // start of each pointerdown, cleared once the drag ends. Exists so the
+  // unmount effect below can revert document.body.style.cursor/userSelect
+  // even when the pointerup/pointercancel listener (attached to the dragged
+  // element itself) never fires — e.g. the dragged tab/row is removed from
+  // the DOM mid-drag (session closed, list item deleted) and the owning
+  // component unmounts before the pointer is released.
+  const activeCleanupRef = useRef<(() => void) | null>(null);
 
   const dragHandlers = useCallback((index: number) => ({
     onPointerDown: (e: React.PointerEvent) => {
@@ -113,31 +122,77 @@ export function useDrag<T>({ items, onReorder, threshold = 4 }: UseDragOptions<T
         }
       };
 
-      const onUp = () => {
+      const removeListeners = () => {
         el.removeEventListener('pointermove', onMove);
         el.removeEventListener('pointerup', onUp);
         el.removeEventListener('pointercancel', onUp);
+        el.removeEventListener('lostpointercapture', onLostCapture);
+      };
 
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
+      // Shared cleanup: revert the global cursor/userSelect mutation (only if
+      // a drag actually started — a plain click never touched them) and
+      // reset drag bookkeeping. Used by pointerup, pointercancel,
+      // lostpointercapture, and the component-unmount safety net.
+      const endDrag = () => {
+        removeListeners();
 
-        if (didStartRef.current && activeRef.current !== null && overRef.current !== null) {
-          if (activeRef.current !== overRef.current) {
-            onReorder(activeRef.current, overRef.current);
-          }
+        if (didStartRef.current) {
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
         }
 
         activeRef.current = null;
         overRef.current = null;
         didStartRef.current = false;
+        activeCleanupRef.current = null;
+      };
+
+      const onUp = () => {
+        const wasStarted = didStartRef.current;
+        const from = activeRef.current;
+        const to = overRef.current;
+
+        endDrag();
+        setDragState({ activeIndex: null, overIndex: null });
+
+        if (wasStarted && from !== null && to !== null && from !== to) {
+          onReorder(from, to);
+        }
+      };
+
+      // Fires when the browser implicitly releases pointer capture — notably
+      // when the captured element (`el`) is removed from the DOM, which is
+      // exactly the "dragged item unmounts mid-drag" scenario (e.g. closing a
+      // tab while dragging it). Treat it like a cancel: no reorder, just
+      // revert the global styles so the app doesn't get stuck with
+      // cursor: grabbing / userSelect: none.
+      const onLostCapture = () => {
+        endDrag();
+        setDragState({ activeIndex: null, overIndex: null });
+      };
+
+      activeCleanupRef.current = () => {
+        endDrag();
         setDragState({ activeIndex: null, overIndex: null });
       };
 
       el.addEventListener('pointermove', onMove);
       el.addEventListener('pointerup', onUp);
       el.addEventListener('pointercancel', onUp);
+      el.addEventListener('lostpointercapture', onLostCapture);
     },
   }), [onReorder, threshold]);
+
+  // Safety net: if the component that owns this hook instance unmounts while
+  // a drag is active, the pointerup/pointercancel/lostpointercapture
+  // listeners (attached to the now-detached element) may never run. Without
+  // this, document.body.style.cursor/userSelect would stay stuck for the
+  // rest of the session.
+  useEffect(() => {
+    return () => {
+      activeCleanupRef.current?.();
+    };
+  }, []);
 
   return { dragState, dragHandlers };
 }
