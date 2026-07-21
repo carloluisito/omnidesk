@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2026-07-21
+
+### Added
+- **Outbound integrations — get pinged where you already are.** Push session alerts to **Telegram, Slack, Discord, or a generic HMAC-signed webhook** when a session needs you (a question is waiting, approval is needed, it errored, or it finished). Alerts are edge-triggered and debounced, with per-event toggles and per-repo mutes. While a remote tunnel is running, each alert carries a deep link that opens the exact session in the remote PWA on your phone. Configure it from the activity-bar bolt button or `Ctrl/Cmd+K → "Integrations…"`.
+- **GitHub ship-it & issue intake.** Turn a finished session into a pull request via the `gh` CLI — preview, then explicitly create (one PR per branch, never auto-created). Or pull work the other direction: pick a GitHub issue from the palette and OmniDesk opens a new session on a `feat/<n>-<slug>` branch with the issue body pre-loaded as the starting prompt (typed in, never auto-submitted).
+- **Optional fleet digest.** An opt-in periodic summary of what your sessions are doing, automatically skipped when everything is idle.
+- **Search sessions across every open repo.** The command palette (`Ctrl/Cmd+K`) now matches session names from all open repositories at once, so you can jump to any session without switching repos first.
+- **Next / previous session shortcuts.** Cycle through the active repo's sessions with `Ctrl/Cmd+Shift+]` and `Ctrl/Cmd+Shift+[`.
+
+### Changed
+- Burn-rate calculation was refactored into a pure, independently testable function, and test coverage was broadened across quota, checkpoints, IPC handlers, the Claude detector, and file utilities; shared ANSI-stripping is now a single helper.
+- `package.json` now declares supported engines (Node ≥ 20, npm ≥ 10), the build job uses `npm ci`, and README version/test badges are dynamic.
+
+### Fixed
+- **Integrations robustness:** connector fetches are now bounded by a timeout, `Retry-After` values are clamped and validated, attention state is released when a session ends, Slack control characters are escaped and Discord mentions suppressed, over-long Discord/Telegram messages are truncated to API limits, exited sessions no longer inflate the idle-digest count, and per-repo mutes match by true path containment.
+- **Security & input validation:** models are validated against an allowlist before any shell interpolation (both the Claude and Codex providers), new-session working directories are gated behind the allowed-path check, and Git file reads reject paths that escape the repository directory.
+- **Terminal correctness:** UTF-16 surrogate pairs and multi-byte UTF-8 sequences stay intact across chunk boundaries (no more mangled emoji/CJK), POSIX shell path escaping was consolidated and corrected, and relocating pooled Windows shells no longer triggers `cmd.exe` `%VAR%` expansion.
+- **Sessions, git & worktrees:** restart is properly guarded against races, the session pool restores correctly after being disabled and re-enabled, worktree metadata reconciles its OmniDesk/linked-session fields, ship-it detects the real default branch, unstaged changes surface on renamed-then-modified/deleted files, and a missing `.git/index` watcher error handler was added.
+- **Quota & misc:** burn-rate trend is normalized by elapsed time and fed the real 5-hour rate, palette search matches action subtitles, checkpoint export truncates by stored byte offset, provider permission modes are unified, interrupted legacy-config migrations retry, stale remote-auth rate-limit entries are pruned, a blocking `execSync` at startup was replaced with an async version probe, Caps-Lock case is normalized in the shortcut handlers, and the new-session agent toggle is gated behind real availability.
+
+---
+
 ## [2.5.0] - 2026-07-19
 
 ### Added

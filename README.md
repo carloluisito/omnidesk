@@ -81,6 +81,7 @@
 
 ### Command Palette & Repo Switcher
 - **Command palette** (`Ctrl/Cmd+K`) for quick actions — new session, switch to Focus/Grid, toggle the inspector, add a repository
+- **Search sessions across every open repo** — the palette matches session names from all your open repositories at once, so you can jump straight to any session without switching repos first
 - **Repo switcher** (`Ctrl/Cmd+Shift+K`) to jump between repositories and their sessions
 
 ### Attention Cockpit
@@ -108,6 +109,16 @@
 - **One-scan sign-in + installable PWA** — a QR whose link embeds the token signs you in on one scan, and you can **Add to Home Screen / Install** for a full-screen app that stays signed in across launches
 - **Built for touch** — on a phone the UI switches to a focused mobile layout: a drawer to **switch between projects and sessions** (and open a new project) over a full-screen terminal. Tapping the terminal raises the keyboard, and an on-screen key bar sends Esc, Tab, Ctrl-combos, arrows, and newline so you can actually work from a phone
 - Open it from the activity-bar tunnel button or `Ctrl/Cmd+K → "Remote access…"`
+
+### Integrations
+- **Get pinged where you already are** — push session alerts out to **Telegram, Slack, Discord, or a generic (HMAC-signed) webhook** when a session needs you: a question is waiting, approval is needed, it errored, or it finished. Alerts are edge-triggered and debounced, so you get a heads-up, not a firehose
+- **Per-event and per-repo control** — toggle which events notify you, and mute noisy repositories individually
+- **Tap the alert, land on the session** — while a remote tunnel is running, notifications carry a deep link that opens the exact session in the remote PWA on your phone
+- **Ship it from a finished session** — turn a completed session into a GitHub PR (via the `gh` CLI): preview, then explicitly create — one PR per branch, never auto-created
+- **Pull work in from GitHub issues** — pick an issue from the palette and OmniDesk opens a new session on a `feat/<n>-<slug>` branch with the issue body pre-loaded as the starting prompt (typed in, never auto-submitted)
+- **Fleet digest** (off by default) — an optional periodic summary of what your sessions are doing, skipped when everything's idle
+- **Test pings + delivery badges** — verify each connector with a one-click test and watch delivery status live
+- Configure it from the activity-bar bolt button or `Ctrl/Cmd+K → "Integrations…"`
 
 ### Terminal Features
 - **Full xterm.js terminal** with rich text formatting
