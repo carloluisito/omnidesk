@@ -25,6 +25,15 @@ interface PaletteProps {
   onPickSession: (id: string) => void;
   onClose: () => void;
   actions: PaletteAction[];
+  // All open repos, for cross-repo search on a non-empty query (#148). Optional
+  // and defaults to just `repo` — an empty query always shows only `repo`'s
+  // sessions, unchanged from before this prop existed.
+  repos?: Repo[];
+}
+
+interface SessionGroup {
+  repo: Repo;
+  sessions: TabData[];
 }
 
 export function Palette({
@@ -33,6 +42,7 @@ export function Palette({
   onPickSession,
   onClose,
   actions,
+  repos,
 }: PaletteProps) {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
@@ -44,18 +54,43 @@ export function Palette({
 
   const results = useMemo(() => {
     const needle = q.toLowerCase();
-    const filteredSessions = needle
-      ? repoSessions.filter(s =>
-          s.name.toLowerCase().includes(needle) ||
-          (s.worktreeBranch?.toLowerCase().includes(needle) ?? false))
-      : repoSessions;
     const filteredActions = needle
       ? actions.filter(a => a.title.toLowerCase().includes(needle))
       : actions;
-    return { actions: filteredActions, sessions: filteredSessions };
-  }, [q, repoSessions, actions]);
 
-  const total = results.actions.length + results.sessions.length;
+    if (!needle) {
+      // Empty query: unchanged behavior — only the active repo's sessions.
+      const groups: SessionGroup[] = repoSessions.length > 0 ? [{ repo, sessions: repoSessions }] : [];
+      return { actions: filteredActions, groups, flatSessions: repoSessions };
+    }
+
+    const matches = (s: TabData) =>
+      s.name.toLowerCase().includes(needle) ||
+      (s.worktreeBranch?.toLowerCase().includes(needle) ?? false);
+
+    // Cross-repo search: group matches by owning repo, active repo's group
+    // first, then the rest in `repos` order. Claim-as-we-go dedups a session
+    // that could otherwise match more than one repo's path convention (see
+    // MobileDrawer's grouping for the same pattern).
+    const searchRepos = repos && repos.length > 0 ? repos : [repo];
+    const orderedRepos = [
+      repo,
+      ...searchRepos.filter(r => r.id !== repo.id),
+    ];
+    const claimed = new Set<string>();
+    const groups: SessionGroup[] = [];
+    for (const r of orderedRepos) {
+      const repoMatches = sessionsForRepo(r, sessions)
+        .filter(s => !claimed.has(s.id) && matches(s));
+      if (repoMatches.length === 0) continue;
+      repoMatches.forEach(s => claimed.add(s.id));
+      groups.push({ repo: r, sessions: repoMatches });
+    }
+    const flatSessions = groups.flatMap(g => g.sessions);
+    return { actions: filteredActions, groups, flatSessions };
+  }, [q, repo, repoSessions, sessions, repos, actions]);
+
+  const total = results.actions.length + results.flatSessions.length;
   useEffect(() => { setSel(0); }, [q]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -65,7 +100,7 @@ export function Palette({
       if (sel < results.actions.length) {
         results.actions[sel]?.run();
       } else {
-        const s = results.sessions[sel - results.actions.length];
+        const s = results.flatSessions[sel - results.actions.length];
         if (s) onPickSession(s.id);
       }
       e.preventDefault();
@@ -123,58 +158,65 @@ export function Palette({
             </>
           )}
 
-          {results.sessions.length > 0 && (
-            <>
-              <div className="p4-palette-group">Sessions in {repo.name}</div>
-              {results.sessions.map((s, i) => {
-                const idx = results.actions.length + i;
-                const status = mapTabStatus(s);
-                const meta = STATUS_META[status];
-                const color: RepoColor = status === 'errored' ? 'error' :
-                                          status === 'live' ? 'accent' :
-                                          status === 'idle' ? 'neutral' : 'info';
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={'p4-palette-row' + (sel === idx ? ' on' : '')}
-                    onClick={() => onPickSession(s.id)}
-                    onMouseEnter={() => setSel(idx)}
-                    style={{
-                      width: '100%', border: 0, background: 'transparent',
-                      color: 'inherit', font: 'inherit', textAlign: 'left',
-                    }}
-                  >
-                    <span style={{
-                      width: 20, height: 20, borderRadius: 5,
-                      background: colorBg(color), color: colorFg(color),
-                      display: 'grid', placeItems: 'center',
-                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                      flexShrink: 0,
-                    }}>{initials(s.name)}</span>
-                    <div style={{ flex: 1, marginLeft: 2 }}>
-                      <div className="txt">{s.name}</div>
-                      <div className="sub">
-                        {agentLetter(s.providerId)}{s.worktreeBranch ? ` · ${s.worktreeBranch}` : ''}
-                      </div>
-                    </div>
-                    <span
-                      className={'p4-chip ' + (meta.chip || '')}
+          {results.groups.map((group, gi) => {
+            // Index offset of this group's first session within the flattened
+            // keyboard-nav list (actions, then each group's sessions in order).
+            const priorSessions = results.groups.slice(0, gi).reduce((n, g) => n + g.sessions.length, 0);
+            return (
+              <div key={group.repo.id || 'active'} className="p4-palette-group-block">
+                <div className="p4-palette-group">
+                  {group.repo.id === repo.id ? `Sessions in ${group.repo.name}` : group.repo.name}
+                </div>
+                {group.sessions.map((s, i) => {
+                  const idx = results.actions.length + priorSessions + i;
+                  const status = mapTabStatus(s);
+                  const meta = STATUS_META[status];
+                  const color: RepoColor = status === 'errored' ? 'error' :
+                                            status === 'live' ? 'accent' :
+                                            status === 'idle' ? 'neutral' : 'info';
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={'p4-palette-row' + (sel === idx ? ' on' : '')}
+                      onClick={() => onPickSession(s.id)}
+                      onMouseEnter={() => setSel(idx)}
                       style={{
-                        animation: meta.pulse ? 'p4-pulse 1.6s var(--ease-in-out) infinite' : undefined,
+                        width: '100%', border: 0, background: 'transparent',
+                        color: 'inherit', font: 'inherit', textAlign: 'left',
                       }}
                     >
                       <span style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: meta.color, display: 'inline-block',
-                      }} />
-                      {meta.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </>
-          )}
+                        width: 20, height: 20, borderRadius: 5,
+                        background: colorBg(color), color: colorFg(color),
+                        display: 'grid', placeItems: 'center',
+                        fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
+                        flexShrink: 0,
+                      }}>{initials(s.name)}</span>
+                      <div style={{ flex: 1, marginLeft: 2 }}>
+                        <div className="txt">{s.name}</div>
+                        <div className="sub">
+                          {agentLetter(s.providerId)}{s.worktreeBranch ? ` · ${s.worktreeBranch}` : ''}
+                        </div>
+                      </div>
+                      <span
+                        className={'p4-chip ' + (meta.chip || '')}
+                        style={{
+                          animation: meta.pulse ? 'p4-pulse 1.6s var(--ease-in-out) infinite' : undefined,
+                        }}
+                      >
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: meta.color, display: 'inline-block',
+                        }} />
+                        {meta.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
 
           {total === 0 && (
             <div style={{
