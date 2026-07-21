@@ -86,6 +86,20 @@ export class IntegrationManager {
     }
   }
 
+  /** SessionManager end-of-life hook (`onSessionEnd`): releases the
+   *  AttentionPolicy record for a session once it's gone, so the policy's
+   *  map doesn't retain state for sessions that can never emit another
+   *  transition. Idempotent (Map.delete) and safe to call from both the
+   *  exit and delete fire sites. Must never throw (same contract as
+   *  handleStateChange on the state-tap path). */
+  handleSessionRemoved(sessionId: string): void {
+    try {
+      this.policy.forget(sessionId);
+    } catch (err) {
+      console.error('IntegrationManager.handleSessionRemoved failed:', err);
+    }
+  }
+
   notifyPRCreated(meta: SessionMetadata, prUrl: string): void {
     const settings = this.deps.getSettings();
     if (!settings.shipit.notifyOnPR) return;

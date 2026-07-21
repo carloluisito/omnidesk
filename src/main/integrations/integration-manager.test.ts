@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { IntegrationManager, IntegrationManagerDeps } from './integration-manager';
+import { AttentionPolicy } from './attention-policy';
 import { ConnectorRegistry } from './connector-registry';
 import type { IConnector } from './connector';
 import {
@@ -268,6 +269,32 @@ describe('IntegrationManager', () => {
     const { registry } = fakeRegistry();
     const m = new IntegrationManager(makeDeps(settingsWith({})), { registry });
     await expect(m.testConnector('slack', { enabled: true, webhookUrl: 'https://x' })).resolves.toEqual({ ok: true });
+    m.dispose();
+  });
+
+  it('handleSessionRemoved forgets the policy record so a repeated state re-arms', async () => {
+    const { registry, delivered } = fakeRegistry();
+    const m = new IntegrationManager(makeDeps(settingsWith({})), { registry });
+    m.handleStateChange(evt({ at: 1000 }), meta({}));
+    m.handleStateChange(evt({ at: 2000 }), meta({})); // same state, still within debounce -> silent
+    await vi.runAllTimersAsync();
+    expect(delivered.length).toBe(1);
+
+    m.handleSessionRemoved('s1');
+    m.handleStateChange(evt({ at: 3000 }), meta({})); // record released -> fires again despite short gap
+    await vi.runAllTimersAsync();
+    expect(delivered.length).toBe(2);
+    m.dispose();
+  });
+
+  it('handleSessionRemoved never throws even if the underlying policy forget() fails', () => {
+    const { registry } = fakeRegistry();
+    const m = new IntegrationManager(makeDeps(settingsWith({})), { registry });
+    const spy = vi.spyOn(AttentionPolicy.prototype, 'forget').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    expect(() => m.handleSessionRemoved('s1')).not.toThrow();
+    spy.mockRestore();
     m.dispose();
   });
 });
