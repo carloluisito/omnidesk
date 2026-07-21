@@ -80,6 +80,29 @@ export async function revealSessionInExplorer(
   }
 }
 
+/**
+ * Validates the scheme of a renderer-supplied URL and, if allowed, opens it
+ * via the OS's default handler. Extracted from the `openExternal` registry
+ * handler so it can be exercised directly in tests instead of via a
+ * hand-copied reimplementation.
+ *
+ * Only http/https are allowed. `file://` is intentionally rejected: unlike
+ * http/https, a `file://` URL asks the OS to open the target with its
+ * default handler, which can launch executables/scripts (Electron's security
+ * guidance warns against passing non-web schemes to shell.openExternal with
+ * untrusted input). Both current callers (Terminal clickable links, ShipIt's
+ * PR link) only ever pass http/https, so no caller needs `file://`.
+ */
+export async function openExternalUrl(url: string): Promise<boolean> {
+  const allowed = /^https?:\/\//i.test(url);
+  if (!allowed) {
+    console.warn('openExternal: blocked non-http/https URL:', url);
+    return false;
+  }
+  await shell.openExternal(url);
+  return true;
+}
+
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
   sessionManager: SessionManager,
@@ -827,14 +850,7 @@ export function setupIPCHandlers(
   // ── Shell ──
 
   registry.handle('openExternal', async (_e, url) => {
-    // Validate scheme before opening: only allow http, https, file
-    const allowed = /^(https?|file):\/\//i.test(url);
-    if (!allowed) {
-      console.warn('openExternal: blocked non-http/https/file URL:', url);
-      return false;
-    }
-    await shell.openExternal(url);
-    return true;
+    return openExternalUrl(url);
   });
 
   // ── Agent View availability ──

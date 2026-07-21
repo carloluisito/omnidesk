@@ -7,7 +7,7 @@ import type { SessionMetadata } from '../shared/ipc-types';
 // Mock both so the test drives production code instead of a hand-copied
 // reimplementation of the handler's control flow.
 vi.mock('electron', () => ({
-  shell: { showItemInFolder: vi.fn() },
+  shell: { showItemInFolder: vi.fn(), openExternal: vi.fn() },
 }));
 
 vi.mock('fs', () => ({
@@ -97,6 +97,57 @@ describe('IPC Handlers - revealInExplorer', () => {
 
     expect(result).toBe(false);
     expect(shell.showItemInFolder).not.toHaveBeenCalled();
+  });
+});
+
+describe('IPC Handlers - openExternal', () => {
+  // openExternalUrl (extracted from the real openExternal registry handler)
+  // narrows the allowed-scheme check to http/https only — file:// and any
+  // other scheme (e.g. javascript:) must be rejected before shell.openExternal
+  // is ever called, matching Electron's guidance against passing untrusted
+  // schemes to shell.openExternal (issue #162).
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('opens an http:// URL and returns true', async () => {
+    const { openExternalUrl } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+
+    const result = await openExternalUrl('http://example.com');
+
+    expect(result).toBe(true);
+    expect(shell.openExternal).toHaveBeenCalledWith('http://example.com');
+  });
+
+  it('opens an https:// URL and returns true', async () => {
+    const { openExternalUrl } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+
+    const result = await openExternalUrl('https://example.com/pr/123');
+
+    expect(result).toBe(true);
+    expect(shell.openExternal).toHaveBeenCalledWith('https://example.com/pr/123');
+  });
+
+  it('blocks a file:// URL and does not call shell.openExternal', async () => {
+    const { openExternalUrl } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+
+    const result = await openExternalUrl('file:///C:/Windows/System32/calc.exe');
+
+    expect(result).toBe(false);
+    expect(shell.openExternal).not.toHaveBeenCalled();
+  });
+
+  it('blocks an arbitrary non-http scheme (e.g. javascript:) and does not call shell.openExternal', async () => {
+    const { openExternalUrl } = await import('./ipc-handlers');
+    const { shell } = await import('electron');
+
+    const result = await openExternalUrl('javascript:alert(1)');
+
+    expect(result).toBe(false);
+    expect(shell.openExternal).not.toHaveBeenCalled();
   });
 });
 
