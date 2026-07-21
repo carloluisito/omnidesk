@@ -1,5 +1,5 @@
 import type { ConnectorTestResult, OutboundMessage, SendOutcome, SlackConfig } from '../../../shared/integration-types';
-import { IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
+import { CONNECTOR_FETCH_TIMEOUT_MS, IConnector, outcomeFromNetworkError, outcomeFromResponse } from '../connector';
 import { formatSlack } from '../message-format';
 
 export class SlackConnector implements IConnector<SlackConfig> {
@@ -25,6 +25,7 @@ export class SlackConnector implements IConnector<SlackConfig> {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: formatSlack(msg.event) }),
+        signal: AbortSignal.timeout(CONNECTOR_FETCH_TIMEOUT_MS),
       });
       return outcomeFromResponse(res);
     } catch (err) {
