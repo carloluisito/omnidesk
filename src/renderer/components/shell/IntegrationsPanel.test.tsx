@@ -82,4 +82,20 @@ describe('IntegrationsPanel', () => {
     const sent = (api.setSettings as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
     expect(sent.integrations.perRepo['C:\\repos\\omnidesk']).toEqual({ muted: true });
   });
+
+  it('checkbox rows use the p4-check-row layout class, not the old caption style (#159)', async () => {
+    setupApi();
+    render(<IntegrationsPanel onClose={() => {}} repos={repos} activeRepoPath={repos[0].path} />);
+    await waitFor(() => screen.getByLabelText('Mute omnidesk'));
+
+    expect(screen.getByLabelText('Enable Telegram').closest('label')).toHaveClass('p4-check-row');
+    expect(screen.getByLabelText('Needs you (waiting for input / approval)').closest('label')).toHaveClass(
+      'p4-check-row'
+    );
+    expect(screen.getByLabelText('Enable scheduled digest').closest('label')).toHaveClass('p4-check-row');
+    expect(screen.getByLabelText('Mute omnidesk').closest('label')).toHaveClass('p4-check-row');
+
+    // None of the checkbox-row labels should retain the old block/uppercase caption class.
+    expect(screen.getByLabelText('Enable Telegram').closest('label')).not.toHaveClass('d');
+  });
 });

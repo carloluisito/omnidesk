@@ -95,7 +95,7 @@ function ConnectorCard({
             </span>
           )}
         </div>
-        <label className="d" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+        <label className="p4-check-row">
           <input
             type="checkbox"
             checked={enabled}
@@ -192,7 +192,7 @@ export function IntegrationsPanel({ onClose, repos, activeRepoPath }: Integratio
               ['done', 'Finished a task'],
               ['errored', 'Errored / crashed'],
             ] as const).map(([key, label]) => (
-              <label key={key} className="d" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, cursor: 'pointer' }}>
+              <label key={key} className="p4-check-row" style={{ marginTop: 4 }}>
                 <input
                   type="checkbox"
                   checked={settings.notify[key]}
@@ -209,7 +209,7 @@ export function IntegrationsPanel({ onClose, repos, activeRepoPath }: Integratio
 
           <div className="p4-form-row">
             <div className="t" style={{ fontWeight: 600 }}>Fleet digest</div>
-            <label className="d" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, cursor: 'pointer' }}>
+            <label className="p4-check-row" style={{ marginTop: 4 }}>
               <input
                 type="checkbox"
                 checked={settings.digest.enabled}
@@ -256,7 +256,7 @@ export function IntegrationsPanel({ onClose, repos, activeRepoPath }: Integratio
               {repos.map((r) => {
                 const muted = Boolean(settings.perRepo[r.path]?.muted);
                 return (
-                  <label key={r.id} className="d" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, cursor: 'pointer' }}>
+                  <label key={r.id} className="p4-check-row" style={{ marginTop: 4 }}>
                     <input
                       type="checkbox"
                       checked={muted}
