@@ -488,14 +488,15 @@ export function setupIPCHandlers(
 
   /** Resolve the Claude config dir for the currently active session */
   function getActiveConfigDir(): string {
+    const quotaAccountMap = settingsManager.getSettings().quotaAccountMap;
     const activeId = sessionManager.getActiveSessionId();
     if (activeId) {
       const session = sessionManager.getSession(activeId);
       if (session?.workingDirectory) {
-        return resolveClaudeConfigDir(session.workingDirectory);
+        return resolveClaudeConfigDir(session.workingDirectory, quotaAccountMap);
       }
     }
-    return resolveClaudeConfigDir();
+    return resolveClaudeConfigDir(undefined, quotaAccountMap);
   }
 
   registry.handle('getQuota', async (_e, forceRefresh) => {

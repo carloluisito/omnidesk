@@ -250,6 +250,24 @@ export interface AppSettings {
   remoteAccess?: RemoteAccessSettings;
   stt?: STTSettings;
   integrations?: import('./integration-types').IntegrationsSettings;
+  quotaAccountMap?: QuotaAccountMapRule[];
+}
+
+/**
+ * A single rule for mapping a session's working directory to a Claude config
+ * directory, used by quota-service's resolveClaudeConfigDir to support
+ * multiple Claude accounts on one machine (e.g. separate ~/.claude-work and
+ * ~/.claude-personal directories for different repo trees).
+ *
+ * `pathContains` is matched case-insensitively against the working directory
+ * (with backslashes normalized to forward slashes) as a substring. The first
+ * matching rule wins; `configDir` may start with `~` to be resolved relative
+ * to the user's home directory. When no rule matches (or the map is empty),
+ * the default `~/.claude` directory is used.
+ */
+export interface QuotaAccountMapRule {
+  pathContains: string;
+  configDir: string;
 }
 
 // Remote access persisted settings
