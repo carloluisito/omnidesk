@@ -1,6 +1,7 @@
 // Pure message formatting for outbound integration events.
-// Agent sessions only ever signal awaiting-input (terminal bell) — copy must
-// never claim approval-level detail for them.
+// Agent sessions now signal working / awaiting-approval / awaiting-input /
+// done via the screen classifier (see session-manager.ts), so copy reflects
+// the real state for both agent and shell sessions alike.
 import type { IntegrationEvent } from '../../shared/integration-types';
 
 const OFFLINE_LINE = 'OmniDesk remote is offline — open the desktop app.';
@@ -8,7 +9,7 @@ const OFFLINE_LINE = 'OmniDesk remote is offline — open the desktop app.';
 function stateLabel(event: IntegrationEvent): string {
   switch (event.state) {
     case 'awaiting-approval':
-      return event.sessionKind === 'agent' ? 'needs your input' : 'needs approval';
+      return 'needs approval';
     case 'awaiting-input':
       return 'needs your input';
     case 'errored':
