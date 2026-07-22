@@ -113,7 +113,7 @@ export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }
 
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                   <button className="p4-btn primary" style={{ padding: '4px 10px' }} onClick={() => jump(it.session.id)}>
-                    <P4Icon name="focus" size={12} /> Jump
+                    <P4Icon name="focus" size={12} /> Jump <kbd className="p4-kbd">↵</kbd>
                   </button>
                   {status === 'done' && onShipIt && (
                     <button
@@ -122,11 +122,11 @@ export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }
                       title="Turn this session's branch into a pull request"
                       onClick={() => { onShipIt(it.session.id, it.session.name); onClose(); }}
                     >
-                      <P4Icon name="branch" size={12} /> Ship it
+                      <P4Icon name="branch" size={12} /> Ship it <kbd className="p4-kbd">s</kbd>
                     </button>
                   )}
                   <button className="p4-btn" style={{ padding: '4px 10px' }} onClick={() => onAcknowledge(it.session.id)}>
-                    Dismiss
+                    Dismiss <kbd className="p4-kbd">d</kbd>
                   </button>
                 </div>
               </div>
