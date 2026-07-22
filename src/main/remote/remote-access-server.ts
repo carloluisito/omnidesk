@@ -9,6 +9,7 @@ import { generateWebBridgeScript } from './web-bridge';
 import { handleWsMessage } from './ws-router';
 import { injectRemoteHead, buildManifest, mimeFor } from './http-util';
 import { channels, contractKinds } from '../../shared/ipc-contract';
+import { isPathWithin } from '../path-access';
 
 export interface RemoteServerOptions {
   port: number;
@@ -197,7 +198,7 @@ export class RemoteAccessServer {
     const rendererDir = path.resolve(this.opts.rendererDir);
     const filePath = path.join(rendererDir, safeRel);
 
-    if (!filePath.startsWith(rendererDir)) {
+    if (!isPathWithin(filePath, rendererDir)) {
       res.writeHead(403).end('Forbidden');
       return;
     }
