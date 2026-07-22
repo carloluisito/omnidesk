@@ -149,6 +149,75 @@ export async function exportHistoryJsonGated(
   }
 }
 
+/**
+ * Resolves the branch label shown for a repo entry in the repo picker.
+ * `gitPath` is the `.git` entry inside a candidate repo dir: a directory for
+ * a regular repo, or a file (a `gitdir: <path>` pointer) for a linked
+ * worktree. Extracted from the listGitRepos registry handler so this parsing
+ * — the part most likely to regress — can be exercised directly in tests.
+ */
+export function readGitBranch(gitPath: string): string | undefined {
+  try {
+    const stat = fs.statSync(gitPath);
+    const headFile = stat.isDirectory()
+      ? path.join(gitPath, 'HEAD')
+      : (() => {
+          const ptr = fs.readFileSync(gitPath, 'utf8').trim();
+          const m = ptr.match(/^gitdir:\s*(.+)$/);
+          if (!m) return null;
+          const dir = path.isAbsolute(m[1]) ? m[1] : path.resolve(path.dirname(gitPath), m[1]);
+          return path.join(dir, 'HEAD');
+        })();
+    if (!headFile || !fs.existsSync(headFile)) return undefined;
+    const head = fs.readFileSync(headFile, 'utf8').trim();
+    const m = head.match(/^ref:\s*refs\/heads\/(.+)$/);
+    return m ? m[1] : head.slice(0, 7); // detached HEAD: short SHA
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolves and gates parentPath through the home/workspaces allowlist, then
+ * enumerates candidate git repos beneath it (the workspace itself, plus its
+ * top-level, non-dot subdirectories that contain a `.git` entry). Extracted
+ * from the listGitRepos registry handler so the gate and enumeration/sort
+ * contract can be exercised directly in tests.
+ */
+export function listGitReposImpl(
+  parentPath: string,
+  isPathAllowedFn: (resolved: string) => boolean,
+): GitRepoEntry[] {
+  const resolved = path.resolve(parentPath);
+  if (!isPathAllowedFn(resolved)) {
+    console.warn('[listGitRepos] Blocked path outside home/workspaces:', resolved);
+    return [];
+  }
+  const repos: GitRepoEntry[] = [];
+  const considerEntry = (name: string, fullPath: string) => {
+    const gitPath = path.join(fullPath, '.git');
+    if (!fs.existsSync(gitPath)) return;
+    repos.push({ name, path: fullPath, workspacePath: resolved, branch: readGitBranch(gitPath) });
+  };
+  try {
+    // First, is the workspace path ITSELF a git repo?
+    if (fs.existsSync(path.join(resolved, '.git'))) {
+      considerEntry(path.basename(resolved), resolved);
+    }
+    // Then enumerate top-level subdirs as candidate repos.
+    const entries = fs.readdirSync(resolved, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+      considerEntry(entry.name, path.join(resolved, entry.name));
+    }
+    repos.sort((a, b) => a.name.localeCompare(b.name));
+    return repos;
+  } catch (err) {
+    console.error('Failed to list git repos:', err);
+    return repos;
+  }
+}
+
 export function setupIPCHandlers(
   mainWindow: BrowserWindow,
   sessionManager: SessionManager,
@@ -346,55 +415,7 @@ export function setupIPCHandlers(
   });
 
   registry.handle('listGitRepos', async (_e, parentPath): Promise<GitRepoEntry[]> => {
-    const resolved = path.resolve(parentPath);
-    if (!isPathAllowed(resolved)) {
-      console.warn('[listGitRepos] Blocked path outside home/workspaces:', resolved);
-      return [];
-    }
-    const repos: GitRepoEntry[] = [];
-    const readBranch = (gitPath: string): string | undefined => {
-      try {
-        // .git can be a directory (regular repo) or a file (worktree pointing at the parent .git).
-        const stat = fs.statSync(gitPath);
-        const headFile = stat.isDirectory()
-          ? path.join(gitPath, 'HEAD')
-          : (() => {
-              const ptr = fs.readFileSync(gitPath, 'utf8').trim();
-              const m = ptr.match(/^gitdir:\s*(.+)$/);
-              if (!m) return null;
-              const dir = path.isAbsolute(m[1]) ? m[1] : path.resolve(path.dirname(gitPath), m[1]);
-              return path.join(dir, 'HEAD');
-            })();
-        if (!headFile || !fs.existsSync(headFile)) return undefined;
-        const head = fs.readFileSync(headFile, 'utf8').trim();
-        const m = head.match(/^ref:\s*refs\/heads\/(.+)$/);
-        return m ? m[1] : head.slice(0, 7); // detached HEAD: short SHA
-      } catch {
-        return undefined;
-      }
-    };
-    const considerEntry = (name: string, fullPath: string) => {
-      const gitPath = path.join(fullPath, '.git');
-      if (!fs.existsSync(gitPath)) return;
-      repos.push({ name, path: fullPath, workspacePath: resolved, branch: readBranch(gitPath) });
-    };
-    try {
-      // First, is the workspace path ITSELF a git repo?
-      if (fs.existsSync(path.join(resolved, '.git'))) {
-        considerEntry(path.basename(resolved), resolved);
-      }
-      // Then enumerate top-level subdirs as candidate repos.
-      const entries = fs.readdirSync(resolved, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
-        considerEntry(entry.name, path.join(resolved, entry.name));
-      }
-      repos.sort((a, b) => a.name.localeCompare(b.name));
-      return repos;
-    } catch (err) {
-      console.error('Failed to list git repos:', err);
-      return repos;
-    }
+    return listGitReposImpl(parentPath, isPathAllowed);
   });
 
   registry.handle('createDirectory', async (_e, dirPath) => {

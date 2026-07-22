@@ -12,6 +12,9 @@ vi.mock('electron', () => ({
 
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
+  statSync: vi.fn(),
+  readFileSync: vi.fn(),
+  readdirSync: vi.fn(),
 }));
 
 // getVersionInfo delegates to probeClaudeVersion (execFile with a 5s timeout)
@@ -485,5 +488,258 @@ describe('IPC Handlers - gitWorktreeList reconciliation', () => {
     const result = await reconcile([worktree], [session]);
 
     expect(result[0].linkedSessionId).toBe('session-42');
+  });
+});
+
+describe('IPC Handlers - listGitRepos', () => {
+  // readGitBranch/listGitReposImpl (extracted from the real listGitRepos
+  // registry handler) parse .git entries — a directory for a regular repo, a
+  // `gitdir: <path>` pointer file for a linked worktree — to derive a branch
+  // label (issue #201). isPathAllowedFn below is the real isPathAllowed from
+  // ./path-access, not a hand-copied reimplementation (see the
+  // exportHistoryMarkdown tests above for the same rationale).
+  const homeDir = '/mock/home';
+  const workspaces = ['/mock/workspace'];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('listGitReposImpl path gate', () => {
+    it('blocks a parentPath outside home/workspaces and never reads the directory', async () => {
+      const { listGitReposImpl } = await import('./ipc-handlers');
+      const { isPathAllowed } = await import('./path-access');
+      const fs = await import('fs');
+      const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+
+      const result = listGitReposImpl('/etc', isPathAllowedFn);
+
+      expect(result).toEqual([]);
+      expect(fs.readdirSync).not.toHaveBeenCalled();
+    });
+
+    it('lists repos under an allowed workspace path', async () => {
+      const path = await import('path');
+      const { listGitReposImpl } = await import('./ipc-handlers');
+      const { isPathAllowed } = await import('./path-access');
+      const fs = await import('fs');
+      const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+      const resolvedWorkspace = path.resolve('/mock/workspace');
+
+      vi.mocked(fs.existsSync).mockImplementation((p) => {
+        const resolved = String(p);
+        return resolved === path.join(resolvedWorkspace, 'repo-a', '.git');
+      });
+      vi.mocked(fs.readdirSync).mockReturnValue([
+        { name: 'repo-a', isDirectory: () => true },
+      ] as unknown as ReturnType<typeof fs.readdirSync>);
+      vi.mocked(fs.statSync).mockImplementation(() => {
+        throw new Error('not reached for this test');
+      });
+
+      const result = listGitReposImpl('/mock/workspace', isPathAllowedFn);
+
+      expect(result).toEqual([
+        {
+          name: 'repo-a',
+          path: path.join(resolvedWorkspace, 'repo-a'),
+          workspacePath: resolvedWorkspace,
+          branch: undefined,
+        },
+      ]);
+    });
+  });
+
+  describe('listGitReposImpl enumeration contract', () => {
+    it('includes the workspace itself when it is a repo, skips dot-dirs and non-repo dirs, and sorts by name', async () => {
+      const path = await import('path');
+      const { listGitReposImpl } = await import('./ipc-handlers');
+      const { isPathAllowed } = await import('./path-access');
+      const fs = await import('fs');
+      const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+      const resolvedWorkspace = path.resolve('/mock/workspace');
+
+      const gitPaths = new Set([
+        path.join(resolvedWorkspace, '.git'),
+        path.join(resolvedWorkspace, 'zebra', '.git'),
+        path.join(resolvedWorkspace, 'alpha', '.git'),
+      ]);
+      vi.mocked(fs.existsSync).mockImplementation((p) => gitPaths.has(String(p)));
+      vi.mocked(fs.readdirSync).mockReturnValue([
+        { name: 'zebra', isDirectory: () => true },
+        { name: '.hidden', isDirectory: () => true },
+        { name: 'alpha', isDirectory: () => true },
+        { name: 'not-a-repo', isDirectory: () => true },
+        { name: 'a-file', isDirectory: () => false },
+      ] as unknown as ReturnType<typeof fs.readdirSync>);
+      vi.mocked(fs.statSync).mockImplementation(() => {
+        throw new Error('branch resolution not under test here');
+      });
+
+      const result = listGitReposImpl('/mock/workspace', isPathAllowedFn);
+
+      // Sorted alphabetically by name, including the workspace-itself entry
+      // (its name is the workspace's own basename, so it sorts alongside
+      // "alpha" and "zebra" rather than always being first).
+      expect(result.map((r) => r.name)).toEqual(
+        [path.basename(resolvedWorkspace), 'alpha', 'zebra'].sort((a, b) => a.localeCompare(b)),
+      );
+      expect(result.every((r) => r.workspacePath === resolvedWorkspace)).toBe(true);
+    });
+
+    it('returns the repos collected so far if readdirSync throws', async () => {
+      const path = await import('path');
+      const { listGitReposImpl } = await import('./ipc-handlers');
+      const { isPathAllowed } = await import('./path-access');
+      const fs = await import('fs');
+      const isPathAllowedFn = (resolved: string) => isPathAllowed(resolved, homeDir, workspaces);
+      const resolvedWorkspace = path.resolve('/mock/workspace');
+
+      vi.mocked(fs.existsSync).mockImplementation(
+        (p) => String(p) === path.join(resolvedWorkspace, '.git'),
+      );
+      vi.mocked(fs.readdirSync).mockImplementation(() => {
+        throw new Error('permission denied');
+      });
+      vi.mocked(fs.statSync).mockImplementation(() => {
+        throw new Error('branch resolution not under test here');
+      });
+
+      const result = listGitReposImpl('/mock/workspace', isPathAllowedFn);
+
+      expect(result.map((r) => r.name)).toEqual([path.basename(resolvedWorkspace)]);
+    });
+  });
+
+  describe('readGitBranch', () => {
+    it('reads the branch from a regular .git directory on refs/heads', async () => {
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('ref: refs/heads/main\n');
+
+      const result = readGitBranch('/mock/workspace/repo-a/.git');
+
+      expect(result).toBe('main');
+    });
+
+    it('falls back to a 7-char short SHA for a detached HEAD', async () => {
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('abcdef1234567890\n');
+
+      const result = readGitBranch('/mock/workspace/repo-a/.git');
+
+      expect(result).toBe('abcdef1');
+    });
+
+    it('resolves a worktree .git file with a relative gitdir pointer', async () => {
+      const path = await import('path');
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+      // The .git entry for a worktree checkout, e.g.
+      // /mock/workspace/feature-worktree/.git
+      const worktreeGitFile = '/mock/workspace/feature-worktree/.git';
+      const expectedHead = path.join(
+        path.resolve(path.dirname(worktreeGitFile), '../main-repo/.git/worktrees/feature'),
+        'HEAD',
+      );
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.readFileSync).mockImplementation((p) => {
+        if (String(p) === worktreeGitFile) {
+          return 'gitdir: ../main-repo/.git/worktrees/feature\n';
+        }
+        if (String(p) === expectedHead) {
+          return 'ref: refs/heads/feature-branch\n';
+        }
+        throw new Error(`unexpected readFileSync(${String(p)})`);
+      });
+      vi.mocked(fs.existsSync).mockImplementation((p) => String(p) === expectedHead);
+
+      const result = readGitBranch(worktreeGitFile);
+
+      expect(result).toBe('feature-branch');
+    });
+
+    it('resolves a worktree .git file with an absolute gitdir pointer', async () => {
+      const path = await import('path');
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+      const worktreeGitFile = '/mock/workspace/feature-worktree/.git';
+      const absoluteGitDir = path.resolve('/mock/workspace/main-repo/.git/worktrees/feature');
+      const expectedHead = path.join(absoluteGitDir, 'HEAD');
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.readFileSync).mockImplementation((p) => {
+        if (String(p) === worktreeGitFile) {
+          return `gitdir: ${absoluteGitDir}\n`;
+        }
+        if (String(p) === expectedHead) {
+          return 'ref: refs/heads/feature-branch\n';
+        }
+        throw new Error(`unexpected readFileSync(${String(p)})`);
+      });
+      vi.mocked(fs.existsSync).mockImplementation((p) => String(p) === expectedHead);
+
+      const result = readGitBranch(worktreeGitFile);
+
+      expect(result).toBe('feature-branch');
+    });
+
+    it('returns undefined when the .git file pointer does not match the gitdir: pattern', async () => {
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.readFileSync).mockReturnValue('not a gitdir pointer\n');
+
+      const result = readGitBranch('/mock/workspace/feature-worktree/.git');
+
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined when the resolved HEAD file does not exist', async () => {
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as ReturnType<
+        typeof fs.statSync
+      >);
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+
+      const result = readGitBranch('/mock/workspace/repo-a/.git');
+
+      expect(result).toBeUndefined();
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+    });
+
+    it('returns undefined when statSync throws', async () => {
+      const { readGitBranch } = await import('./ipc-handlers');
+      const fs = await import('fs');
+
+      vi.mocked(fs.statSync).mockImplementation(() => {
+        throw new Error('ENOENT');
+      });
+
+      const result = readGitBranch('/mock/workspace/repo-a/.git');
+
+      expect(result).toBeUndefined();
+    });
   });
 });
