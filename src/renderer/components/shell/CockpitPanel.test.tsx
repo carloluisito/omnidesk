@@ -122,4 +122,33 @@ describe('CockpitPanel keyboard shortcuts', () => {
 
     expect(screen.getByText('Nothing needs you')).toBeInTheDocument();
   });
+
+  it('renders the Jump (↵) and Dismiss (d) key hints on every row', () => {
+    const items = [makeItem({ id: 's1', name: 'Session One', activityState: 'awaiting-input' })];
+    render(<CockpitPanel items={items} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />);
+
+    const jumpButton = screen.getByRole('button', { name: /Jump/ });
+    expect(jumpButton.querySelector('kbd.p4-kbd')).toHaveTextContent('↵');
+
+    const dismissButton = screen.getByRole('button', { name: /Dismiss/ });
+    expect(dismissButton.querySelector('kbd.p4-kbd')).toHaveTextContent('d');
+  });
+
+  it('renders the Ship-it (s) hint only when the row is done and onShipIt is provided', () => {
+    const doneItem = makeItem({ id: 's1', name: 'Session One', activityState: 'done' });
+    const { rerender } = render(
+      <CockpitPanel items={[doneItem]} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} onShipIt={vi.fn()} />
+    );
+    const shipButton = screen.getByRole('button', { name: /Ship it/ });
+    expect(shipButton.querySelector('kbd.p4-kbd')).toHaveTextContent('s');
+
+    // Without onShipIt, the button (and its hint) shouldn't render even for a done item.
+    rerender(<CockpitPanel items={[doneItem]} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Ship it/ })).not.toBeInTheDocument();
+
+    // Not-done items never show the Ship-it hint even when onShipIt is provided.
+    const runningItem = makeItem({ id: 's2', name: 'Session Two', activityState: 'awaiting-input' });
+    rerender(<CockpitPanel items={[runningItem]} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} onShipIt={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Ship it/ })).not.toBeInTheDocument();
+  });
 });
