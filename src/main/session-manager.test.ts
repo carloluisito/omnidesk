@@ -340,7 +340,7 @@ describe('SessionManager.createSession — shell sessions', () => {
   });
 
   it('still creates an agent session with a provider (regression)', async () => {
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
     const meta = await manager.createSession({
       workingDirectory: '/mock/home', permissionMode: 'standard',
@@ -375,7 +375,7 @@ describe('SessionManager.restartSession — shell sessions', () => {
   });
 
   it('restarts an agent session via spawn, not spawnShellSession', async () => {
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
     const meta = await manager.createSession({ workingDirectory: '/mock/home', permissionMode: 'standard' });
     vi.clearAllMocks();
@@ -432,7 +432,7 @@ describe('SessionManager.createSession — spawn failure gating (F1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createSessionManager();
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
   });
 
@@ -469,7 +469,7 @@ describe('SessionManager.restartSession — spawn failure gating (F1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createSessionManager();
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
   });
 
@@ -518,7 +518,7 @@ describe('SessionManager.createSession — early map insertion (F2)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createSessionManager();
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
   });
 
@@ -558,7 +558,7 @@ describe('SessionManager — stale-manager guard & crash status (review fixes)',
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createSessionManager();
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
   });
 
@@ -594,7 +594,7 @@ describe('SessionManager — model/launchMode persistence & restart (F3)', () =>
   beforeEach(() => {
     vi.clearAllMocks();
     manager = createSessionManager();
-    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude' })) };
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
     manager.setProviderRegistry(registry as any);
   });
 

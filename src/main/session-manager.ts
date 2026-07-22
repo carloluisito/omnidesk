@@ -16,6 +16,7 @@ import {
   SessionActivityState,
 } from '../shared/ipc-types';
 import { SessionStateClassifier } from './session-state/classifier';
+import { ScreenModel } from './session-state/screen-model';
 import { BellScanner } from './session-state/bell-probe';
 import { BareBellDetector } from './session-state/bell-attention';
 import { OscTitleParser, extractTaskTitle } from './session-state/title-parser';
@@ -63,6 +64,10 @@ export class SessionManager {
   private providerRegistry: ProviderRegistry | null = null;
   /** Per-session live-activity-state classifier (the attention-router feed). */
   private classifiers: Map<string, SessionStateClassifier> = new Map();
+  /** Per-session headless screen emulator (agent sessions only) feeding the
+   *  screen-driven classifier's `onScreenSettled`. Shell sessions have no
+   *  entry — they classify off the raw byte tail directly (see setupClassifier). */
+  private screenModels: Map<string, ScreenModel> = new Map();
   /** Rolling per-session raw output buffer, replayed to clients that attach
    *  mid-session (e.g. a phone joining, or a renderer reload). Bounded. */
   private scrollback: Map<string, string> = new Map();
@@ -396,29 +401,67 @@ export class SessionManager {
     return metadata;
   }
 
-  /** Create (replacing any prior) the activity-state classifier for a session.
+  /** Create (replacing any prior) the activity-state classifier — and, for
+   *  agent sessions, its backing ScreenModel — for a session.
    *
-   *  Currently only SHELL sessions are classified. Agent CLIs (Claude Code,
-   *  Codex) render as full-screen TUIs in the terminal's ALTERNATE-SCREEN buffer
-   *  and repaint continuously (even when idle), which the output-tail +
-   *  quiescence model cannot classify — it can never observe "quiet", and the
-   *  alt-screen holds it pinned. Their live state (working / awaiting-approval /
-   *  done) is DEFERRED to a headless-terminal-emulator rewrite that classifies
-   *  the rendered screen instead of a byte tail. Until then agent sessions
-   *  surface only their process lifecycle: running (rail default) and
-   *  errored/exited via SessionMetadata.status. See the design doc's
-   *  "Known limitations". */
+   *  SHELL sessions classify off the raw byte-tail + quiescence timer,
+   *  unchanged: `EMPTY_STATE_SIGNALS` (shells have no working/approval/
+   *  awaitingInput/fatalError vocabulary of their own) and `screenDriven`
+   *  left at its default `false`.
+   *
+   *  Agent CLIs (Claude Code, Codex) render as full-screen TUIs in the
+   *  terminal's ALTERNATE-SCREEN buffer and repaint continuously (even when
+   *  idle), which the byte-tail + quiescence model cannot classify — it can
+   *  never observe "quiet", and the alt-screen holds it pinned. Instead they
+   *  get a `screenDriven` classifier fed by a per-session `ScreenModel`: the
+   *  same PTY bytes are mirrored into a headless terminal emulator, and each
+   *  debounced settle snapshot is run through `classifier.onScreenSettled()`
+   *  — the classifier's existing dwell/anti-flap/exit-reconciliation fusion
+   *  logic, not a duplicate of it.
+   *
+   *  The provider's `StateSignals` table is required to classify at all. If
+   *  the provider can't be resolved (unknown providerId) or it returns no
+   *  signals, the session is deliberately left with NO classifier — never
+   *  falling back to `EMPTY_STATE_SIGNALS`, which would silently misclassify
+   *  every agent screen as shell-shaped output. Such a session still surfaces
+   *  its process lifecycle (running / errored / exited) via
+   *  SessionMetadata.status and the `mgr.onExit` fallback below. */
   private setupClassifier(sessionId: string): void {
     this.classifiers.get(sessionId)?.dispose();
     this.classifiers.delete(sessionId);
-    const kind = this.sessions.get(sessionId)?.metadata.kind;
-    if (kind !== 'shell') return;
+    this.screenModels.get(sessionId)?.dispose();
+    this.screenModels.delete(sessionId);
+
+    const session = this.sessions.get(sessionId);
+    const kind = session?.metadata.kind;
+
+    if (kind === 'shell') {
+      const classifier = new SessionStateClassifier({
+        signals: EMPTY_STATE_SIGNALS,
+        kind,
+        onStateChange: (state, reason) => this.emitActivityState(sessionId, state, reason),
+      });
+      this.classifiers.set(sessionId, classifier);
+      return;
+    }
+
+    const providerId = session?.metadata.providerId ?? 'claude';
+    const provider = this.providerRegistry?.get(providerId);
+    const signals = provider?.getStateSignals();
+    if (!provider || !signals) return;
+
     const classifier = new SessionStateClassifier({
-      signals: EMPTY_STATE_SIGNALS,
+      signals,
       kind,
+      screenDriven: true,
       onStateChange: (state, reason) => this.emitActivityState(sessionId, state, reason),
     });
     this.classifiers.set(sessionId, classifier);
+
+    const screenModel = new ScreenModel({
+      onSettled: (snapshot) => classifier.onScreenSettled(snapshot.lines.join('\n')),
+    });
+    this.screenModels.set(sessionId, screenModel);
   }
 
   /** Rename an agent session to the CLI's terminal-title task summary — only
@@ -527,6 +570,11 @@ export class SessionManager {
       if (bellDetector && bellDetector.feed(data) > 0) {
         if (this.sessions.get(sessionId)?.metadata.activityState !== 'awaiting-input') {
           this.emitActivityState(sessionId, 'awaiting-input', 'bell');
+          // The bell bypasses the classifier's own emit() — keep its cached
+          // state truthful so a later settle back to the SAME state (e.g.
+          // 'working', if the bell was a false alarm) isn't suppressed by
+          // emit()'s no-op dedup guard.
+          this.classifiers.get(sessionId)?.syncExternalState('awaiting-input');
         }
       }
 
@@ -922,6 +970,8 @@ export class SessionManager {
         session.metadata.activityState === 'awaiting-input'
       ) {
         this.emitActivityState(sessionId, 'working', 'input');
+        // Same cache-truthfulness concern as the bell path above.
+        this.classifiers.get(sessionId)?.syncExternalState('working');
       }
     }
   }
