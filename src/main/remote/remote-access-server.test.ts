@@ -7,6 +7,7 @@ import { RemoteAccessServer } from './remote-access-server';
 import { RemoteAuth } from './remote-auth';
 import { ClientHub } from './client-hub';
 import type { IPCRegistry } from '../ipc-registry';
+import { isPathWithin } from '../path-access';
 
 // End-to-end: boot the real server on an ephemeral port and drive it over real
 // HTTP + WebSocket. The IPC registry is stubbed (its own routing is unit-tested
@@ -126,6 +127,70 @@ describe('RemoteAccessServer (integration)', () => {
     const m = await res.json();
     expect(m.display).toBe('standalone');
     expect(m.start_url).toContain(`token=${encodeURIComponent(auth.getToken())}`);
+  });
+
+  // #191: the prod static-file branch (traversal guard, asset MIME, SPA
+  // fallback) had no coverage, and the containment check used a raw
+  // `filePath.startsWith(rendererDir)` — which wrongly treats a sibling
+  // directory that merely shares rendererDir as a string prefix (e.g.
+  // `<rendererDir>-secrets`) as "inside" it. The guard now uses isPathWithin.
+  describe('prod static-file serving', () => {
+    it('serves a real asset from rendererDir with the correct Content-Type and exact body', async () => {
+      const cookie = `${RemoteAuth.COOKIE}=${auth.getToken()}`;
+      const assetBody = 'console.log("omnidesk asset fixture");\n';
+      fs.writeFileSync(path.join(rendererDir, 'app.js'), assetBody);
+
+      const res = await fetch(`${base}/app.js`, { headers: { Cookie: cookie } });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/javascript');
+      expect(await res.text()).toBe(assetBody);
+    });
+
+    it('falls back to the injected index.html (200, not 404) for an unknown route', async () => {
+      const cookie = `${RemoteAuth.COOKIE}=${auth.getToken()}`;
+      const res = await fetch(`${base}/some/client/side/route`, { headers: { Cookie: cookie } });
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      expect(html).toContain('OMNIDESK_TEST_BODY');
+      expect(html).toContain('/__omnidesk/web-bridge.js');
+    });
+
+    // These requests never actually escape rendererDir: the URL parser collapses
+    // '/../../etc/passwd' to '/etc/passwd' before it reaches our code, and
+    // path.join treats the percent-/backslash-encoded variants as ordinary
+    // (nonexistent) file names, not real '..' segments — so all three land back
+    // on the SPA fallback rather than a 403 or, worse, leaked content. The
+    // assertion is what actually matters here: nothing outside rendererDir (or
+    // the fixture's own files) is ever returned.
+    it.each([
+      ['dot-dot traversal', '/../../etc/passwd'],
+      ['percent-encoded traversal', '/%2e%2e/%2e%2e/x'],
+      ['backslash-encoded traversal', '/..%5c..%5cx'],
+    ])('does not leak content outside rendererDir for %s (%s)', async (_label, urlPath) => {
+      const cookie = `${RemoteAuth.COOKIE}=${auth.getToken()}`;
+      const res = await fetch(`${base}${urlPath}`, { headers: { Cookie: cookie } });
+      expect(res.status).not.toBe(403);
+      expect(res.status).not.toBe(500);
+      const body = await res.text();
+      // Whatever comes back, it must be our SPA fallback — never real system
+      // file content (e.g. an actual /etc/passwd would contain "root:").
+      expect(body).toContain('OMNIDESK_TEST_BODY');
+      expect(body).not.toContain('root:');
+    });
+
+    it('isPathWithin (unlike the old startsWith guard) rejects a sibling directory that merely shares rendererDir as a string prefix', () => {
+      // A path like `<rendererDir>-secrets` starts with the literal rendererDir
+      // string but is a sibling directory, not something inside it. The old
+      // `filePath.startsWith(rendererDir)` guard would have wrongly let this
+      // through; isPathWithin correctly rejects it because it enforces a path
+      // separator boundary. This can't be reached via a real HTTP request today
+      // (path.join always keeps filePath under rendererDir), but it's exactly
+      // the class of bug the switch to isPathWithin closes off for any future
+      // refactor of how filePath gets built.
+      const sibling = `${rendererDir}-secrets`;
+      expect(sibling.startsWith(rendererDir)).toBe(true); // the old guard's condition — would have allowed it
+      expect(isPathWithin(sibling, rendererDir)).toBe(false); // the new guard correctly rejects it
+    });
   });
 
   it('rejects a WebSocket upgrade without a valid cookie', async () => {
