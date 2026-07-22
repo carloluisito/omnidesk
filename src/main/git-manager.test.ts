@@ -781,6 +781,150 @@ describe('GitManager', () => {
     });
   });
 
+  describe('addWorktree', () => {
+    const settings = { basePath: 'custom', customBasePath: '/base', cleanupOnSessionClose: 'ask' } as const;
+
+    it('rejects a customPath beginning with "-" without spawning execGit', async () => {
+      mockGitResponse('git version 2.42.0', '', 0); // getGitVersion()
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: false, customPath: '--force' },
+        settings
+      );
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid worktree path/);
+      expect(mockExecFile).toHaveBeenCalledTimes(1); // only getGitVersion, no worktree add
+    });
+
+    it('rejects a branch beginning with "-" without spawning execGit', async () => {
+      mockGitResponse('git version 2.42.0', '', 0);
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: '--upload-pack=evil', isNewBranch: false },
+        settings
+      );
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid branch name/);
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a baseBranch beginning with "-" without spawning execGit', async () => {
+      mockGitResponse('git version 2.42.0', '', 0);
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true, baseBranch: '-b' },
+        settings
+      );
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid base branch name/);
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+    });
+
+    it('creates a worktree with a new branch, passing --end-of-options before the path', async () => {
+      mockExistsSync.mockReturnValueOnce(true); // parent dir already exists, skip mkdirSync
+      mockGitResponse('git version 2.42.0', '', 0);
+      mockGitResponse('', '', 0); // worktree add
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true },
+        settings
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        ['worktree', 'add', '-b', 'feature-x', '--end-of-options', path.join('/base', 'feature-x')],
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+
+    it('creates a worktree with a new branch and baseBranch appended after the path', async () => {
+      mockExistsSync.mockReturnValueOnce(true);
+      mockGitResponse('git version 2.42.0', '', 0);
+      mockGitResponse('', '', 0);
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true, baseBranch: 'develop' },
+        settings
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        ['worktree', 'add', '-b', 'feature-x', '--end-of-options', path.join('/base', 'feature-x'), 'develop'],
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+
+    it('creates a worktree for an existing branch, with --end-of-options before the path and branch after', async () => {
+      mockExistsSync.mockReturnValueOnce(true);
+      mockGitResponse('git version 2.42.0', '', 0);
+      mockGitResponse('', '', 0);
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: false },
+        settings
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        ['worktree', 'add', '--end-of-options', path.join('/base', 'feature-x'), 'feature-x'],
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('removeWorktree', () => {
+    it('rejects a worktreePath beginning with "-" without spawning execGit', async () => {
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '--force',
+        force: false,
+      });
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/Invalid worktree path/);
+      expect(mockExecFile).not.toHaveBeenCalled();
+    });
+
+    it('removes a worktree, passing --end-of-options before the path', async () => {
+      mockGitResponse('', '', 0);
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '/repo-worktrees/feature-x',
+        force: false,
+      });
+      expect(result.success).toBe(true);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        ['worktree', 'remove', '--end-of-options', '/repo-worktrees/feature-x'],
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+
+    it('removes a worktree with force, placing --force before --end-of-options', async () => {
+      mockGitResponse('', '', 0);
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '/repo-worktrees/feature-x',
+        force: true,
+      });
+      expect(result.success).toBe(true);
+      expect(mockExecFile).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        ['worktree', 'remove', '--force', '--end-of-options', '/repo-worktrees/feature-x'],
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+  });
+
   describe('worktree path naming', () => {
     describe('sanitizeBranchNameForDir', () => {
       it('replaces forward slashes with a dash', () => {
