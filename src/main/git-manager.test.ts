@@ -925,6 +925,95 @@ describe('GitManager', () => {
     });
   });
 
+  describe('worktree error classification', () => {
+    const settings = { basePath: 'custom', customBasePath: '/base', cleanupOnSessionClose: 'ask' } as const;
+
+    it('maps "is already checked out" to WORKTREE_BRANCH_IN_USE (via addWorktree)', async () => {
+      mockExistsSync.mockReturnValueOnce(true); // skip mkdirSync
+      mockGitResponse('git version 2.42.0', '', 0); // getGitVersion()
+      mockGitResponse('', "fatal: 'feature-x' is already checked out at '/other/path'", 128); // worktree add
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true },
+        settings
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('WORKTREE_BRANCH_IN_USE');
+    });
+
+    it('maps "already exists" to WORKTREE_PATH_EXISTS (via addWorktree)', async () => {
+      mockExistsSync.mockReturnValueOnce(true);
+      mockGitResponse('git version 2.42.0', '', 0);
+      mockGitResponse('', `fatal: '${path.join('/base', 'feature-x')}' already exists`, 128);
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true },
+        settings
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('WORKTREE_PATH_EXISTS');
+    });
+
+    it('falls back to the base error code (NOT_A_REPO) when no worktree-specific pattern matches (via addWorktree)', async () => {
+      mockExistsSync.mockReturnValueOnce(true);
+      mockGitResponse('git version 2.42.0', '', 0);
+      mockGitResponse('', 'fatal: not a git repository', 128);
+
+      const result = await manager.addWorktree(
+        { mainRepoPath: '/repo', branch: 'feature-x', isNewBranch: true },
+        settings
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('NOT_A_REPO');
+    });
+
+    it('maps "is not a working tree" to WORKTREE_NOT_FOUND (via removeWorktree)', async () => {
+      mockGitResponse('', "fatal: '/repo-worktrees/feature-x' is not a working tree", 128);
+
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '/repo-worktrees/feature-x',
+        force: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('WORKTREE_NOT_FOUND');
+    });
+
+    it('maps "is locked" to WORKTREE_LOCKED (via removeWorktree)', async () => {
+      mockGitResponse('', "fatal: '/repo-worktrees/feature-x' is locked", 128);
+
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '/repo-worktrees/feature-x',
+        force: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('WORKTREE_LOCKED');
+    });
+
+    it('maps "contains modified or untracked files" to WORKTREE_DIRTY (via removeWorktree)', async () => {
+      mockGitResponse(
+        '',
+        "fatal: '/repo-worktrees/feature-x' contains modified or untracked files, use --force to delete it",
+        128
+      );
+
+      const result = await manager.removeWorktree({
+        mainRepoPath: '/repo',
+        worktreePath: '/repo-worktrees/feature-x',
+        force: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe('WORKTREE_DIRTY');
+    });
+  });
+
   describe('worktree path naming', () => {
     describe('sanitizeBranchNameForDir', () => {
       it('replaces forward slashes with a dash', () => {
