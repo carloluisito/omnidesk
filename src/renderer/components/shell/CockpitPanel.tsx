@@ -33,6 +33,19 @@ export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }
     else if (e.key === 'ArrowUp') { setSel(s => Math.max(0, s - 1)); e.preventDefault(); }
     else if (e.key === 'Enter') { const it = items[sel]; if (it) jump(it.session.id); e.preventDefault(); }
     else if (e.key === 'Escape') { onClose(); }
+    else if (e.key === 'd' || e.key === 'Backspace' || e.key === 'Delete') {
+      const it = items[sel]; if (!it) return;
+      e.preventDefault();
+      onAcknowledge(it.session.id);
+    }
+    else if (e.key === 's') {
+      const it = items[sel]; if (!it) return;
+      e.preventDefault();
+      if (mapTabStatus(it.session) === 'done' && onShipIt) {
+        onShipIt(it.session.id, it.session.name);
+        onClose();
+      }
+    }
   };
 
   return (
