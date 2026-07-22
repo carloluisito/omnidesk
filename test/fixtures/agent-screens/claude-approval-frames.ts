@@ -21,13 +21,17 @@ export const claudeApprovalFrames: string[] = [
   // the line-tail reducer cannot model but ScreenModel must.
   ENTER_ALT_SCREEN + CLEAR_AND_HOME,
   // Draw a box-drawn prompt at a fixed viewport position.
-  cursorTo(3, 3) + '╭─────────────────────────────╮',
-  cursorTo(4, 3) + '│ Run `rm -rf build/`?        │',
-  cursorTo(5, 3) + '╰─────────────────────────────╯',
+  cursorTo(3, 3) + '╭─────────────────────────────────────────╮',
+  cursorTo(4, 3) + '│ Do you want to proceed with rm -rf?      │',
+  cursorTo(5, 3) + '╰─────────────────────────────────────────╯',
   // Spinner churn: repeated single-cell repaints at the same absolute
   // position while a background check runs — this is the "many small
   // repaints in a burst" case the settle/flush split exists for.
   ...SPINNER_FRAMES.map((frame) => cursorTo(7, 3) + frame + ' checking workspace…'),
-  // Final settle: spinner replaced by the awaiting-input affordance.
-  cursorTo(7, 3) + '❯ Yes / No' + ' '.repeat(20),
+  // Final settle: spinner replaced by the awaiting-input affordance, in the
+  // numbered-selector shape Claude actually renders (see
+  // CLAUDE_STATE_SIGNALS.approval in claude-provider.ts) — a bare "Yes / No"
+  // does not match any real signal and would silently fall through to
+  // done/idle, which defeated the point of this fixture until fixed here.
+  cursorTo(7, 3) + '❯ 1. Yes' + ' '.repeat(20),
 ];

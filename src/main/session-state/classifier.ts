@@ -33,6 +33,16 @@ export interface ClassifierOptions {
   kind?: SessionKind;
   /** Quiet window override (ms). */
   quietMs?: number;
+  /**
+   * When true, settled classification for this session comes from
+   * `onScreenSettled()` (rendered ScreenModel snapshots) rather than this
+   * class's own byte-tail quiescence timer. `onOutput()` still tracks
+   * alt-screen state and emits the immediate 'working' leading-edge signal
+   * on visible bytes, but no longer arms `armTimer()` — the ScreenModel's
+   * settle cadence (its own debounce) is the sole trigger for the settled
+   * (approval/awaiting-input/error/done/idle) classification pass.
+   */
+  screenDriven?: boolean;
   /** Called on every state DELTA (never for a no-op re-classification). */
   onStateChange: (state: SessionActivityState, reason?: string) => void;
   /** Injectable timer hooks (tests). Default to global setTimeout/clearTimeout. */
@@ -50,6 +60,7 @@ export class SessionStateClassifier {
   private readonly alt = new AltScreenTracker();
   private readonly signals: StateSignals;
   private readonly isShell: boolean;
+  private readonly screenDriven: boolean;
   private readonly quietMs: number;
   private readonly emit: (s: SessionActivityState, reason?: string) => void;
   private readonly setTimer: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
@@ -58,6 +69,7 @@ export class SessionStateClassifier {
   constructor(opts: ClassifierOptions) {
     this.signals = opts.signals;
     this.isShell = opts.kind === 'shell';
+    this.screenDriven = opts.screenDriven ?? false;
     this.quietMs = opts.quietMs ?? DEFAULT_QUIET_MS;
     this.setTimer = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
     this.clearTimer = opts.clearTimer ?? ((h) => clearTimeout(h));
@@ -70,6 +82,26 @@ export class SessionStateClassifier {
 
   getState(): SessionActivityState {
     return this.state;
+  }
+
+  /**
+   * Force the classifier's cached state to match one set by an external
+   * actor (currently: the bare-bell 'awaiting-input' fast path in
+   * SessionManager.onOutput). The bell path calls `emitActivityState`
+   * directly — bypassing this class entirely — because it must win
+   * *immediately* and synchronously, whereas a screen-driven classifier's
+   * next verdict is always at least one ScreenModel quiescence window
+   * (~300ms) away. That precedence is correct, but it leaves this class's
+   * `this.state` stale: if the screen later re-settles to that SAME state
+   * (e.g. back to 'working'), `emit()`'s no-op guard (`s === this.state`)
+   * would wrongly treat it as no change and swallow a real transition,
+   * leaving the UI stuck on 'awaiting-input' forever. Calling this
+   * immediately after the bell emit keeps the cache truthful — without
+   * invoking `onStateChange` again, since the bell branch already did.
+   */
+  syncExternalState(state: SessionActivityState): void {
+    if (this.disposed) return;
+    this.state = state;
   }
 
   /** Feed a flushed output chunk (already batched by CLIManager, not per-byte). */
@@ -90,7 +122,61 @@ export class SessionStateClassifier {
       this.hadOutputSinceView = true;
       this.quietTicks = 0;
       this.emit('working');
-      this.armTimer();
+      // Screen-driven sessions get their settled classification from
+      // onScreenSettled(), fired by the ScreenModel's own quiescence
+      // debounce — arming a second, independent byte-tail timer here would
+      // race it and could classify off the stale raw tail instead of the
+      // rendered grid.
+      if (!this.screenDriven) {
+        this.armTimer();
+      }
+    }
+  }
+
+  /**
+   * Feed a debounced, fully-rendered ScreenModel snapshot (see
+   * `ScreenModel.onSettled` / `ScreenSnapshot`). This is the settled
+   * classification path for screen-driven (non-shell) sessions: it mirrors
+   * `onQuiesce()`'s detection + emit logic but runs it against
+   * `renderedText` (the joined viewport grid) instead of the reduced raw
+   * byte tail, and it has no timer of its own to arm — the caller re-invokes
+   * this on every ScreenModel settle.
+   */
+  onScreenSettled(renderedText: string): void {
+    if (this.disposed || this.isShell) return;
+
+    // A full-screen TUI/editor/pager is open — its repaints aren't turn
+    // output. Hold the prior state; the next settle re-evaluates.
+    if (this.alt.isActive()) return;
+
+    const interruptAffordance = this.matches(this.signals.working, renderedText);
+    const candidate = detectStateFromTail(renderedText, this.signals, {
+      hadOutputSinceView: this.hadOutputSinceView,
+      interruptAffordance,
+    });
+
+    switch (candidate) {
+      case 'awaiting-approval':
+      case 'awaiting-input':
+      case 'errored':
+        this.quietTicks = 0;
+        this.emit(candidate);
+        return;
+      case 'working':
+        this.emit('working');
+        return;
+      case 'done':
+      case 'idle':
+        // No dwell/anti-flap gate here: unlike the byte-tail timer (which
+        // re-fires every quietMs while nothing changes and so needs
+        // DWELL_TICKS to avoid flapping on a brief lull), a ScreenModel
+        // settle only fires once per genuine quiescence period, so a single
+        // done/idle settle is already a stable signal.
+        if (candidate === 'idle') {
+          this.hadOutputSinceView = false;
+        }
+        this.emit(candidate);
+        return;
     }
   }
 

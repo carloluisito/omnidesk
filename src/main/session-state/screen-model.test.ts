@@ -110,11 +110,13 @@ describe('ScreenModel', () => {
     // Box-drawing prompt lines landed at the rows/cols they were painted at,
     // not appended at the tail — this is exactly what the tail-based
     // line-reducer cannot do.
-    expect(last.lines[3]).toContain('Run `rm -rf build/`?');
+    expect(last.lines[3]).toContain('Do you want to proceed with rm -rf?');
     expect(last.lines[2]).toContain('╭');
     expect(last.lines[4]).toContain('╰');
-    // Final frame replaced the spinner with the awaiting-input affordance.
-    expect(last.lines[6]).toContain('❯ Yes / No');
+    // Final frame replaced the spinner with the awaiting-input affordance, in
+    // the numbered-selector shape CLAUDE_STATE_SIGNALS.approval actually
+    // matches (see claude-approval-frames.ts).
+    expect(last.lines[6]).toContain('❯ 1. Yes');
     expect(last.lines[6]).not.toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧]/);
   });
 
