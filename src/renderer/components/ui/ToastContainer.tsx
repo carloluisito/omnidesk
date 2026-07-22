@@ -40,16 +40,16 @@ export function ToastContainer() {
   const queueRef = useRef<ToastData[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-    // Promote from queue when a slot opens
-    if (queueRef.current.length > 0) {
-      const [promoted, ...rest] = queueRef.current;
-      queueRef.current = rest;
-      setToasts(current => {
-        if (current.length >= MAX_TOASTS) return current;
-        return [...current, promoted];
-      });
-    }
+    setToasts(prev => {
+      const next = prev.filter(t => t.id !== id);
+      // Promote from queue only if a slot actually opened.
+      if (next.length < MAX_TOASTS && queueRef.current.length > 0) {
+        const [promoted, ...rest] = queueRef.current;
+        queueRef.current = rest;
+        return [...next, promoted];
+      }
+      return next;
+    });
   }, []);
 
   const addToast = useCallback((event: Event) => {
