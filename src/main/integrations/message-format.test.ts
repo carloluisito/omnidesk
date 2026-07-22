@@ -26,6 +26,22 @@ describe('formatMessage', () => {
     expect(text).toContain('needs approval');
   });
 
+  it('agent awaiting-approval says "needs approval" and is not downgraded to "needs your input"', () => {
+    const text = formatMessage(evt({
+      sessionKind: 'agent', state: 'awaiting-approval',
+      repoName: 'omnidesk', sessionName: 'fix-terminal-garble',
+    }));
+    expect(text).toContain('needs approval');
+    expect(text).not.toContain('needs your input');
+  });
+
+  it('agent done says "finished"', () => {
+    const text = formatMessage(evt({
+      sessionKind: 'agent', type: 'done', state: 'done', sessionName: 's',
+    }));
+    expect(text).toContain('finished');
+  });
+
   it('done and errored have distinct copy', () => {
     expect(formatMessage(evt({ type: 'done', state: 'done', sessionName: 's' }))).toContain('finished');
     expect(formatMessage(evt({ type: 'errored', state: 'errored', sessionName: 's' }))).toContain('errored');
