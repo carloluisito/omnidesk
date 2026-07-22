@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.1] - 2026-07-22
+
+### Added
+- **Per-account quota mapping is now configurable.** Split quota tracking across multiple Claude accounts on one machine by setting `quotaAccountMap` — an ordered list of `{ pathContains, configDir }` rules that maps a session's working directory to the Claude config directory its quota is read from. The previously hardcoded work/personal path split is gone; with no mapping configured every session reads `~/.claude` (unchanged default). The resolver stays on the hot path's fast, I/O-free route.
+
+### Fixed
+- **Git argument-injection hardening.** Branch names, worktree paths, and commit-diff hashes are now guarded so a value beginning with `-` can no longer be interpreted as a `git` flag — closing injection vectors in `switchBranch`/`createBranch`, `addWorktree`/`removeWorktree`, and `commitDiff`.
+- **Path & scheme allow-listing.** History export paths are now gated through the allowed-path check, and `file://` was dropped from the schemes `openExternal` will launch.
+- **Session preview correctness.** Per-session preview state is pruned when a session ends (no leaked state), and carriage-return progress-bar frames are collapsed so previews no longer show stacked/garbled progress lines.
+- **Quota fetch ordering.** `useQuota` now ignores out-of-order fetch responses, so a slow earlier request can't overwrite fresher quota data.
+- **Drag cleanup.** A stuck cursor / text-selection state is reverted when a dragged element unmounts mid-drag.
+- **Integrations UI.** Integration checkbox rows get their own layout class so they render correctly.
+
+### Changed
+- Broader test coverage: direct unit tests for the model-token safety check (`isSafeModelToken`/`MODEL_TOKEN_PATTERN`), `ConnectorRegistry`, `TunnelController` lifecycle branches, and worktree path naming.
+
+---
+
 ## [2.6.0] - 2026-07-21
 
 ### Added

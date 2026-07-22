@@ -92,6 +92,7 @@
 
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
+- **Per-account quota mapping** — track quota separately across multiple Claude accounts on one machine. Set `quotaAccountMap` in settings to an ordered list of `{ pathContains, configDir }` rules; the first rule whose `pathContains` matches a session's working directory (case-insensitive) picks which Claude config directory its quota is read from. With no mapping configured, every session reads `~/.claude` (unchanged default)
 
 ### Voice Prompting (Speech-to-Text)
 - **Dictate prompts instead of typing** — click the mic button in the terminal (or press `Ctrl+Shift+Space`) to start recording, click/press again to stop
