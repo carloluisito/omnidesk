@@ -152,6 +152,24 @@ export function resolveSessionWorktree(
   }
 }
 
+/** Format an elapsed-ms duration as a compact "waiting for" label — used by
+ *  the attention cockpit (⌘J) next to each row, since attention items are
+ *  already ranked by lastActivityAt but that wait was never surfaced visually.
+ *  Buckets: <5s "just now", <60s "{n}s", <60m "{n}m", else "{n}h". No "ago"
+ *  suffix (the caller supplies the "waiting " prefix) and no day/date
+ *  fallback — unlike formatLastActive, this is for short-lived in-session
+ *  waits, not "last active" history. */
+export const formatWaitDuration = (msElapsed: number): string => {
+  const ms = Math.max(0, msElapsed);
+  if (ms < 5000) return 'just now';
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h`;
+};
+
 /** Format a Date or epoch ms as "Nh ago", "Nd ago", etc. — used in rail meta. */
 export const formatLastActive = (date: Date | number | undefined): string => {
   if (!date) return '—';

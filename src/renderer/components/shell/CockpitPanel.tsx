@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import {
-  colorBg, colorFg, initials, agentLetter,
+  colorBg, colorFg, initials, agentLetter, formatWaitDuration,
   STATUS_META, type RepoColor,
 } from './shell-utils';
 import { mapTabStatus } from './SessionRail';
@@ -22,6 +22,14 @@ interface CockpitPanelProps {
 export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }: CockpitPanelProps) {
   const [sel, setSel] = useState(0);
   const rowsRef = useRef<HTMLDivElement | null>(null);
+
+  // Ticks every 15s so each row's "waiting {duration}" label stays fresh
+  // while the overlay is open, without re-deriving the attention queue itself.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => { rowsRef.current?.focus(); }, []);
   useEffect(() => { if (sel > items.length - 1) setSel(Math.max(0, items.length - 1)); }, [items.length, sel]);
@@ -107,6 +115,7 @@ export function CockpitPanel({ items, onJump, onAcknowledge, onClose, onShipIt }
                   </div>
                   <div className="sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {it.repoName ? `${it.repoName} · ` : ''}{agentLetter(it.session.providerId)}
+                    {it.lastActivityAt > 0 ? ` · waiting ${formatWaitDuration(now - it.lastActivityAt)}` : ''}
                     {it.preview ? ` · ${it.preview}` : ''}
                   </div>
                 </div>
