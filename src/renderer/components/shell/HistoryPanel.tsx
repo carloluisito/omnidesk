@@ -1,11 +1,17 @@
 // @atlas-entrypoint: Session History Explorer — read-only browser for recorded
-// session transcripts (epic #214 child 2). Left pane lists recorded sessions
-// newest-first; right pane shows the full transcript for the selected one.
-// Search/export/delete/settings are deferred to later children of #214.
-import { useCallback, useMemo, useState } from 'react';
+// session transcripts (epic #214 child 2), now with cross-session content
+// search (epic #214 child 3). Left pane lists recorded sessions newest-first,
+// or search results grouped by session when a query is active; right pane
+// shows the full transcript for the selected one.
+// Export/delete/settings are deferred to later children of #214.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import { formatLastActive } from './shell-utils';
 import { useHistory } from '../../hooks/useHistory';
+import type { HistorySearchResult } from '../../../shared/types/history-types';
+
+/** Debounce delay (ms) between the last keystroke and firing a search. */
+const SEARCH_DEBOUNCE_MS = 200;
 
 interface HistoryPanelProps {
   onClose: () => void;
@@ -21,11 +27,48 @@ function formatSize(bytes: number): string {
 }
 
 export function HistoryPanel({ onClose }: HistoryPanelProps) {
-  const { sessions, loading, error, getContent } = useHistory();
+  const { sessions, loading, error, getContent, search } = useHistory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [contentMissing, setContentMissing] = useState(false);
+
+  const [query, setQuery] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [searchResults, setSearchResults] = useState<HistorySearchResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const searchTimerRef = useRef<number | null>(null);
+  const searchSeqRef = useRef(0);
+
+  const trimmedQuery = query.trim();
+
+  useEffect(() => {
+    if (searchTimerRef.current !== null) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+    if (trimmedQuery === '') {
+      setSearchResults(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const seq = ++searchSeqRef.current;
+    searchTimerRef.current = window.setTimeout(() => {
+      searchTimerRef.current = null;
+      void search(trimmedQuery, caseSensitive).then((results) => {
+        if (seq !== searchSeqRef.current) return; // superseded by a newer query
+        setSearchResults(results);
+        setSearching(false);
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchTimerRef.current !== null) {
+        window.clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
+    };
+  }, [trimmedQuery, caseSensitive, search]);
 
   const sorted = useMemo(
     () => [...sessions].sort((a, b) => b.lastUpdatedAt - a.lastUpdatedAt),
@@ -65,7 +108,71 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
 
         <div className="p4-sheet-body" style={{ display: 'flex', gap: 12, minHeight: 320 }}>
           <div style={{ flex: '0 0 45%', overflowY: 'auto', borderRight: '1px solid var(--border, #2a2a2a)', paddingRight: 8 }}>
-            {loading ? (
+            <div className="p4-form-row" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <P4Icon name="search" size={14} />
+              <input
+                type="text"
+                placeholder="Search transcripts…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                data-testid="history-search-input"
+                style={{ flex: 1 }}
+              />
+            </div>
+            <label
+              className="p4-form-row"
+              style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, cursor: 'pointer' }}
+            >
+              <input
+                type="checkbox"
+                checked={caseSensitive}
+                onChange={(e) => setCaseSensitive(e.target.checked)}
+                data-testid="history-search-case"
+              />
+              Match case
+            </label>
+
+            {trimmedQuery !== '' ? (
+              searching ? (
+                <div className="p4-form-row"><span className="d">Searching…</span></div>
+              ) : !searchResults || searchResults.length === 0 ? (
+                <div className="p4-form-row">
+                  <span className="d">No matches for &quot;{trimmedQuery}&quot;.</span>
+                </div>
+              ) : (
+                searchResults.map((r) => (
+                  <div
+                    key={r.session.id}
+                    className="p4-form-row"
+                    data-testid={`history-search-result-${r.session.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => void selectSession(r.session.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') void selectSession(r.session.id); }}
+                    style={{
+                      cursor: 'pointer',
+                      background: selectedId === r.session.id ? 'var(--surface-hover, rgba(255,255,255,0.06))' : undefined,
+                    }}
+                  >
+                    <div className="t" style={{ fontWeight: 600 }}>{r.session.name}</div>
+                    <div className="d">
+                      {r.matchCount} match{r.matchCount === 1 ? '' : 'es'}
+                    </div>
+                    {r.previews.slice(0, 3).map((p, i) => (
+                      <div
+                        key={i}
+                        className="d"
+                        style={{ fontFamily: 'var(--mono, monospace)', fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                      >
+                        {p.before}
+                        <mark>{p.match}</mark>
+                        {p.after}
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )
+            ) : loading ? (
               <div className="p4-form-row"><span className="d">Loading…</span></div>
             ) : error ? (
               <div className="p4-form-row">
