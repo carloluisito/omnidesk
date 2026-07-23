@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RepoActivityBar, SessionRail, MainView, RepoSwitcher,
   AddRepoSheet, NewSessionSheet, Palette, RightInspector,
-  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, ShipItSheet, P4Icon,
+  TitleBar, StatusBar, RemoteAccessPanel, VoiceSettingsPanel, IntegrationsPanel, ShipItSheet, HistoryPanel, P4Icon,
   sessionsForRepo, liveCount, resolveSessionWorktree,
   type ViewMode, type PaletteAction, type NewSessionForm, type NewSessionPrefill,
 } from './components/shell';
@@ -154,6 +154,7 @@ function App() {
   const [showRemote, setShowRemote] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [navOpen, setNavOpen] = useState(false); // mobile drawer (activity bar + rail)
   const touchMode = useTouchMode();
   // Pending close confirmation. null while no prompt is open.
@@ -498,11 +499,12 @@ function App() {
         if (showRemote)     setShowRemote(false);
         if (showVoiceSettings) setShowVoiceSettings(false);
         if (showIntegrations) setShowIntegrations(false);
+        if (showHistory)    setShowHistory(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations, cycleSession]);
+  }, [showPalette, showCockpit, showNewSession, showAddRepo, showRemote, showVoiceSettings, showIntegrations, showHistory, cycleSession]);
 
   useEffect(() => {
     const open = () => setShowVoiceSettings(true);
@@ -551,6 +553,11 @@ function App() {
       id: 'integrations', icon: 'bolt', title: 'Integrations…',
       sub: 'Telegram / Slack / Discord / webhook alerts + GitHub ship-it',
       run: () => { setShowPalette(false); setShowIntegrations(true); },
+    },
+    {
+      id: 'history', icon: 'history', title: 'Session history…',
+      sub: 'Browse recorded sessions and their transcripts',
+      run: () => { setShowPalette(false); setShowHistory(true); },
     },
     {
       id: 'issue-intake', icon: 'branch', title: 'Start from GitHub issue…',
@@ -712,6 +719,7 @@ function App() {
           />
         )}
         {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
+        {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
         {nonGitChoice && (
           <NonGitFolderDialog
             name={nonGitChoice.name}
@@ -957,6 +965,7 @@ function App() {
         />
       )}
       {showVoiceSettings && <VoiceSettingsPanel onClose={() => setShowVoiceSettings(false)} />}
+      {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
 
       {confirmClose && (() => {
         const target = sessions.find(s => s.id === confirmClose.id);
