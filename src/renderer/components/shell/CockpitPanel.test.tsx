@@ -1,10 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CockpitPanel } from './CockpitPanel';
 import type { AttentionItem } from '../../hooks/useAttentionQueue';
 import type { TabData } from '../ui/Tab';
 
-function makeItem(overrides: Partial<TabData> & { id: string; name: string }): AttentionItem {
+function makeItem(
+  overrides: Partial<TabData> & { id: string; name: string },
+  itemOverrides: Partial<AttentionItem> = {},
+): AttentionItem {
   const session: TabData = {
     id: overrides.id,
     name: overrides.name,
@@ -23,6 +26,7 @@ function makeItem(overrides: Partial<TabData> & { id: string; name: string }): A
     preview: '',
     lastActivityAt: Date.now(),
     acknowledged: false,
+    ...itemOverrides,
   };
 }
 
@@ -150,5 +154,94 @@ describe('CockpitPanel keyboard shortcuts', () => {
     const runningItem = makeItem({ id: 's2', name: 'Session Two', activityState: 'awaiting-input' });
     rerender(<CockpitPanel items={[runningItem]} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} onShipIt={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /Ship it/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('CockpitPanel waiting duration (#212)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('shows a "waiting {duration}" fragment for a row with a known lastActivityAt', () => {
+    const now = Date.now();
+    vi.setSystemTime(now);
+    const items = [
+      makeItem(
+        { id: 's1', name: 'Session One', activityState: 'awaiting-input' },
+        { lastActivityAt: now - 90 * 1000 },
+      ),
+    ];
+    render(<CockpitPanel items={items} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/waiting 1m/)).toBeInTheDocument();
+  });
+
+  it('renders no waiting fragment when lastActivityAt is 0 (unknown)', () => {
+    const items = [
+      makeItem(
+        { id: 's1', name: 'Session One', activityState: 'awaiting-input' },
+        { lastActivityAt: 0 },
+      ),
+    ];
+    render(<CockpitPanel items={items} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />);
+
+    // Word-boundary regex: "awaiting input" (the status chip) legitimately
+    // contains the substring "waiting" and must not cause a false positive.
+    expect(screen.queryByText(/\bwaiting\b/)).not.toBeInTheDocument();
+  });
+
+  it('refreshes the displayed duration every 15s while the panel stays open', () => {
+    const now = Date.now();
+    vi.setSystemTime(now);
+    const items = [
+      makeItem(
+        { id: 's1', name: 'Session One', activityState: 'awaiting-input' },
+        { lastActivityAt: now - 50 * 1000 },
+      ),
+    ];
+    render(<CockpitPanel items={items} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/waiting 50s/)).toBeInTheDocument();
+
+    // Advance real elapsed time (via lastActivityAt staying fixed while "now" moves)
+    // past the next minute boundary and past the 15s refresh tick.
+    act(() => {
+      vi.setSystemTime(now + 20 * 1000);
+      vi.advanceTimersByTime(15000);
+    });
+
+    expect(screen.getByText(/waiting 1m/)).toBeInTheDocument();
+    expect(screen.queryByText(/waiting 50s/)).not.toBeInTheDocument();
+  });
+
+  it('clears the refresh interval on unmount (no leak, no post-unmount state update)', () => {
+    const clearSpy = vi.spyOn(global, 'clearInterval');
+    const items = [
+      makeItem(
+        { id: 's1', name: 'Session One', activityState: 'awaiting-input' },
+        { lastActivityAt: Date.now() - 1000 },
+      ),
+    ];
+    const { unmount } = render(
+      <CockpitPanel items={items} onJump={vi.fn()} onAcknowledge={vi.fn()} onClose={vi.fn()} />
+    );
+
+    unmount();
+
+    expect(clearSpy).toHaveBeenCalled();
+
+    // Advancing timers after unmount must not throw or warn about updates on
+    // an unmounted component — the interval callback should never fire again.
+    expect(() => {
+      act(() => {
+        vi.advanceTimersByTime(60000);
+      });
+    }).not.toThrow();
+
+    clearSpy.mockRestore();
   });
 });

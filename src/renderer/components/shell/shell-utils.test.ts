@@ -1,5 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { resolveSessionWorktree, isSessionStopped } from './shell-utils';
+import { resolveSessionWorktree, isSessionStopped, formatWaitDuration } from './shell-utils';
+
+describe('formatWaitDuration', () => {
+  it('is "just now" for anything under 5s, including 0', () => {
+    expect(formatWaitDuration(0)).toBe('just now');
+    expect(formatWaitDuration(4999)).toBe('just now');
+  });
+
+  it('renders seconds from 5s up to (not including) 60s', () => {
+    expect(formatWaitDuration(5000)).toBe('5s');
+    expect(formatWaitDuration(59000)).toBe('59s');
+  });
+
+  it('renders minutes from 60s up to (not including) 60m', () => {
+    expect(formatWaitDuration(60000)).toBe('1m');
+    expect(formatWaitDuration(59 * 60000)).toBe('59m');
+  });
+
+  it('renders hours from 60m onward', () => {
+    expect(formatWaitDuration(60 * 60000)).toBe('1h');
+    expect(formatWaitDuration(5 * 60 * 60000 + 1)).toBe('5h');
+  });
+
+  it('clamps negative elapsed (clock skew) to "just now" instead of throwing', () => {
+    expect(formatWaitDuration(-500)).toBe('just now');
+  });
+});
 
 describe('isSessionStopped', () => {
   it('is true only once the process is gone (exited or errored)', () => {
