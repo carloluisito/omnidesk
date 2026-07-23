@@ -6,6 +6,13 @@
 
 > ## ⚠️ Update (2026-07-19) — agent classification deferred; headless emulator required
 >
+> **Shipped in #202/#207** — the headless-emulator fix described below
+> (`@xterm/headless`-backed `ScreenModel`, wired into `SessionManager.setupClassifier`
+> for agent sessions) has landed on `main`. This callout is kept as historical
+> context for why the tail-based approach was gated to shells in the first place;
+> see `CLAUDE.md`'s "Attention cockpit / session-state classifier" entry for the
+> current, shipped design.
+>
 > Live testing against **Claude Code v2.1.x** proved the tail-based classifier
 > (§4: rolling byte tail + output quiescence) **cannot classify agent CLIs**.
 > Confirmed from instrumented logs: Claude Code renders its entire REPL in the
