@@ -88,7 +88,7 @@
 - **Live session status** on the rail — each session is classified (`working` / `awaiting-approval` / `errored` / `done` / `idle`) rather than a single "running" state
 - **"Who needs you" cockpit** (`Ctrl/Cmd+J`) — a cross-repo overlay listing sessions that need attention, with Jump/Dismiss, plus a "N need you" pill in the status bar and background toasts for backgrounded sessions
 - **Agent "needs you" alerts via the terminal bell** — when an agent CLI rings its bell (Claude Code: turn finished, question waiting), the session is flagged `awaiting-input`, fires a toast with Jump, and counts in the pill. Typing in the session clears it. **Requires the CLI's bell channel** — for Claude Code add `"preferredNotifChannel": "terminal_bell"` to your `~/.claude/settings.json` (or profile settings)
-- **Current scope** — full live-state classification (working/idle) runs for **plain terminal (shell) sessions**; agent sessions get bell-driven needs-you alerts plus run/error/exit state. Richer agent states (screen-aware classification) are planned.
+- **Current scope** — shell sessions are classified from a rolling output-tail + quiescence timer; agent sessions (Claude Code, Codex) are classified from their **rendered screen content** — a headless `ScreenModel` (`@xterm/headless`) takes settled snapshots of the terminal's alt-screen buffer and feeds them to the provider's `getStateSignals()` table, yielding the same `working` / `awaiting-approval` / `awaiting-input` / `done` / `errored` states as shells. The terminal bell (`BareBellDetector`) still supplies the `awaiting-input` needs-you signal for agents alongside the screen-driven classification.
 
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
