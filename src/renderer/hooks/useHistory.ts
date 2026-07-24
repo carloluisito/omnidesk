@@ -117,9 +117,12 @@ export function useHistory(): UseHistoryApi {
 
   const getSettings = useCallback(async () => {
     try {
-      const settings = await window.electronAPI.getHistorySettings();
-      setError(null);
-      return settings;
+      // Deliberately does not clear `error` on success: this is fetched
+      // alongside getStats in a mount-time effect that races with the
+      // primary refresh() list load, and clearing `error` here would
+      // clobber a real listHistory failure the moment this unrelated,
+      // supplementary fetch happens to resolve second.
+      return await window.electronAPI.getHistorySettings();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return null;
@@ -139,9 +142,9 @@ export function useHistory(): UseHistoryApi {
 
   const getStats = useCallback(async () => {
     try {
-      const stats = await window.electronAPI.getHistoryStats();
-      setError(null);
-      return stats;
+      // See getSettings above: no setError(null) on success, for the same
+      // race-with-mount-time-refresh() reason.
+      return await window.electronAPI.getHistoryStats();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return null;

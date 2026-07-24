@@ -1,14 +1,15 @@
 // @atlas-entrypoint: Session History Explorer — read-only browser for recorded
-// session transcripts (epic #214 child 2), now with cross-session content
-// search (epic #214 child 3). Left pane lists recorded sessions newest-first,
-// or search results grouped by session when a query is active; right pane
-// shows the full transcript for the selected one.
-// Export/delete/settings are deferred to later children of #214.
+// session transcripts (epic #214 child 2), with cross-session content search
+// (epic #214 child 3), and export / delete / stats / retention actions (epic
+// #214 child 4). Left pane lists recorded sessions newest-first, or search
+// results grouped by session when a query is active; right pane shows the
+// full transcript for the selected one plus its export/delete actions.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import { formatLastActive } from './shell-utils';
 import { useHistory } from '../../hooks/useHistory';
-import type { HistorySearchResult } from '../../../shared/types/history-types';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import type { HistorySearchResult, HistorySettings, HistoryStats } from '../../../shared/types/history-types';
 
 /** Debounce delay (ms) between the last keystroke and firing a search. */
 const SEARCH_DEBOUNCE_MS = 200;
@@ -27,7 +28,11 @@ function formatSize(bytes: number): string {
 }
 
 export function HistoryPanel({ onClose }: HistoryPanelProps) {
-  const { sessions, loading, error, getContent, search } = useHistory();
+  const {
+    sessions, loading, error, getContent, search,
+    remove, removeAll, exportMarkdown, exportJson,
+    getSettings, updateSettings, getStats,
+  } = useHistory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
@@ -39,6 +44,16 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
   const [searching, setSearching] = useState(false);
   const searchTimerRef = useRef<number | null>(null);
   const searchSeqRef = useRef(0);
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [stats, setStats] = useState<HistoryStats | null>(null);
+  const [settings, setSettings] = useState<HistorySettings | null>(null);
+
+  useEffect(() => {
+    void getStats().then(setStats);
+    void getSettings().then(setSettings);
+  }, [getStats, getSettings]);
 
   const trimmedQuery = query.trim();
 
@@ -75,6 +90,17 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
     [sessions]
   );
 
+  /** Display name of the currently selected session — looked up from either the
+   *  browse list or the active search results, since a selection can come from
+   *  either. Used as the default export filename. */
+  const selectedName = useMemo(() => {
+    if (selectedId === null) return null;
+    const fromSorted = sorted.find((s) => s.id === selectedId);
+    if (fromSorted) return fromSorted.name;
+    const fromSearch = searchResults?.find((r) => r.session.id === selectedId);
+    return fromSearch?.session.name ?? null;
+  }, [selectedId, sorted, searchResults]);
+
   const selectSession = useCallback(async (id: string) => {
     setSelectedId(id);
     setContentLoading(true);
@@ -91,6 +117,51 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
       setContentLoading(false);
     }
   }, [getContent]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedId(null);
+    setContent(null);
+    setContentMissing(false);
+  }, []);
+
+  const handleExportMarkdown = useCallback(async (id: string, name: string) => {
+    const path = await window.electronAPI.showSaveDialog({
+      defaultPath: `${name}.md`,
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    });
+    if (path === null) return; // user cancelled
+    await exportMarkdown(id, path);
+  }, [exportMarkdown]);
+
+  const handleExportJson = useCallback(async (id: string, name: string) => {
+    const path = await window.electronAPI.showSaveDialog({
+      defaultPath: `${name}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    if (path === null) return; // user cancelled
+    await exportJson(id, path);
+  }, [exportJson]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (confirmDeleteId === null) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    const ok = await remove(id);
+    if (ok && selectedId === id) clearSelection();
+    setStats(await getStats());
+  }, [confirmDeleteId, remove, selectedId, clearSelection, getStats]);
+
+  const handleConfirmDeleteAll = useCallback(async () => {
+    setConfirmDeleteAll(false);
+    const ok = await removeAll();
+    if (ok) clearSelection();
+    setStats(await getStats());
+  }, [removeAll, clearSelection, getStats]);
+
+  const handleSettingsChange = useCallback(async (patch: Partial<HistorySettings>) => {
+    setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
+    await updateSettings(patch);
+  }, [updateSettings]);
 
   return (
     <div className="p4-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -206,7 +277,30 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
             )}
           </div>
 
-          <div style={{ flex: '1 1 55%', overflowY: 'auto', minWidth: 0 }}>
+          <div style={{ flex: '1 1 55%', overflowY: 'auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selectedId !== null && (
+              <div className="p4-form-row" style={{ display: 'flex', gap: 6 }}>
+                <button
+                  data-testid="history-export-md"
+                  onClick={() => void handleExportMarkdown(selectedId, selectedName ?? selectedId)}
+                >
+                  Export Markdown
+                </button>
+                <button
+                  data-testid="history-export-json"
+                  onClick={() => void handleExportJson(selectedId, selectedName ?? selectedId)}
+                >
+                  Export JSON
+                </button>
+                <button
+                  data-testid="history-delete"
+                  onClick={() => setConfirmDeleteId(selectedId)}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+
             {selectedId === null ? (
               <div className="p4-form-row"><span className="d">Select a session to view its transcript.</span></div>
             ) : contentLoading ? (
@@ -232,7 +326,78 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
             )}
           </div>
         </div>
+
+        <div className="p4-sheet-foot" style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--border, #2a2a2a)', padding: '8px 0' }}>
+          {stats && (
+            <div className="p4-form-row" data-testid="history-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="d">
+                {stats.totalSessions} session{stats.totalSessions === 1 ? '' : 's'} · {formatSize(stats.totalSizeBytes)}
+                {stats.oldestSessionDate !== null && stats.newestSessionDate !== null
+                  ? ` · ${formatLastActive(stats.oldestSessionDate)} – ${formatLastActive(stats.newestSessionDate)}`
+                  : ''}
+              </span>
+              <button data-testid="history-delete-all" onClick={() => setConfirmDeleteAll(true)}>
+                Delete all
+              </button>
+            </div>
+          )}
+
+          {settings && (
+            <div className="p4-form-row" data-testid="history-settings" style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12 }}>
+              <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                Max age (days)
+                <input
+                  type="number"
+                  min={0}
+                  data-testid="history-setting-max-age"
+                  value={settings.maxAgeDays}
+                  onChange={(e) => void handleSettingsChange({ maxAgeDays: Number(e.target.value) })}
+                  style={{ width: 64 }}
+                />
+              </label>
+              <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                Max size (MB)
+                <input
+                  type="number"
+                  min={0}
+                  data-testid="history-setting-max-size"
+                  value={settings.maxSizeMB}
+                  onChange={(e) => void handleSettingsChange({ maxSizeMB: Number(e.target.value) })}
+                  style={{ width: 64 }}
+                />
+              </label>
+              <label style={{ display: 'flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  data-testid="history-setting-auto-cleanup"
+                  checked={settings.autoCleanup}
+                  onChange={(e) => void handleSettingsChange({ autoCleanup: e.target.checked })}
+                />
+                Auto cleanup
+              </label>
+            </div>
+          )}
+        </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteId !== null}
+        title="Delete session"
+        body="This will permanently delete the recorded transcript for this session. This cannot be undone."
+        severity="destructive"
+        confirmLabel="Delete"
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmDeleteAll}
+        title="Delete all sessions"
+        body="This will permanently delete every recorded session transcript. This cannot be undone."
+        severity="final-destructive"
+        confirmLabel="Delete all"
+        onConfirm={() => void handleConfirmDeleteAll()}
+        onCancel={() => setConfirmDeleteAll(false)}
+      />
     </div>
   );
 }

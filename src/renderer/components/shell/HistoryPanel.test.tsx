@@ -1,8 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { getElectronAPI } from '../../../../test/helpers/electron-api-mock';
 import { HistoryPanel } from './HistoryPanel';
-import type { HistorySessionEntry, HistorySearchResult } from '../../../shared/types/history-types';
+import type {
+  HistorySessionEntry,
+  HistorySearchResult,
+  HistorySettings,
+  HistoryStats,
+} from '../../../shared/types/history-types';
+
+function makeSettings(overrides: Partial<HistorySettings> = {}): HistorySettings {
+  return {
+    maxAgeDays: 30,
+    maxSizeMB: 500,
+    autoCleanup: false,
+    ...overrides,
+  };
+}
+
+function makeStats(overrides: Partial<HistoryStats> = {}): HistoryStats {
+  return {
+    totalSessions: 3,
+    totalSizeBytes: 1024 * 1024 * 5, // 5 MB
+    oldestSessionDate: Date.now() - 7 * 24 * 60 * 60 * 1000,
+    newestSessionDate: Date.now() - 60_000,
+    ...overrides,
+  };
+}
 
 function makeSession(overrides: Partial<HistorySessionEntry> = {}): HistorySessionEntry {
   return {
@@ -33,6 +57,14 @@ function setupApi(sessions: HistorySessionEntry[] = [makeSession()]) {
   api.listHistory = vi.fn().mockResolvedValue(sessions);
   api.getHistory = vi.fn().mockResolvedValue('transcript line 1\ntranscript line 2');
   api.searchHistory = vi.fn().mockResolvedValue([]);
+  api.getHistorySettings = vi.fn().mockResolvedValue(makeSettings());
+  api.getHistoryStats = vi.fn().mockResolvedValue(makeStats());
+  api.showSaveDialog = vi.fn().mockResolvedValue('C:\\exports\\out.md');
+  api.exportHistoryMarkdown = vi.fn().mockResolvedValue(true);
+  api.exportHistoryJson = vi.fn().mockResolvedValue(true);
+  api.deleteHistory = vi.fn().mockResolvedValue(true);
+  api.deleteAllHistory = vi.fn().mockResolvedValue(true);
+  api.updateHistorySettings = vi.fn().mockResolvedValue(true);
   return api;
 }
 
@@ -199,5 +231,125 @@ describe('HistoryPanel', () => {
     await waitFor(() =>
       expect(screen.getByTestId('history-content')).toHaveTextContent('transcript line 1')
     );
+  });
+
+  it('exports the selected session as Markdown via the save dialog', async () => {
+    const api = setupApi([makeSession({ id: 's1', name: 'fix auth bug' })]);
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+    await waitFor(() => screen.getByTestId('history-export-md'));
+    fireEvent.click(screen.getByTestId('history-export-md'));
+
+    await waitFor(() =>
+      expect(api.showSaveDialog).toHaveBeenCalledWith({
+        defaultPath: 'fix auth bug.md',
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+      })
+    );
+    await waitFor(() =>
+      expect(api.exportHistoryMarkdown).toHaveBeenCalledWith('s1', 'C:\\exports\\out.md')
+    );
+  });
+
+  it('exports the selected session as JSON via the save dialog', async () => {
+    const api = setupApi([makeSession({ id: 's1', name: 'fix auth bug' })]);
+    api.showSaveDialog = vi.fn().mockResolvedValue('C:\\exports\\out.json');
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+    await waitFor(() => screen.getByTestId('history-export-json'));
+    fireEvent.click(screen.getByTestId('history-export-json'));
+
+    await waitFor(() =>
+      expect(api.showSaveDialog).toHaveBeenCalledWith({
+        defaultPath: 'fix auth bug.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      })
+    );
+    await waitFor(() =>
+      expect(api.exportHistoryJson).toHaveBeenCalledWith('s1', 'C:\\exports\\out.json')
+    );
+  });
+
+  it('does not export when the save dialog is cancelled', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    api.showSaveDialog = vi.fn().mockResolvedValue(null);
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+    await waitFor(() => screen.getByTestId('history-export-md'));
+    fireEvent.click(screen.getByTestId('history-export-md'));
+    fireEvent.click(screen.getByTestId('history-export-json'));
+
+    await waitFor(() => expect(api.showSaveDialog).toHaveBeenCalledTimes(2));
+    expect(api.exportHistoryMarkdown).not.toHaveBeenCalled();
+    expect(api.exportHistoryJson).not.toHaveBeenCalled();
+  });
+
+  it('deletes the selected session after confirming, and clears the transcript viewer', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+    await waitFor(() =>
+      expect(screen.getByTestId('history-content')).toHaveTextContent('transcript line 1')
+    );
+
+    fireEvent.click(screen.getByTestId('history-delete'));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('Delete session')).toBeInTheDocument();
+    fireEvent.mouseDown(within(dialog).getByRole('button', { name: /^Delete/ }));
+
+    await waitFor(() => expect(api.deleteHistory).toHaveBeenCalledWith('s1'));
+    await waitFor(() =>
+      expect(screen.getByText('Select a session to view its transcript.')).toBeInTheDocument()
+    );
+  });
+
+  it('deletes all sessions after confirming via the final-destructive dialog', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-delete-all'));
+    fireEvent.click(screen.getByTestId('history-delete-all'));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('Delete all sessions')).toBeInTheDocument();
+    fireEvent.mouseDown(within(dialog).getByRole('button', { name: /^Delete all/ }));
+
+    await waitFor(() => expect(api.deleteAllHistory).toHaveBeenCalled());
+  });
+
+  it('renders history stats with session count and size', async () => {
+    setupApi();
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-stats'));
+    const stats = screen.getByTestId('history-stats');
+    expect(within(stats).getByText(/3 sessions/)).toBeInTheDocument();
+    expect(within(stats).getByText(/5(\.0)? MB/)).toBeInTheDocument();
+  });
+
+  it('loads history settings and persists changes to each field', async () => {
+    const api = setupApi();
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-settings'));
+    expect(screen.getByTestId('history-setting-max-age')).toHaveValue(30);
+    expect(screen.getByTestId('history-setting-max-size')).toHaveValue(500);
+    expect(screen.getByTestId('history-setting-auto-cleanup')).not.toBeChecked();
+
+    fireEvent.change(screen.getByTestId('history-setting-max-age'), { target: { value: '60' } });
+    await waitFor(() => expect(api.updateHistorySettings).toHaveBeenCalledWith({ maxAgeDays: 60 }));
+
+    fireEvent.change(screen.getByTestId('history-setting-max-size'), { target: { value: '1000' } });
+    await waitFor(() => expect(api.updateHistorySettings).toHaveBeenCalledWith({ maxSizeMB: 1000 }));
+
+    fireEvent.click(screen.getByTestId('history-setting-auto-cleanup'));
+    await waitFor(() => expect(api.updateHistorySettings).toHaveBeenCalledWith({ autoCleanup: true }));
   });
 });
