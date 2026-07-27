@@ -3,12 +3,15 @@
 // The actual xterm lives in TerminalHost at App level — we just expose our
 // content area as a slot via useTerminalSlot so the host portals the
 // terminal's DOM into it.
+import { useEffect } from 'react';
 import { P4Icon } from './P4Icon';
 import {
-  colorBg, colorFg, initials, STATUS_META, isSessionStopped, type RepoColor,
+  colorBg, colorFg, initials, STATUS_META, isSessionStopped, formatByteSize,
+  formatActiveDuration, type RepoColor,
 } from './shell-utils';
 import { mapTabStatus } from './SessionRail';
 import { useTerminalSlot } from './TerminalHost';
+import { useSessionDigest } from '../../hooks/useSessionDigest';
 import type { TabData } from '../ui/Tab';
 
 interface SessionPaneProps {
@@ -20,6 +23,14 @@ interface SessionPaneProps {
 
 export function SessionPane({ session, onClose, onRestart, onKill }: SessionPaneProps) {
   const slotRef = useTerminalSlot(session.id);
+
+  // "While you were away" recap glance (epic #225 child-4) — same digest data
+  // HistoryPanel shows for past sessions, surfaced here for the live one.
+  // Re-fetched whenever the focused session changes.
+  const { digest, loading: digestLoading, error: digestError, fetch: fetchDigest } = useSessionDigest();
+  useEffect(() => {
+    void fetchDigest(session.id);
+  }, [session.id, fetchDigest]);
 
   // The underlying CLI process is gone once a session exits or errors. Offer
   // restart. (A 'starting' session is not stopped — don't flash the overlay
@@ -111,6 +122,29 @@ export function SessionPane({ session, onClose, onRestart, onKill }: SessionPane
           )}
         </div>
       </div>
+
+      {/* "While you were away" recap glance — mirrors HistoryPanel's digest
+          rendering (same null-handling convention: approvalPromptsHit /
+          errorsDetected show "— (not tracked)" when null, never 0). Hidden
+          entirely while loading or on error to avoid a flash of empty chips. */}
+      {!digestLoading && !digestError && digest && (
+        <div className="p4-sess-strip" data-testid="session-pane-digest" style={{ paddingTop: 0, paddingBottom: 8 }}>
+          <div className="meta" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <span className="p4-chip">Active {formatActiveDuration(digest.activeDurationMs)}</span>
+            <span className="p4-chip">Output {formatByteSize(digest.outputBytes)}</span>
+            <span className="p4-chip">Checkpoints {digest.checkpointsCreated}</span>
+            {digest.restartSegments > 0 && (
+              <span className="p4-chip">Restarts {digest.restartSegments}</span>
+            )}
+            <span className="p4-chip" data-testid="session-pane-digest-approvals">
+              Approvals {digest.approvalPromptsHit === null ? '— (not tracked)' : digest.approvalPromptsHit}
+            </span>
+            <span className="p4-chip" data-testid="session-pane-digest-errors">
+              Errors {digest.errorsDetected === null ? '— (not tracked)' : digest.errorsDetected}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Slot: TerminalHost portals this session's persistent xterm into here. */}
       <div ref={slotRef} className="p4-term-host" style={{ position: 'relative' }}>

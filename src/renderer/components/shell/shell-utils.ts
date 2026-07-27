@@ -170,6 +170,31 @@ export const formatWaitDuration = (msElapsed: number): string => {
   return `${h}h`;
 };
 
+/** Humanize a byte count as e.g. "512 B" / "1.2 KB" / "3.4 MB" — used by the
+ *  session digest recap (HistoryPanel's past-session card and SessionPane's
+ *  live-session glance) for output volume. */
+export const formatByteSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+};
+
+/** Humanize a duration in ms as e.g. "42s" / "5m" / "2h 15m" — used by the
+ *  session digest recap for `activeDurationMs`. Unlike formatWaitDuration
+ *  (short in-session waits) this covers a whole session's active window, so
+ *  it combines hours + remaining minutes instead of collapsing to just "Nh". */
+export const formatActiveDuration = (ms: number): string => {
+  const totalSeconds = Math.floor(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+};
+
 /** Format a Date or epoch ms as "Nh ago", "Nd ago", etc. — used in rail meta. */
 export const formatLastActive = (date: Date | number | undefined): string => {
   if (!date) return '—';
