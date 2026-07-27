@@ -196,10 +196,20 @@ export class HistoryManager {
   }
 
   /**
-   * Update session metadata (name, directory)
+   * Update session metadata (name, directory, and optionally provider).
+   *
+   * `providerId` is deliberately non-clobbering: it is only written when the
+   * caller supplies a value. Several call sites (e.g. manual rename) invoke
+   * this without knowing the provider, and must not erase a providerId a
+   * previous call already persisted (issue #230).
    */
-  updateSessionMetadata(sessionId: string, name: string, workingDirectory: string): void {
-    console.log(`[HistoryManager] updateSessionMetadata called:`, { sessionId, name, workingDirectory });
+  updateSessionMetadata(
+    sessionId: string,
+    name: string,
+    workingDirectory: string,
+    providerId?: string
+  ): void {
+    console.log(`[HistoryManager] updateSessionMetadata called:`, { sessionId, name, workingDirectory, providerId });
     let entry = this.index.sessions[sessionId];
 
     // Create entry if it doesn't exist
@@ -213,6 +223,7 @@ export class HistoryManager {
         lastUpdatedAt: Date.now(),
         sizeBytes: 0,
         segmentCount: 0,
+        providerId,
       };
       this.index.sessions[sessionId] = entry;
     } else {
@@ -220,6 +231,9 @@ export class HistoryManager {
       // Update existing entry
       entry.name = name;
       entry.workingDirectory = workingDirectory;
+      if (providerId !== undefined) {
+        entry.providerId = providerId;
+      }
     }
 
     console.log(`[HistoryManager] Entry after update:`, entry);

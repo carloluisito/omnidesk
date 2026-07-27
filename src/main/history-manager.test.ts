@@ -26,6 +26,11 @@ function stateOf(mgr: HistoryManager, id: string): any {
   return (mgr as unknown as { sessionStates: Map<string, any> }).sessionStates.get(id);
 }
 
+// White-box helper: read the persisted index entry for a session.
+function entryOf(mgr: HistoryManager, id: string): any {
+  return (mgr as unknown as { index: { sessions: Record<string, any> } }).index.sessions[id];
+}
+
 describe('HistoryManager.recordOutput — readiness gate (F4)', () => {
   let mgr: HistoryManager;
 
@@ -69,5 +74,48 @@ describe('HistoryManager.recordOutput — readiness gate (F4)', () => {
     expect(s.isClaudeReady).toBe(true);
     expect(s.preClaudeBuffer).toBe('');
     expect(s.buffer).toContain('Claude Code');
+  });
+});
+
+describe('HistoryManager.updateSessionMetadata — providerId persistence (issue #230)', () => {
+  let mgr: HistoryManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mgr = new HistoryManager();
+  });
+
+  it('persists providerId on a brand-new entry when supplied', () => {
+    mgr.updateSessionMetadata('s1', 'Session 1', '/repo', 'claude');
+    expect(entryOf(mgr, 's1').providerId).toBe('claude');
+  });
+
+  it('leaves providerId undefined on a brand-new entry when not supplied', () => {
+    mgr.updateSessionMetadata('s2', 'Session 2', '/repo');
+    expect(entryOf(mgr, 's2').providerId).toBeUndefined();
+  });
+
+  it('sets providerId on an existing entry when a value is later supplied', () => {
+    mgr.updateSessionMetadata('s3', 'Session 3', '/repo');
+    expect(entryOf(mgr, 's3').providerId).toBeUndefined();
+
+    mgr.updateSessionMetadata('s3', 'Session 3', '/repo', 'codex');
+    expect(entryOf(mgr, 's3').providerId).toBe('codex');
+  });
+
+  it('does not clobber an existing providerId when a later call omits it (non-clobbering rename)', () => {
+    mgr.updateSessionMetadata('s4', 'Session 4', '/repo', 'claude');
+    expect(entryOf(mgr, 's4').providerId).toBe('claude');
+
+    // Simulates a manual rename call site that doesn't know the provider.
+    mgr.updateSessionMetadata('s4', 'Renamed Session 4', '/repo');
+    expect(entryOf(mgr, 's4').providerId).toBe('claude');
+    expect(entryOf(mgr, 's4').name).toBe('Renamed Session 4');
+  });
+
+  it('updates providerId when a later call supplies a different value', () => {
+    mgr.updateSessionMetadata('s5', 'Session 5', '/repo', 'claude');
+    mgr.updateSessionMetadata('s5', 'Session 5', '/repo', 'codex');
+    expect(entryOf(mgr, 's5').providerId).toBe('codex');
   });
 });

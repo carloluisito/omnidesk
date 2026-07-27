@@ -628,6 +628,58 @@ describe('SessionManager — model/launchMode persistence & restart (F3)', () =>
   });
 });
 
+describe('SessionManager — providerId threaded into history metadata (issue #230)', () => {
+  let manager: SessionManager;
+  const baseRequest = { workingDirectory: '/mock/home', permissionMode: 'standard' as const };
+
+  function lastUpdateCall(): unknown[] {
+    const fn = HistoryManager.prototype.updateSessionMetadata as ReturnType<typeof vi.fn>;
+    return fn.mock.calls[fn.mock.calls.length - 1];
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    manager = createSessionManager();
+    manager.setMainWindow({} as never);
+    const registry = { get: vi.fn(() => ({ getEnvironmentVariables: () => ({}), buildCommand: () => 'claude', getStateSignals: () => ({ working: [], approval: [], awaitingInput: [], fatalError: [] }) })) };
+    manager.setProviderRegistry(registry as any);
+  });
+
+  it('createSession passes the resolved providerId ("claude" default) to history', async () => {
+    const meta = await manager.createSession({ ...baseRequest, kind: 'agent' } as never);
+    expect(meta.providerId).toBe('claude');
+    expect(lastUpdateCall()).toEqual(['test-session-id', expect.any(String), '/mock/home', 'claude']);
+  });
+
+  it('createSession passes undefined providerId for shell sessions', async () => {
+    await manager.createSession({ ...baseRequest, kind: 'shell' } as never);
+    expect(lastUpdateCall()).toEqual(['test-session-id', expect.any(String), '/mock/home', undefined]);
+  });
+
+  it("renameSession forwards the session's providerId, not just name/directory", async () => {
+    await manager.createSession({ ...baseRequest, kind: 'agent' } as never);
+    vi.clearAllMocks();
+    await manager.renameSession('test-session-id', 'Manual Name');
+    expect(lastUpdateCall()).toEqual(['test-session-id', 'Manual Name', '/mock/home', 'claude']);
+  });
+
+  it("applyAutoRename (title-driven) forwards the session's providerId", async () => {
+    await manager.createSession({ ...baseRequest, kind: 'agent' } as never);
+    const onOutput = CLIManager.prototype.onOutput as ReturnType<typeof vi.fn>;
+    const tap = onOutput.mock.calls[0][0];
+    vi.clearAllMocks();
+    tap('\x1b]0;⠂ Fix login bug\x07');
+    expect(lastUpdateCall()).toEqual(['test-session-id', 'Fix login bug', '/mock/home', 'claude']);
+  });
+
+  it("restartSession forwards the session's providerId", async () => {
+    await manager.createSession({ ...baseRequest, kind: 'agent' } as never);
+    vi.clearAllMocks();
+    await manager.restartSession('test-session-id');
+    expect(lastUpdateCall()).toEqual(['test-session-id', expect.any(String), '/mock/home', 'claude']);
+  });
+});
+
 describe('SessionManager scrollback buffer', () => {
   let manager: SessionManager;
 
