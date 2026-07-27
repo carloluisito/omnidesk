@@ -34,7 +34,7 @@ export function useHistory(): UseHistoryApi {
   const refresh = useCallback(async () => {
     try {
       const list = await window.electronAPI.listHistory();
-      setSessions(list);
+      setSessions(Array.isArray(list) ? list : []);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
