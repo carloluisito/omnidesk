@@ -26,3 +26,4 @@ export { IntegrationsPanel } from './IntegrationsPanel';
 export { ShipItSheet } from './ShipItSheet';
 export { VoiceSettingsPanel } from './VoiceSettingsPanel';
 export { HistoryPanel } from './HistoryPanel';
+export { CheckpointsPanel } from './CheckpointsPanel';
