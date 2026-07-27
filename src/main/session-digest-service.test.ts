@@ -3,6 +3,9 @@ import type { HistorySessionEntry } from '../shared/types/history-types';
 import type { Checkpoint } from '../shared/types/checkpoint-types';
 import type { HistoryManager } from './history-manager';
 import type { CheckpointManager } from './checkpoint-manager';
+import type { ProviderRegistry } from './providers/provider-registry';
+import type { IProvider } from './providers/provider';
+import type { StateSignals } from '../shared/session-state-types';
 import { computeSessionDigest } from './session-digest-service';
 
 function makeSessionEntry(overrides: Partial<HistorySessionEntry> = {}): HistorySessionEntry {
@@ -31,9 +34,10 @@ function makeCheckpoint(overrides: Partial<Checkpoint> = {}): Checkpoint {
   };
 }
 
-function makeHistoryManager(entry: HistorySessionEntry | null): HistoryManager {
+function makeHistoryManager(entry: HistorySessionEntry | null, content = ''): HistoryManager {
   return {
     getSessionMetadata: vi.fn().mockResolvedValue(entry),
+    getSessionContent: vi.fn().mockResolvedValue(content),
   } as unknown as HistoryManager;
 }
 
@@ -43,13 +47,39 @@ function makeCheckpointManager(checkpoints: Checkpoint[]): CheckpointManager {
   } as unknown as CheckpointManager;
 }
 
+/** A ProviderRegistry test double: `providers` maps providerId -> a partial
+ *  IProvider (only getStateSignals() is ever called by computeSessionDigest).
+ *  Unregistered ids throw, mirroring the real ProviderRegistry.get(). */
+function makeProviderRegistry(providers: Record<string, Partial<IProvider>> = {}): ProviderRegistry {
+  return {
+    get: vi.fn((id: string) => {
+      const provider = providers[id];
+      if (!provider) {
+        throw new Error(`Provider not found: ${id}`);
+      }
+      return provider as IProvider;
+    }),
+  } as unknown as ProviderRegistry;
+}
+
+function makeStateSignals(overrides: Partial<StateSignals> = {}): StateSignals {
+  return {
+    working: [],
+    approval: [],
+    awaitingInput: [],
+    fatalError: [],
+    ...overrides,
+  };
+}
+
 describe('computeSessionDigest', () => {
   it('computes a digest for a normal session with no restarts', async () => {
     const entry = makeSessionEntry({ segmentCount: 0, sizeBytes: 1234 });
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1');
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
 
     expect(digest).toEqual({
       sessionId: 'session-1',
@@ -68,8 +98,9 @@ describe('computeSessionDigest', () => {
     const entry = makeSessionEntry({ segmentCount: 3 });
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1');
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
 
     expect(digest.restartSegments).toBe(3);
   });
@@ -84,8 +115,9 @@ describe('computeSessionDigest', () => {
       makeCheckpoint({ id: 'cp-at-end', createdAt: 10000 }),
     ];
     const checkpointManager = makeCheckpointManager(checkpoints);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1', 5000);
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1', 5000);
 
     expect(digest.windowStart).toBe(5000);
     expect(digest.windowEnd).toBe(10000);
@@ -96,18 +128,59 @@ describe('computeSessionDigest', () => {
     const entry = makeSessionEntry();
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1');
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
 
     expect(digest.checkpointsCreated).toBe(0);
   });
 
-  it('always reports approvalPromptsHit and errorsDetected as null (v1 graceful degrade)', async () => {
-    const entry = makeSessionEntry();
+  it('reports approvalPromptsHit and errorsDetected as null when the session has no providerId', async () => {
+    const entry = makeSessionEntry({ providerId: undefined });
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([makeCheckpoint()]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1');
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
+
+    expect(digest.approvalPromptsHit).toBeNull();
+    expect(digest.errorsDetected).toBeNull();
+  });
+
+  it('replays the provider marker tables against persisted output to compute real counts (#235)', async () => {
+    const entry = makeSessionEntry({ providerId: 'claude' });
+    const content = [
+      'thinking...',
+      'Do you want to proceed with this?',
+      'more output',
+      'Do you want to make this edit to foo.ts?',
+      'API Error: 500 Internal Server Error',
+      'trailing output',
+    ].join('\n');
+    const historyManager = makeHistoryManager(entry, content);
+    const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry({
+      claude: {
+        getStateSignals: () => makeStateSignals({
+          approval: [/Do you want to (proceed|make this edit)\b/i],
+          fatalError: [/^\s*(⎿\s*)?API Error[:\s(]/im],
+        }),
+      },
+    });
+
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
+
+    expect(digest.approvalPromptsHit).toBe(2);
+    expect(digest.errorsDetected).toBe(1);
+  });
+
+  it('leaves approvalPromptsHit/errorsDetected null (never throws) when providerId is unregistered', async () => {
+    const entry = makeSessionEntry({ providerId: 'nonexistent-provider' });
+    const historyManager = makeHistoryManager(entry, 'Do you want to proceed?');
+    const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry(); // nothing registered
+
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1');
 
     expect(digest.approvalPromptsHit).toBeNull();
     expect(digest.errorsDetected).toBeNull();
@@ -117,8 +190,9 @@ describe('computeSessionDigest', () => {
     const entry = makeSessionEntry({ createdAt: 1000, lastUpdatedAt: 5000 });
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1', 0);
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1', 0);
 
     expect(digest.windowStart).toBe(1000);
   });
@@ -127,8 +201,9 @@ describe('computeSessionDigest', () => {
     const entry = makeSessionEntry({ createdAt: 1000, lastUpdatedAt: 5000 });
     const historyManager = makeHistoryManager(entry);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
-    const digest = await computeSessionDigest(historyManager, checkpointManager, 'session-1', 9000);
+    const digest = await computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'session-1', 9000);
 
     expect(digest.windowStart).toBe(9000);
     expect(digest.windowEnd).toBe(9000);
@@ -138,9 +213,10 @@ describe('computeSessionDigest', () => {
   it('throws when the session is not found in history', async () => {
     const historyManager = makeHistoryManager(null);
     const checkpointManager = makeCheckpointManager([]);
+    const providerRegistry = makeProviderRegistry();
 
     await expect(
-      computeSessionDigest(historyManager, checkpointManager, 'missing-session')
+      computeSessionDigest(historyManager, checkpointManager, providerRegistry, 'missing-session')
     ).rejects.toThrow(/missing-session/);
   });
 });
