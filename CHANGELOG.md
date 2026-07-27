@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-07-27
+
+### Added
+- **Session History Explorer.** A new panel (`Ctrl/Cmd+K → "Session history…"`) for browsing the transcripts of past sessions: a newest-first session list with the full transcript view, **cross-session content search** (search what was said in every recorded session at once), and **export / delete / stats / retention** actions — export any transcript as Markdown or JSON, delete individually or all at once, view storage stats, and configure a retention policy. History entries now also record which provider ran the session.
+- **"While you were away" recap.** The history panel shows a per-session digest of what happened since you last looked, backed by a new session digest service.
+- **Checkpoints panel.** Manage session checkpoints from the UI (`Ctrl/Cmd+K → "Checkpoints…"`): create named checkpoints, edit their details, export them as Markdown or JSON, and delete them.
+- **Cockpit wait durations & keyboard control.** Attention cockpit rows now show how long each session has been waiting for you, and the cockpit gained keyboard shortcuts for Dismiss and Ship-it with on-row shortcut hints.
+- **Screen-driven agent classification.** Agent sessions (Claude Code, Codex) are now classified from their rendered screen content — a headless terminal model takes settled snapshots of the alt-screen buffer and feeds them to the provider's state-signal table — so full-screen, continuously-repainting TUIs get the same `working` / `awaiting-approval` / `awaiting-input` / `done` / `errored` states as plain shells.
+
+### Fixed
+- **Approval alerts no longer downgraded.** Outbound integration notifications for agent sessions awaiting approval say so, instead of being softened to "needs your input".
+- **Toast queue drop.** A queued toast could be silently dropped when a toast was removed twice; the queue now survives the double-remove.
+
+### Changed
+- Broader test coverage: worktree error classification, remote static-file serving, ConfirmDialog keyboard confirm, provider capability caching, repo group management, and the speech-to-text engine handle.
+
+---
+
 ## [2.6.1] - 2026-07-22
 
 ### Added

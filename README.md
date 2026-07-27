@@ -86,9 +86,16 @@
 
 ### Attention Cockpit
 - **Live session status** on the rail — each session is classified (`working` / `awaiting-approval` / `errored` / `done` / `idle`) rather than a single "running" state
-- **"Who needs you" cockpit** (`Ctrl/Cmd+J`) — a cross-repo overlay listing sessions that need attention, with Jump/Dismiss, plus a "N need you" pill in the status bar and background toasts for backgrounded sessions
+- **"Who needs you" cockpit** (`Ctrl/Cmd+J`) — a cross-repo overlay listing sessions that need attention, with Jump/Dismiss (and a Ship-it shortcut for finished sessions), **how long each session has been waiting**, keyboard shortcuts with on-row hints, plus a "N need you" pill in the status bar and background toasts for backgrounded sessions
 - **Agent "needs you" alerts via the terminal bell** — when an agent CLI rings its bell (Claude Code: turn finished, question waiting), the session is flagged `awaiting-input`, fires a toast with Jump, and counts in the pill. Typing in the session clears it. **Requires the CLI's bell channel** — for Claude Code add `"preferredNotifChannel": "terminal_bell"` to your `~/.claude/settings.json` (or profile settings)
 - **Current scope** — shell sessions are classified from a rolling output-tail + quiescence timer; agent sessions (Claude Code, Codex) are classified from their **rendered screen content** — a headless `ScreenModel` (`@xterm/headless`) takes settled snapshots of the terminal's alt-screen buffer and feeds them to the provider's `getStateSignals()` table, yielding the same `working` / `awaiting-approval` / `awaiting-input` / `done` / `errored` states as shells. The terminal bell (`BareBellDetector`) still supplies the `awaiting-input` needs-you signal for agents alongside the screen-driven classification.
+
+### Session History & Checkpoints
+- **Session History Explorer** (`Ctrl/Cmd+K → "Session history…"`) — browse the transcripts of past sessions, newest first, with the full transcript view for any recorded session
+- **Cross-session content search** — search the *content* of every recorded session at once (debounced, optional case sensitivity) and jump to matches
+- **"While you were away" recap** — a per-session digest of what happened since you last looked, right in the history panel
+- **Export, delete, stats & retention** — export any transcript as Markdown or JSON, delete individually or all at once, see storage stats, and set a retention policy
+- **Checkpoints panel** (`Ctrl/Cmd+K → "Checkpoints…"`) — create named checkpoints of a session's context, edit their details, export them as Markdown/JSON, and delete them
 
 ### Quota Awareness
 - **Burn-rate indicator** in the status bar, backed by the Anthropic API quota service
@@ -228,7 +235,7 @@ Built packages will be in the `release/` directory.
 | Terminal | xterm.js + node-pty |
 | Styling | Tailwind CSS (Obsidian theme) |
 | Build | Vite + electron-builder |
-| Testing | Vitest 4 (670 tests) + Playwright |
+| Testing | Vitest 4 (1418 tests) + Playwright |
 
 ---
 
@@ -276,7 +283,7 @@ See [docs/repo-index.md](docs/repo-index.md) for a detailed domain-to-file mappi
 ```bash
 npm install              # Install dependencies
 npm run electron:dev     # Dev mode with hot reload (renderer)
-npm test                 # Run all 670 tests
+npm test                 # Run all 1418 tests
 npm run test:watch       # Watch mode
 npm run test:e2e         # E2E tests (local only — requires a built app)
 npm run test:coverage    # Coverage report
