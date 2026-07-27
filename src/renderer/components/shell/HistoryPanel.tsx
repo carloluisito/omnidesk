@@ -6,7 +6,7 @@
 // full transcript for the selected one plus its export/delete actions.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
-import { formatLastActive } from './shell-utils';
+import { formatLastActive, formatByteSize, formatActiveDuration } from './shell-utils';
 import { useHistory } from '../../hooks/useHistory';
 import { useSessionDigest } from '../../hooks/useSessionDigest';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -17,26 +17,6 @@ const SEARCH_DEBOUNCE_MS = 200;
 
 interface HistoryPanelProps {
   onClose: () => void;
-}
-
-/** Humanize a byte count as e.g. "1.2 KB" / "3.4 MB". */
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  return `${mb.toFixed(1)} MB`;
-}
-
-/** Humanize a duration in ms as e.g. "42s" / "5m" / "2h 15m". */
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  if (totalMinutes < 60) return `${totalMinutes}m`;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
 export function HistoryPanel({ onClose }: HistoryPanelProps) {
@@ -290,7 +270,7 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
                   <div className="t" style={{ fontWeight: 600 }}>{s.name}</div>
                   <div className="d">{s.workingDirectory}</div>
                   <div className="d">
-                    {formatLastActive(s.lastUpdatedAt)} · {formatSize(s.sizeBytes)}
+                    {formatLastActive(s.lastUpdatedAt)} · {formatByteSize(s.sizeBytes)}
                     {s.segmentCount > 0 ? ` · ${s.segmentCount + 1} segments` : ''}
                   </div>
                 </div>
@@ -325,9 +305,9 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
                     data-testid="history-digest-summary"
                     style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12 }}
                   >
-                    <span>Active: {formatDuration(digest.activeDurationMs)}</span>
+                    <span>Active: {formatActiveDuration(digest.activeDurationMs)}</span>
                     <span>Restarts: {digest.restartSegments}</span>
-                    <span>Output: {formatSize(digest.outputBytes)}</span>
+                    <span>Output: {formatByteSize(digest.outputBytes)}</span>
                     <span>Checkpoints: {digest.checkpointsCreated}</span>
                     <span data-testid="history-digest-approvals">
                       Approval prompts: {digest.approvalPromptsHit === null ? '— (not tracked)' : digest.approvalPromptsHit}
@@ -393,7 +373,7 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
           {stats && (
             <div className="p4-form-row" data-testid="history-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="d">
-                {stats.totalSessions} session{stats.totalSessions === 1 ? '' : 's'} · {formatSize(stats.totalSizeBytes)}
+                {stats.totalSessions} session{stats.totalSessions === 1 ? '' : 's'} · {formatByteSize(stats.totalSizeBytes)}
                 {stats.oldestSessionDate !== null && stats.newestSessionDate !== null
                   ? ` · ${formatLastActive(stats.oldestSessionDate)} – ${formatLastActive(stats.newestSessionDate)}`
                   : ''}
