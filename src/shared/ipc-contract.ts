@@ -1,4 +1,4 @@
-// @atlas-entrypoint: IPC single source of truth — 115 methods, auto-derives preload bridge and types
+// @atlas-entrypoint: IPC single source of truth — 116 methods, auto-derives preload bridge and types
 /**
  * IPC Contract — Single source of truth for all IPC methods.
  *
@@ -44,6 +44,7 @@ import type {
   HistorySearchResult,
   HistorySettings,
   HistoryStats,
+  SessionDigest,
 } from './types/history-types';
 
 import type {
@@ -201,6 +202,7 @@ export interface IPCContractMap {
   getHistorySettings:  InvokeContract<'history:getSettings',     [],                             HistorySettings>;
   updateHistorySettings: InvokeContract<'history:updateSettings', [Partial<HistorySettings>],    boolean>;
   getHistoryStats:     InvokeContract<'history:getStats',        [],                             HistoryStats>;
+  getSessionDigest:    InvokeContract<'history:getSessionDigest', [string, number?],              SessionDigest>;
 
   // ── Checkpoints (invoke) ──
   createCheckpoint:    InvokeContract<'checkpoint:create',    [CheckpointCreateRequest],         Checkpoint>;
@@ -388,6 +390,7 @@ export const channels: { [K in keyof IPCContractMap]: ChannelOf<K> } = {
   getHistorySettings:  'history:getSettings',
   updateHistorySettings: 'history:updateSettings',
   getHistoryStats:     'history:getStats',
+  getSessionDigest:    'history:getSessionDigest',
 
   // Checkpoints
   createCheckpoint:    'checkpoint:create',
@@ -556,6 +559,7 @@ export const contractKinds: { [K in keyof IPCContractMap]: KindOf<K> } = {
   getHistorySettings:  'invoke',
   updateHistorySettings: 'invoke',
   getHistoryStats:     'invoke',
+  getSessionDigest:    'invoke',
 
   createCheckpoint:    'invoke',
   listCheckpoints:     'invoke',

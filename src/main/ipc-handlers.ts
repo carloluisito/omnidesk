@@ -13,6 +13,7 @@ import { SessionPool } from './session-pool';
 import { SettingsManager } from './settings-persistence';
 import { HistoryManager } from './history-manager';
 import { CheckpointManager } from './checkpoint-manager';
+import { computeSessionDigest } from './session-digest-service';
 import { GitManager } from './git-manager';
 import { ProviderRegistry } from './providers/provider-registry';
 import { queryClaudeQuota, clearQuotaCache, getBurnRate, resolveClaudeConfigDir } from './quota-service';
@@ -599,6 +600,11 @@ export function setupIPCHandlers(
   registry.handle('getHistoryStats', async () => {
     try { return await historyManager.getStats(); }
     catch (err) { console.error('Failed to get history stats:', err); throw err; }
+  });
+
+  registry.handle('getSessionDigest', async (_e, sessionId, since) => {
+    try { return await computeSessionDigest(historyManager, checkpointManager, sessionId, since); }
+    catch (err) { console.error('Failed to get session digest:', err); throw err; }
   });
 
   // ── Checkpoints ──

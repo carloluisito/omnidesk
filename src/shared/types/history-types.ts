@@ -85,6 +85,40 @@ export interface HistoryStats {
 }
 
 /**
+ * Per-session activity digest ("while you were away" recap).
+ *
+ * v1 is computed entirely from persisted metadata (HistorySessionEntry) plus
+ * the checkpoint store — it does NOT depend on the live session-state
+ * classifier (epic #195), which has no historical/persisted timeline to
+ * replay. See SessionDigestService for the computation rules.
+ */
+export interface SessionDigest {
+  /** Session this digest describes */
+  sessionId: string;
+  /** Start of the window this digest covers (ms, epoch) */
+  windowStart: number;
+  /** End of the window this digest covers (ms, epoch) */
+  windowEnd: number;
+  /** windowEnd - windowStart */
+  activeDurationMs: number;
+  /** Restart segments observed (from HistorySessionEntry.segmentCount) */
+  restartSegments: number;
+  /** Bytes of recorded output in the window (from sizeBytes) */
+  outputBytes: number;
+  /** Checkpoints created within the window */
+  checkpointsCreated: number;
+  /**
+   * Best-effort count of approval-prompt markers hit in the window, derived
+   * by replaying the session's provider's getStateSignals() patterns over
+   * stored raw output. `null` when not derivable (e.g. no persisted provider
+   * association for the session) rather than an error.
+   */
+  approvalPromptsHit: number | null;
+  /** Best-effort count of error markers hit in the window; null when not derivable. */
+  errorsDetected: number | null;
+}
+
+/**
  * JSON export format
  */
 export interface HistoryExportJson {
