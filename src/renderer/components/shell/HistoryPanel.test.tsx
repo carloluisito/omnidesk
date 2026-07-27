@@ -7,6 +7,7 @@ import type {
   HistorySearchResult,
   HistorySettings,
   HistoryStats,
+  SessionDigest,
 } from '../../../shared/types/history-types';
 
 function makeSettings(overrides: Partial<HistorySettings> = {}): HistorySettings {
@@ -41,6 +42,21 @@ function makeSession(overrides: Partial<HistorySessionEntry> = {}): HistorySessi
   };
 }
 
+function makeDigest(overrides: Partial<SessionDigest> = {}): SessionDigest {
+  return {
+    sessionId: 's1',
+    windowStart: Date.now() - 120_000,
+    windowEnd: Date.now(),
+    activeDurationMs: 90_000,
+    restartSegments: 1,
+    outputBytes: 2048,
+    checkpointsCreated: 3,
+    approvalPromptsHit: 2,
+    errorsDetected: 0,
+    ...overrides,
+  };
+}
+
 function makeSearchResult(overrides: Partial<HistorySearchResult> = {}): HistorySearchResult {
   return {
     session: makeSession(),
@@ -65,6 +81,7 @@ function setupApi(sessions: HistorySessionEntry[] = [makeSession()]) {
   api.deleteHistory = vi.fn().mockResolvedValue(true);
   api.deleteAllHistory = vi.fn().mockResolvedValue(true);
   api.updateHistorySettings = vi.fn().mockResolvedValue(true);
+  api.getSessionDigest = vi.fn().mockResolvedValue(makeDigest());
   return api;
 }
 
@@ -351,5 +368,71 @@ describe('HistoryPanel', () => {
 
     fireEvent.click(screen.getByTestId('history-setting-auto-cleanup'));
     await waitFor(() => expect(api.updateHistorySettings).toHaveBeenCalledWith({ autoCleanup: true }));
+  });
+
+  it('selecting a session fetches and renders its "while you were away" recap', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    api.getSessionDigest = vi.fn().mockResolvedValue(
+      makeDigest({ activeDurationMs: 90_000, restartSegments: 1, checkpointsCreated: 3, approvalPromptsHit: 2, errorsDetected: 0 })
+    );
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+
+    await waitFor(() => expect(api.getSessionDigest).toHaveBeenCalledWith('s1', undefined));
+    const summary = await screen.findByTestId('history-digest-summary');
+    expect(within(summary).getByText('Active: 1m')).toBeInTheDocument();
+    expect(within(summary).getByText('Restarts: 1')).toBeInTheDocument();
+    expect(within(summary).getByText('Checkpoints: 3')).toBeInTheDocument();
+    expect(screen.getByTestId('history-digest-approvals')).toHaveTextContent('Approval prompts: 2');
+    expect(screen.getByTestId('history-digest-errors')).toHaveTextContent('Errors: 0');
+  });
+
+  it('renders "not tracked" instead of 0 for null approvalPromptsHit/errorsDetected', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    api.getSessionDigest = vi.fn().mockResolvedValue(
+      makeDigest({ approvalPromptsHit: null, errorsDetected: null })
+    );
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+
+    await waitFor(() => screen.getByTestId('history-digest-summary'));
+    expect(screen.getByTestId('history-digest-approvals')).toHaveTextContent('— (not tracked)');
+    expect(screen.getByTestId('history-digest-errors')).toHaveTextContent('— (not tracked)');
+    expect(screen.getByTestId('history-digest-approvals')).not.toHaveTextContent('0');
+    expect(screen.getByTestId('history-digest-errors')).not.toHaveTextContent('0');
+  });
+
+  it('shows a non-fatal inline error when the digest fetch fails, without hiding the transcript', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    api.getSessionDigest = vi.fn().mockRejectedValue(new Error('digest computation failed'));
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+
+    await waitFor(() => expect(screen.getByText(/Recap unavailable: digest computation failed/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('history-content')).toHaveTextContent('transcript line 1')
+    );
+  });
+
+  it('clears the recap card when the selection is cleared', async () => {
+    const api = setupApi([makeSession({ id: 's1' })]);
+    render(<HistoryPanel onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('history-row-s1'));
+    fireEvent.click(screen.getByTestId('history-row-s1'));
+    await waitFor(() => screen.getByTestId('history-digest-summary'));
+
+    fireEvent.click(screen.getByTestId('history-delete'));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.mouseDown(within(dialog).getByRole('button', { name: /^Delete/ }));
+
+    await waitFor(() => expect(api.deleteHistory).toHaveBeenCalledWith('s1'));
+    expect(screen.queryByTestId('history-digest')).not.toBeInTheDocument();
   });
 });
