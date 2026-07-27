@@ -393,7 +393,7 @@ export class SessionManager {
     }
 
     // Update history metadata with session details
-    this.historyManager.updateSessionMetadata(id, metadata.name, workingDir);
+    this.historyManager.updateSessionMetadata(id, metadata.name, workingDir, metadata.providerId);
 
     this.persistState();
     this.emitter?.emit('onSessionCreated', metadata);
@@ -476,7 +476,12 @@ export class SessionManager {
     session.metadata.name = name;
     this.emitter?.emit('onSessionUpdated', session.metadata);
     this.persistState();
-    this.historyManager.updateSessionMetadata(sessionId, name, session.metadata.workingDirectory);
+    this.historyManager.updateSessionMetadata(
+      sessionId,
+      name,
+      session.metadata.workingDirectory,
+      session.metadata.providerId
+    );
   }
 
   /** Record + broadcast a session's live activity state (transient, not persisted). */
@@ -796,7 +801,8 @@ export class SessionManager {
     this.historyManager.updateSessionMetadata(
       sessionId,
       trimmedName,
-      session.metadata.workingDirectory
+      session.metadata.workingDirectory,
+      session.metadata.providerId
     );
 
     return session.metadata;
@@ -853,7 +859,8 @@ export class SessionManager {
     this.historyManager.updateSessionMetadata(
       sessionId,
       session.metadata.name,
-      session.metadata.workingDirectory
+      session.metadata.workingDirectory,
+      session.metadata.providerId
     );
 
     const isShell = session.metadata.kind === 'shell';

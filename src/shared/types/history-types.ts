@@ -20,6 +20,13 @@ export interface HistorySessionEntry {
   sizeBytes: number;
   /** Number of restart segments (starts at 0) */
   segmentCount: number;
+  /**
+   * Provider that ran this session (e.g. 'claude', 'codex'); undefined for
+   * shell sessions or sessions recorded before this field existed. Persisted
+   * so a closed/historical session's digest can eventually resolve the
+   * provider's marker patterns for real approval/error counts (issue #230).
+   */
+  providerId?: string;
 }
 
 /**
