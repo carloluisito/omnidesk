@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.1] - 2026-07-28
+
+### Added
+- **Recap at a glance on the live session pane.** The "while you were away" recap now also appears as a compact row on the session pane itself — not just in the history panel — refreshing whenever you switch sessions.
+- **Real approval & error counts in session digests.** The recap's approval-prompts and errors-detected figures are now computed by replaying the session's recorded output against the provider's own state-signal patterns. When a count genuinely can't be derived (e.g. shell sessions), it shows "not tracked" rather than a misleading 0.
+
+---
+
 ## [2.7.0] - 2026-07-27
 
 ### Added

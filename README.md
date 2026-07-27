@@ -93,7 +93,7 @@
 ### Session History & Checkpoints
 - **Session History Explorer** (`Ctrl/Cmd+K → "Session history…"`) — browse the transcripts of past sessions, newest first, with the full transcript view for any recorded session
 - **Cross-session content search** — search the *content* of every recorded session at once (debounced, optional case sensitivity) and jump to matches
-- **"While you were away" recap** — a per-session digest of what happened since you last looked, right in the history panel
+- **"While you were away" recap** — a per-session digest of what happened since you last looked, shown in the history panel and as a glance row on the live session pane; agent sessions report real approval-prompt and error counts (shell sessions show "not tracked" instead of a misleading 0)
 - **Export, delete, stats & retention** — export any transcript as Markdown or JSON, delete individually or all at once, see storage stats, and set a retention policy
 - **Checkpoints panel** (`Ctrl/Cmd+K → "Checkpoints…"`) — create named checkpoints of a session's context, edit their details, export them as Markdown/JSON, and delete them
 
