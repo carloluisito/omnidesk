@@ -603,7 +603,7 @@ export function setupIPCHandlers(
   });
 
   registry.handle('getSessionDigest', async (_e, sessionId, since) => {
-    try { return await computeSessionDigest(historyManager, checkpointManager, sessionId, since); }
+    try { return await computeSessionDigest(historyManager, checkpointManager, providerRegistry, sessionId, since); }
     catch (err) { console.error('Failed to get session digest:', err); throw err; }
   });
 
