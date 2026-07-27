@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { P4Icon } from './P4Icon';
 import { formatLastActive } from './shell-utils';
 import { useHistory } from '../../hooks/useHistory';
+import { useSessionDigest } from '../../hooks/useSessionDigest';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { HistorySearchResult, HistorySettings, HistoryStats } from '../../../shared/types/history-types';
 
@@ -27,12 +28,30 @@ function formatSize(bytes: number): string {
   return `${mb.toFixed(1)} MB`;
 }
 
+/** Humanize a duration in ms as e.g. "42s" / "5m" / "2h 15m". */
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
 export function HistoryPanel({ onClose }: HistoryPanelProps) {
   const {
     sessions, loading, error, getContent, search,
     remove, removeAll, exportMarkdown, exportJson,
     getSettings, updateSettings, getStats,
   } = useHistory();
+  const {
+    digest,
+    loading: digestLoading,
+    error: digestError,
+    fetch: fetchDigest,
+    clear: clearDigest,
+  } = useSessionDigest();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
@@ -106,6 +125,7 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
     setContentLoading(true);
     setContentMissing(false);
     setContent(null);
+    void fetchDigest(id);
     try {
       const result = await getContent(id);
       if (result === null) {
@@ -116,13 +136,14 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
     } finally {
       setContentLoading(false);
     }
-  }, [getContent]);
+  }, [getContent, fetchDigest]);
 
   const clearSelection = useCallback(() => {
     setSelectedId(null);
     setContent(null);
     setContentMissing(false);
-  }, []);
+    clearDigest();
+  }, [clearDigest]);
 
   const handleExportMarkdown = useCallback(async (id: string, name: string) => {
     const path = await window.electronAPI.showSaveDialog({
@@ -278,6 +299,47 @@ export function HistoryPanel({ onClose }: HistoryPanelProps) {
           </div>
 
           <div style={{ flex: '1 1 55%', overflowY: 'auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selectedId !== null && (
+              <div
+                className="p4-form-row"
+                data-testid="history-digest"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  padding: 8,
+                  border: '1px solid var(--border, #2a2a2a)',
+                  borderRadius: 4,
+                }}
+              >
+                <div className="t" style={{ fontWeight: 600 }}>While you were away</div>
+                {digestLoading ? (
+                  <span className="d">Loading recap…</span>
+                ) : digestError ? (
+                  <span className="d" style={{ color: 'var(--danger, #F7678E)' }}>
+                    Recap unavailable: {digestError}
+                  </span>
+                ) : digest ? (
+                  <div
+                    className="d"
+                    data-testid="history-digest-summary"
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12 }}
+                  >
+                    <span>Active: {formatDuration(digest.activeDurationMs)}</span>
+                    <span>Restarts: {digest.restartSegments}</span>
+                    <span>Output: {formatSize(digest.outputBytes)}</span>
+                    <span>Checkpoints: {digest.checkpointsCreated}</span>
+                    <span data-testid="history-digest-approvals">
+                      Approval prompts: {digest.approvalPromptsHit === null ? '— (not tracked)' : digest.approvalPromptsHit}
+                    </span>
+                    <span data-testid="history-digest-errors">
+                      Errors: {digest.errorsDetected === null ? '— (not tracked)' : digest.errorsDetected}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             {selectedId !== null && (
               <div className="p4-form-row" style={{ display: 'flex', gap: 6 }}>
                 <button
